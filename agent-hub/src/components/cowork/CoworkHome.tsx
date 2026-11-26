@@ -141,13 +141,14 @@ function FlashLine({ flash }: { flash: Flash | null }) {
 }
 
 export interface CoworkHomeProps {
+    onAskTask?: (id: string, message: string) => void;
     onOpenTask: (itemId: string, focus?: TaskFocus) => void;
     onOpenPanel: (panel: CoworkSheetPanel) => void;
     /** A sentence to put in the composer (a template's). */
     seed?: { text: string; n: number } | null;
 }
 
-export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: CoworkHomeProps) {
+export default function CoworkHome({ onAskTask, onOpenTask, onOpenPanel, seed = null }: CoworkHomeProps) {
     const { t } = useTranslation();
     const client = useQueryClient();
     const list = useCoworkList();
@@ -167,7 +168,7 @@ export default function CoworkHome({ onOpenTask, onOpenPanel, seed = null }: Cow
     }, [client, begin]);
     return (
         <div className="cowork-home flex flex-col gap-9" data-testid="cowork-home">
-            <CoworkHomeComposer stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
+            <CoworkHomeComposer items={items} onAskTask={onAskTask} stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
                 onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup}
                 finished={finished && finished.seed === seed ? {
                     flow: finished.task.flow, apps: finished.task.enabledApps, title: finished.task.title, message: finished.message, onOpen: () => { onOpenTask(finished.task.id); setFinished(null); },

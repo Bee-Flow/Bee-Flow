@@ -3,7 +3,21 @@ import useDictation from '@/components/chat/useDictation';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TaskConversation } from './useTaskConversation';
+import { cadenceLine } from '../coworkSchedule';
+import { BUTTON_PRIMARY, LINK_INLINE } from '../coworkUi';
 import { Failure } from './taskUi';
+
+function ClockReview({ clock }: {clock: TaskConversation['clock']}) {
+    const { t } = useTranslation();
+    if (!clock.schedule) return null;
+    return <div className="cowork-chat-reply">
+        <p role="status">{cadenceLine(clock.schedule, t)} · {clock.schedule.timezone}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" className={BUTTON_PRIMARY} disabled={clock.disabled} onClick={clock.confirm}>{t('cowork_task.orb.apply_clock', 'Apply schedule')}</button>
+            <button type="button" className={LINK_INLINE} disabled={clock.disabled} onClick={clock.cancel}>{t('cowork_task.edit.cancel', 'Cancel')}</button>
+        </div>
+    </div>;
+}
 
 export default function CoworkOrbComposer({ chat }: { chat: TaskConversation }) {
     const { t, locale } = useTranslation();
@@ -14,6 +28,7 @@ export default function CoworkOrbComposer({ chat }: { chat: TaskConversation }) 
     const disabled = !chat.text.trim() || chat.dialog.isPending || chat.selected.length > 100 || mic.state !== 'idle';
     return <div className="cowork-conversation">
         {chat.reply && <div aria-live="polite" className="cowork-chat-reply"><MarkdownRenderer content={chat.reply} /></div>}
+        <ClockReview clock={chat.clock} />
         <Failure error={chat.error} t={t} />
         {chat.selected.length > 100 && <p role="alert">{t('cowork_task.orb.shorten', 'Select fewer steps or shorten the change.')}</p>}
         <form onSubmit={e => { e.preventDefault(); if (!disabled) chat.send(); }}>

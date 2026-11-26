@@ -1,5 +1,10 @@
 {
   "translations": {
+    "cowork_home.existing.ask_task": "Vraag Bee over {title}",
+    "cowork_home.existing.create_new": "Nieuwe taak maken",
+    "cowork_home.existing.choose": "Kies een taak",
+    "cowork_home.existing.reference": "Taak {id}",
+    "cowork_home.existing.ask": "Vraag Bee over een bestaande taak",
     "cowork_home.choose_step": "Kies een stap",
     "cowork_home.use_step": "Gebruik de stap {step}.",
     "cowork_home.ask": "Wat moet er voor je gedaan worden?",
@@ -36,6 +41,7 @@
     "cowork_home.confirm.after_set_up": "Cowork zet de stappen klaar en test ze één keer. Tijdens de test wordt niets verstuurd, en hij draait pas echt nadat je de stappen hebt goedgekeurd.",
     "cowork_home.confirm.after_start_ai": "Je organisatie heeft geen vaste stappen, dus de AI zoekt deze taak elke keer zelf uit.",
     "cowork_home.confirm.at": "om",
+    "cowork_home.confirm.your_answer": "Je antwoord",
     "cowork_home.confirm.cancel": "Annuleren",
     "cowork_home.confirm.change": "Wijzigen",
     "cowork_home.confirm.every_day": "Elke {day}",

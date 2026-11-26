@@ -190,6 +190,11 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
             setDraft({ payload, spec });
             return null;
         }
+        if (!confirm && spec?.clarification) {
+            // The chat composer keeps the owner's brief in the box, ready to complete.
+            setError(spec.clarification.question);
+            return null;
+        }
         const created = await createCowork(payload);
         reset();
         if (onCreated) onCreated(created, payload, spec);

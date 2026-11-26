@@ -6,6 +6,11 @@
  */
 
 export default {
+    "cowork_home.existing.ask_task": "Ask Bee about {title}",
+    "cowork_home.existing.create_new": "Create a new task",
+    "cowork_home.existing.choose": "Choose a task",
+    "cowork_home.existing.reference": "Task {id}",
+    "cowork_home.existing.ask": "Ask Bee about an existing task",
     "cowork_home.choose_step": "Choose a step",
     "cowork_home.use_step": "Use the {step} step.",
     "cowork_home.confirm.target_folder": "Which folder should receive the files?",
@@ -59,6 +64,7 @@ export default {
     "cowork_home.confirm.after_set_up": "Cowork sets up the steps and tests them once. Nothing is sent during the test, and it runs for real only after you approve the steps.",
     "cowork_home.confirm.after_start_ai": "Your organisation has no fixed steps, so the AI works this task out on every run.",
     "cowork_home.confirm.at": "at",
+    "cowork_home.confirm.your_answer": "Your answer",
     "cowork_home.confirm.cancel": "Cancel",
     "cowork_home.confirm.change": "Change",
     "cowork_home.confirm.every_day": "Every {day}",

@@ -3,6 +3,10 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_task.orb.preview": "Review test preview",
+    "cowork_task.orb.preview_ready": "Your test preview is ready.",
+    "cowork_task.orb.run_details": "See run details",
+    "cowork_task.orb.ask_recipient": "Who should receive the result?",
     "cowork_task.orb.active": "In progress",
     "cowork_task.orb.selected": "{count} steps selected",
     "cowork_task.orb.open_result": "Open result",
@@ -10,6 +14,8 @@ module.exports = {
     "cowork_task.orb.shorten": "Select fewer steps or shorten the change.",
     "cowork_task.orb.recipient": "Change recipient",
     "cowork_task.orb.tests": "Tests and permissions",
+    "cowork_task.orb.refresh_clock": "The schedule changed. Ask me for the new time again.",
+    "cowork_task.orb.apply_clock": "Apply schedule",
     "cowork_task.orb.talk": "Ask Bee…",
     "cowork_task.orb.ready": "How can I help with this task?",
     "cowork_task.orb.send": "Send message",

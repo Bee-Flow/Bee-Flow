@@ -97,6 +97,7 @@ function RunRow({ run, coworkId, open, onToggle, withReceipts, onSteps, t }: { r
 }
 
 interface CoworkTaskRunsProps {
+    initialRunId?: string;
     coworkId: string;
     runs: CoworkRun[];
     /** Read each run's receipt when opened: only for the owner's own task. */
@@ -107,8 +108,8 @@ interface CoworkTaskRunsProps {
     t: TranslateFn;
 }
 
-export default function CoworkTaskRuns({ coworkId, runs, withReceipts, heading, onSteps, t }: CoworkTaskRunsProps) {
-    const [open, setOpen] = useState<string | null>(null);
+export default function CoworkTaskRuns({ coworkId, runs, withReceipts, heading, onSteps, initialRunId, t }: CoworkTaskRunsProps) {
+    const [open, setOpen] = useState<string | null>(initialRunId ?? null);
     const done = runs.filter((r) => r.status !== 'running').slice(0, SHOWN);
     return (
         <div className="flex flex-col gap-1" data-testid="cowork-task-runs">

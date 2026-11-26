@@ -212,3 +212,21 @@ test('calendar dates, explicit one-offs and suggested hours survive composition 
     assert.strictEqual(invalid.timeIsSuggested, undefined);
     assert.strictEqual(normaliseSpec({ repeatInterval: 'daily', oneOff: 'now' }).oneOff, undefined);
 });
+
+test('a clarification contains one question and at most two distinct, usable answers', () => {
+    const clarification = {
+        question: ' What do you need? ',
+        options: [{ instruction: 'send' }, null, ' ', ' Summarise mail ', 'Summarise mail', 'Draft replies', 'Third choice'],
+    };
+    const spec = normaliseSpec({ clarification }, { brief: 'Help with mail' });
+    assert.deepEqual(spec.clarification, { question: 'What do you need?', options: ['Summarise mail', 'Draft replies'] });
+    assert.equal(spec.prompt, 'Help with mail');
+    assert.equal(spec.delivery, undefined);
+});
+
+test('malformed clarifications are ignored and a valid question may have no suggestions', () => {
+    assert.equal(normaliseSpec({ clarification: { question: ' ' } }).clarification, undefined);
+    assert.equal(normaliseSpec({ clarification: { question: {} } }).clarification, undefined);
+    assert.deepEqual(normaliseSpec({ clarification: { question: 'Which source?', options: 'mail' } }).clarification,
+        { question: 'Which source?', options: [] });
+});

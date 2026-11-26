@@ -100,6 +100,14 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
         setPage(next);
         onNavigate?.(`cowork/${pageSegment(next)}`);
     }, [onNavigate, remember, setPage]);
+    const askTask = (id: string, message: string) => {
+        let pending = message;
+        open({ kind: 'task', id, takeQuestion: () => {
+            const question = pending;
+            pending = '';
+            return question;
+        } });
+    };
     const openTask = useCallback((id: string, focus?: TaskFocus) => open({ kind: 'task', id, ...(focus ? { focus } : {}) }), [open]);
     const close = useCallback(() => {
         setPage(null);
@@ -126,7 +134,7 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                             <Settings aria-hidden="true" size={16} />
                         </button>
                     </header>
-                    <CoworkHome onOpenTask={openTask} onOpenPanel={open} seed={seed} />
+                    <CoworkHome onAskTask={askTask} onOpenTask={openTask} onOpenPanel={open} seed={seed} />
                 </div>
                 {page && Page && (
                     <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close}>

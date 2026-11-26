@@ -11,7 +11,7 @@ import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/reco
 import CoworkHomeComposer from './CoworkHomeComposer';
 import { softClasses } from './crisp.testkit';
 import EntitlementsContext, { type EntitlementsValue } from '../licensing/EntitlementsContext';
-import type { CoworkSpec } from '@/api/cowork.types';
+import type { CoworkItem, CoworkSpec } from '@/api/cowork.types';
 
 let calls: RecordedCall[];
 const pathOf = (call: RecordedCall): string => new URL(call.url, 'http://x').pathname;
@@ -38,11 +38,12 @@ const entitled = (steps: boolean): EntitlementsValue => ({
 });
 const inOrg = (ui: ReactElement, steps = true) => <EntitlementsContext.Provider value={entitled(steps)}>{ui}</EntitlementsContext.Provider>;
 
-function renderComposer({ steps = true, stepTypes = [] as string[] } = {}) {
+function renderComposer({ steps = true, stepTypes = [] as string[], items = [] as CoworkItem[] } = {}) {
     const onCreated = vi.fn();
     const onTemplates = vi.fn();
-    renderWithClient(inOrg(<CoworkHomeComposer stepTypes={stepTypes} atLimit={false} maxItems={10} onTemplates={onTemplates} onCreated={onCreated} setup={null} />, steps));
-    return { onCreated, onTemplates };
+    const onAskTask = vi.fn();
+    renderWithClient(inOrg(<CoworkHomeComposer items={items} onAskTask={onAskTask} stepTypes={stepTypes} atLimit={false} maxItems={10} onTemplates={onTemplates} onCreated={onCreated} setup={null} />, steps));
+    return { onCreated, onTemplates, onAskTask };
 }
 
 const box = () => screen.getByLabelText('Task instructions');
@@ -61,6 +62,44 @@ async function write(text: string, advanced = true) {
 const WEEKLY: CoworkSpec = { title: 'Weekly meeting summary', prompt: 'Summarise last week’s meetings and mail the summary', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00' };
 
 describe('CoworkHomeComposer', () => {
+    const digest = { id: 'weekly-a', title: 'Weekoverzicht', prompt: 'Vat klantgesprekken samen', runCount: 1 };
+
+    it.each(['Wijzig mijn weekoverzicht naar vrijdag', 'Kan je mijn Weekoverzicht aanpassen?'])('carries an explicit change into the named task with Ctrl+Enter: %s', async request => {
+        serve(WEEKLY);
+        const { onAskTask } = renderComposer({ items: [digest] });
+        const user = userEvent.setup();
+        await user.type(box(), request);
+        expect(screen.getByRole('button', { name: 'Ask Bee about Weekoverzicht' })).toBeVisible();
+        await user.keyboard('{Control>}{Enter}{/Control}');
+        expect(onAskTask).toHaveBeenCalledWith(digest.id, request);
+        expect(composed()).toHaveLength(0);
+    });
+
+    it('asks which identically scheduled task the owner means and distinguishes their instructions', async () => {
+        serve(WEEKLY);
+        const second = { ...digest, id: 'weekly-b', prompt: 'Vat leveranciersgesprekken samen' };
+        const { onAskTask } = renderComposer({ items: [digest, second] });
+        const user = userEvent.setup();
+        const request = 'Pas mijn Weekoverzicht aan';
+        await user.type(box(), request);
+        await user.keyboard('{Control>}{Enter}{/Control}');
+        expect(screen.getByRole('button', { name: 'Weekoverzicht Vat klantgesprekken samen' })).toHaveFocus();
+        expect(onAskTask).not.toHaveBeenCalled();
+        expect(composed()).toHaveLength(0);
+        await user.click(screen.getByRole('button', { name: 'Weekoverzicht Vat leveranciersgesprekken samen' }));
+        expect(onAskTask).toHaveBeenCalledWith(second.id, request);
+    });
+
+    it('lets the owner deliberately create a new task with the same name', async () => {
+        serve(WEEKLY);
+        const { onAskTask } = renderComposer({ items: [digest] });
+        const user = userEvent.setup();
+        await user.type(box(), 'Edit my Weekoverzicht');
+        await user.click(screen.getByRole('button', { name: 'Create a new task' }));
+        await waitFor(() => expect(created()).toBeDefined());
+        expect(onAskTask).not.toHaveBeenCalled();
+    });
+
     it('adds a selected Automations step to the existing task description', async () => {
         serve({});
         renderComposer({ stepTypes: ['condition'] });
@@ -293,6 +332,41 @@ describe('CoworkHomeComposer', () => {
         await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
         expect(created()?.body).toMatchObject({ setup: { steps: true, sendsTo: [] } });
         expect(screen.queryByTestId('cowork-confirm')).toBeNull();
+        expect(composed()).toHaveLength(1);
+    });
+
+    it.each([true, false])('clarifies the goal before setup and reads only the actual answer (suggestion: %s)', async useSuggestion => {
+        const initial = 'Help with my inbox';
+        const suggested = 'Summarise unread mail';
+        const custom = 'List flagged messages';
+        const question = 'What would you like to do with your mail?';
+        serve(brief => brief === initial
+            ? { ...WEEKLY, clarification: { question, options: [suggested, 'Draft replies'] } }
+            : { ...WEEKLY, prompt: brief });
+        renderComposer();
+        const { user, card } = await write(initial, false);
+        expect(within(card).getByText(question)).toBeVisible();
+        expect(created()).toBeUndefined();
+        if (useSuggestion) {
+            await user.click(within(card).getByRole('button', { name: suggested }));
+        } else {
+            await user.type(within(card).getByRole('textbox', { name: 'Your answer' }), custom);
+            await user.click(within(card).getByRole('button', { name: 'Continue' }));
+        }
+        const completed = initial + '\n' + (useSuggestion ? suggested : custom);
+        await waitFor(() => expect(created()?.body).toMatchObject({ prompt: completed, setup: { steps: true, sendsTo: [] } }));
+        expect(composed().map(call => (call.body as { brief: string }).brief)).toEqual([initial, completed]);
+    });
+
+    it('asks the goal before a missing schedule and allows cancellation', async () => {
+        serve({ clarification: { question: 'Which source should I summarise?', options: [] } });
+        renderComposer();
+        const { user, card } = await write('Make a summary', false);
+        expect(within(card).getByText('Which source should I summarise?')).toBeVisible();
+        expect(within(card).getByRole('button', { name: 'Continue' })).toBeDisabled();
+        await user.click(within(card).getByRole('button', { name: 'Cancel' }));
+        expect(created()).toBeUndefined();
+        expect(box()).toHaveValue('Make a summary');
     });
 
     it.each([

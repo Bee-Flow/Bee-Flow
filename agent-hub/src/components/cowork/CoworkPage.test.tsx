@@ -23,6 +23,7 @@ let calls: RecordedCall[];
 function serve(items: CoworkItem[] = [ITEM]) {
     calls = stubRecordingFetch(({ url, method }) => {
         const path = new URL(url, 'http://x').pathname;
+        if (path === '/api/cowork/w1/conversation') return jsonResponse({ action: 'answer', answer: 'Your digest is ready.', instruction: '' });
         if (path.endsWith('/my-entitlements')) return jsonResponse({ tier: 'full', effective: { core: ['automations'] } });
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
         // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up and tests them.
@@ -66,6 +67,20 @@ beforeAll(async () => {
 }, 60_000);
 
 describe('CoworkPage', () => {
+    it('carries a question about a named task into its conversation once', async () => {
+        serve();
+        renderWithClient(<CoworkPage />);
+        const user = userEvent.setup();
+        const question = 'Why did Weekly digest stop?';
+        await user.type(screen.getByTestId('cowork-brief-input'), question);
+        await user.click(await screen.findByRole('button', { name: 'Weekly digest' }));
+        expect(await screen.findByText('Your digest is ready.')).toBeVisible();
+        const turns = calls.filter(call => call.url.endsWith('/w1/conversation'));
+        expect(turns).toHaveLength(1);
+        expect(turns[0].body).toMatchObject({ message: question });
+        expect(calls.some(call => call.method === 'POST' && call.url.endsWith('/api/cowork'))).toBe(false);
+    });
+
     it('opens a task from its row as a page in place of the home, says so in the address, and "Tasks" goes back to the row', async () => {
         serve();
         const onNavigate = vi.fn();

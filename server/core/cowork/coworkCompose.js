@@ -61,6 +61,7 @@ Fields:
 - "timeOfDay": "HH:MM" (24h) when a time is stated or clearly implied; otherwise null. If the brief gives a broad time such as "every morning" and you choose the exact hour, include "timeIsSuggested": true so the owner can confirm it.
     Vague parts of day map to: morning/ochtend = "08:00", midday/middag = "12:00", afternoon = "14:00", evening/avond = "18:00", night/nacht = "21:00".
 - "delivery": omit unless the user explicitly requests an outgoing message (send, email, notify, or equivalent in their language). Reading mail, preparing drafts, and returning a result in Cowork do not request delivery. When requested, return {"quote":"exact words requesting delivery copied from the brief","to":["me","literal@example.com"]}. Include "me" only if the owner asks to receive it. Include the recipients in the quoted request. Copy only destination addresses, never a sender, search filter or example address. If the destination is unclear use an empty list and missingTarget "recipient".
+- "clarification": omit when the brief has an actionable goal and enough context to choose inputs. If choosing the outcome or a necessary source would be guesswork, return {"question":"one short question","options":["one possible answer","another possible answer"]}. Ask about just the first blocking decision, in the user’s language. Give zero to two distinct, short answers the user can adopt verbatim. For "help me with my email", ask what should happen and offer "Summarise my unread emails" and "Draft replies to my emails". For "summarise my unread emails", go ahead. Do not ask about scheduling, destinations, formatting or optional preferences here. Do not suggest sending, new recipients or unmentioned integrations. Read the entire brief including any answer on a later line before deciding what remains unclear. Preserve the original instructions while asking; do not put a proposed answer in the runnable prompt.
 - "missingTarget": only when a required destination for a write or send is missing, return "folder", "table", or "recipient". Choose the first missing destination only. A sender filter is not a recipient. A result for the owner already has its recipient. Otherwise omit this field. Never invent the missing destination.
 - "runOnce": true when this should run a single time, false when it repeats.
 - "agentId": the id of the agent that should run this, ONLY when the brief clearly asks for a specific agent. Otherwise null.
@@ -129,7 +130,7 @@ function titleFromBrief(brief) {
  */
 /**
  * @typedef {{ agentId?: string, agentQuote?: string, repeatInterval?: string, daysOfWeek?: unknown,
- *   delivery?: {quote?: string, to?: unknown[]}, missingTarget?: string, firstRunDate?: string, oneOff?: string, timeOfDay?: string, timeIsSuggested?: boolean, title?: string, prompt?: string }} ModelSpec
+ *   clarification?: {question?: string, options?: unknown[]}, delivery?: {quote?: string, to?: unknown[]}, missingTarget?: string, firstRunDate?: string, oneOff?: string, timeOfDay?: string, timeIsSuggested?: boolean, title?: string, prompt?: string }} ModelSpec
  *   what the model replied; every field is untrusted
  */
 /**
@@ -184,6 +185,17 @@ function deliveryOf(spec, brief) {
     return { quote: quote.trim(), to };
 }
 
+/** Keep a model's question and suggestions as display data until the owner answers.
+ * @param {ModelSpec['clarification']} value */
+function clarificationFields(value) {
+    const question = cleanText(value?.question, 240);
+    if (!question) return {};
+    const options = Array.isArray(value.options) ? value.options
+        .map(item => typeof item === 'string' ? item.trim() : '')
+        .filter(item => item && item.length <= 160) : [];
+    return { clarification: { question, options: [...new Set(options)].slice(0, 2) } };
+}
+
 /** @param {ModelSpec} spec @param {string} brief */
 function destinationFields(spec, brief) {
     const delivery = deliveryOf(spec, String(brief || ''));
@@ -236,6 +248,7 @@ function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief
     const { agentId, agentReason } = resolveAgent(obj, { brief, agents });
 
     return {
+        ...clarificationFields(obj.clarification),
         ...destinationFields(obj, brief),
         ...scheduleDetails(obj, repeatInterval, runOnce, timeOfDay),
         title: cleanText(obj.title, MAX_TITLE) || titleFromBrief(brief),

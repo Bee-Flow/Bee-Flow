@@ -9,6 +9,7 @@ import {
     type ConfirmChoices, type ConfirmView, type DayChoice,
 } from './coworkConfirmModel';
 import CoworkActivity from './CoworkActivity';
+import CoworkBriefQuestion from './CoworkBriefQuestion';
 import CoworkScheduleQuestion from './CoworkScheduleQuestion';
 import CoworkTimeField from './CoworkTimeField';
 import { repeatLabel } from './coworkSchedule';
@@ -263,6 +264,11 @@ export default function CoworkConfirmCard(props: CoworkConfirmCardProps) {
     const { availableApps } = useCoworkApps();
     const draft = props.cowork.draft;
     if (!draft) return null;
+    const clarification = draft.spec?.clarification;
+    if (clarification && !props.advanced) {
+        if (props.rereading) return <CoworkActivity message={t('cowork_home.activity.thinking', 'I’m working out what your task needs.')} testId="cowork-confirm" />;
+        return <CoworkBriefQuestion key={clarification.question} clarification={clarification} onAnswer={props.onClarify} onCancel={props.onCancel} />;
+    }
     const catalogue = availableApps.filter(app => !app.isStep);
     const view = confirmView(draft, props.choices, props.sentence, catalogue);
     return <DraftQuestions {...props} draft={draft} view={view} steps={steps} catalogue={catalogue} t={t} />;

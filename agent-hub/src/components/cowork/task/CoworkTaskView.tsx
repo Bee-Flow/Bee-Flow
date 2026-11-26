@@ -1,5 +1,5 @@
 /** An owned Cowork task, with its status and actions above the task's detail tabs. */
-import { type ReactNode, useId, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
 import CoworkNeedCard from '../CoworkNeedCard';
 import { BLOCKS, type NeedCardData } from '../coworkNeedsModel';
 import { taskStatus } from '../coworkTaskStatus';
@@ -16,6 +16,7 @@ import CoworkTaskHistory from './CoworkTaskHistory';
 import CoworkTaskLive, { isLive } from './CoworkTaskLive';
 import CoworkTaskOffer from './CoworkTaskOffer';
 import CoworkTaskPeople, { type PeopleRowId } from './CoworkTaskPeople';
+import CoworkTaskRuns from './CoworkTaskRuns';
 import CoworkTaskResult, { AutoFixNote } from './CoworkTaskResult';
 import CoworkTaskSettings from './CoworkTaskSettings';
 import CoworkTaskShared from './CoworkTaskShared';
@@ -23,7 +24,7 @@ import CoworkTaskSteps from './CoworkTaskSteps';
 import CoworkTaskTabs, { type TaskTab } from './CoworkTaskTabs';
 import CoworkTaskTested, { triedResultOf } from './CoworkTaskTested';
 import { canTry } from '../coworkPlanModel';
-import { inRunOrder, latestRunOf, liveRunOf, runStatus, taskModeOf } from './coworkTaskModel';
+import { inRunOrder, latestRunOf, liveRunOf, runFailed, runStatus, taskModeOf } from './coworkTaskModel';
 import { BTN_LINK, Failure, META } from './taskUi';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import { useCoworkItem, useCoworkItemActions } from '@/api/coworkTask';
@@ -138,8 +139,18 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
     const { advanced, setAdvanced, tabId, tab, setTab, view, setView, setting, setSetting, openTab, saved, setSaved } = useTaskNavigation(panel);
     const [people, setPeople] = useState<PeopleRowId | null>(null);
     const rebuild = () => { void facts.maker.start(false, facts.plan?.automationId ?? undefined); openTab('result'); };
+    const conversationView = (next: OrbView | 'share') => {
+        setAdvanced(false);
+        if (next === 'people' || next === 'share') setPeople(next === 'share' ? 'share' : null);
+        setView(next === 'share' ? 'people' : next);
+    };
     const chat = useTaskConversation({ item, plan: facts.plan, view: advanced ? tab : view, live: facts.live,
-        select: next => { setAdvanced(false); setView(next); }, rebuild, t });
+        select: conversationView, rebuild, t });
+    const send = chat.send;
+    useEffect(() => {
+        const question = panel.kind === 'task' && panel.takeQuestion?.();
+        if (question) send(question);
+    }, [panel, send]);
     const header = <CoworkTaskHeader item={item} status={facts.status} t={t} />;
     const actions = <TopOfTask item={item} facts={facts} onRun={() => openTab('result')} onShare={() => { setPeople('share'); openTab('people'); }} t={t} />;
     const change = <CoworkTaskChange coworkId={item.id} draft={facts.plan?.draft} approved={!!facts.plan?.upToDate}
@@ -147,7 +158,7 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
     const panels = {
         result: <NowOfTask item={item} facts={facts} mayPlan={mayPlan} open={open} locale={locale} t={t}
             onChange={() => { setSetting('what'); openTab('settings', 'what'); }} />,
-        settings: <CoworkTaskSettings item={item} mode={facts.mode} plan={facts.plan} mayPlan={mayPlan} focused={!advanced} open={advanced ? setting : guidedSetting(view)} onOpen={row => { setSetting(row); if (!advanced && !row) setView('overview'); }} onSaved={() => setSaved(true)} onRecipients={() => setView('overview')}
+        settings: <CoworkTaskSettings item={item} mode={facts.mode} plan={facts.plan} mayPlan={mayPlan} focused={!advanced} open={advanced ? setting : guidedSetting(view)} onOpen={row => { setSetting(row); if (!advanced && !row) setView('overview'); }} onSaved={() => setSaved(true)} onRecipients={chat.askRecipient}
             onRebuild={rebuild}
             onOpenTask={(id) => open({ kind: 'task', id })} live={facts.live} locale={locale} t={t} />,
         steps: <>
@@ -180,11 +191,14 @@ function GuidedResult({ item, facts, onChange, t }: { item: CoworkItem; facts: F
     const { locale } = useTranslation();
     const [notice, setNotice] = useState('');
     const plan = facts.plan;
-    if (plan && triedResultOf(plan)) {
+    if (!facts.live && !facts.latest && plan && triedResultOf(plan)) {
         const check = facts.cards.find(card => card.kind === 'check');
         return <CoworkTaskTested coworkId={item.id} plan={plan} fingerprint={check?.fingerprint ?? null} changed={check?.changed}
             onApproved={setNotice} onChange={onChange} onTest={() => facts.tryOut.start.mutate()} testing={!canTry(plan)} t={t} />;
     }
+    if (facts.latest && runFailed(facts.latest)) return <CoworkTaskRuns
+        key={facts.latest.id} coworkId={item.id} runs={[facts.latest]} initialRunId={facts.latest.id} withReceipts
+        heading={t('cowork_task.orb.run_details', 'See run details')} t={t} />;
     return <>{notice && <p role="status">{notice}</p>}<CoworkTaskResult item={item} latest={facts.latest} locale={locale} t={t} /></>;
 }
 
@@ -196,14 +210,16 @@ function GuidedTask({ item, facts, view, saved, setView, onAdvanced, chat, panel
     const draft = facts.plan?.draft;
     const live = facts.live ? <CurrentActivity item={item} facts={facts} t={t} /> : undefined;
     const workspace = <CoworkOrbWorkspace item={item} plan={facts.plan} chat={chat} select={setView} saved={saved}
-        needs={facts.cards.length > 0} hasOutput={!!(facts.latest || triedResultOf(facts.plan))} live={live}
+        need={facts.cards[0]} latest={facts.latest} live={live}
         active={active} t={t} />;
     const current = view === 'edit' && facts.plan && !draft ? 'what' : view;
     const result = <GuidedResult item={item} facts={facts} onChange={() => setView('edit')} t={t} />;
-    const views = { ...panels, result, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
-    return <CoworkTaskOrb coworkId={item.id} view={current} select={setView} onAdvanced={onAdvanced} live={facts.live} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
+    const history = <CoworkTaskRuns coworkId={item.id} runs={facts.runs} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />;
+    const views = { ...panels, result, history, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
+    const showLive = facts.live && current !== 'result' && current !== 'history';
+    return <CoworkTaskOrb coworkId={item.id} view={current} select={setView} onAdvanced={onAdvanced} live={showLive} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
         heading={header} work={{ flow: draft ? inRunOrder(draft.view.steps, draft.view.runOrder) : [], apps: item.enabledApps, action: isSetting(current) ? 'edit' : 'rest' }} t={t}>
-        {facts.live ? workspace : views[current]}
+        {showLive ? workspace : views[current]}
     </CoworkTaskOrb>;
 }
 

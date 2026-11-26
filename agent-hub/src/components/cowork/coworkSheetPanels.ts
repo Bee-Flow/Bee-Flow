@@ -24,7 +24,7 @@ import type { CoworkViewer } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 export type CoworkSheetPanel =
-    | { kind: 'task'; id: string; focus?: TaskFocus }
+    | { kind: 'task'; id: string; focus?: TaskFocus; takeQuestion?: () => string }
     | { kind: 'shared'; id: string }
     | { kind: 'settings' }
     | { kind: 'teamwork' }

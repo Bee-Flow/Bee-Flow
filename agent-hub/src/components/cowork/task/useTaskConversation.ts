@@ -1,3 +1,4 @@
+import useConversationClock from './useConversationClock';
 import { useState } from 'react';
 import { useCoworkConversation, useCoworkProposals, useCoworkProposalActions, type CoworkMessage } from '@/api/coworkProposals';
 import type { CoworkItem } from '@/api/cowork.types';
@@ -8,7 +9,7 @@ import type { OrbView } from './CoworkTaskOrb';
 
 interface Options {
     item: CoworkItem; plan?: PlanState; view: OrbView | 'settings'; live: boolean;
-    select: (view: OrbView) => void; rebuild: () => void; t: TranslateFn;
+    select: (view: OrbView | 'share') => void; rebuild: () => void; t: TranslateFn;
 }
 
 export default function useTaskConversation({ item, plan, view, live, select, rebuild, t }: Options) {
@@ -20,6 +21,7 @@ export default function useTaskConversation({ item, plan, view, live, select, re
     const dialog = useCoworkConversation(item.id);
     const edit = useCoworkProposalActions(item.id);
     const update = useCoworkItemActions(item.id).change;
+    const clock = useConversationClock(item, live, update, setReply, t);
     const proposals = useCoworkProposals(item.id);
     const proposal = proposals.data?.find(p => p.status === 'open' && p.reasonCode === 'owner_request');
     const fingerprint = plan?.draft?.fingerprint;
@@ -43,20 +45,29 @@ export default function useTaskConversation({ item, plan, view, live, select, re
             setPendingBrief({ prompt: [item.prompt, context, instruction].filter(Boolean).join('\n\n'), fingerprint });
         }
     };
-    const send = () => {
-        const message = text.trim();
+    const send = (messageOverride?: string) => {
+        const message = (messageOverride ?? text).trim();
         if (!message || dialog.isPending || selected.length > 100) return;
+        clock.cancel();
         setText('');
         setReply('');
         dialog.mutate({ message, view, scope, history: history.slice(-6) }, {
             onSuccess: answer => {
                 setHistory(prev => [...prev, { role: 'user', text: message }, { role: 'assistant', text: answer.answer }].slice(-6) as CoworkMessage[]);
                 setReply(answer.answer);
-                if (answer.action === 'change') change(answer.instruction);
+                if (answer.action === 'when' && answer.schedule) clock.propose(answer.schedule);
+                else if (answer.action === 'change') change(answer.instruction);
                 else if (answer.action !== 'answer') select(answer.action);
             },
             onError: () => setText(current => current || message),
         });
+    };
+    const askRecipient = () => {
+        const question = t('cowork_task.orb.ask_recipient', 'Who should receive the result?');
+        setSelection({ ids: [] });
+        setReply(question);
+        setHistory(prev => [...prev.slice(-5), { role: 'assistant', text: question }]);
+        select('overview');
     };
     const saveBrief = () => {
         if (!pendingBrief || live || busy || pendingBrief.fingerprint !== fingerprint) return;
@@ -67,7 +78,7 @@ export default function useTaskConversation({ item, plan, view, live, select, re
         } });
     };
     const error = [dialog, edit.requestChange, edit.approve, edit.dismiss, update, proposals].find(operation => operation.error)?.error;
-    return { text, setText, reply, setReply, send, selected, toggle, dialog, edit, busy, proposal, error,
+    return { clock, text, setText, reply, setReply, send, askRecipient, selected, toggle, dialog, edit, busy, proposal, error,
         pendingBrief: pendingBrief?.fingerprint === fingerprint ? pendingBrief : null, saveBrief, cancel: () => setPendingBrief(null) };
 }
 export type TaskConversation = ReturnType<typeof useTaskConversation>;

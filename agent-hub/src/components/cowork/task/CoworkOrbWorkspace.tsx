@@ -1,8 +1,10 @@
 import { useId, useState, type ReactNode } from 'react';
 import { ChevronDown, FileText } from 'lucide-react';
-import type { CoworkItem } from '@/api/cowork.types';
+import type { CoworkItem, CoworkRun } from '@/api/cowork.types';
 import type { PlanState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
+import type { NeedCardData } from '../coworkNeedsModel';
+import { orbInsight, type OrbInsight } from './orbInsight';
 import CoworkActivity from '../CoworkActivity';
 import type { OrbWork } from '../CoworkOrbSources';
 import CoworkProposalDetails from '../CoworkProposalDetails';
@@ -14,7 +16,7 @@ import type { TaskConversation } from './useTaskConversation';
 
 interface Props {
     item: CoworkItem; plan?: PlanState; select: (v: OrbView) => void; chat: TaskConversation;
-    saved: boolean; needs: boolean; hasOutput: boolean; live?: ReactNode; active?: string; t: TranslateFn;
+    saved: boolean; need?: NeedCardData; latest: CoworkRun | null; live?: ReactNode; active?: string; t: TranslateFn;
 }
 
 function feedback(s: TaskConversation, t: TranslateFn) {
@@ -43,25 +45,25 @@ function Review({ state: s, t }: { state: TaskConversation; t: TranslateFn }) {
 }
 
 
-function Controls({ chat, needs, hasOutput, select, plan, t }: Props) {
+function Controls({ chat, insight: { primary, hasResult }, select, plan, t }: Props & { insight: OrbInsight }) {
     if (chat.busy) return null;
     if (chat.pendingBrief) return <div className="flex gap-2">
         <button className={BUTTON_PRIMARY} onClick={chat.saveBrief}>{plan?.draft ? t('cowork_task.edit.save_test', 'Save and test') : t('cowork_task.edit.save', 'Save')}</button>
         <button className={LINK_INLINE} onClick={chat.cancel}>{t('cowork_task.edit.cancel', 'Cancel')}</button>
     </div>;
     return <div className="flex flex-wrap justify-center gap-2">
-        {hasOutput && <button className={LINK_INLINE} onClick={() => select('result')}><FileText size={15}/>{t('cowork_task.orb.open_result', 'Open result')}</button>}
-        {needs && <button className={BUTTON_PRIMARY} onClick={() => select('review')}>{t('cowork_task.orb.review_result', 'Review task')}</button>}
+        {primary && <button className={BUTTON_PRIMARY} onClick={() => select(primary.view)}>{primary.label}</button>}
+        {hasResult && <button className={LINK_INLINE} onClick={() => select('result')}><FileText size={15}/>{t('cowork_task.orb.open_result', 'Open result')}</button>}
     </div>;
 }
 
-function caption(props: Props) {
+function caption(props: Props, insight: OrbInsight) {
     const {chat, saved, t} = props;
     const status = feedback(chat, t);
     if (status) return status;
     if (chat.selected.length) return t('cowork_task.orb.selected', '{count} steps selected', { count: chat.selected.length });
     if (saved) return t('cowork_task.edit.saved', 'Saved');
-    return t('cowork_task.orb.ready', 'How can I help with this task?');
+    return insight.message;
 }
 
 function orbWork({ item, plan, chat }: Props, thinking: boolean): OrbWork {
@@ -78,12 +80,13 @@ export default function CoworkOrbWorkspace(props: Props) {
     const [expanded, setExpanded] = useState(false);
     const railId = useId();
     const review = !!chat.proposal && !live && !chat.busy;
+    const insight = orbInsight(props);
     const work = orbWork(props, thinking);
     const rail = <CoworkStepRail steps={rows} selected={chat.selected} toggle={chat.toggle} disabled={chat.dialog.isPending} active={active} t={t} />;
     return <>
         <div className={'cowork-orb-workspace' + (rows.length ? ' has-steps' : '') + (review ? ' is-review' : '')}>
-            <div className="min-w-0">{live || <CoworkActivity message={caption(props)} tone={thinking ? 'thinking' : 'rest'} work={work}>
-                {!review && <Controls {...props} />}
+            <div className="min-w-0">{live || <CoworkActivity message={caption(props, insight)} tone={thinking ? 'thinking' : 'rest'} work={work}>
+                {!review && <Controls {...props} insight={insight} />}
             </CoworkActivity>}</div>
             {!!rows.length && <div className="cowork-workspace-steps">
                 {review && <button className="cowork-step-disclosure" aria-expanded={expanded} aria-controls={railId} onClick={() => setExpanded(!expanded)}>

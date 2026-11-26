@@ -2160,7 +2160,7 @@ pre.hljs {
 .cowork-conversation form { display: flex; align-items: flex-end; gap: .35rem; padding: .45rem .55rem .45rem 1rem; border: 1px solid var(--border-default); border-radius: 1.5rem; background: var(--bg-secondary); }
 .cowork-conversation form:focus-within { outline: 2px solid var(--accent-primary); outline-offset: 2px; }
 .cowork-conversation textarea { flex: 1; min-width: 0; background: transparent; color: var(--text-primary); line-height: 1.5; padding: .4rem 0; field-sizing: content; max-height: 7rem; resize: none; border: 0; outline: none; }
-.cowork-conversation button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; }
+.cowork-conversation form button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; }
 .cowork-chat-send { background: var(--text-primary); color: var(--bg-primary); }
 .cowork-chat-send:disabled { opacity: .4; }
 .cowork-chat-reply { margin-bottom: .65rem; padding: .75rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); text-align: start; max-height: min(30vh, 14rem); overflow-y: auto; }

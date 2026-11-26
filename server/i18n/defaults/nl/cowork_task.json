@@ -1,5 +1,9 @@
 {
   "translations": {
+    "cowork_task.orb.preview": "Bekijk testvoorbeeld",
+    "cowork_task.orb.preview_ready": "Je testvoorbeeld staat klaar.",
+    "cowork_task.orb.run_details": "Bekijk de uitvoering",
+    "cowork_task.orb.ask_recipient": "Wie moet het resultaat ontvangen?",
     "cowork_task.orb.active": "Bezig",
     "cowork_task.orb.selected": "Geselecteerde stappen · {count}",
     "cowork_task.orb.open_result": "Open resultaat",
@@ -7,6 +11,8 @@
     "cowork_task.orb.shorten": "Kies minder stappen of kort je wijziging in.",
     "cowork_task.orb.recipient": "Ontvanger wijzigen",
     "cowork_task.orb.tests": "Tests en rechten",
+    "cowork_task.orb.refresh_clock": "De planning is gewijzigd. Vraag me opnieuw om de nieuwe tijd.",
+    "cowork_task.orb.apply_clock": "Planning aanpassen",
     "cowork_task.orb.talk": "Vraag het aan Bee…",
     "cowork_task.orb.ready": "Waar kan ik je bij helpen?",
     "cowork_task.orb.send": "Bericht versturen",
