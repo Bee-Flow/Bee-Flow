@@ -153,34 +153,50 @@ async function deleteSubscriptionsForAutomation(automationId) {
     await run('DELETE FROM automation_event_subscriptions WHERE automation_id = $1', [automationId]);
 }
 
-async function getPollingSubscriptions({ olderThanMs = 60_000, webhookStaleMs = 15 * 60_000 } = {}) {
-    await initDB();
-    // Two cases:
-    //  1. mode='polling'  → poll on every tick where last_polled_at is old enough
-    //  2. mode='webhook'  → poll as crash-recovery when last_push_at is stale
-    //                       (push pipeline may be down — connector crashed,
-    //                        AppAPI events_listener silently dropped, etc.).
-    //     Healthy webhook subs are skipped entirely; this only kicks in
-    //     after `webhookStaleMs` of silence.
-    // Oldest-considered first: declaration-driven sources apply their own
-    // per-event minimum interval and get skipped mid-tick, so without a
-    // deterministic order an unlucky row could sit behind the same 50 rows
-    // every tick and never be reached.
-    const rows = await getAll(
-        `SELECT * FROM automation_event_subscriptions
+/**
+ * The subscriptions a polling pass looks at, oldest-considered first.
+ * $1 = poll interval (ms), $2 = webhook silence before crash-recovery polling
+ * (ms), $3 = consecutive failures from which a subscription counts as failing,
+ * $4 = poll interval of a failing subscription (ms).
+ *
+ * Two cases:
+ *  1. mode='polling'  → poll on every tick where last_polled_at is old enough
+ *  2. mode='webhook'  → poll as crash-recovery when last_push_at is stale
+ *                       (push pipeline may be down — connector crashed,
+ *                        AppAPI events_listener silently dropped, etc.).
+ *     Healthy webhook subs are skipped entirely; this only kicks in
+ *     after `webhookStaleMs` of silence.
+ * A subscription that keeps failing (an expired sign-in until its owner
+ * reconnects) is due at the longer interval $4: every tick it would only ask
+ * the provider again with credentials that were just refused and log the same
+ * refusal. Its first success resets the counter and with it the interval.
+ * Oldest-considered first: declaration-driven sources apply their own
+ * per-event minimum interval and get skipped mid-tick, so without a
+ * deterministic order an unlucky row could sit behind the same 50 rows
+ * every tick and never be reached.
+ */
+const POLL_DUE_SQL = `(last_polled_at IS NULL OR last_polled_at < NOW() - (
+                      GREATEST($1::bigint, CASE WHEN consecutive_failures >= $3::int THEN $4::bigint ELSE 0 END) * INTERVAL '1 millisecond'))`;
+const POLLING_SUBSCRIPTIONS_SQL = `SELECT * FROM automation_event_subscriptions
          WHERE (
                   mode = 'polling'
-                  AND (last_polled_at IS NULL OR last_polled_at < NOW() - ($1 * INTERVAL '1 millisecond'))
+                  AND ${POLL_DUE_SQL}
               )
             OR (
                   mode = 'webhook'
-                  AND (last_push_at IS NULL OR last_push_at < NOW() - ($2 * INTERVAL '1 millisecond'))
-                  AND (last_polled_at IS NULL OR last_polled_at < NOW() - ($1 * INTERVAL '1 millisecond'))
+                  AND (last_push_at IS NULL OR last_push_at < NOW() - ($2::bigint * INTERVAL '1 millisecond'))
+                  AND ${POLL_DUE_SQL}
               )
          ORDER BY last_polled_at ASC NULLS FIRST
-         LIMIT 50`,
-        [olderThanMs, webhookStaleMs],
-    );
+         LIMIT 50`;
+
+/**
+ * @param {{ olderThanMs?: number, webhookStaleMs?: number, failureThreshold?: number, failingPollIntervalMs?: number }} [opts]
+ *   `failureThreshold` / `failingPollIntervalMs`: from that many consecutive failures on, a subscription is polled at that interval
+ */
+async function getPollingSubscriptions({ olderThanMs = 60_000, webhookStaleMs = 15 * 60_000, failureThreshold = 5, failingPollIntervalMs = 15 * 60_000 } = {}) {
+    await initDB();
+    const rows = await getAll(POLLING_SUBSCRIPTIONS_SQL, [olderThanMs, webhookStaleMs, failureThreshold, failingPollIntervalMs]);
     return rows.map(rowToSubscription);
 }
 
@@ -269,4 +285,4 @@ async function deleteSubscription(id) {
     return rowCount > 0;
 }
 
-module.exports = { createSubscription, getSubscription, getSubscriptionByExternalRef, getSubscriptionsForProvider, getSubscriptionsForUserAndEvent, getSubscriptionsForAutomation, deleteSubscriptionsForAutomation, getSubscriptionsForCoworkSchedule, deleteSubscriptionsForCoworkSchedule, getPollingSubscriptions, getExpiringSubscriptions, updateSubscription, incrementSubscriptionFailures, resetSubscriptionFailures, deleteSubscription };
+module.exports = { createSubscription, getSubscription, getSubscriptionByExternalRef, getSubscriptionsForProvider, getSubscriptionsForUserAndEvent, getSubscriptionsForAutomation, deleteSubscriptionsForAutomation, getSubscriptionsForCoworkSchedule, deleteSubscriptionsForCoworkSchedule, getPollingSubscriptions, POLLING_SUBSCRIPTIONS_SQL, getExpiringSubscriptions, updateSubscription, incrementSubscriptionFailures, resetSubscriptionFailures, deleteSubscription };

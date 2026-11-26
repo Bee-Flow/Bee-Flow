@@ -33,7 +33,16 @@ const fx = {
     noteByToken: {},
 };
 
+/** The room listing as Talk answers it; without a Nextcloud connection it throws. */
+function listRooms() {
+    fx.roomListings = (fx.roomListings || 0) + 1;
+    if (fx.notConnected) throw new Error('Nextcloud not connected.');
+    return { count: fx.rooms.length, rooms: fx.rooms };
+}
+
 function resetFx() {
+    fx.roomListings = 0;
+    fx.notConnected = false;
     fx.settings = { autoRecord: true, autoRecordScope: 'calendar', recordingMode: 'audio', recordingFolder: '/Talk/Recording' };
     fx.capability = { recordingEnabled: true };
     fx.rooms = [];
@@ -82,7 +91,7 @@ stub('../integrations/nextcloudClient', { resolveAuth: async () => { throw new E
 stub('../integrations/nextcloudTalkTools', {
     getTalkRecordingCapability: async () => ({ ...fx.capability }),
     executeNextcloudTalkTool: async (name) => (name === 'nextcloud_talk_list_rooms'
-        ? { count: fx.rooms.length, rooms: fx.rooms }
+        ? listRooms()
         : { error: 'unexpected tool' }),
 });
 stub('../core/meetingNotes/talkNotesSettings', {
@@ -183,6 +192,22 @@ function meeting(overrides = {}) {
 }
 
 const moderatorRoom = (token = 'tok1') => ({ token, participantType: 2, hasCall: false, callRecording: 0, type: 2 });
+
+test('without upcoming meetings the rooms are not listed: no failing Nextcloud call for a person who has no connection', async () => {
+    resetFx();
+    fx.notConnected = true;
+    const res = await dispatch({ url: '/talk-meetings' });
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.meetings, []);
+    assert.equal(fx.roomListings, 0);
+
+    // With a meeting the rooms are listed, once, and a failing listing still answers the meetings.
+    fx.meetings = [meeting()];
+    const withMeeting = await dispatch({ url: '/talk-meetings' });
+    assert.equal(fx.roomListings, 1);
+    assert.equal(withMeeting.body.meetings.length, 1);
+    assert.equal(withMeeting.body.meetings[0].isModerator, null);
+});
 
 test('de voorkeuren worden met de scope van de aanroeper geladen', async () => {
     resetFx();

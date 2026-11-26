@@ -30,6 +30,11 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 const POLL_FAILURE_THRESHOLD = 5;
 const RENEW_FAILURE_THRESHOLD = 2;
 const FAILURE_NOTIFY_DEBOUNCE_MS = 24 * 60 * 60_000;
+// A subscription at or past the polling threshold is polled at this interval
+// (stores/automationStore/subscriptions.js getPollingSubscriptions): its owner
+// has been notified, and asking again every tick only repeats the refusal. The
+// first success resets the counter, so a reconnect is picked up within this long.
+const FAILING_POLL_INTERVAL_MS = 15 * 60_000;
 
 /**
  * @param {number} threshold
@@ -66,7 +71,7 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
     }
 }
 
-module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTIFY_DEBOUNCE_MS, escalateSubscriptionFailure };
+module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTIFY_DEBOUNCE_MS, FAILING_POLL_INTERVAL_MS, escalateSubscriptionFailure };
 
 /**
  * One automation_event_subscriptions row as the store maps it.
