@@ -18,28 +18,24 @@ automations, and letting a task ask you first needs one with approvals. See [Tie
 
 ## Start
 
-1. Open **Cowork** and describe what should happen and when. **Start from a template** offers examples and your organisation's templates.
-2. For a task with fixed steps, choose **Set up and test**. Cowork works out the steps and tests them. If it needs a schedule or destination, it asks. If you requested delivery, you can review the recipients first.
-3. Follow the current step as Cowork works. During a test you can see which step it is trying and when it is repairing a problem. Open the finished task to review the result and approve the steps for real runs.
+1. Open **Cowork** and tell Bee what should happen and when. You can also ask Bee to show your tasks or find a template.
+2. Bee asks for any missing details and shows the current step while it sets up and tests the task. If you request delivery, you can review the recipients.
+3. When setup finishes, the task opens automatically. Review the test result and approve the steps before the first real run.
 
 The orb shows the task’s steps in execution order. It draws app icons as coloured networks. As each step starts, its icon moves forward and the previous step recedes. With reduced motion enabled, the current step appears in a still frame.
 
 Choose **Advanced** before starting to select a model or add a specific step. **Preview task** lets you review and edit the name, schedule, apps and requested recipients. Workspaces without fixed steps use a preview and ask before starting the task.
 
-The home shows what **needs you** first, then **your tasks**, the tasks colleagues **shared with you**,
-and **Teamwork**. The gear opens your **Cowork preferences**; administrators also see **Admin rules**.
+Choose **Advanced** on the home screen for the full task list, shared tasks, **Teamwork** and your **Cowork preferences**. Administrators can also open **Admin rules**.
 
 A task always has one of these states: Done, Failed, Needs you, Scheduled, Running, Testing, Paused or
 Nothing to do.
 
 ## A task
 
-A task opens as a page of its own. From top to bottom:
+A task opens with Bee and an input field. On desktop the steps appear beside the orb. Select one or more steps and ask Bee to explain or change them. Ask for the latest result or an earlier run to read it alongside the conversation on a wide screen.
 
-- its state and name, with **Run for real now** when the task can run. **Task actions** holds pause, resume and sharing options;
-- what **needs you**, or what it is doing right now, or its latest result;
-- **Settings**: four rows that always show their current value and open in place;
-- **Steps**, **People** and **History**.
+You can also ask Bee to change the schedule, share the task or pause it. Bee shows the details for confirmation when the action needs your approval. Choose **Advanced** to work directly with **Result**, **Settings**, **Steps**, **People** and **History**.
 
 ### Settings: What, When, Uses, Sends to
 
@@ -78,8 +74,7 @@ what it can, such as a step that would run before the step it reads from.
 
 ### When something goes wrong
 
-A failed run is always a card under **Needs you**, on the home and on the task alike. It names the step
-and the cause in plain words and offers one action: sign in again, fix it, or look at what is wrong.
+Open the task or ask Bee what needs your attention. Bee explains the cause when it is known and offers a next step, such as signing in again or retrying. The **Advanced** overview also lists tasks under **Needs you**.
 What Cowork can repair without widening what the task may do, it repairs itself, tests, and reports with
 **Undo**. The raw message is under **Technical details**.
 
