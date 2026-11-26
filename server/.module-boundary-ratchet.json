@@ -1,0 +1,35 @@
+{
+  "_comment": "Highest number of core -> module import edges (coreEdges) and core featureModule() lookups of module files (coreLookups) per module that server/ may still carry; a module not listed has budget 0. Lower it with `node scripts/module-boundary.mjs --update` after cutting a dependency; raising one is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-11-26",
+  "coreEdges": {
+    "apps": 90,
+    "automation": 80,
+    "billing_stripe": 28,
+    "cms": 11,
+    "compliance": 47,
+    "cowork": 45,
+    "custom_integrations": 18,
+    "datatables": 68,
+    "int_erp_nl": 25,
+    "int_google": 28,
+    "int_microsoft": 14,
+    "int_nextcloud": 34,
+    "int_saas": 38,
+    "learning": 12,
+    "mcp_server": 7,
+    "meetingNotes": 37,
+    "notebooks": 16,
+    "playbooks": 8,
+    "projects": 28,
+    "sanctions": 6,
+    "support": 15,
+    "templates": 3,
+    "webpages": 32
+  },
+  "coreLookups": {
+    "automation": 3,
+    "custom_integrations": 1,
+    "notebooks": 1,
+    "projects": 2
+  }
+}

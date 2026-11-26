@@ -931,6 +931,16 @@
       "reason": "temp-dir fixtures only"
     },
     {
+      "file": "scripts/module-boundary.mjs",
+      "status": "root-aware",
+      "what": "the module boundary ratchet: reads the ownership map over server/ and the module roots (module-map.mjs), and the module roots through scripts/lib/roots.mjs"
+    },
+    {
+      "file": "scripts/module-boundary.test.mjs",
+      "status": "root-aware",
+      "what": "the four rules on temp-dir fixtures with a modules/<id>/server root, and the committed budget against the real tree"
+    },
+    {
       "file": "scripts/module-map.json",
       "status": "root-aware",
       "what": "the ownership map: globs over tree paths, valid in server/ and in modules/<id>/server/"
