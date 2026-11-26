@@ -47,12 +47,12 @@ function SharedTaskTabs({ item, runs }: { item: CoworkItem; runs: CoworkRun[] })
     const [view, setView] = useState<'result' | 'history' | null>(null);
     if (!advanced) return <div className="cowork-task-guided">
         <button className={LINK_INLINE} onClick={() => setAdvanced(true)}>{t('cowork_overview.advanced', 'Advanced')}</button>
-        <CoworkActivity tone="rest" message={view === 'history' ? t('cowork_task.tabs.history', 'History') : t('cowork_task.tabs.result', 'Result')}>
+        <CoworkActivity tone="rest" message={view === 'history' ? t('cowork_task.history.heading', 'History') : t('cowork_task.tabs.result', 'Result')}>
             {view === 'result' && <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />}
             {view === 'history' && <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />}
             <div className="flex gap-2">
                 {view !== 'result' && <button className={BUTTON_PRIMARY} onClick={() => setView('result')}>{t('cowork_task.orb.open_result', 'Open result')}</button>}
-                {view !== 'history' && <button className={LINK_INLINE} onClick={() => setView('history')}>{t('cowork_task.tabs.history', 'History')}</button>}
+                {view !== 'history' && <button className={LINK_INLINE} onClick={() => setView('history')}>{t('cowork_task.history.heading', 'History')}</button>}
             </div>
         </CoworkActivity>
     </div>;
