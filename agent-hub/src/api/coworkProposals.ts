@@ -93,7 +93,7 @@ export function useCoworkProposalActions(coworkId: string) {
     return { approve, dismiss, restore, requestChange };
 }
 
-export type CoworkReplyAction = 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'review' | 'overview';
+type CoworkReplyAction = 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'review' | 'overview';
 export interface CoworkReply { answer: string; action: CoworkReplyAction; instruction: string }
 export interface CoworkMessage { role: 'user' | 'assistant'; text: string }
 
