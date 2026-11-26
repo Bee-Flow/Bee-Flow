@@ -1,0 +1,1725 @@
+{
+  "_comment": "Every script, runner and config that walks, globs or names a package directory, and whether it already sees module roots (modules/<id>/server, modules/<id>/frontend). Gate: scripts/roots-inventory.test.mjs (npm run test:scripts); node scripts/roots-inventory.mjs --list shows the pending ones by group. A converted tool becomes root-aware (through scripts/lib/roots.mjs); then run node scripts/roots-inventory.mjs --update, which lowers pendingBudget. Never raise it.",
+  "pendingBudget": 131,
+  "groups": {
+    "ratchets": "Count, size and type ratchets that walk a package directory; their budget keys are tree paths and stay, the walk must cover every root (scripts/lib/roots.mjs walkTree).",
+    "generators": "Generators and their --check gates that read or write named package files, or load the app in-process (which needs the moduleRoots preload).",
+    "i18n": "The i18n dictionary and its tools (plan step 0.3: read the namespaces of every root).",
+    "test-runners": "Test runners, shards, coverage and typecheck drivers that collect files under server/ or agent-hub (plan step 0.4).",
+    "codemods": "Codemods and conversion tooling that take or walk package files; convert when a round next needs them.",
+    "checks": "Other repository gates that read named package files that can move.",
+    "server-tree-tests": "Whole-tree tests at the top of server/.",
+    "test-kits": "server/testUtils files that walk, hash or build paths of the tree (stub keys included; plan step 0.9 confirms which still need a change).",
+    "ops-scripts": "Ops and dev scripts that read or write tree files by a hand-computed path.",
+    "build-ci": "Workflows, compose files and image or dev build scripts (plan steps 0.8 and 5).",
+    "configs": "Linter, type-checker, bundler, coverage and test-runner configs."
+  },
+  "entries": [
+    {
+      "file": ".github/workflows/a11y-conformance.yml",
+      "status": "pending",
+      "what": "path filter and steps name server/compliance/a11y/conformance*.json",
+      "group": "build-ci"
+    },
+    {
+      "file": ".github/workflows/android-release.yml",
+      "status": "not-applicable",
+      "what": "Android release build",
+      "reason": "filters and builds mobile/ only"
+    },
+    {
+      "file": ".github/workflows/build-push-ghcr.yml",
+      "status": "pending",
+      "what": "path filters server/** and agent-hub/src/**, docker contexts ./server and ./agent-hub (the full image needs the module copy layer)",
+      "group": "build-ci"
+    },
+    {
+      "file": ".github/workflows/ci.yml",
+      "status": "pending",
+      "what": "path filters of the changes job and working-directory server / agent-hub for every test and lint job (plan step 0.8)",
+      "group": "build-ci"
+    },
+    {
+      "file": ".github/workflows/connector-release.yml",
+      "status": "not-applicable",
+      "what": "connector release and mirror",
+      "reason": "nextcloud-connector/ only"
+    },
+    {
+      "file": ".github/workflows/dependency-audit.yml",
+      "status": "pending",
+      "what": "names server/compliance/checks/iso27001/a8-8-vuln-mgmt.js, a file that can move with compliance",
+      "group": "build-ci"
+    },
+    {
+      "file": ".github/workflows/desktop-release.yml",
+      "status": "not-applicable",
+      "what": "desktop client release",
+      "reason": "desktop/ only"
+    },
+    {
+      "file": ".github/workflows/e2e-smoke.yml",
+      "status": "not-applicable",
+      "what": "end-to-end smoke against built images",
+      "reason": "service keys only, no source paths"
+    },
+    {
+      "file": ".github/workflows/image-scan.yml",
+      "status": "not-applicable",
+      "what": "container image scan matrix",
+      "reason": "image names only, no source paths"
+    },
+    {
+      "file": ".github/workflows/nextcloud-regression.yml",
+      "status": "not-applicable",
+      "what": "Nextcloud regression run",
+      "reason": "agent-hub/package-lock.json and working-directory agent-hub are fixed package files"
+    },
+    {
+      "file": ".github/workflows/promote-release.yml",
+      "status": "not-applicable",
+      "what": "promote a release",
+      "reason": "image tags only"
+    },
+    {
+      "file": ".github/workflows/release-dockerhub.yml",
+      "status": "not-applicable",
+      "what": "mirror images to Docker Hub",
+      "reason": "image names only"
+    },
+    {
+      "file": ".github/workflows/release-latest.yml",
+      "status": "not-applicable",
+      "what": "installer image and latest release",
+      "reason": "service names and release files only"
+    },
+    {
+      "file": ".github/workflows/sast.yml",
+      "status": "root-aware",
+      "what": "semgrep over the whole repository (tests excluded by pattern), so modules/ is scanned"
+    },
+    {
+      "file": ".github/workflows/secret-scan.yml",
+      "status": "root-aware",
+      "what": "secret scan over the whole repository and lint:checks"
+    },
+    {
+      "file": ".github/workflows/staging-release-validation.yml",
+      "status": "not-applicable",
+      "what": "staging release smoke",
+      "reason": "runs one core ops script, server/scripts/azure-release-smoke.js, in server/"
+    },
+    {
+      "file": ".github/workflows/vuln-watch.yml",
+      "status": "root-aware",
+      "what": "path globs **/package-lock.json, **/Dockerfile* over the whole repository"
+    },
+    {
+      "file": ".github/workflows/workflow-policy.yml",
+      "status": "not-applicable",
+      "what": "workflow lint and repo-script tests",
+      "reason": ".github/workflows/** and scripts/ only"
+    },
+    {
+      "file": ".gitleaks.toml",
+      "status": "pending",
+      "what": "path allowlists name movable files (server/integrations/linkedinTools.js, server/stores/automationStore/..., agent-hub/src/components/admin/security/...)",
+      "group": "configs"
+    },
+    {
+      "file": ".jscpd.json",
+      "status": "root-aware",
+      "what": "jscpd over the whole repository; the ignore list names generated core files that stay in place"
+    },
+    {
+      "file": ".semgrep/security-gates.yml",
+      "status": "pending",
+      "what": "rule paths include/exclude server/... directories and files (core/http, core/providers, utils/ssrfGuard.js, scripts/, testUtils/)",
+      "group": "configs"
+    },
+    {
+      "file": "agent-hub/eslint.config.js",
+      "status": "pending",
+      "what": "file globs relative to agent-hub (src/**), per-root config and suppressions needed",
+      "group": "configs"
+    },
+    {
+      "file": "agent-hub/knip.json",
+      "status": "pending",
+      "what": "entry and project globs src/**; a module's frontend root is not in the project",
+      "group": "configs"
+    },
+    {
+      "file": "agent-hub/tsconfig.eslint-api.json",
+      "status": "pending",
+      "what": "include src/api/** and src/**/*.d.ts",
+      "group": "configs"
+    },
+    {
+      "file": "agent-hub/tsconfig.json",
+      "status": "pending",
+      "what": "include src/**, paths @/* and @shared/* onto ./src",
+      "group": "configs"
+    },
+    {
+      "file": "agent-hub/vite.config.js",
+      "status": "pending",
+      "what": "alias @ and @shared onto src/, VITEST_FILE_LIST, test globs (plan: the vitest fallback)",
+      "group": "configs"
+    },
+    {
+      "file": "docker-compose.dev.yml",
+      "status": "pending",
+      "what": "bind-mounts ./server:/app for the dev server (plan: also mount ./modules)",
+      "group": "build-ci"
+    },
+    {
+      "file": "docker-compose.docker-socket.override.yml",
+      "status": "not-applicable",
+      "what": "docker socket override",
+      "reason": "no source paths"
+    },
+    {
+      "file": "docker-compose.from-registry.yml",
+      "status": "not-applicable",
+      "what": "self-host stack from GHCR",
+      "reason": "comments name server files; images come from the registry"
+    },
+    {
+      "file": "docker-compose.hub.local.yml",
+      "status": "not-applicable",
+      "what": "local Module Hub",
+      "reason": "names the license-server source checkout outside this repository"
+    },
+    {
+      "file": "docker-compose.security.override.yml",
+      "status": "not-applicable",
+      "what": "security tools sandbox",
+      "reason": "server/terminal-runner is a fixed Dockerfile directory"
+    },
+    {
+      "file": "docker-compose.shared-sidecars.override.yml",
+      "status": "not-applicable",
+      "what": "shared sidecars override",
+      "reason": "no source paths"
+    },
+    {
+      "file": "docker-compose.sidecars.yml",
+      "status": "not-applicable",
+      "what": "sidecar services",
+      "reason": "no source paths"
+    },
+    {
+      "file": "docker-compose.yml",
+      "status": "pending",
+      "what": "build contexts ./server and ./agent-hub (the full image is the merged tree)",
+      "group": "build-ci"
+    },
+    {
+      "file": "mobile/jest.config.js",
+      "status": "pending",
+      "what": "SERVER_DIR transform pattern for ../server and the @shared mapper onto ../agent-hub/src/shared",
+      "group": "configs"
+    },
+    {
+      "file": "mobile/jest.resolver.js",
+      "status": "pending",
+      "what": "resolves agent-hub/src files mobile executes (plan step 0.2: the same fallback)",
+      "group": "configs"
+    },
+    {
+      "file": "scripts/ambient.d.ts",
+      "status": "not-applicable",
+      "what": "ambient types for the scripts typecheck",
+      "reason": "module declarations for packages; it names server files in a comment only"
+    },
+    {
+      "file": "scripts/any-share.mjs",
+      "status": "pending",
+      "what": "counts any over the files server/scripts/typecheck.mjs lists per level",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/api-reference-walk.cjs",
+      "status": "pending",
+      "what": "loads server/index.js in-process (needs the moduleRoots preload once modules exist) and dumps the route table",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/api-relocate.mjs",
+      "status": "pending",
+      "what": "walks agent-hub/src for API modules outside src/api and moves them",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/api-relocate.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of api-relocate.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when api-relocate.mjs is converted"
+    },
+    {
+      "file": "scripts/app-builder-live-run.sh",
+      "status": "pending",
+      "what": "copies server/scripts drivers into a container; `find server -newer` decides whether the image is stale",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/app-compat-pixels.mjs",
+      "status": "pending",
+      "what": "reads server/appStudio/compat/corpus and renders it",
+      "group": "checks"
+    },
+    {
+      "file": "scripts/app-version.sh",
+      "status": "not-applicable",
+      "what": "stamps APP_VERSION",
+      "reason": "names server/modules/appVersion.js in a comment only"
+    },
+    {
+      "file": "scripts/audit-ratchet.mjs",
+      "status": "not-applicable",
+      "what": "audit ratchet",
+      "reason": "npm audit per package directory (server, agent-hub lockfiles), which never move"
+    },
+    {
+      "file": "scripts/audit-ratchet.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of audit-ratchet.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when audit-ratchet.mjs is converted"
+    },
+    {
+      "file": "scripts/body-schema-ratchet.mjs",
+      "status": "not-applicable",
+      "what": "body-schema ratchet",
+      "reason": "reads the generated docs/static/openapi.json and server/.body-schema-ratchet.json in the core root"
+    },
+    {
+      "file": "scripts/build-editor-bundles.mjs",
+      "status": "pending",
+      "what": "esbuild of agent-hub/src/editor entries into server/core/markdown; inputs listed relative to server/",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/build-images.ps1",
+      "status": "pending",
+      "what": "docker build contexts server and agent-hub, runtime bundle from agent-hub",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/build-images.sh",
+      "status": "pending",
+      "what": "docker build contexts server and agent-hub, runtime bundle from agent-hub",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/build-images.test.mjs",
+      "status": "not-applicable",
+      "what": "build-images service lists",
+      "reason": "compares the service lists of build-images.sh/.ps1 and build-push-ghcr.yml; follows those files"
+    },
+    {
+      "file": "scripts/builder-live-run.sh",
+      "status": "pending",
+      "what": "copies server/scripts/drive-builder.js into a container; `find server -newer` decides whether the image is stale",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/bundle-ratchet.mjs",
+      "status": "not-applicable",
+      "what": "bundle size ratchet",
+      "reason": "reads agent-hub/dist/assets, build output that stays in one directory"
+    },
+    {
+      "file": "scripts/catch-classify.mjs",
+      "status": "pending",
+      "what": "walks server/ and classifies catch blocks by directory (server/auth, server/license, ...)",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/catch-classify.test.mjs",
+      "status": "pending",
+      "what": "reads real server files through path.join(server, rel)",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/check-compat-corpus.mjs",
+      "status": "pending",
+      "what": "guards server/appStudio/compat/{corpus,frozen}/ in the diff",
+      "group": "checks"
+    },
+    {
+      "file": "scripts/check-compat-corpus.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of check-compat-corpus.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when check-compat-corpus.mjs is converted"
+    },
+    {
+      "file": "scripts/check-duplicated-files.mjs",
+      "status": "not-applicable",
+      "what": "byte-identical file pairs",
+      "reason": "pairs of fixed files (Dockerfile, brand logo, components/) that stay where they are"
+    },
+    {
+      "file": "scripts/check-editor-bundles.mjs",
+      "status": "pending",
+      "what": "recomputes the editor bundles' input hash from paths relative to server/",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/check-editor-bundles.test.mjs",
+      "status": "pending",
+      "what": "checks the real bundles in server/core/markdown against agent-hub/src/editor",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/check-fast.mjs",
+      "status": "not-applicable",
+      "what": "runs the fast checks",
+      "reason": "names packages only in descriptions of the scripts it runs"
+    },
+    {
+      "file": "scripts/check-fast.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of check-fast.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when check-fast.mjs is converted"
+    },
+    {
+      "file": "scripts/check-legal-catalogue.mjs",
+      "status": "pending",
+      "what": "requires server/compliance/frameworks.js by path",
+      "group": "checks"
+    },
+    {
+      "file": "scripts/check-new-code-types.mjs",
+      "status": "pending",
+      "what": "a new file under server/ must carry @typecheck; `startsWith('server/')` misses modules/<id>/server",
+      "group": "checks"
+    },
+    {
+      "file": "scripts/check-new-code-types.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of check-new-code-types.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when check-new-code-types.mjs is converted"
+    },
+    {
+      "file": "scripts/check-package-registry.mjs",
+      "status": "root-aware",
+      "what": "walks git ls-files of the whole repository for package.json and requirements files"
+    },
+    {
+      "file": "scripts/check-package-registry.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of check-package-registry.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when check-package-registry.mjs is converted"
+    },
+    {
+      "file": "scripts/check-playwright-lockstep.mjs",
+      "status": "not-applicable",
+      "what": "Playwright versions in lockstep",
+      "reason": "server/package.json and server/pwt-runner/ are fixed package files"
+    },
+    {
+      "file": "scripts/check-playwright-lockstep.test.mjs",
+      "status": "not-applicable",
+      "what": "Playwright lockstep test",
+      "reason": "reads the same fixed package files"
+    },
+    {
+      "file": "scripts/check-release-container.sh",
+      "status": "not-applicable",
+      "what": "checks a built release container",
+      "reason": "names one core ops file, server/scripts/healthcheck-wget.js, in a comment"
+    },
+    {
+      "file": "scripts/check-required-checks.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of check-required-checks.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when check-required-checks.mjs is converted"
+    },
+    {
+      "file": "scripts/check-server-manifest.mjs",
+      "status": "pending",
+      "what": "asserts the ci.yml mobile and server filters around server/** (modules/*/server/** joins them)",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/check-server-manifest.test.mjs",
+      "status": "not-applicable",
+      "what": "server manifest invariants test",
+      "reason": "reads server/package.json and ci.yml; follows check-server-manifest.mjs"
+    },
+    {
+      "file": "scripts/check-version-drift.mjs",
+      "status": "not-applicable",
+      "what": "dependency major drift",
+      "reason": "package.json of server and agent-hub, which never move"
+    },
+    {
+      "file": "scripts/check-version-drift.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of check-version-drift.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when check-version-drift.mjs is converted"
+    },
+    {
+      "file": "scripts/checkjs-ratchet.mjs",
+      "status": "pending",
+      "what": "walks the package directory for // @typecheck markers",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/claude-hooks.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of claude-hooks.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when claude-hooks.mjs is converted"
+    },
+    {
+      "file": "scripts/cleanup-test-runs.sh",
+      "status": "not-applicable",
+      "what": "cleans up test runs",
+      "reason": "copies one core ops file, server/scripts/cleanup-test-runs.js, into a container"
+    },
+    {
+      "file": "scripts/complexity-tail-ratchet.mjs",
+      "status": "pending",
+      "what": "eslint over the package directory; budget keys relative to it",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/complexity-tail-ratchet.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of complexity-tail-ratchet.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when complexity-tail-ratchet.mjs is converted"
+    },
+    {
+      "file": "scripts/compose-stack-name.test.mjs",
+      "status": "not-applicable",
+      "what": "compose stack name",
+      "reason": "reads compose files and env examples for service names"
+    },
+    {
+      "file": "scripts/console-to-log.mjs",
+      "status": "pending",
+      "what": "walks server/ (and the small Node packages) for console calls",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/console-to-log.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of console-to-log.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when console-to-log.mjs is converted"
+    },
+    {
+      "file": "scripts/container-release-gate.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of container-release-gate.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when container-release-gate.mjs is converted"
+    },
+    {
+      "file": "scripts/count-ratchet.mjs",
+      "status": "pending",
+      "what": "every count metric walks server/ or agent-hub/src; budget keys are tree paths",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/count-ratchet.test.mjs",
+      "status": "pending",
+      "what": "reads the real server/testUtils for the module-mock helper list",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/coverage-ratchet.mjs",
+      "status": "not-applicable",
+      "what": "coverage floor ratchet",
+      "reason": "reads the package's coverage total; which files go in is the c8/vitest config"
+    },
+    {
+      "file": "scripts/deep-imports.exclude.json",
+      "status": "pending",
+      "what": "agent-hub/src tree paths mobile jest executes, looked up under agent-hub/src",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/deep-imports.mjs",
+      "status": "pending",
+      "what": "rewrites deep relative imports in agent-hub/src to @/",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/deep-imports.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of deep-imports.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when deep-imports.mjs is converted"
+    },
+    {
+      "file": "scripts/dev-rebuild.sh",
+      "status": "pending",
+      "what": "decides which dev image to rebuild from changes under server/ and agent-hub/",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/dev-rebuild.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of dev-rebuild.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when dev-rebuild.mjs is converted"
+    },
+    {
+      "file": "scripts/dockerfile-runtime-user.test.mjs",
+      "status": "not-applicable",
+      "what": "Dockerfile runtime user",
+      "reason": "reads Dockerfiles at fixed paths"
+    },
+    {
+      "file": "scripts/duplication-ratchet.mjs",
+      "status": "root-aware",
+      "what": "runs jscpd over the whole repository with .jscpd.json; budgets are per scope, not per path"
+    },
+    {
+      "file": "scripts/duplication-ratchet.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of duplication-ratchet.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when duplication-ratchet.mjs is converted"
+    },
+    {
+      "file": "scripts/effect-fetch.mjs",
+      "status": "not-applicable",
+      "what": "AST helper for fetch-in-effect",
+      "reason": "resolves typescript from agent-hub/package.json; the files come from count-ratchet"
+    },
+    {
+      "file": "scripts/effect-fetch.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of effect-fetch.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when effect-fetch.mjs is converted"
+    },
+    {
+      "file": "scripts/entry-budget.mjs",
+      "status": "not-applicable",
+      "what": "entry chunk budget",
+      "reason": "reads agent-hub/dist/assets, build output that stays in one directory"
+    },
+    {
+      "file": "scripts/env-inventory.mjs",
+      "status": "pending",
+      "what": "walks server/ for the process.env names it reads",
+      "group": "checks"
+    },
+    {
+      "file": "scripts/env-inventory.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of env-inventory.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when env-inventory.mjs is converted"
+    },
+    {
+      "file": "scripts/eslint-budget.mjs",
+      "status": "pending",
+      "what": "runs eslint in agent-hub and server with one eslint-suppressions.json each (plan: one per root)",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/eslint-budget.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of eslint-budget.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when eslint-budget.mjs is converted"
+    },
+    {
+      "file": "scripts/eslint-service-config.cjs",
+      "status": "not-applicable",
+      "what": "eslint config for the small services",
+      "reason": "names server/eslint.config.js in a comment only"
+    },
+    {
+      "file": "scripts/eslint/base.cjs",
+      "status": "not-applicable",
+      "what": "shared eslint building blocks",
+      "reason": "names server/ in a comment only"
+    },
+    {
+      "file": "scripts/eslint/stripTypes.cjs",
+      "status": "not-applicable",
+      "what": "eslint processor for .mts",
+      "reason": "names server/ in comments only"
+    },
+    {
+      "file": "scripts/file-budget.mjs",
+      "status": "pending",
+      "what": "walks each package directory for line limits; .file-budget.json keys are tree paths",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/frontend-shards.mjs",
+      "status": "pending",
+      "what": "agent-hub test files, shards and durations by path relative to agent-hub",
+      "group": "test-runners"
+    },
+    {
+      "file": "scripts/frontend-shards.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of frontend-shards.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when frontend-shards.mjs is converted"
+    },
+    {
+      "file": "scripts/gen-api-reference.mjs",
+      "status": "pending",
+      "what": "walks the real app through api-reference-walk.cjs (needs the preload)",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-api-reference.test.mjs",
+      "status": "pending",
+      "what": "runs the real route walk",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-api-types.mjs",
+      "status": "not-applicable",
+      "what": "request types per operation",
+      "reason": "reads docs/static/openapi.json and writes two generated core files (agent-hub/src/api, mobile)"
+    },
+    {
+      "file": "scripts/gen-api-types.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of gen-api-types.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when gen-api-types.mjs is converted"
+    },
+    {
+      "file": "scripts/gen-app-catalog.mjs",
+      "status": "pending",
+      "what": "requires server/appStudio/componentSpecs.js and builderTools/ by path, writes the agent-hub catalogue",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-app-catalog.test.mjs",
+      "status": "pending",
+      "what": "requires the real server/appStudio/componentSpecs.js",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-i18n-defaults.mjs",
+      "status": "pending",
+      "what": "reads server/i18n/defaults/en/index.js, writes agent-hub/src/i18n/en-defaults.js (plan step 0.3)",
+      "group": "i18n"
+    },
+    {
+      "file": "scripts/gen-i18n-defaults.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of gen-i18n-defaults.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when gen-i18n-defaults.mjs is converted"
+    },
+    {
+      "file": "scripts/gen-routes-contract.mjs",
+      "status": "pending",
+      "what": "walks the real app and writes server/auth/routes.contract.json",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-routes-contract.test.mjs",
+      "status": "pending",
+      "what": "runs the real route walk",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-row-types.mjs",
+      "status": "pending",
+      "what": "scans server/ for CREATE TABLE and writes server/types/rows.d.ts",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-scripts-index.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of gen-scripts-index.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when gen-scripts-index.mjs is converted"
+    },
+    {
+      "file": "scripts/gen-shared-mirror.mjs",
+      "status": "pending",
+      "what": "copies server/shared to agent-hub/src/shared and mobile per the manifest",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-shared-mirror.test.mjs",
+      "status": "pending",
+      "what": "checks the real generated roots for stray files",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/gen-step-kinds.mjs",
+      "status": "pending",
+      "what": "reads server/appStudio/componentSpecs/steps/<kind>.js, writes server/shared/appDefinition/stepKinds.generated.mjs",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/generate-sbom.sh",
+      "status": "pending",
+      "what": "SBOM per package directory; the model table links server/core/... source files that can move",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/i18n-key-guard.mjs",
+      "status": "pending",
+      "what": "reads server/i18n/defaults from the base with git archive (plan step 0.3: all roots)",
+      "group": "i18n"
+    },
+    {
+      "file": "scripts/i18n-key-guard.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of i18n-key-guard.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when i18n-key-guard.mjs is converted"
+    },
+    {
+      "file": "scripts/i18n-ratchet.mjs",
+      "status": "pending",
+      "what": "walks agent-hub/src for strings without a key",
+      "group": "i18n"
+    },
+    {
+      "file": "scripts/i18n-ratchet.test.mjs",
+      "status": "pending",
+      "what": "checks prefixes against the real agent-hub/src",
+      "group": "i18n"
+    },
+    {
+      "file": "scripts/i18n-split.mjs",
+      "status": "not-applicable",
+      "what": "i18n split codemod",
+      "reason": "one-off split of server/i18n/defaults/en.js into core namespace files; already run, it never runs on a module"
+    },
+    {
+      "file": "scripts/i18n-split.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of i18n-split.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when i18n-split.mjs is converted"
+    },
+    {
+      "file": "scripts/impact.mjs",
+      "status": "pending",
+      "what": "import graph over server, agent-hub, mobile and desktop; picks the tests a change reaches",
+      "group": "test-runners"
+    },
+    {
+      "file": "scripts/impact.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of impact.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when impact.mjs is converted"
+    },
+    {
+      "file": "scripts/jsdoc-convert-server.mjs",
+      "status": "pending",
+      "what": "JSDoc conversion of server files given relative to server/",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/jsdoc-convert-server.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of jsdoc-convert-server.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when jsdoc-convert-server.mjs is converted"
+    },
+    {
+      "file": "scripts/jsdoc-express-params.mjs",
+      "status": "pending",
+      "what": "JSDoc Express params for server files given as server/...",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/jsdoc-express-params.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of jsdoc-express-params.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when jsdoc-express-params.mjs is converted"
+    },
+    {
+      "file": "scripts/jsdoc-loose-types.mjs",
+      "status": "pending",
+      "what": "loose JSDoc types for server files given as server/...",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/jsdoc-loose-types.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of jsdoc-loose-types.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when jsdoc-loose-types.mjs is converted"
+    },
+    {
+      "file": "scripts/jsdoc-round.sh",
+      "status": "pending",
+      "what": "greps server/<dir> for batches and checks `git status server`",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/jsdoc-row-types.mjs",
+      "status": "pending",
+      "what": "row types for server/stores files, reads server/types/rows.d.ts",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/jsdoc-row-types.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of jsdoc-row-types.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when jsdoc-row-types.mjs is converted"
+    },
+    {
+      "file": "scripts/jsdoc-widen-initializers.mjs",
+      "status": "pending",
+      "what": "widens initializers in server files given as server/...",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/jsdoc-widen-initializers.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of jsdoc-widen-initializers.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when jsdoc-widen-initializers.mjs is converted"
+    },
+    {
+      "file": "scripts/jsx-extract.mjs",
+      "status": "pending",
+      "what": "takes agent-hub files from count-ratchet --list and joins them onto agent-hub/",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/jsx-extract.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of jsx-extract.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when jsx-extract.mjs is converted"
+    },
+    {
+      "file": "scripts/learn-media-fetch.mjs",
+      "status": "pending",
+      "what": "requires server/learning/learnMediaInstall.js by path (learning is a pilot module)",
+      "group": "ops-scripts"
+    },
+    {
+      "file": "scripts/lib/docker-stub.mjs",
+      "status": "not-applicable",
+      "what": "docker stub for script tests",
+      "reason": "service names only"
+    },
+    {
+      "file": "scripts/lib/editor-bundles.mjs",
+      "status": "pending",
+      "what": "the editor bundles' input list and hash, relative to server/",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/lib/roots.mjs",
+      "status": "root-aware",
+      "what": "the roots helper: rootsOf, walkTree, resolveTreePath, locate"
+    },
+    {
+      "file": "scripts/lib/roots.test.mjs",
+      "status": "root-aware",
+      "what": "fixture core and modules for the roots helper"
+    },
+    {
+      "file": "scripts/lib/server-service.mjs",
+      "status": "pending",
+      "what": "TypeScript language service over files under server/",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/lib/ts-service.mjs",
+      "status": "pending",
+      "what": "TypeScript language service over agent-hub",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/mts-coverage.mjs",
+      "status": "pending",
+      "what": "coverage summary keys relative to the package directory",
+      "group": "test-runners"
+    },
+    {
+      "file": "scripts/mts-coverage.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of mts-coverage.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when mts-coverage.mjs is converted"
+    },
+    {
+      "file": "scripts/mutation-sample.mjs",
+      "status": "pending",
+      "what": "walks the folders .mutation-ratchet.json names under the package directory",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/packages.json",
+      "status": "not-applicable",
+      "what": "package registry",
+      "reason": "lists package directories at their fixed place; a modules/package.json gets its own entry"
+    },
+    {
+      "file": "scripts/playbook-live-run.sh",
+      "status": "pending",
+      "what": "copies server/scripts drivers and playbook cases into a container",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/port-jsdoc-branch.mjs",
+      "status": "pending",
+      "what": "ports a JSDoc branch over paths (default server)",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/port-jsdoc-branch.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of port-jsdoc-branch.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when port-jsdoc-branch.mjs is converted"
+    },
+    {
+      "file": "scripts/ratchet-budget.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ratchet-budget.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ratchet-budget.mjs is converted"
+    },
+    {
+      "file": "scripts/release-manifest.mjs",
+      "status": "not-applicable",
+      "what": "release manifest",
+      "reason": "image names only"
+    },
+    {
+      "file": "scripts/release-manifest.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of release-manifest.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when release-manifest.mjs is converted"
+    },
+    {
+      "file": "scripts/release-notes/draft.js",
+      "status": "not-applicable",
+      "what": "release notes draft",
+      "reason": "requires one core file, server/core/releaseNotesFormat.js"
+    },
+    {
+      "file": "scripts/release-notes/package.json",
+      "status": "not-applicable",
+      "what": "release-notes package",
+      "reason": "names server/ in its description only"
+    },
+    {
+      "file": "scripts/resolve-release-images.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of resolve-release-images.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when resolve-release-images.mjs is converted"
+    },
+    {
+      "file": "scripts/roots-inventory.mjs",
+      "status": "root-aware",
+      "what": "this gate; scans scripts/, and scripts/ and testUtils/ of every server root"
+    },
+    {
+      "file": "scripts/roots-inventory.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of roots-inventory.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when roots-inventory.mjs is converted"
+    },
+    {
+      "file": "scripts/rq-codemod.mjs",
+      "status": "pending",
+      "what": "moves agent-hub data fetching onto react-query, writes agent-hub/src/api/queries",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/rq-codemod.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of rq-codemod.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when rq-codemod.mjs is converted"
+    },
+    {
+      "file": "scripts/scan-secrets.sh",
+      "status": "root-aware",
+      "what": "git-based scan of the whole repository; names one fixed key file"
+    },
+    {
+      "file": "scripts/scan-secrets.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of scan-secrets.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when scan-secrets.mjs is converted"
+    },
+    {
+      "file": "scripts/scc-ratchet.mjs",
+      "status": "pending",
+      "what": "import graph of server, agent-hub/src and mobile/src",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/scc-ratchet.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of scc-ratchet.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when scc-ratchet.mjs is converted"
+    },
+    {
+      "file": "scripts/server-mv.mjs",
+      "status": "pending",
+      "what": "moves files inside server/ and fixes every reference under server/",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/server-mv.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of server-mv.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when server-mv.mjs is converted"
+    },
+    {
+      "file": "scripts/shared-mirror.manifest.json",
+      "status": "pending",
+      "what": "source server/shared/..., targets agent-hub/src/shared and mobile/src/shared",
+      "group": "generators"
+    },
+    {
+      "file": "scripts/source-text-tests.mjs",
+      "status": "pending",
+      "what": "git ls-files of the test files under the directories given (server)",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/split-plan.mjs",
+      "status": "pending",
+      "what": "splits agent-hub files over the line limit, tests from impact.mjs",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/split-plan.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of split-plan.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when split-plan.mjs is converted"
+    },
+    {
+      "file": "scripts/stage-server-context.sh",
+      "status": "pending",
+      "what": "stages the server image context (runtime bundle into server/vendor, SBOM)",
+      "group": "build-ci"
+    },
+    {
+      "file": "scripts/store-write-tx.mjs",
+      "status": "pending",
+      "what": "walks server/stores for writes without a transaction",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/store-write-tx.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of store-write-tx.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when store-write-tx.mjs is converted"
+    },
+    {
+      "file": "scripts/theme-ratchet.mjs",
+      "status": "pending",
+      "what": "walks agent-hub/src for theme bypasses",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/theme-ratchet.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of theme-ratchet.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when theme-ratchet.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-behaviour-diff.mjs",
+      "status": "pending",
+      "what": "compares compiled output over paths (default agent-hub/src,server)",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-behaviour-diff.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-behaviour-diff.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-behaviour-diff.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-callsite-types.mjs",
+      "status": "pending",
+      "what": "infers types from agent-hub call sites",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-callsite-types.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-callsite-types.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-callsite-types.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-cast-loop.mjs",
+      "status": "pending",
+      "what": "casts loop over a package with a tsconfig (agent-hub)",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-cast-loop.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-cast-loop.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-cast-loop.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-convert-codefix.mjs",
+      "status": "pending",
+      "what": "JS to TS conversion of agent-hub files, paths relative to agent-hub",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-convert-codefix.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-convert-codefix.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-convert-codefix.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-convert-gate.mjs",
+      "status": "pending",
+      "what": "gate for converted agent-hub files, paths relative to agent-hub",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-convert-gate.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-convert-gate.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-convert-gate.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-convert-local.mjs",
+      "status": "pending",
+      "what": "local-model conversion of agent-hub/src files",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-convert-references.mjs",
+      "status": "pending",
+      "what": "rewrites references to converted agent-hub/src files and .file-budget.json keys",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-convert-references.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-convert-references.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-convert-references.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-equivalence.mjs",
+      "status": "not-applicable",
+      "what": "compiled-output equivalence",
+      "reason": "resolves esbuild from server/package.json"
+    },
+    {
+      "file": "scripts/ts-equivalence.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-equivalence.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-equivalence.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-fix.mjs",
+      "status": "pending",
+      "what": "tsc fix loop over agent-hub",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-fix.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-fix.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-fix.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-move-types.mjs",
+      "status": "pending",
+      "what": "moves types out of agent-hub/src files",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-move-types.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-move-types.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-move-types.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-outline.mjs",
+      "status": "pending",
+      "what": "outline and walk of a package's source files",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-outline.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-outline.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-outline.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-ratchet.mjs",
+      "status": "pending",
+      "what": "counts .js/.jsx files under agent-hub/src",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/ts-remove-unused-imports.mjs",
+      "status": "pending",
+      "what": "removes unused imports from agent-hub files",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-runtime-types.mjs",
+      "status": "pending",
+      "what": "records runtime types while agent-hub's vitest runs",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-runtime-types.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-runtime-types.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-runtime-types.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-split.mjs",
+      "status": "pending",
+      "what": "splits a file and rewrites its importers in the package",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-split.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-split.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-split.mjs is converted"
+    },
+    {
+      "file": "scripts/ts-type-at.mjs",
+      "status": "pending",
+      "what": "type at a position, agent-hub language service",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/ts-type-at.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of ts-type-at.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when ts-type-at.mjs is converted"
+    },
+    {
+      "file": "scripts/tsc-error-ratchet.mjs",
+      "status": "pending",
+      "what": "tsc errors per file of the package's tsconfig.strict.json",
+      "group": "ratchets"
+    },
+    {
+      "file": "scripts/typecheck-settle.mjs",
+      "status": "pending",
+      "what": "git diff and checkout under server/",
+      "group": "codemods"
+    },
+    {
+      "file": "scripts/typecheck-settle.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of typecheck-settle.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when typecheck-settle.mjs is converted"
+    },
+    {
+      "file": "scripts/vendor-name-ratchet.mjs",
+      "status": "pending",
+      "what": "requires server/i18n/defaults/en/index.js by path",
+      "group": "i18n"
+    },
+    {
+      "file": "scripts/vuln-watch-gate.test.mjs",
+      "status": "not-applicable",
+      "what": "unit test of vuln-watch-gate.mjs",
+      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when vuln-watch-gate.mjs is converted"
+    },
+    {
+      "file": "server/.c8rc.json",
+      "status": "pending",
+      "what": "c8 src [\".\"] relative to server/; module roots are outside it",
+      "group": "configs"
+    },
+    {
+      "file": "server/.dockerignore",
+      "status": "pending",
+      "what": "ignore rules anchored at the server/ build context",
+      "group": "build-ci"
+    },
+    {
+      "file": "server/eslint.config.js",
+      "status": "pending",
+      "what": "globs relative to server/ (plan: one config and suppressions file per root)",
+      "group": "configs"
+    },
+    {
+      "file": "server/importPaths.test.js",
+      "status": "pending",
+      "what": "walks server/ and checks every relative require resolves (must resolve across roots)",
+      "group": "server-tree-tests"
+    },
+    {
+      "file": "server/index.errorHandler.test.js",
+      "status": "not-applicable",
+      "what": "terminal error handler wiring",
+      "reason": "reads core boot files (index.js, boot/httpMiddleware.js, boot/staticAssets.js) that stay in server/"
+    },
+    {
+      "file": "server/jsconfig.json",
+      "status": "pending",
+      "what": "include globs relative to server/",
+      "group": "configs"
+    },
+    {
+      "file": "server/layering.test.js",
+      "status": "pending",
+      "what": "walks every top-level entry of server/ and counts cross-layer requires",
+      "group": "server-tree-tests"
+    },
+    {
+      "file": "server/migrateDb.erasure.integration.test.js",
+      "status": "not-applicable",
+      "what": "erasure coverage of the migrated schema",
+      "reason": "reads one core file, stores/user/erasure-exemptions.json"
+    },
+    {
+      "file": "server/migrateDb.registration.test.js",
+      "status": "pending",
+      "what": "walks server/stores for CREATE TABLE owners and reads storeModules.js",
+      "group": "server-tree-tests"
+    },
+    {
+      "file": "server/routes.contract.test.js",
+      "status": "pending",
+      "what": "walks the real app (gen-api-reference walkServer) against server/auth/routes.contract.json",
+      "group": "server-tree-tests"
+    },
+    {
+      "file": "server/scripts/backfill-encryption.js",
+      "status": "not-applicable",
+      "what": "encryption backfill",
+      "reason": "its own .env and requires only; the resolver maps requires across roots"
+    },
+    {
+      "file": "server/scripts/backfillSavedAudioKeys.js",
+      "status": "not-applicable",
+      "what": "saved audio key backfill",
+      "reason": "names its own path in a usage comment only"
+    },
+    {
+      "file": "server/scripts/build-gene-catalog.js",
+      "status": "pending",
+      "what": "writes core/datasets/data by a path computed from __dirname",
+      "group": "ops-scripts"
+    },
+    {
+      "file": "server/scripts/build-iata-airports.mjs",
+      "status": "not-applicable",
+      "what": "IATA airport list",
+      "reason": "writes one core data file, core/http/geo/iataAirports.json"
+    },
+    {
+      "file": "server/scripts/builder-trace-from-log.mjs",
+      "status": "not-applicable",
+      "what": "builder trace from a log",
+      "reason": "names server/ in a usage comment only"
+    },
+    {
+      "file": "server/scripts/check-test-shards.mjs",
+      "status": "pending",
+      "what": "runs run-tests --list and reads test-durations.json keyed by tree path",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/cleanupAzureDuplicates.js",
+      "status": "not-applicable",
+      "what": "Azure duplicate cleanup",
+      "reason": "requires by absolute path under server/, which the resolver maps across roots"
+    },
+    {
+      "file": "server/scripts/content/beeflowAssets.js",
+      "status": "not-applicable",
+      "what": "website assets",
+      "reason": "reads assets next to itself (content/), which move with it"
+    },
+    {
+      "file": "server/scripts/content/beeflowSite.js",
+      "status": "not-applicable",
+      "what": "website content",
+      "reason": "product copy mentions server/agent-hub; requires go through module resolution"
+    },
+    {
+      "file": "server/scripts/content/beeflowSite.test.js",
+      "status": "not-applicable",
+      "what": "website content test",
+      "reason": "requires go through module resolution"
+    },
+    {
+      "file": "server/scripts/content/ogCards.js",
+      "status": "not-applicable",
+      "what": "OG card definitions",
+      "reason": "names server/ in a usage comment only"
+    },
+    {
+      "file": "server/scripts/coverageUrls.test.mjs",
+      "status": "not-applicable",
+      "what": "coverage URL rewrite test",
+      "reason": "uses server/node_modules/c8 and fixtures"
+    },
+    {
+      "file": "server/scripts/datatable-orphan-scan.mjs",
+      "status": "not-applicable",
+      "what": "datatable orphan scan",
+      "reason": "its own .env and requires by absolute path, which the resolver maps"
+    },
+    {
+      "file": "server/scripts/deleteOrgs.js",
+      "status": "not-applicable",
+      "what": "delete organisations",
+      "reason": "its own .env and usage comments only"
+    },
+    {
+      "file": "server/scripts/detachMisassignedFreeEmailUsers.js",
+      "status": "not-applicable",
+      "what": "detach misassigned users",
+      "reason": "requires by absolute path, which the resolver maps"
+    },
+    {
+      "file": "server/scripts/drive-app-builder.js",
+      "status": "not-applicable",
+      "what": "App builder driver",
+      "reason": "runs inside a container from /tmp; names server files in comments"
+    },
+    {
+      "file": "server/scripts/drive-builder.js",
+      "status": "not-applicable",
+      "what": "automation builder driver",
+      "reason": "runs inside a container from /tmp; names server files in comments"
+    },
+    {
+      "file": "server/scripts/eval-auto-tier.mjs",
+      "status": "not-applicable",
+      "what": "auto-tier evaluation",
+      "reason": "reads its corpus next to itself"
+    },
+    {
+      "file": "server/scripts/fetch-geo-db.mjs",
+      "status": "not-applicable",
+      "what": "geo database download",
+      "reason": "writes under server/data, run-time data that stays beside the core (dataPath)"
+    },
+    {
+      "file": "server/scripts/gen-template-pictures.mts",
+      "status": "pending",
+      "what": "writes appStudio/templates/pictures by a path computed from its own place",
+      "group": "ops-scripts"
+    },
+    {
+      "file": "server/scripts/genComplianceDemoCatalog.js",
+      "status": "pending",
+      "what": "reads the compliance loader and writes agent-hub/src/demo/fixtures/complianceCatalog.js by hand-made paths",
+      "group": "generators"
+    },
+    {
+      "file": "server/scripts/generate-opaque-setup.js",
+      "status": "not-applicable",
+      "what": "OPAQUE server setup",
+      "reason": "names its own path in a usage comment only"
+    },
+    {
+      "file": "server/scripts/generate-test-invoices.js",
+      "status": "not-applicable",
+      "what": "test invoices",
+      "reason": "names server/ in usage comments only"
+    },
+    {
+      "file": "server/scripts/healthcheck-wget.js",
+      "status": "not-applicable",
+      "what": "healthcheck stand-in",
+      "reason": "names a compose service in a comment only"
+    },
+    {
+      "file": "server/scripts/lib/masterKeyEnvelopes.js",
+      "status": "not-applicable",
+      "what": "master key envelopes",
+      "reason": "names server files in comments only"
+    },
+    {
+      "file": "server/scripts/lib/opsArgs.js",
+      "status": "not-applicable",
+      "what": "ops script flags",
+      "reason": "names server/scripts in a comment only"
+    },
+    {
+      "file": "server/scripts/merge-coverage.mjs",
+      "status": "pending",
+      "what": "merges coverage with server/.c8rc.json from SERVER_DIR",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/merge-durations.mjs",
+      "status": "not-applicable",
+      "what": "test duration merge",
+      "reason": "merges duration files given on the command line; import.meta.url only for the entry check"
+    },
+    {
+      "file": "server/scripts/mergeComplianceKeys.mjs",
+      "status": "pending",
+      "what": "writes server/i18n/defaults/en/<namespace>.js",
+      "group": "i18n"
+    },
+    {
+      "file": "server/scripts/mint-mcp-token.js",
+      "status": "not-applicable",
+      "what": "MCP token",
+      "reason": "its own .env only"
+    },
+    {
+      "file": "server/scripts/print-model-prompt.js",
+      "status": "not-applicable",
+      "what": "print a builder prompt",
+      "reason": "requires by absolute path under server/, which the resolver maps"
+    },
+    {
+      "file": "server/scripts/print-playbook-briefs.js",
+      "status": "not-applicable",
+      "what": "playbook briefs",
+      "reason": "writes next to itself (builder-briefs/)"
+    },
+    {
+      "file": "server/scripts/renderOgImages.js",
+      "status": "not-applicable",
+      "what": "render OG images",
+      "reason": "writes next to itself (content/og)"
+    },
+    {
+      "file": "server/scripts/research/reseed-fixture-account.js",
+      "status": "not-applicable",
+      "what": "research fixture account",
+      "reason": "its own .env and fixtures next to itself"
+    },
+    {
+      "file": "server/scripts/rotateMasterKey.js",
+      "status": "not-applicable",
+      "what": "master key rotation",
+      "reason": "names server files in comments only"
+    },
+    {
+      "file": "server/scripts/run-journeys.mjs",
+      "status": "pending",
+      "what": "readdir of server/journeys",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/run-postgres-tests.mjs",
+      "status": "pending",
+      "what": "the Postgres tests relative to server/",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/run-postgres-tests.test.mjs",
+      "status": "pending",
+      "what": "checks the listed Postgres tests exist under server/",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/run-tests.mjs",
+      "status": "pending",
+      "what": "collects every *.test.js under server/ (plan step 0.4: --scope)",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/run-tests.test.mjs",
+      "status": "pending",
+      "what": "runs run-tests.mjs in a fixture server tree",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/run-usage-push.js",
+      "status": "not-applicable",
+      "what": "usage push",
+      "reason": "its own .env and usage comments only"
+    },
+    {
+      "file": "server/scripts/seed-usage.js",
+      "status": "not-applicable",
+      "what": "usage seed",
+      "reason": "its own .env and usage comments only"
+    },
+    {
+      "file": "server/scripts/seedBeeflowSite.js",
+      "status": "not-applicable",
+      "what": "website seed",
+      "reason": "requires by absolute path under server/, which the resolver maps"
+    },
+    {
+      "file": "server/scripts/template-to-file.js",
+      "status": "not-applicable",
+      "what": "template to file",
+      "reason": "names its own path in usage comments; reads the file given"
+    },
+    {
+      "file": "server/scripts/test-automation-e2e.js",
+      "status": "not-applicable",
+      "what": "automation end-to-end script",
+      "reason": "chdir to server/ and relative requires"
+    },
+    {
+      "file": "server/scripts/typecheck.mjs",
+      "status": "pending",
+      "what": "walks server/ for // @typecheck markers and runs tsc over them",
+      "group": "test-runners"
+    },
+    {
+      "file": "server/scripts/verifyEvidenceChain.js",
+      "status": "not-applicable",
+      "what": "evidence chain verification",
+      "reason": "requires by absolute path (/app or server/), which the resolver maps"
+    },
+    {
+      "file": "server/tenantIsolation.matrix.test.js",
+      "status": "not-applicable",
+      "what": "tenant isolation matrix",
+      "reason": "requires stores and fixtures through module resolution only; walks nothing"
+    },
+    {
+      "file": "server/testUtils/builderStreamHarness.js",
+      "status": "pending",
+      "what": "stub keys from require.resolve(path.join(server, rel)) (plan: confirm in the dress rehearsal)",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/crudRouteStubs.js",
+      "status": "pending",
+      "what": "stub keys from path.join(server, rel)",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/pgliteLadderDb.js",
+      "status": "pending",
+      "what": "stub key path.join(server, 'db.js') and migration paths",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/pgliteTemplate.js",
+      "status": "pending",
+      "what": "sha256 over every non-test file of server/ for the template cache ladder",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/requireEdges.js",
+      "status": "pending",
+      "what": "walks the production files under server/ and reads their requires as text",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/routeContractObserve.js",
+      "status": "pending",
+      "what": "reads index.js and the files it mounts as text relative to server/",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/routeHandlers.js",
+      "status": "not-applicable",
+      "what": "route handler harness",
+      "reason": "requires one core file, core/http/terminalErrorHandler, by path"
+    },
+    {
+      "file": "server/testUtils/runnerIdentityStubs.js",
+      "status": "pending",
+      "what": "stub keys from path.join(server, rel)",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/stubServer.js",
+      "status": "pending",
+      "what": "stub keys from path.join(server, rel)",
+      "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/studioRunTables.js",
+      "status": "pending",
+      "what": "reads stores/studioAppData/<file> as text by a hand-made path",
+      "group": "test-kits"
+    }
+  ]
+}

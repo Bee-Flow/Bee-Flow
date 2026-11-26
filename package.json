@@ -93,7 +93,7 @@
     "gen:scripts-index": "node scripts/gen-scripts-index.mjs",
     "count:source-text": "node scripts/source-text-tests.mjs server",
     "check:fast": "node scripts/check-fast.mjs",
-    "test:scripts": "node --test scripts/*.test.mjs",
+    "test:scripts": "node --test scripts/*.test.mjs scripts/lib/*.test.mjs",
     "mutation:sample": "node scripts/mutation-sample.mjs server --gate",
     "gen:routes-contract": "node scripts/gen-routes-contract.mjs",
     "lint:routes-contract": "node scripts/gen-routes-contract.mjs --check",
