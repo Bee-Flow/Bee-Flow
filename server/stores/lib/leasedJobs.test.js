@@ -24,7 +24,7 @@ test.before(async () => {
     for (const [table] of TABLES) {
         await pg.exec(`CREATE TABLE ${table} (
             id UUID PRIMARY KEY, status TEXT NOT NULL DEFAULT 'pending', preferred BOOLEAN NOT NULL DEFAULT FALSE,
-            attempts INT NOT NULL DEFAULT 0, error_code TEXT, last_error TEXT,
+            attempts INT NOT NULL DEFAULT 0, error_code TEXT, last_error TEXT, requested_by_user BOOLEAN NOT NULL DEFAULT FALSE,
             next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
     }
 });
@@ -41,6 +41,18 @@ const minutesAhead = async (table, id) => Number((await pg.query(
 const rowOf = async (table, id) => (await pg.query(`SELECT status, attempts, error_code, last_error FROM ${table} WHERE id = $1`, [id])).rows[0];
 
 for (const [table, orderBy] of TABLES) {
+    test(`${table}: marking a job as a person's request leaves the lease bookkeeping alone`, async () => {
+        await pg.exec(`DELETE FROM ${table}`);
+        await pg.query(`INSERT INTO ${table} (id, updated_at) VALUES ($1, NOW() - INTERVAL '30 minutes')`, [uuid(9)]);
+        const read = async () => (await pg.query(`SELECT requested_by_user, updated_at FROM ${table} WHERE id = $1`, [uuid(9)])).rows[0];
+        const before = await read();
+        assert.strictEqual(await queue(table, orderBy).markRequestedByUser(uuid(9)), true);
+        const after = await read();
+        assert.strictEqual(after.requested_by_user, true);
+        assert.strictEqual(new Date(after.updated_at).getTime(), new Date(before.updated_at).getTime(), 'updated_at is the lease renewal\'s to write');
+        assert.strictEqual(await queue(table, orderBy).markRequestedByUser(uuid(8)), false, 'a job that is gone');
+    });
+
     test(`${table}: claim takes due pending/awaiting rows in the queue's order, up to the limit, and leases them for 10 minutes`, async () => {
         await pg.exec(`DELETE FROM ${table}`);
         await pg.query(`INSERT INTO ${table} (id, status, preferred, next_attempt_at) VALUES

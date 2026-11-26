@@ -36,6 +36,7 @@ function resetFx() {
     fx.inlineCalls = [];
     fx.updates = [];
     fx.failures = [];
+    fx.marked = [];
     fx.fresh = null;
     fx.msSessions = null;
     fx.accessCalls = 0;
@@ -109,6 +110,7 @@ router.init({
         heartbeatJob: async () => true,
         getJob: async () => fx.fresh,
         failJob: async (id, opts) => { fx.failures.push({ id, ...opts }); return true; },
+        markRequestedByUser: async (id) => { fx.marked.push(id); return true; },
         seedJob: async (row) => { fx.seeded.push(row); return { id: `job-${row.calendarEventId}`, status: 'pending', ...row }; },
     },
     autoImport: {
@@ -338,6 +340,7 @@ test('from-teams: a click while the poller is importing the meeting follows that
     await new Promise((r) => setImmediate(r));
     assert.strictEqual(fx.inlineCalls.length, 0, 'no second run');
     assert.deepStrictEqual(fx.updates, [], 'the running job is not reset under the poller');
+    assert.deepStrictEqual(fx.marked, ['job-1'], 'the run is marked as watched by a person');
 
     // A retry backoff is no running ingest: the click starts the import.
     fx.jobs.ev1 = { id: 'job-1', status: 'pending', errorCode: 'failed', updatedAt: minutes(-1), nextAttemptAt: minutes(30) };

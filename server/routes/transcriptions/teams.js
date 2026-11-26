@@ -314,6 +314,10 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
     // this one had just reset: the screen showed "import failed" seconds after
     // the click while the new run was still going. Follow the run that is there.
     if (isIngestInFlight(job, INGEST_LEASE_MINUTES)) {
+        // The person now watches that run: if it fails, it fails for good with
+        // its own code (importJobPool requestedDuringRun), not into a retry
+        // an hour later while their screen still says "importing".
+        await teamsImportStore.markRequestedByUser(job.id);
         return res.status(202).json({ jobId: job.id, status: 'pending' });
     }
 

@@ -128,39 +128,14 @@ test('failIngest keepCode: a classified code is kept on the last attempt, a syst
     assert.strictEqual(store.calls[1][1].errorCode, 'failed');
 });
 
-test('processDueJobs runs every claimed job, survives a failing one and a failing claim', async () => {
-    const ran = [];
-    const queue = [{ id: 1 }, { id: 2 }];
-    await kit.processDueJobs({
-        store: { claimDueJobs: async (limit) => queue.splice(0, limit) },
-        limit: 2, label: 'T', describe: (j) => String(j.id), quietCodes: new Set(['quiet']),
-        processClaimedJob: async (j) => { ran.push(j.id); if (j.id === 1) throw Object.assign(new Error('q'), { code: 'quiet' }); },
-    });
-    assert.deepStrictEqual(ran, [1, 2]);
-    await kit.processDueJobs({
-        store: { claimDueJobs: async () => { throw new Error('db'); } },
-        limit: 2, label: 'T', describe: String, quietCodes: new Set(), processClaimedJob: async () => { throw new Error('never'); },
-    });
-});
-
-test('processDueJobs claims the next job only when the previous one is done (no stale batch claim)', async () => {
-    const events = [];
-    const queue = [{ id: 'a' }, { id: 'b' }];
-    await kit.processDueJobs({
-        store: { claimDueJobs: async (limit) => { events.push(`claim(${limit})`); return queue.splice(0, limit); } },
-        limit: 2, label: 'T', describe: (j) => j.id, quietCodes: new Set(),
-        processClaimedJob: async (j) => { events.push(`run ${j.id}`); },
-    });
-    assert.deepStrictEqual(events, ['claim(1)', 'run a', 'claim(1)', 'run b']);
-});
-
-test('processDueJobs stops when nothing is due', async () => {
-    let claims = 0;
-    await kit.processDueJobs({
-        store: { claimDueJobs: async () => { claims++; return []; } },
-        limit: 5, label: 'T', describe: String, quietCodes: new Set(), processClaimedJob: async () => {},
-    });
-    assert.strictEqual(claims, 1);
+test('failIngest: a timed-out engine is tried again after an hour, not after the usual minutes', async () => {
+    const store = fakeStore();
+    const job = { id: 'j', attempts: 0 };
+    const args = { store, job, terminalCodes: new Set(), maxAttempts: 3, fallbackMessage: 'F' };
+    await assert.rejects(() => kit.failIngest({ ...args, err: Object.assign(new Error('slow'), { code: 'timeout' }) }));
+    assert.strictEqual(store.calls[0][1].backoffMs, 60 * 60_000);
+    await assert.rejects(() => kit.failIngest({ ...args, err: new Error('socket hang up') }));
+    assert.strictEqual(store.calls[1][1].backoffMs, 2 * 60_000);
 });
 
 test('withLeaseHeartbeat renews the lease for as long as the work runs, then stops', async (t) => {

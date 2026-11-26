@@ -8,7 +8,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const fx = { job: null, updates: [], heartbeats: 0 };
+const fx = { job: null, updates: [], heartbeats: 0, marked: [] };
 const manualImport = require('./gmeetManualImport');
 manualImport.init({
     store: {
@@ -16,6 +16,7 @@ manualImport.init({
         updateJob: async (id, fields) => { fx.updates.push(fields); return true; },
         heartbeatJob: async () => { fx.heartbeats++; return true; },
         failJob: async () => true,
+        markRequestedByUser: async (id) => { fx.marked.push(id); return true; },
     },
 });
 const { startBackgroundImport } = manualImport;
@@ -33,7 +34,7 @@ function args(over = {}) {
     };
 }
 
-test.beforeEach(() => { fx.job = null; fx.updates = []; fx.heartbeats = 0; });
+test.beforeEach(() => { fx.job = null; fx.updates = []; fx.heartbeats = 0; fx.marked = []; });
 
 test('a job the poller is ingesting right now is not started a second time', async () => {
     // A freshly renewed 120-minute ingest lease on a still-pending row.
@@ -42,6 +43,7 @@ test('a job the poller is ingesting right now is not started a second time', asy
     assert.strictEqual(await startBackgroundImport(a), 'already_running');
     assert.strictEqual(accepted(), 0, 'the route answers for an already running import');
     assert.deepStrictEqual(fx.updates, [], 'the running job is not reset');
+    assert.deepStrictEqual(fx.marked, ['job-1'], 'the run is marked as watched by a person');
 });
 
 test('a job in retry backoff can be started by hand, and is marked as the user\'s request', async () => {
