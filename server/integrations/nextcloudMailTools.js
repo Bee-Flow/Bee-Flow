@@ -12,8 +12,9 @@
  * Endpoint surface (verified against nextcloud/mail main branch):
  *   GET  /api/accounts                                  — list mail accounts
  *   GET  /api/accounts/{id}/test                        — test connectivity
- *   POST /api/mailboxes/{id}/sync                       — list/search messages
- *                                                          (body: {query, ids:[], lastMessageTimestamp, init, sortOrder})
+ *   GET  /api/messages?mailboxId&filter&limit&view      — search the message cache (no mailbox lock)
+ *   POST /api/mailboxes/{id}/sync                       — full sync, only for a mailbox not cached yet
+ *                                                          (see ./nextcloudMailSearch.mts)
  *   GET  /api/messages/{id}/body                        — message body + headers
  *   GET  /api/messages/{id}/attachment/{attId}          — download attachment bytes
  *   POST /api/messages/{id}/attachment/{attId}          — save attachment to Files
@@ -26,6 +27,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { fetchMailSearch, messagesOf } = require('./nextcloudMailSearch.mts');
 const {
     mailError, normaliseRole, mailBodyText, MAX_BODY_BYTES, readJsonSafe, api, baseHeaders, trimBody,
 } = require('./nextcloudMailShapes');
@@ -64,7 +66,7 @@ const NEXTCLOUD_MAIL_TOOLS = [
                 type: 'object',
                 properties: {
                     mailboxId: { type: 'integer', description: 'Mailbox id from nextcloud_mail_list_mailboxes.' },
-                    query: { type: 'string', description: 'Free-text query. Empty / omitted returns the most recent messages. Supports common operators like "from:foo@bar", "subject:invoice", "has:attachment".' },
+                    query: { type: 'string', description: 'Empty / omitted returns the most recent messages. Free text matches the subject, sender or recipient. Operators: from:, to:, cc:, subject:, body: (message text, slower), is:unread, is:starred, flags:attachments; quote a phrase: subject:"single sign-on". Searches run in parallel without conflict.' },
                     limit: { type: 'integer', description: 'Max messages (default 25, max 100).' }
                 },
                 required: ['mailboxId']
@@ -244,34 +246,18 @@ async function listMailboxes(args, { baseUrl, fetch: ncFetch, authError }) {
 async function searchMail(args, { baseUrl, fetch: ncFetch, authError }) {
     if (args.mailboxId == null) return { error: 'mailboxId is required' };
     const limit = Math.min(Math.max(parseInt(args.limit) || 25, 1), 100);
-    // The /sync endpoint with init:true returns the most recent N messages
-    // and accepts a `query` param that the Mail app delegates to its own
-    // search backend (subject, from, body, attachments).
-    const body = {
-        ids: [],
-        lastMessageTimestamp: null,
-        init: true,
-        sortOrder: 'newest',
-    };
-    if (args.query) body.query = String(args.query);
-
+    const query = args.query ? String(args.query) : undefined;
     let res;
     try {
-        res = await ncFetch(api(baseUrl, `/mailboxes/${encodeURIComponent(args.mailboxId)}/sync`), {
-            method: 'POST',
-            headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
+        res = await fetchMailSearch({ mailboxId: args.mailboxId, query, limit }, { baseUrl, fetch: ncFetch });
     } catch (e) {
         if (/** @type {Error} */ (e)?.name === 'TimeoutError' || /** @type {Error} */ (e)?.name === 'AbortError') {
-            return { error: 'Mail search timed out: the mailbox is large. Narrow it with a query (for example from:, subject: or has:attachment) and a smaller limit.' };
+            return { error: 'Mail search timed out: the mailbox is large. Narrow it with a query (for example from:, subject: or flags:attachments) and a smaller limit.' };
         }
         throw e;
     }
-    if (!res.ok) return mailError(res, authError, 'search');
-    const data = await readJsonSafe(res);
-    const newMessages = data?.newMessages || data?.messages || (Array.isArray(data) ? data : []);
-    const messages = newMessages.slice(0, limit).map(summariseMessage);
+    if (!res.ok) return mailError(/** @type {Response} */ (/** @type {unknown} */ (res)), authError, 'search');
+    const messages = messagesOf(res.body).slice(0, limit).map(summariseMessage);
     return { mailboxId: args.mailboxId, count: messages.length, messages };
 }
 
