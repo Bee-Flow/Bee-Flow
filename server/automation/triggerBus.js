@@ -36,7 +36,7 @@ const { createGoogleCalendarPollers } = require('./triggerBus/pollers/googleCale
 const { createGoogleDrivePollers } = require('./triggerBus/pollers/googleDrive');
 const { createNextcloudPollers, _ncNormaliseActivity } = require('./triggerBus/pollers/nextcloud');
 const { withNcVisibility } = require('./triggerBus/ncVisibilityWiring');
-const { POLL_FAILURE_THRESHOLD, escalateSubscriptionFailure: escalateWithCtx } = require('./triggerBus/escalation');
+const { POLL_FAILURE_THRESHOLD, FAILING_POLL_INTERVAL_MS, escalateSubscriptionFailure: escalateWithCtx } = require('./triggerBus/escalation');
 const { getPublicBaseUrl, buildClientState, provisionSubscription, revokeSubscription, renewExpiringSubscriptions: renewWithCtx } = require('./triggerBus/msGraphSubscriptions');
 const latestMatch = require('./triggerBus/latestMatch');
 const { fallback } = require('../utils/bestEffort');
@@ -89,7 +89,7 @@ let _deps = { ...DEFAULT_DEPS };
 // ── Polling pass (Gmail history, Calendar syncToken) ────
 
 async function runPollingPass() {
-    const subs = await automationStore.getPollingSubscriptions({ olderThanMs: 60_000 });
+    const subs = await automationStore.getPollingSubscriptions({ olderThanMs: 60_000, failureThreshold: POLL_FAILURE_THRESHOLD, failingPollIntervalMs: FAILING_POLL_INTERVAL_MS });
     if (subs.length > 0) {
         log.info(`[TriggerBus] poll tick — ${subs.length} due subscription(s)`);
     }

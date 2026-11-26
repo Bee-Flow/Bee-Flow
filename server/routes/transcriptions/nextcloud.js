@@ -439,12 +439,12 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
         const settings = await resolveTalkNotesSettings({ orgId: userOrgId, userId });
         const meetings = await listUpcomingTalkMeetings({ session: req.session, userId, windowHours: 48 });
 
-        // One room list to enrich moderator + call/recording state by token.
+        // One room list to enrich moderator + call/recording state by token; none without meetings (no Nextcloud connection: the listing fails).
         /** @type {Record<string, { token: string, participantType?: number, callRecording?: number }>} */
         const roomsByToken = {};
         try {
             const { guardedNcCall } = require('../../core/integrations/ncScopeGuard');
-            const roomsRes = await guardedNcCall('nextcloud_talk_list_rooms', {}, { userId, orgId: userOrgId, session: req.session },
+            const roomsRes = meetings.length === 0 ? null : await guardedNcCall('nextcloud_talk_list_rooms', {}, { userId, orgId: userOrgId, session: req.session },
                 () => talk.executeNextcloudTalkTool('nextcloud_talk_list_rooms', {}, userId, req.session));
             if (roomsRes && Array.isArray(roomsRes.rooms)) for (const r of roomsRes.rooms) roomsByToken[r.token] = r;
         } catch (err) { fallbackSwallowed('routes/transcriptions/nextcloud:anon', err); /* best-effort enrichment */ }
