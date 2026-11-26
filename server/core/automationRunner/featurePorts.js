@@ -32,6 +32,8 @@
 
 'use strict';
 
+const { assertProviderNotFailed } = require('../../modules/firstParty/moduleState');
+
 /** name -> { fnName: function } */
 const ports = new Map();
 
@@ -61,6 +63,19 @@ function runnerPort(name) {
     return port;
 }
 
+/**
+ * The port, or null when it is not registered and no failed module declared
+ * it (an absent module). A name whose declared provider failed to load throws
+ * a ModuleFailedError (code 'MODULE_FAILED').
+ * @param {string} name
+ */
+function optionalRunnerPort(name) {
+    const port = ports.get(name);
+    if (port) return port;
+    assertProviderNotFailed('runnerPorts', name);
+    return null;
+}
+
 function hasRunnerPort(name) {
     return ports.has(name);
 }
@@ -71,4 +86,4 @@ function _clearRunnerPortsForTests(name) {
     else ports.clear();
 }
 
-module.exports = { registerRunnerPorts, runnerPort, hasRunnerPort, _clearRunnerPortsForTests };
+module.exports = { registerRunnerPorts, runnerPort, optionalRunnerPort, hasRunnerPort, _clearRunnerPortsForTests };

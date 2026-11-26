@@ -25,6 +25,8 @@
 
 'use strict';
 
+const { assertProviderNotFailed } = require('../modules/firstParty/moduleState');
+
 /**
  * Every module that can be asked for: its name (the path relative to server/)
  * and what that name returns. featureModule() takes one of these names and
@@ -107,6 +109,21 @@ function featureModule(name) {
 }
 
 /**
+ * The module, or null when it is not registered and no failed module declared
+ * it (an absent module). A name whose declared provider failed to load throws
+ * a ModuleFailedError (code 'MODULE_FAILED'): a broken module never looks absent.
+ * @template {keyof FeatureModuleMap} K
+ * @param {K} name
+ * @returns {FeatureModuleMap[K] | null}
+ */
+function optionalFeatureModule(name) {
+    const get = getters.get(name);
+    if (get) return get();
+    assertProviderNotFailed('featureModules', name);
+    return null;
+}
+
+/**
  * The registered getter (a test seam: testUtils/stubRequire.js swaps it and puts it back).
  * @param {string} name
  */
@@ -132,4 +149,4 @@ function _clearFeatureModulesForTests(name) {
     else getters.clear();
 }
 
-module.exports = { registerFeatureModules, featureModule, hasFeatureModule, featureModuleNames, _featureModuleGetter, _clearFeatureModulesForTests };
+module.exports = { registerFeatureModules, featureModule, optionalFeatureModule, hasFeatureModule, featureModuleNames, _featureModuleGetter, _clearFeatureModulesForTests };
