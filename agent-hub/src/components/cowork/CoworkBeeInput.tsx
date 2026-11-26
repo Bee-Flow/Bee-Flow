@@ -19,6 +19,7 @@ interface Props {
     atLimit: boolean;
 }
 
+const greeting = /^(?:hi|hello|hey(?: there)?|hiya|hoi|hallo|goedemorgen|goedemiddag|goedenavond|good (?:morning|afternoon|evening))(?:[,\s]+bee)?[\s!?.👋🏻🏼🏽🏾🏿]*$/iu;
 const listRequest = /^(?:(?:toon|bekijk|open|show|list|view)\s+)?(?:(?:al|alle|all|mijn|my|de|the|bestaande|existing)\s+)*(?:taken|tasks|werk)\s*[?.!]?$/i;
 const discovery = /^(?:welke|wat voor|which|what)\b.*\b(?:taken|tasks)\b.*(?:heb ik|zijn er|do i have|are there|available)\b/i;
 
@@ -32,9 +33,7 @@ export default function CoworkBeeInput({text, edit, go, inputRef, items, ask, op
     const [question, setQuestion] = useState('');
     const [notice, setNotice] = useState('');
     const action = useExistingTaskAction(items, text, ask);
-    const submit = () => {
-        const message = text.trim();
-        if (!message) return;
+    const submitTask = (message: string) => {
         const navigate = /^open\s/i.test(message) || items.some(item => item.title.toLowerCase() === message.toLowerCase());
         setNotice('');
         if (requestsTaskList(message)) {
@@ -49,7 +48,7 @@ export default function CoworkBeeInput({text, edit, go, inputRef, items, ask, op
             }
             setQuestion(navigate ? '' : message);
             setChoices(action.matches);
-        } else if (/^(?:hoi|hallo|hey|hello|hi|help|wat kun je|wat kan je|what can you do)[!?. ]*$/i.test(message) || /^(?:wat|welke|waarom|hoe|which|what|why|how)\b/i.test(message)) {
+        } else if (/^(?:help|wat kun je|wat kan je|what can you do)[!?. ]*$/i.test(message) || /^(?:wat|welke|waarom|hoe|which|what|why|how)\b/i.test(message)) {
             setChoices(null);
             setNotice(t('cowork_home.dialog.help', 'Describe a new task, ask to see your tasks, or mention a task by name.'));
         } else if (atLimit) {
@@ -60,6 +59,17 @@ export default function CoworkBeeInput({text, edit, go, inputRef, items, ask, op
             return;
         }
         edit('');
+    };
+    const submit = () => {
+        const message = text.trim();
+        if (!message) return;
+        if (greeting.test(message)) {
+            setChoices(null);
+            setNotice(t('cowork_home.dialog.greeting', 'Hi! How can I help?'));
+            edit('');
+            return;
+        }
+        submitTask(message);
     };
     const label = t('cowork_task.orb.talk', 'Ask Bee…');
     return <div className="cowork-bee-dialog">

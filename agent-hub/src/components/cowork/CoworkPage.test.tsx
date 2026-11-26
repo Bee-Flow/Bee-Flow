@@ -83,6 +83,17 @@ describe('CoworkPage', () => {
         expect(await screen.findByRole('button', {name: /Weekly digest/})).toBeVisible();
         expect(screen.queryByText('Your tasks')).toBeNull();
     });
+    it.each(['hi', 'Hoi, Bee!'])('greets someone who says %s and accepts their next request', async greeting => {
+        serve();
+        renderWithClient(<CoworkPage />);
+        const user = userEvent.setup();
+        const input = screen.getByRole('textbox');
+        await user.type(input, greeting + '{Enter}');
+        expect(screen.getByText('Hi! How can I help?')).toBeVisible();
+        expect(calls.some(call => call.method === 'POST')).toBe(false);
+        await user.type(input, 'show my tasks{Enter}');
+        expect(await screen.findByRole('button', {name: /Weekly digest/})).toBeVisible();
+    });
     it('carries a question about a named task into its conversation once', async () => {
         serve();
         renderWithClient(<CoworkPage />);

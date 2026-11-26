@@ -39749,6 +39749,7 @@ const EN_DEFAULTS = {
     "cowork_habits.offer": "You ask this every {day}. Let Cowork do it for you?",
     "cowork_habits.switch": "Notice what I ask again and again",
     "cowork_habits.switch_hint": "Cowork keeps only which apps a chat used and on which weekday, never what you asked. After four weeks in a row it offers once to do it for you. Switching it off forgets it all.",
+    "cowork_home.dialog.greeting": "Hi! How can I help?",
     "cowork_home.dialog.help": "Describe a new task, ask to see your tasks, or mention a task by name.",
     "cowork_home.existing.ask_task": "Ask Bee about {title}",
     "cowork_home.existing.create_new": "Create a new task",

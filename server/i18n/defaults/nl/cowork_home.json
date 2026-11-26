@@ -1,5 +1,6 @@
 {
   "translations": {
+    "cowork_home.dialog.greeting": "Hoi! Waar kan ik je mee helpen?",
     "cowork_home.dialog.help": "Beschrijf een nieuwe taak, vraag naar je taken of noem de taak waarover je iets wilt weten.",
     "cowork_home.existing.ask_task": "Vraag Bee over {title}",
     "cowork_home.existing.create_new": "Nieuwe taak maken",
