@@ -28,6 +28,9 @@ function serve(items: CoworkItem[] = [ITEM]) {
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
         // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up and tests them.
         if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
+        if (path === '/api/cowork/new/plan/make' && method === 'POST') {
+            return new Response('event: done\ndata: {"summary":"ok","state":{"automationId":"auto-1"}}\n\n', {headers: {'content-type': 'text/event-stream'}});
+        }
         if (path === '/api/cowork/new' && method === 'GET') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
         if (path === '/api/cowork/w1' && method === 'GET') return jsonResponse(items.find((i) => i.id === 'w1') ?? {}, items.some((i) => i.id === 'w1') ? 200 : 404);
         if (path === '/api/cowork/compose') return jsonResponse({ title: 'Meeting overview', prompt: 'Summarise', repeatInterval: 'daily', timeOfDay: '09:00' });
@@ -236,6 +239,8 @@ describe('CoworkPage', () => {
         await user.keyboard('{Enter}');
         expect(screen.queryByText('Review your task')).toBeNull();
         await waitFor(() => expect(calls.some((c) => c.method === 'POST' && path(c) === '/api/cowork/new/plan/make')).toBe(true));
+        expect(await screen.findByRole('heading', {name: 'Meeting overview'})).toBeVisible();
+        expect(screen.queryByRole('button', {name: 'Open task'})).toBeNull();
     });
 });
 

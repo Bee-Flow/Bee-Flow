@@ -11,7 +11,7 @@
  *
  * A task, Templates and Teamwork are pages of their own (./CoworkPage.tsx): this column only asks for them.
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, Users } from 'lucide-react';
 import CoworkHomeComposer from './CoworkHomeComposer';
@@ -159,22 +159,20 @@ export default function CoworkHome({ guided, onAskTask, onOpenTask, onOpenPanel,
     const cards = useCoworkNeedCards(items);
     const shared = useSharedWithMe().data ?? [];
     const [flash, say] = useFlash();
-    const [finished, setFinished] = useState<{ task: TaskToSetUp; message: string; seed: typeof seed } | null>(null);
-    const finish = useCallback((message: string, task: TaskToSetUp) => setFinished({ message, task, seed }), [seed]);
+    const homeElement = useRef<HTMLDivElement>(null);
+    const finish = useCallback((_message: string, task: TaskToSetUp) => {
+        // Home stays mounted behind other pages while setup finishes.
+        if (homeElement.current && !homeElement.current.closest('[hidden]')) onOpenTask(task.id);
+    }, [onOpenTask]);
     const { setup, begin } = useTaskSetup(finish);
     const created = useCallback((item: CoworkItem) => {
         void client.invalidateQueries({ queryKey: ['cowork'] });
-        setFinished(null);
         void begin(item);
     }, [client, begin]);
     return (
-        <div className="cowork-home flex flex-col gap-9" data-testid="cowork-home">
+        <div ref={homeElement} className="cowork-home flex flex-col gap-9" data-testid="cowork-home">
             <CoworkHomeComposer guided={guided} openTask={onOpenTask} items={items} onAskTask={onAskTask} stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
-                onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup}
-                finished={finished && finished.seed === seed ? {
-                    flow: finished.task.flow, apps: finished.task.enabledApps, title: finished.task.title, message: finished.message, onOpen: () => { onOpenTask(finished.task.id); setFinished(null); },
-                    onReset: () => setFinished(null),
-                } : undefined} />
+                onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} />
             {!guided && <div className="cowork-home-sections flex flex-col gap-9">
                 <FlashLine flash={flash} />
                 <CoworkHomeNotices budgetPercent={home?.budget?.percent} />

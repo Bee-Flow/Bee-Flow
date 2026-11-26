@@ -1,4 +1,3 @@
-import type { OrbStep } from '@/api/coworkPlan.types';
 /**
  * The home composer starts a fixed task's held test directly when the brief provides everything it needs.
  * Advanced opens the editable preview. The orb asks for missing details. Workspaces without fixed
@@ -48,7 +47,6 @@ export interface CoworkHomeComposerProps {
     onCreated: (item: CoworkItem) => void;
     /** The task whose steps are being set up now, if any. */
     setup: TaskSetup | null;
-    finished?: { flow?: OrbStep[]; apps?: string[] | null; title: string; message: string; onOpen: () => void; onReset: () => void };
 
 }
 
@@ -283,16 +281,10 @@ function TaskReviewEditor({ props, brief, t }: EditorProps) {
 export default function CoworkHomeComposer(props: CoworkHomeComposerProps) {
     const { t } = useTranslation();
     const brief = useTaskBrief(props);
-    const { setup, finished } = props;
-    const scene = finished ? 'finished' : setup || brief.starting ? 'setup' : brief.cowork.draft ? 'review' : brief.cowork.submitting ? 'preview' : 'write';
+    const { setup } = props;
+    const scene = setup || brief.starting ? 'setup' : brief.cowork.draft ? 'review' : brief.cowork.submitting ? 'preview' : 'write';
     let content: ReactNode;
-    if (finished) content = <CoworkActivity title={finished.title} message={finished.message} tone="rest" work={{ apps: finished.apps, flow: finished.flow }}>
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
-            <button type="button" className={BUTTON_PRIMARY} onClick={finished.onOpen}>{t('cowork_home.activity.open', 'Open task')}</button>
-            <button type="button" className={LINK_BUTTON} onClick={finished.onReset}>{t('cowork_home.activity.another', 'Create another task')}</button>
-        </div>
-    </CoworkActivity>;
-    else if (setup) content = <CoworkActivity title={setup.title} {...setupActivity(setup.phase, t, setup.step, setup.apps, setup.flow)} testId="cowork-setup" />;
+    if (setup) content = <CoworkActivity title={setup.title} {...setupActivity(setup.phase, t, setup.step, setup.apps, setup.flow)} testId="cowork-setup" />;
     else if (brief.starting) content = <CoworkActivity work={{ action: 'creating', apps: brief.cowork.draft?.payload.enabledApps }} title={brief.cowork.draft?.payload.title} message={t('cowork_home.activity.creating', 'I’m putting your task together.')} />;
     else if (scene === 'preview') content = <CoworkActivity message={brief.quick ? t('cowork_home.activity.thinking', 'I’m working out what your task needs.') : t('cowork_home.activity.preview', 'I’m preparing an outline for you to review.')} />;
     else content = <TaskEditor props={props} brief={brief} t={t} />;
