@@ -20,7 +20,7 @@ Read, draft and send mail through the [Nextcloud Mail app](https://apps.nextclou
 |------|---------|
 | `nextcloud_mail_list_accounts` | List the user's configured mail accounts. |
 | `nextcloud_mail_list_mailboxes` | List folders for an account. |
-| `nextcloud_mail_search` | Search messages (subject / from / body / flag). |
+| `nextcloud_mail_search` | Search messages: free text matches subject, sender or recipient; `from:`, `to:`, `subject:`, `body:`, `is:unread` and `flags:attachments` narrow it. Searches read the Mail cache and can run side by side. |
 | `nextcloud_mail_read` | Fetch a message body. |
 | `nextcloud_mail_read_attachment` | Read an attachment. |
 | `nextcloud_mail_send` | Send a draft (or a freshly composed message). |
