@@ -920,6 +920,37 @@
       "group": "codemods"
     },
     {
+      "file": "scripts/link-module-node-modules.mjs",
+      "status": "root-aware",
+      "what": "links each modules/<id>/server and modules/<id>/frontend root to the node_modules of its core package"
+    },
+    {
+      "file": "scripts/link-module-node-modules.test.mjs",
+      "status": "not-applicable",
+      "what": "tests the linker",
+      "reason": "temp-dir fixtures only"
+    },
+    {
+      "file": "scripts/module-map.json",
+      "status": "root-aware",
+      "what": "the ownership map: globs over tree paths, valid in server/ and in modules/<id>/server/"
+    },
+    {
+      "file": "scripts/module-map.mjs",
+      "status": "root-aware",
+      "what": "reads the ownership map over the tracked files of server/ and of the module roots"
+    },
+    {
+      "file": "scripts/module-map.test.mjs",
+      "status": "root-aware",
+      "what": "format rules on fixtures, and the committed map against the real tree"
+    },
+    {
+      "file": "scripts/modules-gitignore.test.mjs",
+      "status": "root-aware",
+      "what": "proves tracked data/ files stay tracked at their modules/<id>/ paths"
+    },
+    {
       "file": "scripts/mts-coverage.mjs",
       "status": "pending",
       "what": "coverage summary keys relative to the package directory",
