@@ -337,6 +337,7 @@ async function completeJob(id, transcriptionId) {
  * ('pending' | 'awaiting_artifacts').
  */
 const failJob = leased.failJob;
+const markRequestedByUser = leased.markRequestedByUser; // a person asked for this meeting while a run already had it (lib/leasedJobs.js)
 
 /**
  * Park a job until the user re-authorizes Google. Parked jobs are excluded
@@ -392,6 +393,7 @@ module.exports = {
     updateJob,
     completeJob,
     failJob,
+    markRequestedByUser,
     parkNeedsReauth,
     listRecentJobsForUser,
     getJob,

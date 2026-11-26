@@ -188,6 +188,9 @@ async function completeJob(id, transcriptionId) {
  */
 const failJob = leased.failJob;
 
+/** A person asked for this meeting while a run already had it (lib/leasedJobs.js). */
+const markRequestedByUser = leased.markRequestedByUser;
+
 /**
  * @param {string} id
  */
@@ -260,6 +263,7 @@ module.exports = {
     updateJob,
     completeJob,
     failJob,
+    markRequestedByUser,
     parkNeedsReauth,
     unparkForUser,
     listRecentJobsForUser,

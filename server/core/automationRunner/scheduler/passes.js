@@ -82,7 +82,8 @@ async function processTeamsAutoImport() {
     const teamsAutoImport = { discover: port.teamsDiscover, processDue: port.teamsProcessDue };
     await underAdvisoryLock(TEAMS_IMPORT_LOCK_KEY, 'teams auto-import discovery', () => teamsAutoImport.discover());
     try {
-        await teamsAutoImport.processDue();
+        // Starts the due imports and returns: one long meeting must not hold the next tick.
+        await teamsAutoImport.processDue({ wait: false });
     } catch (e) {
         log.error('[AutomationRunner] teams auto-import ingest error:', /** @type {Error} */ (e).message);
     }

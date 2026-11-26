@@ -25,6 +25,7 @@ const {
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { envInt } = require('../../utils/envNumber.mts');
+const { isIngestInFlight } = require('../../core/meetingNotes/importJobKit');
 
 /** @type {import('express').RequestHandler} */
 const requireAuth = (req, res, next) => d.permissions.requireAuth(req, res, next);
@@ -304,6 +305,20 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
     if (!job) throw new HttpError(500, 'failed', 'Could not create an import job for this meeting');
     if (job.status === 'ingested' && job.transcriptionId && await noteStillExists(job.transcriptionId, userId)) {
         return res.json({ id: job.transcriptionId, dedup: true });
+    }
+
+    // The per-process runner only knows manual runs on THIS pod. A run the
+    // poller (or another pod) is in the middle of shows on the row as a
+    // freshly renewed ingest lease. Starting a second one would transcribe the
+    // same recording twice, and the first run's outcome would land on the row
+    // this one had just reset: the screen showed "import failed" seconds after
+    // the click while the new run was still going. Follow the run that is there.
+    if (isIngestInFlight(job, INGEST_LEASE_MINUTES)) {
+        // The person now watches that run: if it fails, it fails for good with
+        // its own code (importJobPool requestedDuringRun), not into a retry
+        // an hour later while their screen still says "importing".
+        await teamsImportStore.markRequestedByUser(job.id);
+        return res.status(202).json({ jobId: job.id, status: 'pending' });
     }
 
     const slot = d.importRunner.acquire({ jobKey: `teams:${job.id}`, userId, orgId });

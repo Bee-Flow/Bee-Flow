@@ -3,7 +3,7 @@
  * The lease/claim/heartbeat half of a Postgres job queue, shared by
  * gmeetImportStore and teamsImportStore (same table shape: `id UUID`,
  * `status`, `next_attempt_at`, `attempts`, `error_code`, `last_error`,
- * `updated_at`).
+ * `requested_by_user`, `updated_at`).
  *
  *   claimDueJobs(limit)  FOR UPDATE SKIP LOCKED over the due rows in
  *                        'pending' / 'awaiting_artifacts', then a 10-minute
@@ -15,6 +15,8 @@
  *   failJob(id, opts)    count an attempt; `terminal` freezes the row with the
  *                        error code as its status, otherwise it is retried
  *                        after `backoffMs` in `status` (or the current status).
+ *   markRequestedByUser(id)  flag the row as a person's own request, without
+ *                        touching the lease bookkeeping.
  *
  * `table` and `orderBy` are SQL fragments from the calling store, never user
  * input.
@@ -108,7 +110,19 @@ function makeLeasedJobQueue({ table, orderBy, mapRow, initDB, db = require('../.
         return rowCount > 0;
     }
 
-    return { claimDueJobs, heartbeatJob, failJob };
+    /**
+     * A person asked for this meeting while a run already had it. Leaves
+     * `updated_at` alone: the lease renewal writes it, and "is a run holding
+     * this job" (importJobKit isIngestInFlight) reads it against the lease.
+     * @param {string} id
+     */
+    async function markRequestedByUser(id) {
+        await initDB();
+        const { rowCount } = await db.run(`UPDATE ${table} SET requested_by_user = TRUE WHERE id = $1`, [id]);
+        return rowCount > 0;
+    }
+
+    return { claimDueJobs, heartbeatJob, failJob, markRequestedByUser };
 }
 
 module.exports = { makeLeasedJobQueue };

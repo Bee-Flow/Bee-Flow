@@ -36,6 +36,7 @@ function resetFx() {
     fx.inlineCalls = [];
     fx.updates = [];
     fx.failures = [];
+    fx.marked = [];
     fx.fresh = null;
     fx.msSessions = null;
     fx.accessCalls = 0;
@@ -109,6 +110,7 @@ router.init({
         heartbeatJob: async () => true,
         getJob: async () => fx.fresh,
         failJob: async (id, opts) => { fx.failures.push({ id, ...opts }); return true; },
+        markRequestedByUser: async (id) => { fx.marked.push(id); return true; },
         seedJob: async (row) => { fx.seeded.push(row); return { id: `job-${row.calendarEventId}`, status: 'pending', ...row }; },
     },
     autoImport: {
@@ -324,6 +326,27 @@ test('from-teams: a second click while the import runs starts nothing new; the p
     } finally {
         delete process.env.MEETING_IMPORT_MAX_CONCURRENT_PER_USER;
     }
+});
+
+test('from-teams: a click while the poller is importing the meeting follows that run and starts no second one', async () => {
+    connected();
+    fx.ended = [meeting()];
+    // The row of a running ingest: a two-hour lease, renewed a few minutes ago.
+    const minutes = (n) => new Date(Date.now() + n * 60_000).toISOString();
+    fx.jobs.ev1 = { id: 'job-1', status: 'pending', errorCode: 'failed', updatedAt: minutes(-5), nextAttemptAt: minutes(115) };
+    const res = await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1', language: 'en' } });
+    assert.strictEqual(res.statusCode, 202);
+    assert.deepStrictEqual(res.body, { jobId: 'job-1', status: 'pending' });
+    await new Promise((r) => setImmediate(r));
+    assert.strictEqual(fx.inlineCalls.length, 0, 'no second run');
+    assert.deepStrictEqual(fx.updates, [], 'the running job is not reset under the poller');
+    assert.deepStrictEqual(fx.marked, ['job-1'], 'the run is marked as watched by a person');
+
+    // A retry backoff is no running ingest: the click starts the import.
+    fx.jobs.ev1 = { id: 'job-1', status: 'pending', errorCode: 'failed', updatedAt: minutes(-1), nextAttemptAt: minutes(30) };
+    await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+    await settle(() => fx.inlineCalls.length >= 1);
+    assert.strictEqual(fx.inlineCalls.length, 1);
 });
 
 test('from-teams: an already ingested job answers its note without running again', async () => {

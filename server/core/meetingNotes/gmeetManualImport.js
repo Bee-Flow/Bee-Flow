@@ -58,7 +58,11 @@ async function startBackgroundImport({ job, userId, orgId, knownCodes, work, acc
     // freshly renewed ingest lease: starting a second one would download,
     // transcribe and summarise the same recording twice.
     const fresh = await store.getJob(job.id);
-    if (fresh && isIngestInFlight(fresh, INGEST_LEASE_MINUTES)) return 'already_running';
+    if (fresh && isIngestInFlight(fresh, INGEST_LEASE_MINUTES)) {
+        // The person now watches that run: its failure is final (importJobPool requestedDuringRun).
+        await store.markRequestedByUser(job.id);
+        return 'already_running';
+    }
     const slot = runner.acquire({ jobKey: `gmeet:${job.id}`, userId, orgId });
     if (slot.ok === false) {
         if (slot.reason !== 'already_running') throw tooMany();

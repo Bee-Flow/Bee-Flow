@@ -330,6 +330,9 @@ async function ingestLocalRecording(opts) {
     } catch (err) {
         safeUnlink(filePath);
         if (err instanceof IngestError) throw err;
+        // A transcription engine that gave up waiting says so with `timeout`:
+        // the import job keeps that code, and the screen has a sentence for it.
+        if (err?.code === 'timeout') throw new IngestError(err.message, { code: 'timeout', status: 504 });
         throw new IngestError(err.message, { code: 'transcription_failed', status: 500 });
     }
 }

@@ -14,10 +14,10 @@
  *   failIngest          classify an ingest failure into terminal / retry
  *   failLookup          the same for the provider lookups before the ingest,
  *                       bounded by a deadline after the meeting
- *   processDueJobs      claim due jobs one at a time and run each, logging
- *                       expected outcomes quietly
  *   withLeaseHeartbeat  keep a running job's lease renewed
  *   isIngestInFlight    does a live run hold this job (seen from its row)?
+ *
+ * Running the due jobs (the pool) is importJobPool.mts.
  */
 
 'use strict';
@@ -189,7 +189,8 @@ async function failIngest({ store, job, err, terminalCodes, maxAttempts, fallbac
         await store.failJob(job.id, {
             errorCode: 'failed', lastError,
             terminal: false, status: 'pending',
-            backoffMs: backoffMsFor(job.attempts),
+            // An engine that just ran out its whole wait is not faster two minutes later.
+            backoffMs: code === 'timeout' ? HOURLY_MS : backoffMsFor(job.attempts),
         });
     }
     throw codedError(err?.message || fallbackMessage, 'failed');
@@ -213,44 +214,6 @@ async function freezeFailedIngest({ store, job, err, lastError, keepCode, onTerm
     await store.failJob(job.id, { errorCode: finalCode, terminal: true, lastError });
     if (onTerminal) await onTerminal(job);
     if (finalCode !== 'failed') throw err;
-}
-
-/**
- * Phase B: claim due jobs (FOR UPDATE SKIP LOCKED, so every pod may run this)
- * and process each; a job's failure is logged, quietly for expected outcomes,
- * and never stops the rest.
- *
- * @param {{
- *   store: { claimDueJobs: (limit: number) => Promise<any[]> },
- *   limit: number,
- *   label: string,
- *   describe: (job: any) => string,
- *   processClaimedJob: (job: any) => Promise<void>,
- *   quietCodes: Set<string>,
- * }} opts
- */
-async function processDueJobs({ store, limit, label, describe, processClaimedJob, quietCodes }) {
-    // ONE claim per job, right before it runs. A batch claim put the same
-    // 10-minute lease on every job at once and then ran them one after the
-    // other: while the first ingested for half an hour, the second's lease ran
-    // out, another replica claimed and ingested it, and this pod then ingested
-    // it AGAIN from its stale claim.
-    for (let i = 0; i < limit; i++) {
-        let jobs;
-        try { jobs = await store.claimDueJobs(1); }
-        catch (e) { log.error(`[${label}] claim failed:`, /** @type {Error} */ (e).message); return; }
-        const job = jobs[0];
-        if (!job) return;
-        try {
-            await processClaimedJob(job);
-        } catch (e) {
-            const err = /** @type {Error & { code?: string }} */ (e);
-            const code = err?.code || 'failed';
-            const line = `[${label}] job ${describe(job)}: ${code}: ${err.message}`;
-            if (quietCodes.has(code)) log.info(line); // expected outcome, no alarm
-            else log.warn(line);
-        }
-    }
 }
 
 /**
@@ -341,7 +304,6 @@ module.exports = {
     makeDiscovery,
     failIngest,
     failLookup,
-    processDueJobs,
     withLeaseHeartbeat,
     isIngestInFlight,
 };

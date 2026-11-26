@@ -44,7 +44,8 @@ async function processGmeetAutoImport() {
         log.error('[AutomationRunner] gmeet auto-import discovery error:', /** @type {Error} */ (e).message);
     }
     try {
-        await gmeetAutoImport.processDue();
+        // Starts the due imports and returns: one long meeting must not hold the next tick.
+        await gmeetAutoImport.processDue({ wait: false });
     } catch (e) {
         log.error('[AutomationRunner] gmeet auto-import ingest error:', /** @type {Error} */ (e).message);
     }

@@ -112,33 +112,46 @@ test('reflects the actual terminal status word', () => {
 
 // ── computeWhisperBatchTimeouts ──────────────────────────────────────────────
 
-test('poll cap scales with estimated audio duration and clamps to [15m, 60m]', () => {
-    // 100-min OGG at ~64kbps ≈ 48 MB → est 6000s → clamped to the 60-min ceiling
-    const long = computeWhisperBatchTimeouts({ bytes: 6000 * 8000, ext: '.ogg', env: {} });
-    assert.strictEqual(long.estimatedSeconds, 6000);
-    assert.strictEqual(long.pollCapMs, 60 * 60_000);
+test('the wait is 30 minutes of queue time plus the length of the audio, for short and long recordings', () => {
+    const MIN = 60_000;
+    // A 5-minute FLAC (the recording that timed out in Azure's queue after 15 minutes).
+    const short = computeWhisperBatchTimeouts({ bytes: 305 * 16000, ext: '.flac', env: {} });
+    assert.strictEqual(short.estimatedSeconds, 305);
+    assert.strictEqual(short.pollCapMs, 30 * MIN + 305_000);
 
-    // 1-min WAV → floor at 15 min
-    const short = computeWhisperBatchTimeouts({ bytes: 60 * 32000, ext: '.wav', env: {} });
-    assert.strictEqual(short.estimatedSeconds, 60);
-    assert.strictEqual(short.pollCapMs, 15 * 60_000);
+    // A 2-hour meeting gets its two hours on top of the queue time, not a 60-minute ceiling.
+    const twoHours = computeWhisperBatchTimeouts({ bytes: 7200 * 16000, ext: '.flac', env: {} });
+    assert.strictEqual(twoHours.pollCapMs, 150 * MIN);
 
-    // 30-min MP3 at ~128kbps sits between the clamps
-    const mid = computeWhisperBatchTimeouts({ bytes: 1800 * 16000, ext: '.mp3', env: {} });
-    assert.strictEqual(mid.pollCapMs, 1800 * 1000);
+    // 3.5 hours.
+    const long = computeWhisperBatchTimeouts({ bytes: 12600 * 16000, ext: '.flac', env: {} });
+    assert.strictEqual(long.pollCapMs, 240 * MIN);
+
+    // Nothing computed here waits longer than six hours.
+    const endless = computeWhisperBatchTimeouts({ bytes: 20 * 3600 * 16000, ext: '.flac', env: {} });
+    assert.strictEqual(endless.pollCapMs, 360 * MIN);
 });
 
-test('unknown format → 30-min default; env override wins; URL TTL covers queue time', () => {
+test('unknown format waits as for an hour of audio; env override wins; URL TTL covers queue time', () => {
     const unknown = computeWhisperBatchTimeouts({ bytes: 12345, ext: '.xyz', env: {} });
     assert.strictEqual(unknown.estimatedSeconds, null);
-    assert.strictEqual(unknown.pollCapMs, 30 * 60_000);
+    assert.strictEqual(unknown.pollCapMs, 90 * 60_000);
 
     const overridden = computeWhisperBatchTimeouts({ bytes: 6000 * 8000, ext: '.ogg', env: { WHISPER_AZURE_POLL_TIMEOUT_MS: '120000' } });
     assert.strictEqual(overridden.pollCapMs, 120000);
 
     // URL must outlive the poll window plus 15 min of job-queue headroom.
-    assert.strictEqual(unknown.urlTtlSeconds, 30 * 60 + 900);
+    assert.strictEqual(unknown.urlTtlSeconds, 90 * 60 + 900);
     assert.strictEqual(overridden.urlTtlSeconds, 120 + 900);
+});
+
+test('the job lives at Azure at least an hour longer than the wait, and never shorter than four hours', () => {
+    const ttl = (seconds, env = {}) => computeWhisperBatchTimeouts({ bytes: seconds * 16000, ext: '.flac', env }).jobTimeToLive;
+    assert.strictEqual(ttl(305), 'PT4H');
+    assert.strictEqual(ttl(7200), 'PT4H');         // 150-minute wait
+    assert.strictEqual(ttl(12600), 'PT5H');        // 240-minute wait
+    assert.strictEqual(ttl(20 * 3600), 'PT7H');    // the six-hour ceiling
+    assert.strictEqual(ttl(305, { WHISPER_AZURE_POLL_TIMEOUT_MS: String(12 * 3_600_000) }), 'PT13H');
 });
 
 // ── executeTranscriptionTool provider dispatch ───────────────────────────────

@@ -75,6 +75,7 @@ let _running = false;
  *   pruneStudioRunLog?: (opts: { maxPerApp: number, idleMs: number, staleMs: number, batch?: number }) => Promise<{ closed: number, overflow: number }>,
  *   pruneStudioWebhookDeliveries?: () => Promise<number>,
  *   pruneAutomationWebhookDeliveries?: () => Promise<number>,
+ *   sweepTranscriptionAudio?: () => Promise<number>,
  *   log: typeof import('../telemetry/log'),
  * }} PlatformRetentionDeps
  */
@@ -107,6 +108,8 @@ function deps() {
             pruneStudioWebhookDeliveries: () => require('../stores/studioAppData/webhookTriggers.mts').pruneWebhookDeliveries(),
             // The delivery log of automation webhooks: AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS (0 = keep).
             pruneAutomationWebhookDeliveries: () => require('../stores/automationStore/webhookDeliveries').pruneAutomationWebhookDeliveries(),
+            // Temporary recording copies of Azure Whisper batch jobs that a stopped process left behind.
+            sweepTranscriptionAudio: () => require('../core/voice/whisperTempAudio.mts').sweepStaleWhisperAudio(),
             log: require('../telemetry/log'),
         };
     }
@@ -233,6 +236,17 @@ async function _pruneRunLog(d, runLog, policy) {
     if (closed || overflow) d.log.info(`[platformRetention] run log: ${closed} idle run(s) closed, ${overflow} run(s) over the per-app ceiling deleted`);
 }
 
+/** @param {PlatformRetentionDeps} d */
+async function _sweepTranscriptionAudio(d) {
+    if (!d.sweepTranscriptionAudio) return;
+    try {
+        const gone = await d.sweepTranscriptionAudio();
+        if (gone) d.log.info(`[platformRetention] ${gone} temporary transcription recording(s) left by a stopped process deleted`);
+    } catch (e) {
+        d.log.warn('[platformRetention] transcription temp sweep failed:', /** @type {Error} */ (e).message);
+    }
+}
+
 /** One pass of all of them. A failing pass never skips the ones after it. */
 async function runOnce() {
     if (_running) return;
@@ -247,6 +261,7 @@ async function runOnce() {
         await _pruneScanLedger(d);
         await _pruneSuggestions(d);
         await _pruneStudioActionRuns(d);
+        await _sweepTranscriptionAudio(d);
     } finally {
         _running = false;
     }

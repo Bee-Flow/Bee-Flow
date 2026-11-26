@@ -15,6 +15,11 @@ const path = require('path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
+const {
+    computeWhisperBatchTimeouts, flacDurationSeconds, azureDiarizationSpeakers, whisperBatchJobProperties,
+    pollWhisperBatchJob, whisperBatchPollDelayMs,
+} = require('./whisperBatchWait.mts');
+const { whisperTempKey } = require('./whisperTempAudio.mts');
 
 /**
  * Build a diagnostic error message for a non-succeeded Azure batch job.
@@ -45,39 +50,6 @@ function formatAzureBatchFailure(pollData) {
         return `Azure Whisper batch job ${status}: ${detail}${hint}`;
     }
     return `Azure Whisper batch job ${status}. Check your Azure Speech resource.`;
-}
-
-/** @type {Record<string, number>} */
-const WHISPER_BATCH_BYTES_PER_SECOND = {
-    '.wav': 32000, '.flac': 16000, '.mp3': 16000,
-    '.m4a': 12000, '.mp4': 12000, '.ogg': 8000, '.opus': 8000,
-};
-/**
- * Duration-scaled limits for an Azure Whisper batch run.
- *
- * The old fixed limits (10-min poll cap, 15-min download URL) were shorter
- * than the batch turnaround for long recordings, so exactly the meetings this
- * provider exists for timed out. Estimate the audio duration from byte size
- * and format, and size both the poll ceiling and the URL TTL from it. The URL
- * must outlive the job's queue time — Azure may only fetch the audio when the
- * job starts running.
- *
- * @param {{bytes?: number, ext?: string, env?: NodeJS.ProcessEnv}} [opts]
- * @returns {{pollCapMs: number, urlTtlSeconds: number, estimatedSeconds: number|null}}
- */
-function computeWhisperBatchTimeouts({ bytes, ext, env = process.env } = {}) {
-    const bps = WHISPER_BATCH_BYTES_PER_SECOND[String(ext || '').toLowerCase()];
-    const estimatedSeconds = bps && Number(bytes) > 0 ? Math.round(Number(bytes) / bps) : null;
-    const override = Number(env.WHISPER_AZURE_POLL_TIMEOUT_MS);
-    /**
-     * @param {number} v
-     */
-    const clampMs = (v) => Math.min(60 * 60_000, Math.max(15 * 60_000, v));
-    const pollCapMs = override > 0
-        ? override
-        : (estimatedSeconds ? clampMs(estimatedSeconds * 1000) : 30 * 60_000);
-    const urlTtlSeconds = Math.round(pollCapMs / 1000) + 900;
-    return { pollCapMs, urlTtlSeconds, estimatedSeconds };
 }
 
 /**
@@ -167,12 +139,15 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
             throw new Error('Could not transcode the audio to a format Azure can decode (ffmpeg unavailable). Try another provider.');
         }
         const uploadBuffer = await fs.promises.readFile(conditioned.path);
-        const uploadKey = `transcription-tmp/${crypto.randomUUID()}-${audioFileName.replace(/[^a-zA-Z0-9._-]/g, '_')}.flac`;
+        // The key carries the time it is written: the sweep in whisperTempAudio.mts removes a copy this process never got to delete.
+        const uploadKey = whisperTempKey(audioFileName);
         const uploadMime = 'audio/flac';
         const uploadExt = '.flac';
         log.info(`[Transcription:AzureWhisper] Conditioned to FLAC: ${(inputBytes / 1024).toFixed(0)} KB → ${(uploadBuffer.length / 1024).toFixed(0)} KB`);
 
-        const { pollCapMs, urlTtlSeconds, estimatedSeconds } = computeWhisperBatchTimeouts({ bytes: uploadBuffer.length, ext: uploadExt });
+        const { pollCapMs, urlTtlSeconds, estimatedSeconds, jobTimeToLive } = computeWhisperBatchTimeouts({
+            bytes: uploadBuffer.length, ext: uploadExt, durationSeconds: flacDurationSeconds(uploadBuffer),
+        });
 
         // ── Step 2: Upload to RustFS, generate public temp URL ──
         // Azure's batch API needs to download the audio from a public URL.
@@ -217,25 +192,19 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         log.info(`[Transcription:AzureWhisper] Using model: ${bestWhisper.displayName} (${bestWhisper.self})`);
 
         // ── Step 4: Create batch transcription job ──
-        // TTL is generous because the job is explicitly DELETEd in `finally`.
+        // The job is explicitly DELETEd in `finally`; its lifetime at Azure only
+        // has to outlast the wait (computeWhisperBatchTimeouts).
         const jobBody = {
             contentUrls: [audioUrl],
             locale,
             displayName: `beeflow-${Date.now()}`,
             model: { self: bestWhisper.self },
-            properties: {
-                diarizationEnabled: true,
-                // `diarizationEnabled` alone caps at 2 speakers. The modern
-                // `diarization.speakers` unlocks 3–35 (max must be < 36). Use the
-                // user's per-meeting count as an exact hint when given, else a
-                // wide 1–35 range so real multi-speaker meetings get separated.
-                diarization: azureDiarizationSpeakers(numSpeakers),
-                punctuationMode: 'DictatedAndAutomatic',
-                profanityFilterMode: 'None',
-                timeToLive: 'PT4H',
-            },
+            properties: whisperBatchJobProperties({ numSpeakers, durationSeconds: estimatedSeconds, jobTimeToLive }),
         };
 
+        if (!jobBody.properties.diarization) {
+            log.warn(`[Transcription:AzureWhisper] ~${Math.round((estimatedSeconds || 0) / 60)} minutes of audio is past Azure's 240-minute limit for a speaker range; separating two voices only`);
+        }
         log.info('[Transcription:AzureWhisper] Submitting batch job...');
         const createResp = await fetchFixedEndpoint(`${speechApiBase}/transcriptions`, {
             method: 'POST',
@@ -251,20 +220,8 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         log.info(`[Transcription:AzureWhisper] Job created: ${transcriptionJobUrl.split('/').pop()}`);
 
         // ── Step 5: Poll until Succeeded or Failed ──
-        const pollStart = Date.now();
-        let jobStatus = 'Running';
-        /** @type {{ status?: string; properties?: { error?: { code?: string; message?: string; }; }; } | null} */
-        let pollData = null;
-        while (jobStatus === 'Running' || jobStatus === 'NotStarted') {
-            if (Date.now() - pollStart > pollCapMs)
-                throw new Error(`Azure Whisper batch job timed out after ${Math.round(pollCapMs / 60000)} minutes.`);
-            await new Promise(r => setTimeout(r, 5000));
-            const pollResp = await fetchFixedEndpoint(transcriptionJobUrl, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
-            if (!pollResp.ok) throw new Error(`Polling failed: HTTP ${pollResp.status}`);
-            pollData = /** @type {{ status?: string, properties?: { error?: { code?: string, message?: string } } }} */ (await pollResp.json());
-            jobStatus = pollData.status;
-            log.info(`[Transcription:AzureWhisper] Status: ${jobStatus} (${Math.round((Date.now() - pollStart) / 1000)}s)`);
-        }
+        const pollData = await pollWhisperBatchJob({ jobUrl: transcriptionJobUrl, speechKey, pollCapMs });
+        const jobStatus = pollData.status;
         if (jobStatus !== 'Succeeded') {
             const jobErr = pollData?.properties?.error;
             if (jobErr) log.error(`[Transcription:AzureWhisper] Job ${jobStatus}: ${jobErr.code || '?'} — ${jobErr.message || ''}`);
@@ -314,19 +271,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
     }
 }
 
-/**
- * Build the batch `diarization` property from an optional speaker count.
- * Exact count → minCount=maxCount=N; unknown → 1..35. maxCount must be < 36.
- * @param {number | null} numSpeakers
- */
-function azureDiarizationSpeakers(numSpeakers) {
-    const n = Number(numSpeakers);
-    if (Number.isFinite(n) && n >= 1) {
-        const c = Math.min(Math.round(n), 35);
-        return { speakers: { minCount: c, maxCount: c } };
-    }
-    return { speakers: { minCount: 1, maxCount: 35 } };
-}
-
-
-module.exports = { runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeouts, azureDiarizationSpeakers };
+module.exports = {
+    runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeouts, azureDiarizationSpeakers,
+    pollWhisperBatchJob, whisperBatchPollDelayMs, flacDurationSeconds, whisperBatchJobProperties,
+};

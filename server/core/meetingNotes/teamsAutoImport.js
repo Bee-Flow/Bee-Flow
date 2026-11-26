@@ -67,6 +67,7 @@ const { deps: d, init } = lazyDeps({
 
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
+const { makeAutoImportQueue, requestedDuringRun } = require('./importJobPool.mts');
 // Who an import runs for and with which session (delegated grant first, then option B).
 const access = require('./teamsImportAccess.mts');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
@@ -241,13 +242,15 @@ function withExtras(artifact, items, slot) {
 // Always throws: classified codes freeze the job; anything else retries up to
 // MAX_INGEST_ATTEMPTS, then freezes as 'failed'. A run the user is watching
 // (`manual`) is not retried behind their back: its failure is final and keeps
-// its own code, so the screen and the job agree.
+// its own code, so the screen and the job agree. A transcription that timed
+// out keeps `timeout` on the last attempt too: "took too long" is what the
+// user who opens the meeting later has to read, not "failed".
 async function failIngest(job, err, { manual = false } = {}) {
     return kit.failIngest({
         store: d.teamsImportStore, job, err,
         terminalCodes: TERMINAL_CODES,
         maxAttempts: manual ? 1 : MAX_INGEST_ATTEMPTS,
-        keepCode: manual,
+        keepCode: manual || err?.code === 'timeout',
         fallbackMessage: 'Teams import failed',
     });
 }
@@ -335,7 +338,7 @@ async function processJobInline({ job, session, settings = null, language = null
             }),
         });
     } catch (err) {
-        return failIngest(job, err, { manual });
+        return failIngest(job, err, { manual: manual || await requestedDuringRun(d.teamsImportStore, job) });
     }
     await d.teamsImportStore.completeJob(job.id, saved.id);
     return { transcription: saved };
@@ -373,16 +376,10 @@ async function processClaimedJob(job) {
     await processJobInline({ job, session: claimed.session, settings, transcriptAllowed: claimed.transcriptAllowed });
 }
 
-/** Phase B: claim and process due jobs (every pod may run this). */
-async function processDue({ limit = 2 } = {}) {
-    return kit.processDueJobs({
-        store: d.teamsImportStore, limit,
-        label: 'TeamsAutoImport',
-        describe: (job) => String(job.id),
-        processClaimedJob,
-        quietCodes: QUIET_CODES,
-    });
-}
+/** Phase B: start the due jobs, up to the limit at once (every pod may run this; importJobPool.mts). */
+const { processDue } = makeAutoImportQueue({
+    store: () => d.teamsImportStore, label: 'TeamsAutoImport', describe: (job) => String(job.id), processClaimedJob, quietCodes: QUIET_CODES,
+});
 
 module.exports = { init, discover, processDue, processJobInline, findArtifact, NO_RECORDING_DEADLINE_MS };
 
@@ -391,6 +388,3 @@ module.exports = { init, discover, processDue, processJobInline, findArtifact, N
  * @typedef {Awaited<ReturnType<typeof import('../../auth/microsoftSessionHydration').resolveMicrosoftSession>>} MicrosoftSession
  */
 
-/**
- * @typedef {{ limit?: number }} ProcessDueArgs
- */

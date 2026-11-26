@@ -33,6 +33,7 @@ const {
 } = require('./gmeetDiscovery');
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
+const { makeAutoImportQueue, requestedDuringRun } = require('./importJobPool.mts');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 const { envInt } = require('../../utils/envNumber.mts');
 
@@ -225,13 +226,13 @@ async function releaseClaimAfterTerminalFailure(job) {
  * @param {Error & { code?: string }} err
  */
 async function failIngest(job, err, { manual = false } = {}) {
-    // A run the user is watching (`manual`) is not retried behind their back:
-    // its failure is final and keeps its own code, so screen and job agree.
+    // A run the user is watching (`manual`) is not retried behind their back: its failure is final and
+    // keeps its own code, so screen and job agree. A timed-out transcription keeps `timeout` on the last attempt too.
     return kit.failIngest({
         store: gmeetImportStore, job, err,
         terminalCodes: TERMINAL_CODES,
         maxAttempts: manual ? 1 : MAX_INGEST_ATTEMPTS,
-        keepCode: manual,
+        keepCode: manual || err?.code === 'timeout',
         fallbackMessage: 'Google Meet import failed',
         onTerminal: releaseClaimAfterTerminalFailure,
     });
@@ -341,7 +342,7 @@ async function processJobInline({ job, session, settings = null, language = null
             }),
         });
     } catch (err) {
-        return failIngest(job, err, { manual }); // always throws
+        return failIngest(job, err, { manual: manual || await requestedDuringRun(gmeetImportStore, job) }); // always throws
     }
     await gmeetImportStore.completeJob(job.id, saved.id);
     return { transcription: saved };
@@ -402,21 +403,12 @@ async function processClaimedJob(job) {
 }
 
 /**
- * @typedef {{ limit?: number }} ProcessDueArgs
+ * Phase B: start the due jobs, up to the limit at once. Runs OUTSIDE the discovery lock (claims
+ * are FOR UPDATE SKIP LOCKED, so every pod may run this concurrently; importJobPool.mts).
  */
-/**
- * Phase B — claim + process due jobs. Runs OUTSIDE the discovery lock (claims
- * are FOR UPDATE SKIP LOCKED, so every pod may run this concurrently).
- * @param {ProcessDueArgs} [param0]
- */
-async function processDue({ limit = 2 } = {}) {
-    return kit.processDueJobs({
-        store: gmeetImportStore, limit,
-        label: 'GmeetAutoImport',
-        describe: (job) => `${job.id} (${job.meetingCode})`,
-        processClaimedJob,
-        quietCodes: QUIET_CODES,
-    });
-}
+const { processDue } = makeAutoImportQueue({
+    store: () => gmeetImportStore, label: 'GmeetAutoImport', describe: (/** @type {GmeetJob} */ job) => `${job.id} (${job.meetingCode})`,
+    processClaimedJob, quietCodes: QUIET_CODES,
+});
 
 module.exports = { discover, processDue, processJobInline };
