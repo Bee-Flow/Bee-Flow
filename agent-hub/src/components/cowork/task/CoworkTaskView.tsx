@@ -14,7 +14,7 @@ import CoworkTaskOrb, { isSetting, type OrbView } from './CoworkTaskOrb';
 import { LINK_INLINE } from '../coworkUi';
 import CoworkTaskChange from './CoworkTaskChange';
 import CoworkTaskHeader, { CoworkTaskActions, type HeldBy } from './CoworkTaskHeader';
-import CoworkTaskHistory from './CoworkTaskHistory';
+import CoworkTaskHistory, { DeleteTask } from './CoworkTaskHistory';
 import CoworkTaskLive, { isLive } from './CoworkTaskLive';
 import CoworkTaskOffer from './CoworkTaskOffer';
 import CoworkTaskPeople, { type PeopleRowId } from './CoworkTaskPeople';
@@ -181,7 +181,7 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
         <CoworkOrbComposer chat={chat} />
         <TaskBack onBack={close} />
     </div>;
-    return <GuidedTask back={<TaskBack onBack={close} />} chat={chat} item={item} facts={facts} view={view} saved={saved} setView={setView} onAdvanced={() => beeTransition(() => setAdvanced(true))}
+    return <GuidedTask onGone={close} back={<TaskBack onBack={close} />} chat={chat} item={item} facts={facts} view={view} saved={saved} setView={setView} onAdvanced={() => beeTransition(() => setAdvanced(true))}
         panels={panels} header={header} actions={actions} t={t} />;
 }
 
@@ -205,8 +205,8 @@ function GuidedResult({ item, facts, onChange, t }: { item: CoworkItem; facts: F
     return <>{notice && <p role="status">{notice}</p>}<CoworkTaskResult item={item} latest={facts.latest} locale={locale} t={t} /></>;
 }
 
-function GuidedTask({ back, item, facts, view, saved, setView, onAdvanced, chat, panels, header, actions, t }: {
-    back: ReactNode; item: CoworkItem; facts: Facts; view: OrbView; saved: boolean; setView: (view: OrbView) => void;
+function GuidedTask({ onGone, back, item, facts, view, saved, setView, onAdvanced, chat, panels, header, actions, t }: {
+    onGone: () => void; back: ReactNode; item: CoworkItem; facts: Facts; view: OrbView; saved: boolean; setView: (view: OrbView) => void;
     onAdvanced: () => void; chat: TaskConversation; panels: Record<TaskTab, ReactNode>; header: ReactNode; actions: ReactNode; t: TranslateFn;
 }) {
     const active = useActiveStep(item.id, facts);
@@ -218,8 +218,8 @@ function GuidedTask({ back, item, facts, view, saved, setView, onAdvanced, chat,
     const current = view === 'edit' && facts.plan && !draft ? 'what' : view;
     const result = <GuidedResult item={item} facts={facts} onChange={() => setView('edit')} t={t} />;
     const history = <CoworkTaskRuns coworkId={item.id} runs={facts.runs} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />;
-    const views = { ...panels, result, history, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
-    const showLive = facts.live && current !== 'result' && current !== 'history';
+    const views = { ...panels, delete: <DeleteTask item={item} onGone={onGone} onCancel={() => setView('overview')} t={t} />, result, history, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
+    const showLive = facts.live && current !== 'result' && current !== 'history' && current !== 'delete';
     return <CoworkTaskOrb back={back} status={facts.status} coworkId={item.id} view={current} select={setView} onAdvanced={onAdvanced} live={showLive} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
         heading={header} work={{ flow: draft ? inRunOrder(draft.view.steps, draft.view.runOrder) : [], apps: item.enabledApps, action: isSetting(current) ? 'edit' : 'rest' }} t={t}>
         {showLive ? workspace : views[current]}

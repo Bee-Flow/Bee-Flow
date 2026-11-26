@@ -105,7 +105,10 @@ function otherRead(world: World): Record<string, unknown> {
 
 function testResponse(world: World, path: string, method: string, body: unknown) {
     const progress = world.testProgress;
-    if (method === 'POST' && path === TASK + '/conversation' && world.conversation) return jsonResponse(world.conversation(body));
+    if (method === 'POST' && path === TASK + '/conversation' && world.conversation) {
+        const reply = world.conversation(body);
+        return reply instanceof Response ? reply : jsonResponse(reply);
+    }
     if (progress && path === TASK + '/plan/try' && method === 'POST') return jsonResponse({ tryId: 'try-1', fingerprint: FINGERPRINT });
     if (progress && path === TASK + '/plan/try/try-1') return jsonResponse(progress());
     return null;

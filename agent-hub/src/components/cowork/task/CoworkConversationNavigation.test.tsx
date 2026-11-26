@@ -45,3 +45,29 @@ it('can read finished work and return to live progress during another run', asyn
     await user.click(await screen.findByRole('button', {name: 'Back to the orb'}));
     expect(await screen.findByRole('complementary', {name: 'Steps'})).toBeVisible();
 });
+
+it('only deletes the named task after explicit approval at the orb', async () => {
+    const { user, all } = openTask({conversation: () => ({action: 'delete', answer: 'Please confirm.', instruction: ''})});
+    const ask = async () => user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'Delete the whole task{Enter}');
+    await ask();
+    expect(await screen.findByTestId('cowork-task-delete-confirm')).toHaveTextContent(ITEM.title);
+    await user.click(screen.getByRole('button', {name: 'Keep it'}));
+    expect(all('DELETE', '/api/cowork/w1')).toHaveLength(0);
+    await ask();
+    await user.click(await screen.findByRole('button', {name: 'Delete task'}));
+    expect(all('DELETE', '/api/cowork/w1')).toHaveLength(1);
+});
+
+it('renders an answer while the stream is still open, then commits the final reply once', async () => {
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
+    const {user} = openTask({conversation: () => new Response(stream.readable, {headers: {'Content-Type': 'text/event-stream'}})});
+    await user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'What happened?{Enter}');
+    const send = (frame: string) => writer.write(new TextEncoder().encode(frame + '\n\n'));
+    await send('event: answer\ndata: "Reading mail"');
+    expect(await screen.findByText('Reading mail')).toBeVisible();
+    await send('event: reply\ndata: {"action":"answer","answer":"Reading mail finished.","instruction":""}');
+    await writer.close();
+    expect(await screen.findByText('Reading mail finished.')).toBeVisible();
+    expect(screen.queryByText('Reading mail')).toBeNull();
+});

@@ -70,7 +70,9 @@ function mountProposalRoutes(router, overrides = {}) {
     router.post('/:id/conversation', questions, validate({ params: ItemParams, body: ConversationBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
         await require('../core/cowork/spendGate.mts').assertSpendLeft(item);
-        res.json(await require('../usecases/coworkConversation').converse(item, req.body));
+        const { converse } = require('../usecases/coworkConversation');
+        if (!req.get('accept')?.includes('text/event-stream')) return res.json(await converse(item, req.body));
+        await require('./coworkConversationStream').sendConversation(res, item, req.body);
     });
     router.post('/:id/proposals', requireModule('automation'), limit, validate({ params: ItemParams, body: ChangeBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));

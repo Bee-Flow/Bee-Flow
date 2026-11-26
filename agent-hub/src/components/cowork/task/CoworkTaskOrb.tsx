@@ -9,12 +9,13 @@ import type { TaskStatus } from '../coworkTaskStatus';
 import type { TaskTab } from './CoworkTaskTabs';
 import type { SettingRowId } from './coworkTaskSettingsModel';
 
-export type OrbView = Exclude<TaskTab, 'settings'> | SettingRowId | 'edit' | 'actions' | 'overview' | 'review';
+export type OrbView = Exclude<TaskTab, 'settings'> | SettingRowId | 'edit' | 'actions' | 'overview' | 'review' | 'delete';
 
 export const isSetting = (view: OrbView): view is SettingRowId => ['what', 'when', 'uses', 'sends'].includes(view);
 
 function labels(t: TranslateFn): Record<OrbView, string> {
     return {
+        delete: t('cowork_task.more.delete', 'Delete this task'),
         review: t('cowork_task.orb.review_result', 'Review task'),
         overview: t('cowork_task.orb.back', 'Back to the orb'),
         result: t('cowork_task.tabs.result', 'Result'),

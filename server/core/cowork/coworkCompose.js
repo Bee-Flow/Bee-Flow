@@ -270,11 +270,35 @@ function fallbackSpec(brief) {
     return normaliseSpec(null, { brief, agents: [] });
 }
 
+/** Collect the same provider output used for billing and final action validation while publishing text as it arrives.
+ * @param {(onEvent:(event:string,data:{error?:string,text?:string})=>void)=>Promise<unknown>} run
+ * @param {{onText:(raw:string)=>void,signal:AbortSignal}} stream */
+async function streamCoworkTurn(run, stream) {
+    let content = '';
+    let usage = {};
+    await run((event, data) => {
+        if (event === 'error') throw new Error(data.error || 'Model stream failed');
+        if (event === 'done') usage = data;
+        if (event === 'text' && data.text) {
+            content += data.text;
+            stream.onText(content);
+        }
+    });
+    return { content, usage };
+}
+
+/** @param {string} tier */
+function coworkTokenLimit(tier) {
+    const { TIER_DEFAULTS } = require('../llm/modelResolver');
+    const defaults = TIER_DEFAULTS[tier] || TIER_DEFAULTS.fast;
+    return Math.min(defaults?.maxTokens || 1500, 1500);
+}
+
 /** One tool-free Cowork model turn with the owner's tier, input shield and usage accounting.
- * @param {{messages: {role: string, content: string}[], tier: string, userId: string|null, userOrgId: string|null, source: string}} options
+ * @param {{messages: {role: string, content: string}[], tier: string, userId: string|null, userOrgId: string|null, source: string, stream?: {onText:(raw:string)=>void,signal:AbortSignal}}} options
  */
-async function coworkTextTurn({ messages, tier, userId, userOrgId, source }) {
-    const { resolveModelForTier, TIER_DEFAULTS } = require('../llm/modelResolver');
+async function coworkTextTurn({ messages, tier, userId, userOrgId, source, stream }) {
+    const { resolveModelForTier } = require('../llm/modelResolver');
     const { getProviderForModel } = require('../aiAgent');
     const { getAdapter } = require('../providers/index');
 
@@ -285,9 +309,8 @@ async function coworkTextTurn({ messages, tier, userId, userOrgId, source }) {
     if (!modelId) throw new Error(`no model for tier ${tier}`);
     const config = await getProviderForModel(modelId);
     const adapter = getAdapter(config.providerType, config.url);
-    if (!adapter || typeof adapter.chat !== 'function') throw new Error('adapter has no chat()');
+    if (typeof adapter?.chat !== 'function') throw new Error('adapter has no chat()');
 
-    const defaults = TIER_DEFAULTS[tier] || TIER_DEFAULTS.fast || {};
 
     // A refusal or fail-closed outage must stop the outbound model call.
     await require('./coworkShield').applyCoworkShieldToInput({
@@ -297,12 +320,16 @@ async function coworkTextTurn({ messages, tier, userId, userOrgId, source }) {
     });
 
     const callStart = Date.now();
-    const response = await adapter.chat(config.apiKey, config.url, modelId, messages, {
-        maxTokens: Math.min(defaults.maxTokens || 1500, 1500),
+    const options = {
+        maxTokens: coworkTokenLimit(tier),
         // Deterministic: the same brief should not schedule differently on
         // two tries.
         temperature: 0,
-    });
+    };
+    const args = /** @type {const} */ ([config.apiKey, config.url, modelId, messages]);
+    const response = stream && typeof adapter.stream === 'function'
+        ? await streamCoworkTurn(onEvent => adapter.stream(...args, { ...options, signal: stream.signal }, onEvent), stream)
+        : await adapter.chat(...args, options);
 
     // Bill the owner for the model turn, including a response the caller cannot use.
     try {

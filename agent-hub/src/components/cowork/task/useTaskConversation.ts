@@ -57,7 +57,7 @@ export default function useTaskConversation({ item, plan, view, live, select, op
         destinations.clear();
         setText('');
         setMessages(previous => [...previous, {role: 'user', text: message}]);
-        dialog.mutate({ message, view, scope, history: history.slice(-6) }, {
+        dialog.mutate({message, view, scope, history: history.slice(-6)}, {
             onSuccess: answer => {
                 const shown = destinations.receive(answer);
                 const context = answer.tasks?.length ? [shown, ...answer.tasks.map(task => task.title)].join('\n').slice(0, 2000) : shown;
@@ -86,7 +86,7 @@ export default function useTaskConversation({ item, plan, view, live, select, op
         } });
     };
     const error = [dialog, edit.requestChange, edit.approve, edit.dismiss, update, proposals].find(operation => operation.error)?.error;
-    return { destinations, resume: () => update.mutate({isActive: true}), clock, text, setText, messages, setReply, send, askRecipient, selected, toggle, dialog, edit, busy, proposal, error,
+    return { destinations, resume: () => update.mutate({isActive: true}), clock, text, setText, messages: dialog.partial ? [...messages, {role: 'assistant' as const, text: dialog.partial}] : messages, setReply, send, askRecipient, selected, toggle, dialog, edit, busy, proposal, error,
         pendingBrief: pendingBrief?.fingerprint === fingerprint ? pendingBrief : null, saveBrief, cancel: () => setPendingBrief(null) };
 }
 export type TaskConversation = ReturnType<typeof useTaskConversation>;

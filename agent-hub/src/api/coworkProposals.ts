@@ -2,9 +2,11 @@
 // kept failing, or an offer to make a steady AI step fixed. Nothing is applied until the owner approves it here; an
 // approved fixed step can be undone (POST /api/cowork/:id/plan/restore).
 
+import { useRef, useState, useEffect } from 'react';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanParameter } from './coworkPlan.types';
-import { apiJson } from './typedRequest';
+import { readEventStream } from './readEventStream';
+import { apiJson, apiRequest } from './typedRequest';
 import { coworkPlanKey } from './queries/coworkPlan';
 
 type ProposalKind = 'repair' | 'fixed_step';
@@ -93,16 +95,37 @@ export function useCoworkProposalActions(coworkId: string) {
     return { approve, dismiss, restore, requestChange };
 }
 
-type CoworkReplyAction = 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'share' | 'review' | 'overview';
+type CoworkReplyAction = 'delete' | 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'share' | 'review' | 'overview';
 export interface ClockProposal { repeatInterval: 'daily' | 'weekdays' | 'weekly'; daysOfWeek: string[] | null; timeOfDay: string; timezone: string; nextRunAt: string }
 export type CoworkSettingChoice = 'what' | 'when' | 'uses' | 'sends';
 export interface CoworkReply { tasks?: {id: string; title: string; detail: string; shared?: boolean}[]; switchTo?: string; choices?: CoworkSettingChoice[]; remove?: {fingerprint: string; stepIds: string[]}; schedule?: ClockProposal; answer: string; action: CoworkReplyAction; instruction: string }
 export interface CoworkMessage { role: 'user' | 'assistant'; text: string }
 
+interface ConversationRequest {
+    message: string; view: string; history: CoworkMessage[]; scope?: { stepIds: string[]; fingerprint: string };
+}
+
 export function useCoworkConversation(id: string) {
-    return useMutation({
+    const [partial, setPartial] = useState('');
+    const controller = useRef<AbortController | null>(null);
+    useEffect(() => () => controller.current?.abort(), [id]);
+    const mutation = useMutation({
         mutationKey: interactionKey(id),
-        mutationFn: (body: { message: string; view: string; history: CoworkMessage[]; scope?: { stepIds: string[]; fingerprint: string } }) =>
-            apiJson<'POST /api/cowork/{id}/conversation', CoworkReply>('POST /api/cowork/{id}/conversation', { params: { id }, body }),
+        onSettled: () => setPartial(''),
+        mutationFn: async (body: ConversationRequest) => {
+            controller.current = new AbortController();
+            const {signal} = controller.current;
+            const response = await apiRequest('POST /api/cowork/{id}/conversation', {
+                params: { id }, body, init: { headers: { Accept: 'text/event-stream' }, signal },
+            });
+            if (!response.headers?.get('content-type')?.includes('text/event-stream')) return await response.json() as CoworkReply;
+            for await (const {event, data} of readEventStream<string | CoworkReply>(response, {signal})) {
+                if (event === 'answer' && typeof data === 'string') setPartial(data);
+                if (event === 'reply' && typeof data === 'object' && data?.action) return data;
+                if (event === 'error' && typeof data === 'string') throw new Error(data);
+            }
+            throw new Error('The reply was interrupted.');
+        },
     });
+    return { ...mutation, partial };
 }

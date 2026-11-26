@@ -115,10 +115,10 @@ function ChangesBody({ coworkId, plan, t }: { coworkId: string; plan: PlanState 
     );
 }
 
-function DeleteTask({ item, onGone, t }: { item: Pick<CoworkItem, 'id' | 'title'>; onGone: () => void; t: TranslateFn }) {
+export function DeleteTask({ item, onGone, onCancel, t }: { item: Pick<CoworkItem, 'id' | 'title'>; onGone: () => void; onCancel?: () => void; t: TranslateFn }) {
     const { remove } = useCoworkItemActions(item.id);
     const [confirming, setConfirming] = useState(false);
-    if (!confirming) {
+    if (!confirming && !onCancel) {
         return <div><button type="button" className={`${BTN_LINK} text-[var(--error-ink)]`} onClick={() => setConfirming(true)}>{t('cowork_task.more.delete', 'Delete this task')}</button></div>;
     }
     return (
@@ -128,7 +128,7 @@ function DeleteTask({ item, onGone, t }: { item: Pick<CoworkItem, 'id' | 'title'
             </p>
             <div className={ROW_ACTIONS}>
                 <button type="button" className={BTN_DANGER} disabled={remove.isPending} onClick={() => remove.mutate(undefined, { onSuccess: onGone })}>{t('cowork_task.delete.go', 'Delete task')}</button>
-                <button type="button" className={BTN_QUIET} onClick={() => setConfirming(false)}>{t('cowork_task.keep_it', 'Keep it')}</button>
+                <button type="button" className={BTN_QUIET} disabled={remove.isPending} onClick={onCancel ?? (() => setConfirming(false))}>{t('cowork_task.keep_it', 'Keep it')}</button>
             </div>
             <Failure error={remove.error} t={t} />
         </div>
