@@ -154,7 +154,7 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
         <div ref={scroller} className="cowork-viewport flex-1 min-h-0 min-w-0 bg-[var(--bg-primary)] text-[14px] leading-5 text-[var(--text-primary)]" data-testid="cowork-page">
             <div className={page ? 'cowork-open-page' : 'cowork-guided-home'} data-dashboard={dashboard}>
                 {page && Page && (
-                    <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close} ownBack={page.kind === 'task'}>
+                    <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close} ownBack={page.kind === 'task' || page.kind === 'shared'}>
                         <Suspense fallback={<CoworkPendingPage waitForTask message={t('cowork_pages.loading', 'Loading…')} ask={placement.embedded ? undefined : text => fillComposer(text, 'ask')} />}>
                             <GuidedPanelContext.Provider value={!dashboard}><PanelFocusContext.Provider value={placement.focus}><Page panel={page} user={user} close={close} open={open} fillComposer={fillComposer} /></PanelFocusContext.Provider></GuidedPanelContext.Provider>
                         </Suspense>

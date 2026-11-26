@@ -160,3 +160,38 @@
     }
     .cowork-viewport .cowork-orb-workspace:has(.cowork-activity > details) .cowork-orb { width: min(11cqh, 4rem); }
 }
+
+/* A document and a conversation are two reading surfaces. Give each its own column
+   when the actual Cowork pane (after the sidebar) is wide enough for both. */
+@container cowork (min-width: 61rem) and (min-height: 34rem) {
+    .cowork-viewport :is(.is-detail[data-view="result"], .is-detail[data-view="history"], .cowork-side-shared[data-reading="true"]) {
+        display: grid;
+        grid-template-columns: minmax(16rem, .85fr) minmax(0, 1.25fr);
+        grid-template-rows: minmax(0, 1fr) auto minmax(0, .65fr) auto;
+        column-gap: clamp(1.5rem, 4cqw, 3rem);
+        row-gap: .75rem;
+    }
+    :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-anchor, .cowork-side-orb) {
+        grid-area: 1 / 1;
+        align-self: end;
+    }
+    .cowork-viewport :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-anchor, .cowork-side-orb) .cowork-orb {
+        width: min(90%, 29cqh, 16rem);
+    }
+    :is([data-view="result"], [data-view="history"], [data-reading="true"]) > .cowork-conversation { grid-area: 2 / 1; }
+    :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-footer, button) { grid-area: 4 / 1; }
+    .cowork-viewport :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-scroll, .cowork-side-content) {
+        grid-area: 1 / 2 / -1;
+        align-self: stretch;
+        padding-block: 0;
+        padding-inline: clamp(.5rem, 1.3cqw, 1.25rem);
+    }
+    :is([data-view="result"], [data-view="history"]) .cowork-detail-content > h2:first-child {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: 0;
+        padding-block: .5rem;
+        background: var(--bg-primary);
+    }
+}

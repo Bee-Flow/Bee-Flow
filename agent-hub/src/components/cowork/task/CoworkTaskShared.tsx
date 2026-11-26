@@ -45,32 +45,23 @@ function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] }
 interface SharedContentProps {
     item: CoworkItem;
     runs: CoworkRun[];
+    advanced: boolean;
     role: ShareRole;
     owner: string;
     tab: TaskTab;
     setTab: (tab: TaskTab) => void;
 }
 
-function SharedContent({item, runs, role, owner, tab, setTab}: SharedContentProps) {
+function SharedContent({item, runs, role, owner, tab, setTab, advanced}: SharedContentProps) {
     const {t, locale} = useTranslation();
     const tabId = useId();
-    const [advanced, setAdvanced] = useState(false);
     const panels = {
         result: <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />,
         history: <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />,
     };
-    const showingHistory = tab === 'history';
     return <>
         <CoworkTaskHeader item={item} status={taskStatus(item)} meta={`${whenLine(item, t)} · ${t('cowork_task.head.sends_owner', 'as {owner} set it up', { owner })}`} sharedBy={{ owner, role }} t={t} />
-        {advanced ? <CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={panels} /> : <>
-            {showingHistory ? panels.history : panels.result}
-            {runs.length > 0 && <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => setTab(showingHistory ? 'result' : 'history')}>
-                {showingHistory ? t('cowork_task.orb.open_result', 'Open result') : t('cowork_task.history.heading', 'History')}
-            </button>}
-        </>}
-        <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => setAdvanced(!advanced)}>
-            {advanced ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}
-        </button>
+        {advanced ? <CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={panels} /> : tab === 'history' ? panels.history : panels.result}
     </>;
 }
 
@@ -84,26 +75,46 @@ function SharedReadStatus({loading, retry}: { loading: boolean; retry?: () => vo
     return <p className={META} role="status" data-testid="cowork-task-gone">{t('cowork_task.gone', 'This task is gone, or it is not shared with you.')}</p>;
 }
 
+function SharedReadingActions({ advanced, setAdvanced, hasRuns, tab, setTab }: Pick<SharedContentProps, 'advanced' | 'tab' | 'setTab'> & {
+    setAdvanced: (value: boolean) => void;
+    hasRuns: boolean;
+}) {
+    const { t } = useTranslation();
+    const viewingHistory = tab === 'history';
+    return <>
+        {!advanced && hasRuns && <button type="button" className={LINK_INLINE} onClick={() => setTab(viewingHistory ? 'result' : 'history')}>
+            {viewingHistory ? t('cowork_task.orb.open_result', 'Open result') : t('cowork_task.history.heading', 'History')}
+        </button>}
+        <button type="button" className={LINK_INLINE} onClick={() => setAdvanced(!advanced)}>
+            {advanced ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}
+        </button>
+    </>;
+}
+
 function SharedWorkspace({ itemId, panel, user, open, close, fillComposer }: CoworkSheetPanelProps & { itemId: string }) {
     const { t } = useTranslation();
     const [tab, setTab] = useState<TaskTab>('result');
+    const [advanced, setAdvanced] = useState(false);
     const content = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => {
         if (content.current) content.current.scrollTop = 0;
-    }, [tab]);
+    }, [tab, advanced]);
     const query = useSharedItem(itemId);
     const owner = (useSharedWithMe().data ?? []).find(s => s.id === itemId)?.ownerName ?? t('cowork_task.shared.someone', 'a colleague');
     const forbidden = [403, 404].includes(errorStatus(query.error) ?? 0);
     const shared = !forbidden && query.data ? sharedAsItem(query.data) : null;
-    return <div className="cowork-task-guided cowork-side-shared" data-testid="cowork-task-shared">
+    return <div className="cowork-task-guided cowork-side-shared" data-testid="cowork-task-shared" data-reading={!!shared}>
         <div className="cowork-side-orb"><CoworkOrb tone="rest" /></div>
         <div ref={content} className="cowork-side-content flex flex-col gap-3">
-            {shared ? <SharedContent {...shared} owner={owner} role={query.data?.role === 'approver' ? 'approver' : 'viewer'} tab={tab} setTab={setTab} />
+            {shared ? <SharedContent {...shared} advanced={advanced} owner={owner} role={query.data?.role === 'approver' ? 'approver' : 'viewer'} tab={tab} setTab={setTab} />
                 : <SharedReadStatus loading={query.isPending} retry={query.isError && !forbidden ? () => void query.refetch() : undefined} />}
         </div>
         <CoworkSharedConversation user={user} itemId={itemId} item={shared?.item} loading={query.isPending}
             takeQuestion={'takeQuestion' in panel ? panel.takeQuestion : undefined} open={open} fillComposer={fillComposer} show={setTab}/>
-        {panel.kind === 'task' && <TaskBack onBack={close} />}
+        <footer className="cowork-task-footer">
+            <TaskBack onBack={close} />
+            {shared && <SharedReadingActions advanced={advanced} setAdvanced={setAdvanced} hasRuns={shared.runs.length > 0} tab={tab} setTab={setTab} />}
+        </footer>
     </div>;
 }
 

@@ -61,7 +61,7 @@ export default function CoworkTaskOrb({ back, status, coworkId, view, select, on
     const busy = useTaskInteractionBusy(coworkId);
     const workspace = live || view === 'edit' || view === 'overview';
     const hasCancel = ['run', 'pause', 'resume', 'delete'].includes(view);
-    return <div className={'cowork-task-guided flex flex-col gap-4' + (workspace ? '' : ' is-detail')} data-testid="cowork-task-view" data-status={status}>
+    return <div className={'cowork-task-guided flex flex-col gap-4' + (workspace ? '' : ' is-detail')} data-testid="cowork-task-view" data-status={status} data-view={view}>
         {!workspace && <TaskAnchor heading={heading} work={thinking ? {...work, action: 'thinking'} : work} tone={thinking ? 'thinking' : 'rest'} />}
         <div key={workspace ? 'workspace' : view} className="cowork-task-scroll">
             {workspace && <div className="cowork-task-identity">{heading}</div>}
