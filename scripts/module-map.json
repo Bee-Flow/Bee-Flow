@@ -1,0 +1,713 @@
+{
+  "_comment": "The ownership map: which first-party module owns which file, as globs over TREE PATHS (paths relative to the package root: server/ for the core, modules/<id>/<moduleDir>/ for a module). Rules and CLI in scripts/module-map.mjs: `core` exceptions win over module globs; a `!glob` takes files out of that module's own globs; a file may match ONE module only; a file that matches nothing is core; a colocated test, testkit, golden, fixture or .d.ts follows its source unless a glob names it. Check with `node scripts/module-map.mjs --check`.",
+  "packages": {
+    "server": {
+      "coreDir": "server",
+      "moduleDir": "server"
+    },
+    "agent-hub": {
+      "coreDir": "agent-hub",
+      "moduleDir": "frontend"
+    }
+  },
+  "modules": {
+    "datatables": {
+      "name": "Data tables",
+      "requires": [],
+      "uses": [
+        "automation",
+        "cowork",
+        "compliance",
+        "webpages",
+        "int_nextcloud",
+        "projects"
+      ],
+      "server": [
+        "core/dataEngine/**",
+        "stores/datatableStore.js",
+        "stores/datatableStore/**",
+        "stores/datatableDbStore.js",
+        "auth/datatableAccess.js",
+        "routes/datatables/**",
+        "routes/datatablesAi.js",
+        "routes/datatablesNextcloud.js",
+        "routes/datatablesSpreadsheets.js",
+        "routes/datatableDraftBody.mts",
+        "usecases/datatables/**",
+        "usecases/mcpDatatable*",
+        "core/automationRunner/datatableResolve.js",
+        "core/automationRunner/datatableCells.js",
+        "core/tools/datatableTools.js",
+        "core/tools/datatableToolDefs.js",
+        "core/tools/datatableRows.js",
+        "core/kb/sources/datatable.js",
+        "jobs/datatable*",
+        "i18n/defaults/en/datatables.js"
+      ],
+      "agent-hub": []
+    },
+    "automation": {
+      "name": "Automations and approvals",
+      "requires": [
+        "datatables"
+      ],
+      "uses": [
+        "cowork",
+        "apps",
+        "compliance",
+        "cms",
+        "webpages",
+        "meetingNotes",
+        "support",
+        "learning",
+        "int_nextcloud",
+        "int_google",
+        "int_microsoft",
+        "int_saas",
+        "projects"
+      ],
+      "server": [
+        "automation/**",
+        "core/automationRunner.js",
+        "core/automationRunner/**",
+        "!core/automationRunner/datatableResolve.js",
+        "!core/automationRunner/datatableCells.js",
+        "!core/automationRunner/scheduler/gmeetImportTick.js",
+        "core/automationModel/**",
+        "core/runEventBus.js",
+        "core/automationErrors.js",
+        "core/privacy/dataFlow.js",
+        "core/forms/**",
+        "stores/automationStore.js",
+        "stores/automationStore/**",
+        "stores/automationTestingStore.js",
+        "stores/automationImportStore.mts",
+        "stores/automationUsageStore.js",
+        "stores/lib/automationTesting*.js",
+        "auth/callerRunVisibility.js",
+        "auth/formAudience.js",
+        "jobs/automationDigest.js",
+        "jobs/automationTrashPurge.js",
+        "jobs/runRetention.js",
+        "jobs/runnerPorts.js",
+        "routes/automation.js",
+        "routes/automation/**",
+        "routes/step.js",
+        "routes/orgAutomationImageAi.mts",
+        "routes/ai/automationBuilder.js",
+        "routes/ai/automationBuilder/**",
+        "usecases/automation/**",
+        "usecases/ai/automationBuilder/**",
+        "integrations/automationEvolutionTool*",
+        "i18n/defaults/en/approvals.js",
+        "i18n/defaults/en/automation*.js",
+        "i18n/defaults/en/forms.js",
+        "i18n/defaults/nl/automation*.json",
+        "i18n/defaults/en/ai_step_checks.js",
+        "i18n/defaults/en/code_step.js",
+        "i18n/defaults/en/flatten_node.js",
+        "i18n/defaults/en/http_query.js"
+      ],
+      "agent-hub": []
+    },
+    "cowork": {
+      "name": "Cowork",
+      "requires": [
+        "automation"
+      ],
+      "uses": [
+        "datatables",
+        "apps",
+        "meetingNotes",
+        "int_nextcloud",
+        "int_google",
+        "int_microsoft"
+      ],
+      "server": [
+        "core/cowork/**",
+        "routes/cowork.js",
+        "routes/cowork*.js",
+        "stores/cowork*.js",
+        "stores/cowork*.mts",
+        "stores/lib/coworkDb.mts",
+        "stores/ddl/cowork-*.js",
+        "stores/aiTaskStore.js",
+        "usecases/cowork*",
+        "core/aiTaskRunner.js",
+        "core/aiTaskRunnerUsage.js",
+        "core/entitlements/coworkPolicy.mts",
+        "jobs/coworkDailyMail.mts",
+        "i18n/defaults/en/cowork*.js",
+        "i18n/defaults/nl/cowork*.json"
+      ],
+      "agent-hub": []
+    },
+    "apps": {
+      "name": "App Studio",
+      "requires": [
+        "datatables",
+        "automation"
+      ],
+      "uses": [
+        "compliance",
+        "sanctions",
+        "cms",
+        "int_nextcloud",
+        "int_google",
+        "int_microsoft",
+        "projects"
+      ],
+      "server": [
+        "appStudio/**",
+        "stores/studioApp*.js",
+        "stores/studioApp*/**",
+        "stores/appStore.js",
+        "stores/datasetFileStore.js",
+        "routes/apps.js",
+        "routes/studioApp*.js",
+        "routes/studioApp*.mts",
+        "routes/studioApp*/**",
+        "routes/studioApps/**",
+        "routes/nextcloudStudioApps.js",
+        "routes/studio/appData*.js",
+        "routes/studio/appRuntimeSchemas.js",
+        "routes/studio/appListQuery.js",
+        "routes/ai/appStudioBuilder.js",
+        "routes/ai/appStudioBuilder/**",
+        "usecases/ai/appStudioBuilder/**",
+        "usecases/studioApp*",
+        "usecases/studioApps/**",
+        "middleware/datasetUploadGuard.js",
+        "shared/appDefinition/**",
+        "shared/blockTemplate/**",
+        "core/datasets/**",
+        "core/llm/screenConstraints.js",
+        "jobs/studioApp*.js",
+        "jobs/datasetIngest.js",
+        "services/appStudioRender*",
+        "i18n/defaults/en/app_studio.js",
+        "i18n/defaults/en/apps.js",
+        "i18n/defaults/en/studio_app*.js",
+        "i18n/defaults/nl/studio_app*.json"
+      ],
+      "agent-hub": []
+    },
+    "playbooks": {
+      "name": "Playbooks",
+      "requires": [
+        "apps",
+        "automation",
+        "datatables"
+      ],
+      "uses": [
+        "compliance"
+      ],
+      "server": [
+        "playbooks/**",
+        "routes/playbooks/**",
+        "usecases/playbooks/**",
+        "stores/playbookStore.js",
+        "i18n/defaults/en/playbooks.js"
+      ],
+      "agent-hub": []
+    },
+    "compliance": {
+      "name": "Compliance",
+      "requires": [],
+      "uses": [
+        "datatables",
+        "automation",
+        "sanctions",
+        "cms",
+        "webpages",
+        "int_nextcloud",
+        "int_google",
+        "int_microsoft"
+      ],
+      "server": [
+        "compliance/**",
+        "core/aiAct/**",
+        "legal/legalStore.js",
+        "stores/compliance/**",
+        "stores/complianceStore*",
+        "stores/aiActAssessmentStore*",
+        "stores/customFrameworkStore*",
+        "stores/dpiaStore*",
+        "stores/incidentClocks*",
+        "stores/incidentStore*",
+        "stores/ismsDocStore*",
+        "stores/isoAuditStore*",
+        "stores/isoEvidenceStore*",
+        "stores/isoObligationStore*",
+        "stores/riskStore*",
+        "stores/soaStore*",
+        "routes/compliance.js",
+        "routes/compliance/**",
+        "usecases/compliance/**",
+        "jobs/complianceDeadlineNotifier.js",
+        "i18n/defaults/en/compliance*.js",
+        "i18n/defaults/nl/compliance*.json",
+        "routes/dsr.js",
+        "stores/dsrStore.js",
+        "i18n/defaults/en/dsr_public.js",
+        "utils/compliancePdf.js"
+      ],
+      "agent-hub": []
+    },
+    "sanctions": {
+      "name": "Sanctions screening",
+      "requires": [],
+      "uses": [
+        "compliance"
+      ],
+      "server": [
+        "core/sanctions/**",
+        "routes/admin/sanctionsLists.mts",
+        "jobs/sanctions*.mts",
+        "integrations/sanctionsTools.mts",
+        "stores/sanctionsStore.mts",
+        "i18n/defaults/en/sanctions.js",
+        "i18n/defaults/nl/sanctions.json"
+      ],
+      "agent-hub": []
+    },
+    "cms": {
+      "name": "Website (CMS)",
+      "requires": [],
+      "uses": [
+        "datatables",
+        "automation",
+        "compliance",
+        "webpages",
+        "int_saas"
+      ],
+      "server": [
+        "cms/**",
+        "cmsBuilder/**",
+        "core/cms/**",
+        "core/seo/**",
+        "stores/cms/**",
+        "stores/cms*.js",
+        "routes/cms*.js",
+        "routes/ai/cmsBuilder*",
+        "usecases/ai/cmsBuilder/**",
+        "usecases/ai/cmsBuilderMessages*",
+        "routes/publicRender.js",
+        "routes/publicIntegrationsRender.js",
+        "routes/publicLlmsRender.js",
+        "routes/publicSearchIndexRender.js",
+        "routes/publicGithubStats.js",
+        "routes/releaseNotes.js",
+        "core/releaseNotes*",
+        "core/umamiClient.js",
+        "stores/releaseNotesStore.js",
+        "usecases/publicRenderBlogSitemap.js",
+        "shared/cmsReact/**",
+        "i18n/defaults/en/cms_*.js"
+      ],
+      "agent-hub": []
+    },
+    "webpages": {
+      "name": "Web pages",
+      "requires": [],
+      "uses": [
+        "datatables",
+        "automation",
+        "compliance",
+        "int_nextcloud"
+      ],
+      "server": [
+        "core/webpages/**",
+        "stores/webpage*.js",
+        "stores/webpage/**",
+        "routes/webpage*.js",
+        "routes/webpages/**",
+        "routes/publicViewer.js",
+        "routes/publicShareBridge*.js",
+        "routes/ai/webpageChat.js",
+        "routes/ai/webpageChat/**",
+        "usecases/webpages/**",
+        "usecases/ai/webpageChat/**",
+        "usecases/publicViewerSandbox.mts",
+        "usecases/webpageShareUrls.js",
+        "usecases/webpagesPreviewAskTools.js",
+        "integrations/webpage*",
+        "services/webpage*",
+        "services/reactBundleServer.js",
+        "services/bfBridgeNotices.js",
+        "services/publicBridgeScript.js",
+        "agents/webpages/**",
+        "auth/webpagePreviewToken.js",
+        "core/kb/sources/webpage.js",
+        "shared/webpage/**",
+        "i18n/defaults/en/webpages.js"
+      ],
+      "agent-hub": []
+    },
+    "notebooks": {
+      "name": "Notebooks",
+      "requires": [],
+      "uses": [
+        "datatables",
+        "automation",
+        "meetingNotes",
+        "int_nextcloud",
+        "int_saas",
+        "projects"
+      ],
+      "server": [
+        "routes/notebook*.js",
+        "routes/ai/notebookChat.js",
+        "routes/ai/notebookChat/**",
+        "usecases/ai/notebookChat/**",
+        "usecases/notebookArchive.mts",
+        "usecases/notebooksGenerateStream.js",
+        "integrations/workspaceTools*",
+        "integrations/notebook*",
+        "agents/notebooks/**",
+        "i18n/defaults/en/notebooks.js",
+        "i18n/defaults/nl/notebooks.json"
+      ],
+      "agent-hub": []
+    },
+    "templates": {
+      "name": "Word templates",
+      "requires": [],
+      "uses": [
+        "datatables",
+        "automation",
+        "meetingNotes",
+        "int_nextcloud"
+      ],
+      "server": [
+        "routes/templates.js",
+        "routes/ai/templateChat*",
+        "usecases/template*",
+        "usecases/ai/templateChat*",
+        "stores/templateStore.js",
+        "i18n/defaults/en/templates.js"
+      ],
+      "agent-hub": []
+    },
+    "meetingNotes": {
+      "name": "Meeting notes",
+      "requires": [],
+      "uses": [
+        "automation",
+        "compliance",
+        "int_nextcloud",
+        "int_google",
+        "int_microsoft",
+        "projects"
+      ],
+      "server": [
+        "core/meetingNotes/**",
+        "core/automationRunner/scheduler/gmeetImportTick.js",
+        "routes/transcriptions.js",
+        "routes/transcriptions/**",
+        "usecases/transcriptions/**",
+        "routes/talkNotesSettings.js",
+        "routes/gmeetNotesSettings.js",
+        "routes/teamsNotesSettings.js",
+        "routes/teamsProviderTest.mts",
+        "routes/teamsSetup.mts",
+        "routes/summaryTemplates.js",
+        "routes/voiceprints.js",
+        "routes/meetingNotesSettingsSchema.js",
+        "integrations/transcription*",
+        "integrations/transcription/**",
+        "stores/transcription*.js",
+        "stores/transcription/**",
+        "stores/transcriptCrypto.js",
+        "stores/transcriptContentWrites*",
+        "stores/voiceprintStore.js",
+        "stores/summaryTemplateStore.js",
+        "stores/gmeetImportStore.js",
+        "stores/teamsImport*",
+        "stores/teamsSetupStore.mts",
+        "stores/meetingPrefs*",
+        "stores/kbSourcesMeetingArm.js",
+        "jobs/savedAudioBackfill.js",
+        "eval/transcription/**",
+        "i18n/defaults/en/meeting*.js",
+        "i18n/defaults/nl/meetings.json",
+        "i18n/defaults/en/voiceprint.js",
+        "i18n/defaults/en/teams_setup.js",
+        "utils/summaryTemplates.js"
+      ],
+      "agent-hub": []
+    },
+    "support": {
+      "name": "Support desk",
+      "requires": [],
+      "uses": [
+        "automation",
+        "cms",
+        "webpages",
+        "int_saas"
+      ],
+      "server": [
+        "support/**",
+        "core/support/**",
+        "routes/support.js",
+        "routes/support/**",
+        "routes/supportInbox.js",
+        "usecases/support/**",
+        "stores/supportStore.js",
+        "stores/supportStore/**",
+        "stores/supportInboxStore.js",
+        "integrations/supportTools*",
+        "services/support*",
+        "services/outboundChatNotifier.js",
+        "i18n/defaults/en/support.js"
+      ],
+      "agent-hub": []
+    },
+    "learning": {
+      "name": "Learning center",
+      "requires": [],
+      "uses": [],
+      "server": [
+        "learning/**",
+        "routes/ai/learning*.js",
+        "usecases/ai/learningSupport.js",
+        "routes/verifyCertificate.js",
+        "services/certificate*",
+        "jobs/learningNudge.js",
+        "auth/certificateToken.js",
+        "stores/certificateStore.js",
+        "stores/learningContentStore.js",
+        "i18n/defaults/en/learn.js",
+        "i18n/defaults/en/training.js"
+      ],
+      "agent-hub": []
+    },
+    "int_nextcloud": {
+      "name": "Nextcloud tools",
+      "requires": [],
+      "uses": [
+        "automation",
+        "meetingNotes",
+        "int_google"
+      ],
+      "server": [
+        "integrations/nextcloud*",
+        "integrations/nextcloudFiles/**",
+        "routes/nextcloudTaskProcessing.js",
+        "usecases/nextcloudTaskProcessingUsage.js"
+      ],
+      "agent-hub": []
+    },
+    "int_google": {
+      "name": "Google Workspace tools",
+      "requires": [],
+      "uses": [
+        "automation",
+        "cowork",
+        "meetingNotes",
+        "int_microsoft"
+      ],
+      "server": [
+        "integrations/gmail*",
+        "integrations/gmail/**",
+        "integrations/calendarTools*",
+        "integrations/contactsTools*",
+        "integrations/docsTools*",
+        "integrations/drive*",
+        "integrations/google*",
+        "integrations/keepTools*",
+        "integrations/sheetsTools*",
+        "integrations/slidesTools*",
+        "integrations/mapsTools*",
+        "routes/integrations/googleWorkspace.js",
+        "routes/integrations/googleDrive.js",
+        "routes/integrations/gmail.js",
+        "routes/integrations/calendar.js",
+        "routes/integrations/contacts.js",
+        "routes/integrations/keep.js"
+      ],
+      "agent-hub": []
+    },
+    "int_microsoft": {
+      "name": "Microsoft 365 tools",
+      "requires": [],
+      "uses": [
+        "cowork",
+        "meetingNotes"
+      ],
+      "server": [
+        "integrations/msCalendar*",
+        "integrations/msContacts*",
+        "integrations/msGraphClient*",
+        "integrations/oneDriveTools*",
+        "integrations/outlook*",
+        "integrations/graphIds*",
+        "routes/integrations/microsoft365.js",
+        "routes/integrations/oneDrive.js",
+        "routes/integrations/outlook.js",
+        "routes/integrations/mailSchemaParts.js"
+      ],
+      "agent-hub": []
+    },
+    "int_erp_nl": {
+      "name": "Dutch ERP and payroll tools",
+      "requires": [],
+      "uses": [
+        "automation"
+      ],
+      "server": [
+        "integrations/afas*",
+        "integrations/nmbrs*",
+        "integrations/vplan*",
+        "integrations/twoba*",
+        "integrations/firebird*",
+        "integrations/frappeCrm*",
+        "routes/integrations/nmbrs.js",
+        "routes/integrations/twoba.mts",
+        "routes/ai/config/twobaTestRoute.mts",
+        "routes/ai/config/firebirdTestRoute.js",
+        "routes/ai/config/frappeCrmTestRoute.mts",
+        "usecases/ai/config/firebirdFields.js",
+        "usecases/ai/config/frappeCrmFields.mts",
+        "usecases/ai/config/twobaFields.mts",
+        "i18n/defaults/en/twoba.js",
+        "i18n/defaults/nl/twoba.json"
+      ],
+      "agent-hub": []
+    },
+    "int_saas": {
+      "name": "SaaS tools",
+      "requires": [],
+      "uses": [
+        "automation",
+        "cowork"
+      ],
+      "server": [
+        "integrations/fireflies*",
+        "integrations/gamma*",
+        "integrations/github*",
+        "integrations/linkedin*",
+        "integrations/n8n*",
+        "integrations/signrequest*",
+        "integrations/withings*",
+        "integrations/youtrack*",
+        "integrations/scalewayBilling*",
+        "routes/integrations/gamma.js",
+        "routes/integrations/github.js",
+        "routes/integrations/githubSync.js",
+        "routes/integrations/linkedin.js",
+        "routes/integrations/withings.js",
+        "routes/ai/config/n8nOrg.mts",
+        "usecases/ai/config/n8nKeyPairing.mts",
+        "services/githubSyncService.js",
+        "services/testGenerator.js",
+        "stores/githubSyncStore.js"
+      ],
+      "agent-hub": []
+    },
+    "custom_integrations": {
+      "name": "Custom integrations",
+      "requires": [],
+      "uses": [],
+      "server": [
+        "core/customIntegrations/**",
+        "integrations/customIntegration*",
+        "integrations/mcpRegistryClient.js",
+        "routes/orgIntegrations/**",
+        "routes/mcpLibrary.js",
+        "stores/orgCustomIntegrationStore.js",
+        "stores/lib/customIntegrationSource.js",
+        "stores/ddl/org-custom-integrations-2026-06.js",
+        "i18n/defaults/en/mcp_library.js"
+      ],
+      "agent-hub": []
+    },
+    "mcp_server": {
+      "name": "Bee Flow MCP server",
+      "requires": [],
+      "uses": [
+        "datatables",
+        "automation",
+        "apps",
+        "cms"
+      ],
+      "server": [
+        "routes/mcpServer.js",
+        "routes/mcpServerTokens.js",
+        "routes/mcpTokens.js",
+        "routes/mcpAutomations.js",
+        "routes/mcpCms.js",
+        "routes/mcpStudio.js",
+        "routes/mcpScopes.test.js"
+      ],
+      "agent-hub": []
+    },
+    "projects": {
+      "name": "Projects",
+      "requires": [],
+      "uses": [
+        "datatables",
+        "automation",
+        "cowork",
+        "apps",
+        "compliance",
+        "webpages",
+        "notebooks",
+        "meetingNotes"
+      ],
+      "server": [
+        "projects/**",
+        "routes/projects.js",
+        "routes/projects/**",
+        "usecases/projects/**",
+        "routes/aiParticipation.js",
+        "routes/orgCollab.js",
+        "i18n/defaults/en/project*.js",
+        "i18n/defaults/nl/project_*.json",
+        "routes/solutionStages.js"
+      ],
+      "agent-hub": []
+    },
+    "billing_stripe": {
+      "name": "Stripe billing",
+      "requires": [],
+      "uses": [],
+      "server": [
+        "services/stripe/**",
+        "services/stripeService.js",
+        "services/trialService.js",
+        "workers/paygDrain.js",
+        "routes/stripe.js",
+        "routes/stripe/**",
+        "routes/billing.js",
+        "usecases/stripe/**"
+      ],
+      "agent-hub": []
+    }
+  },
+  "core": {
+    "server": [
+      "automation/toolRegistry.js",
+      "core/automationModel/sideEffectMap.js",
+      "core/automationModel/automationCallDepth.js",
+      "core/automationModel/builderModelProfiles.js",
+      "core/automationRunner/sessionResolution.js",
+      "core/cms/componentManager.js",
+      "core/cms/componentInputGuard.js",
+      "core/cms/componentNetGuard.js",
+      "core/cms/themeSpec.js",
+      "core/cms/emojiCatalog.js",
+      "projects/erasurePorts.js",
+      "projects/accountContentErasure*",
+      "integrations/nextcloudTarget.js",
+      "automation/sideEffectMap.js",
+      "core/automationRunner/documentMarking.js",
+      "core/automationRunner/featurePorts.js",
+      "core/automationRunner/integrationCachePolicy.js",
+      "routes/projects/notebookGate.js",
+      "shared/appDefinition/schemaEnvelope.mjs",
+      "stores/voiceprintStore.js",
+      "stores/kbSourcesMeetingArm.js"
+    ]
+  }
+}

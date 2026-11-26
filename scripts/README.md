@@ -302,6 +302,8 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `jsdoc-widen-initializers.mjs` | Widen the initializers that strictNullChecks narrows too far. |
 | `jsx-extract.mjs` | jsx-extract: shorten a React component over 200 lines by lifting its largest JSX blocks into components of their own, with the TypeScript language service doing the work |
 | `learn-media-fetch.mjs` | Install a Learning Center video pack from a tarball into LEARN_MEDIA_DIR: the OFFLINE route (the server fetches the pinned pack by itself at startup, see server/learning/learnMediaSync.js). |
+| `module-map-edges.mjs` | The run-time import edges of a source tree, for the ownership map (scripts/module-map.mjs). |
+| `module-map.mjs` | The ownership map: which first-party module owns which file of the server (scripts/module-map.json). |
 | `mts-coverage.mjs` | `.mts` coverage ratchet — the floor under the line coverage of a package's TypeScript sources, which may only rise. |
 | `mutation-sample.mjs` | Mutation sample — do the tests next to a file notice when its logic is changed? |
 | `playbook-live-run.sh` | Run one REAL playbook case inside the server container — the whole film: table → automation builder → fill → app builder → app turns — and judge it against the case's expectation. |
