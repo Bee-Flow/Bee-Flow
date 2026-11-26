@@ -24,6 +24,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const instruction = z.string().trim().min(1).max(2000);
 const stepSelection = { stepIds: z.array(z.string().min(1).max(200)).min(1).max(100), fingerprint: z.string().length(64) };
 const ChangeBody = z.union([
+    bodyOf({ remove: z.object(stepSelection).strict() }, 'Removing steps from a plan'),
     bodyOf({ instruction, scope: z.object(stepSelection).strict().optional() }, 'Changing the steps'),
     bodyOf({ parameter: z.object({ stepId: z.string().min(1).max(200), field: z.enum(['query', 'folder', 'path', 'subject', 'to']),
         before: z.string().max(2000), value: instruction }).strict() }, 'Changing a step setting'),

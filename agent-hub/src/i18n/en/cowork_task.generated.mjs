@@ -6,6 +6,13 @@
  */
 
 export default {
+    "cowork_task.orb.choose_work": "Which task would you like to open?",
+    "cowork_task.orb.no_work": "I couldn’t find another matching task. Try a different name.",
+    "cowork_task.orb.resume_connection": "This task was paused for a connection. You can resume it without signing in again.",
+    "cowork_task.orb.connect_named": "The task is paused. Reconnect {apps} to resume it.",
+    "cowork_task.orb.connect_unknown": "The task is paused for sign-in. Open Integrations to check which account needs attention.",
+    "cowork_task.orb.steps_changed": "The steps changed. Select them again.",
+    "cowork_task.orb.apps_model": "Apps and model",
     "cowork_task.orb.preview": "Review test preview",
     "cowork_task.orb.preview_ready": "Your test preview is ready.",
     "cowork_task.orb.run_details": "See run details",

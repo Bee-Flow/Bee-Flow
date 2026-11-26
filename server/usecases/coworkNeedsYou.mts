@@ -62,11 +62,14 @@ export interface Need {
     cause?: SetupCause;
     /** A failed last run: the step and the cause in words. */
     failure?: NeedFailure;
+    connection?: ConnectionIssue;
     /** The item has fixed steps (a plan is named): "let the AI work it out every run" is a way out. */
     hasSteps?: boolean;
 }
 
 type PlanTriedStatus = NonNullable<PlanState['tried']>['status'];
+
+type ConnectionIssue = import('../auth/coworkPlanProviders.mts').ConnectionIssue;
 
 export interface OpenRepair { proposalId: string; reasonCode: string; stepTitle: string | null }
 
@@ -84,6 +87,7 @@ export interface NeedsYouDeps {
     /** The owner's items whose last run failed, and that run in words (stores/coworkRunOutcomes.mts, ./coworkRunWords.mts). */
     lastRunFailures?: (userId: string) => Promise<FailedRun[]>;
     wordsOfRun?: (scheduleId: string, run: FailedRun) => Promise<RunWords | null>;
+    connectionIssue?: (item: Item) => Promise<ConnectionIssue | undefined>;
     now?: () => Date;
 }
 
@@ -98,6 +102,7 @@ const defaults = (): NeedsYouDeps => {
         openRepairOf: (item, fingerprint) => (nodeRequire('./coworkProposals.mts') as typeof import('./coworkProposals.mts')).openRepairOf(item, fingerprint),
         lastRunProblems: (userId) => (nodeRequire('../stores/coworkRunOutcomes.mts') as typeof import('../stores/coworkRunOutcomes.mts')).coworkRunOutcomes().lastRunProblems(userId),
         lastRunFailures: (userId) => (nodeRequire('../stores/coworkRunOutcomes.mts') as typeof import('../stores/coworkRunOutcomes.mts')).coworkRunOutcomes().lastRunFailures(userId),
+        connectionIssue: item => (nodeRequire('../auth/coworkPlanProviders.mts') as typeof import('../auth/coworkPlanProviders.mts')).taskConnectionIssue(item),
         wordsOfRun: (scheduleId, run) => (nodeRequire('./coworkRunWords.mts') as typeof import('./coworkRunWords.mts')).wordsOfRun(scheduleId, run),
     };
 };
@@ -187,7 +192,8 @@ export async function needsYou(userId: string, deps: NeedsYouDeps = defaults()):
     const now = deps.now ? deps.now() : new Date();
     for (const item of items) {
         if (item.lastStatus === 'needs_reauth') {
-            needs.push({ kind: 'sign_in', itemId: item.id, title: item.title ?? '', runId: null, since: null, reason: null, plan: null });
+            const connection = await deps.connectionIssue?.(item).catch((e: unknown) => fallback('usecases/coworkNeedsYou:connection', e, undefined));
+            needs.push({ ...(connection ? {connection} : {}), kind: 'sign_in', itemId: item.id, title: item.title ?? '', runId: null, since: null, reason: null, plan: null });
         }
         if (item.planAutomationId) needs.push(...await planNeedsOf(item, deps));
         const cause = setupProblemOf(item, now);

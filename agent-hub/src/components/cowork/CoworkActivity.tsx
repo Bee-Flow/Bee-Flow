@@ -7,21 +7,23 @@ import CoworkOrb, { type ActivityTone } from './CoworkOrb';
 import type { OrbWork } from './CoworkOrbSources';
 
 interface ActivityProps {
-    work?: OrbWork; message: string; title?: string; tone?: ActivityTone; testId?: string; children?: ReactNode;
+    captionAbove?: boolean; work?: OrbWork; message: string; title?: string; tone?: ActivityTone; testId?: string; children?: ReactNode;
 }
 
 export function ActivityLine({message}: {message: string}) {
     return <span key={message} className="cowork-activity-label">{message}</span>;
 }
 
-export default function CoworkActivity({ message, title, tone, work, testId, children }: ActivityProps) {
-    return <div className="cowork-activity" data-testid={testId}>
-        <CoworkOrb tone={tone} work={work} activity={message} />
-        <div className="cowork-activity-caption">
-            <div role="status" aria-label={title} aria-atomic="true" className="cowork-activity-current">
-                <ActivityLine key={title} message={message} />
-            </div>
+export default function CoworkActivity({ message, title, tone, work, testId, children, captionAbove }: ActivityProps) {
+    const caption = <div className="cowork-activity-caption">
+        <div role="status" aria-label={title} aria-atomic="true" className="cowork-activity-current">
+            <ActivityLine key={title} message={message} />
         </div>
+    </div>;
+    return <div className="cowork-activity" data-testid={testId}>
+        {captionAbove && caption}
+        <CoworkOrb tone={tone} work={work} activity={message} />
+        {!captionAbove && caption}
         {children}
     </div>;
 }

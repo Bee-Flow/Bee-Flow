@@ -55,7 +55,7 @@ function newItemFields(userId, norm, resolvedAgentId, trigger) {
         nextRunAt: trigger ? null : norm.nextRunAt,
         triggerKind: trigger ? 'app_event' : 'schedule',
         trigger,
-        modelTier: norm.modelTier || 'fast',
+        modelTier: norm.modelTier || 'thinking',
         timezone: norm.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         agentId: resolvedAgentId ?? null,
         daysOfWeek: norm.daysOfWeek ?? null,

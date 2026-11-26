@@ -5,6 +5,7 @@ import CoworkActivity from '../CoworkActivity';
 import type { OrbWork } from '../CoworkOrbSources';
 import { LINK_INLINE } from '../coworkUi';
 import type { TranslateFn } from '@/hooks/useTranslation';
+import type { TaskStatus } from '../coworkTaskStatus';
 import type { TaskTab } from './CoworkTaskTabs';
 import type { SettingRowId } from './coworkTaskSettingsModel';
 
@@ -30,26 +31,21 @@ function labels(t: TranslateFn): Record<OrbView, string> {
 }
 
 interface Props {
-    coworkId: string; view: OrbView; select: (view: OrbView) => void; onAdvanced: () => void;
+    back: ReactNode; status: TaskStatus; coworkId: string; view: OrbView; select: (view: OrbView) => void; onAdvanced: () => void;
     work: OrbWork; composer: ReactNode; live: boolean; saved: boolean; heading: ReactNode;
     children: ReactNode; t: TranslateFn;
 }
 
 /** Keep only the selected task action on screen. Plan edits and live runs render their own evolving orb. */
-export default function CoworkTaskOrb({ coworkId, view, select, onAdvanced, work, composer, live, saved, heading, children, t }: Props) {
+export default function CoworkTaskOrb({ back, status, coworkId, view, select, onAdvanced, work, composer, live, saved, heading, children, t }: Props) {
     const names = labels(t);
     const busy = useTaskInteractionBusy(coworkId);
 
     const ownOrb = live || view === 'edit' || view === 'overview';
     const message = saved ? t('cowork_task.edit.saved', 'Saved') : names[view];
-    return <div className="cowork-task-guided flex flex-col gap-4" data-testid="cowork-task-view">
+    return <div className="cowork-task-guided flex flex-col gap-4" data-testid="cowork-task-view" data-status={status}>
         <div className="cowork-task-scroll">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-            {heading}
-            <div className="flex flex-wrap justify-end items-center gap-2">
-                <button type="button" className={LINK_INLINE} disabled={busy} onClick={onAdvanced}>{t('cowork_overview.advanced', 'Advanced')}</button>
-            </div>
-        </div>
+        <div className="cowork-task-identity">{heading}</div>
         {!ownOrb && <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => select('overview')}><ArrowLeft size={14}/>{names.overview}</button>}
         <section aria-label={names[view]} className={ownOrb ? undefined : 'cowork-orb-detail'}>
             {ownOrb ? children : <CoworkActivity message={message} work={work} tone="rest">
@@ -58,6 +54,10 @@ export default function CoworkTaskOrb({ coworkId, view, select, onAdvanced, work
         </section>
         </div>
         {composer}
+        <footer className="cowork-task-footer">
+            {back}
+            <button type="button" className={LINK_INLINE} disabled={busy} onClick={onAdvanced}>{t('cowork_overview.advanced', 'Advanced')}</button>
+        </footer>
 
     </div>;
 }

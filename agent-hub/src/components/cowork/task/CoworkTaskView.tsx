@@ -1,5 +1,6 @@
 /** An owned Cowork task, with its status and actions above the task's detail tabs. */
 import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
+import { TaskBack } from '../CoworkPageFrame';
 import CoworkNeedCard from '../CoworkNeedCard';
 import { BLOCKS, type NeedCardData } from '../coworkNeedsModel';
 import { taskStatus } from '../coworkTaskStatus';
@@ -145,7 +146,7 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
         setView(next === 'share' ? 'people' : next);
     };
     const chat = useTaskConversation({ item, plan: facts.plan, view: advanced ? tab : view, live: facts.live,
-        select: conversationView, rebuild, t });
+        select: conversationView, openTask: (id, shared) => open({kind: shared ? 'shared' : 'task', id}), rebuild, t });
     const send = chat.send;
     useEffect(() => {
         const question = panel.kind === 'task' && panel.takeQuestion?.();
@@ -177,8 +178,9 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
         {actions}
         <CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={panels} />
         <CoworkOrbComposer chat={chat} />
+        <TaskBack onBack={close} />
     </div>;
-    return <GuidedTask chat={chat} item={item} facts={facts} view={view} saved={saved} setView={setView} onAdvanced={() => setAdvanced(true)}
+    return <GuidedTask back={<TaskBack onBack={close} />} chat={chat} item={item} facts={facts} view={view} saved={saved} setView={setView} onAdvanced={() => setAdvanced(true)}
         panels={panels} header={header} actions={actions} t={t} />;
 }
 
@@ -202,8 +204,8 @@ function GuidedResult({ item, facts, onChange, t }: { item: CoworkItem; facts: F
     return <>{notice && <p role="status">{notice}</p>}<CoworkTaskResult item={item} latest={facts.latest} locale={locale} t={t} /></>;
 }
 
-function GuidedTask({ item, facts, view, saved, setView, onAdvanced, chat, panels, header, actions, t }: {
-    item: CoworkItem; facts: Facts; view: OrbView; saved: boolean; setView: (view: OrbView) => void;
+function GuidedTask({ back, item, facts, view, saved, setView, onAdvanced, chat, panels, header, actions, t }: {
+    back: ReactNode; item: CoworkItem; facts: Facts; view: OrbView; saved: boolean; setView: (view: OrbView) => void;
     onAdvanced: () => void; chat: TaskConversation; panels: Record<TaskTab, ReactNode>; header: ReactNode; actions: ReactNode; t: TranslateFn;
 }) {
     const active = useActiveStep(item.id, facts);
@@ -217,7 +219,7 @@ function GuidedTask({ item, facts, view, saved, setView, onAdvanced, chat, panel
     const history = <CoworkTaskRuns coworkId={item.id} runs={facts.runs} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />;
     const views = { ...panels, result, history, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
     const showLive = facts.live && current !== 'result' && current !== 'history';
-    return <CoworkTaskOrb coworkId={item.id} view={current} select={setView} onAdvanced={onAdvanced} live={showLive} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
+    return <CoworkTaskOrb back={back} status={facts.status} coworkId={item.id} view={current} select={setView} onAdvanced={onAdvanced} live={showLive} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
         heading={header} work={{ flow: draft ? inRunOrder(draft.view.steps, draft.view.runOrder) : [], apps: item.enabledApps, action: isSetting(current) ? 'edit' : 'rest' }} t={t}>
         {showLive ? workspace : views[current]}
     </CoworkTaskOrb>;
@@ -249,14 +251,16 @@ function CoworkTaskView(props: CoworkSheetPanelProps) {
     const { t } = useTranslation();
     const id = props.panel.kind === 'task' ? props.panel.id : '';
     const item = useCoworkItem(id);
-    if (item.isPending) return <p className={META} role="status">{t('cowork_task.loading', 'Opening the task…')}</p>;
+    const back = <TaskBack onBack={props.close} />;
+    if (item.isPending) return <><p className={META} role="status">{t('cowork_task.loading', 'Opening the task…')}</p>{back}</>;
     // Not the reader's own: a task a colleague shared with them, or one that is gone.
-    if (item.data === null) return <CoworkTaskShared {...props} />;
+    if (item.data === null) return <><CoworkTaskShared {...props} />{back}</>;
     if (!item.data) {
         return (
             <div className="flex flex-col gap-2">
                 <Failure error={item.error} t={t} />
                 <div><button type="button" className={BTN_LINK} onClick={() => { void item.refetch(); }}>{t('cowork_task.retry', 'Try again')}</button></div>
+                {back}
             </div>
         );
     }

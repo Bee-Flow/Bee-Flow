@@ -88,3 +88,49 @@ it('keeps an explicit clock change in the conversation and saves it only after c
     await user.click(apply);
     await waitFor(() => expect(all('PUT', '/api/cowork/w1').map(call => call.body)).toEqual([schedule]));
 });
+
+it('places the sign-in notice above the orb and opens integrations directly from its side', async () => {
+    openTask({needs: [{...NEEDS_APPROVAL, kind: 'sign_in', plan: null}], runs: []});
+    const notice = await screen.findByText(/The task is paused for sign-in/);
+    const orb = notice.closest('.cowork-activity')?.querySelector('.cowork-orb');
+    expect(orb).toBeTruthy();
+    expect(notice.compareDocumentPosition(orb as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const action = screen.getByRole('link', {name: 'Sign in again'});
+    expect(action.getAttribute('href')).toContain('integrations');
+    expect(action.closest('.cowork-workspace-steps')).not.toBeNull();
+    expect(screen.queryByRole('button', {name: 'Review task'})).toBeNull();
+});
+
+it('shows the requested settings beside Bee until the user chooses one', async () => {
+    const {user} = openTask({conversation: () => ({action:'answer', answer:'Which setting?', choices:['when','uses']})});
+    await user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'Adjust the settings{Enter}');
+    const menu = within(await screen.findByRole('navigation', {name:'Settings'}));
+    expect(menu.getAllByRole('button')).toHaveLength(2);
+    expect(screen.queryByRole('complementary', {name:'Steps'})).toBeNull();
+    await user.click(menu.getByRole('button', {name:'Schedule'}));
+    expect(await screen.findByTestId('cowork-task-settings')).toBeVisible();
+    expect(screen.queryByRole('navigation', {name:'Settings'})).toBeNull();
+});
+
+it('sends a named removal to the proposal endpoint without modifying the task directly', async () => {
+    const remove = {stepIds:['tell'], fingerprint:'f'.repeat(64)};
+    const {user, sent} = openTask({conversation: () => ({action:'change', answer:'Preparing a change.', instruction:'Remove Tell me', remove})});
+    await user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'Remove the notification step{Enter}');
+    await waitFor(() => expect(sent('POST', '/api/cowork/w1/proposals')?.body).toEqual({remove}));
+    expect(sent('PUT','/api/cowork/w1')).toBeUndefined();
+});
+
+it('resumes a task paused for an unrelated account from beside Bee', async () => {
+    const {user, sent} = openTask({needs: [{...NEEDS_APPROVAL, kind: 'sign_in', plan: null, connection: {canResume: true, providers: []}}]});
+    expect(await screen.findByText(/without signing in again/)).toBeVisible();
+    await user.click(screen.getByRole('button', {name: 'Resume'}));
+    await waitFor(() => expect(sent('PUT', '/api/cowork/w1')?.body).toEqual({isActive: true}));
+});
+
+it('shows other work in place and opens a chosen shared task in its own view', async () => {
+    const {user, open} = openTask({conversation: () => ({action:'answer', answer:'', tasks:[{id:'shared',title:'Meeting digest',detail:'Noor',shared:true}]})});
+    await user.type(await screen.findByRole('textbox', {name:'Ask Bee…'}), 'What other tasks are there?{Enter}');
+    expect(open).not.toHaveBeenCalled();
+    await user.click(within(await screen.findByRole('navigation', {name:'Tasks'})).getByRole('button', {name:/Meeting digest/}));
+    expect(open).toHaveBeenCalledWith({kind:'shared', id:'shared'});
+});

@@ -20,7 +20,8 @@ test('questions use the selected steps of the current owned plan and the ownerâ€
             assert.deepEqual(facts.state.latestRun, { status: 'failed', error: 'Mailbox unavailable' });
             assert.deepEqual(facts.state.settings, { modelTier: 'deep', monthlyBudgetEur: 25, enabledApps: ['fireflies'], active: true });
             assert.equal(facts.message, pick.message);
-            assert.deepEqual(facts.state.steps, steps.slice(1));
+            assert.deepEqual(facts.state.steps, steps);
+            assert.deepEqual(facts.state.selected, pick.scope.stepIds);
             return JSON.stringify({ action: 'answer', answer: 'Only to you.' });
         },
     };
@@ -110,4 +111,56 @@ test('reading the output stops at a spent budget and never repeats the lookup wh
     assert.deepEqual(await converse(item, {...turn, view: 'result'}, deps), {action: 'answer', instruction: '', answer: 'No further details.'});
     assert.equal(calls, 2);
     assert.equal(previews, 1);
+});
+
+test('Bee resolves step removal against the owned plan and offers only relevant setting destinations', async () => {
+    const item = {id: 'w1', userId: 'alice'};
+    const scope = {stepIds: ['bell'], fingerprint: 'fp'};
+    const turn = {message: 'Haal die melding weg', view: 'overview', history: [], scope};
+    let intent = {action: 'remove_steps', answer: 'Ik maak het voorstel.', stepIds: ['bell']};
+    const deps = {
+        planStateOf: async () => /** @type {any} */ ({draft: {fingerprint: 'fp', view: {steps: [{id:'mail'}, {id:'bell',title:'Notification'}]}}, upToDate: true, tried: {current: true, status: 'failed', problems: ['Mailbox offline']}}),
+        user: async () => null, latestRun: async () => null, preview: async () => '',
+        /** @param {Parameters<typeof import('../core/cowork/coworkCompose').coworkTextTurn>[0]} model */
+        coworkTextTurn: async model => {
+            assert.equal(model.tier, 'thinking');
+            assert.equal(JSON.parse(model.messages[1].content).state.plan.test.problems[0], 'Mailbox offline');
+            return JSON.stringify(intent);
+        },
+    };
+    const removed = await converse(item, turn, deps);
+    assert.deepEqual(removed.remove, scope);
+    intent.stepIds = ['mail'];
+    await assert.rejects(converse(item, turn, deps), {code: 'cowork_steps_changed'});
+    Object.assign(intent, {action: 'answer', choices: ['when', 'delete', 'when', 'uses']});
+    assert.deepEqual((await converse(item, turn, deps)).choices, ['when', 'uses']);
+});
+
+test('Bee only opens an unambiguous accessible task on a switch request', async () => {
+    const item = {id: 'current', userId: 'alice'};
+    const turn = {message: 'Open mijn andere taak', view: 'overview', history: []};
+    let action = 'find_tasks', query = '';
+    const deps = {
+        planStateOf: async () => /** @type {any} */ ({}), user: async () => null,
+        latestRun: async () => null, preview: async () => '',
+        coworkTextTurn: async () => JSON.stringify({action, query, answer: 'Even kijken.'}),
+        /** @param {string} owner */
+        tasks: async owner => {
+            assert.equal(owner, item.userId);
+            return [{id: 'current', title: 'Mijn taak'}, {id: 'w1', title: 'Weekoverzicht mail'},
+                {id: 's1', title: 'Weekoverzicht meetings', ownerName: 'Noor'}];
+        },
+    };
+    const all = await converse(item, turn, deps);
+    assert.deepEqual(all.tasks?.map(t => t.id), ['w1', 's1']);
+    assert.equal(all.switchTo, undefined);
+    action = 'switch_task';
+    query = 'weekoverzicht';
+    assert.equal((await converse(item, turn, deps)).switchTo, undefined);
+    query = 'weekoverzicht meetings';
+    const shared = await converse(item, turn, deps);
+    assert.equal(shared.switchTo, 's1');
+    assert.equal(shared.tasks?.[0].shared, true);
+    query = 'inaccessible';
+    assert.deepEqual((await converse(item, turn, deps)).tasks, []);
 });

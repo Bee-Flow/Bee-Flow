@@ -200,3 +200,25 @@ test('editing a known parameter tests exactly the changed literal and shows the 
     assert.equal(seen.amend.length, 0);
     assert.equal(deps.plans.approved.fingerprint, planFingerprint(BASE));
 });
+
+test('removing a step tests the edited graph and leaves the approved version in place until approval', async () => {
+    const {deps, seen} = world();
+    const remove = {fingerprint: planFingerprint(BASE), stepIds: ['tell']};
+    const request = {...REPAIR, reasonCode: 'owner_request', facts: {kind:'owner_request'}, remove};
+    let tested;
+    const withTry = {...deps, tryDefinition: async ({definition}) => { tested = definition; return {passed: true}; }};
+    assert.equal(await propose(ITEM, request, withTry), 'proposed');
+    assert.equal(seen.amend.length, 0);
+    assert.deepEqual(tested.steps.map(s => s.id), ['orders', 'sum']);
+    assert.deepEqual(deps.plans.approved.definition, BASE);
+    assert.deepEqual((await proposalsOf(ITEM, deps)).proposals[0].changes.map(s => [s.change,s.id]), [['removed','tell']]);
+    await assert.rejects(propose(ITEM, {...request, remove: {...remove, fingerprint: 'stale'}}, withTry), {code:'cowork_steps_changed'});
+});
+
+test('a removal that needs rewiring cannot offer a proposal with the requested step still present', async () => {
+    const {deps, seen} = world();
+    const request = {...REPAIR, reasonCode: 'owner_request', facts: {kind:'owner_request'}, remove: {fingerprint: planFingerprint(BASE), stepIds: ['sum']}};
+    assert.equal(await propose(ITEM, request, deps), 'failed');
+    assert.equal(seen.amend.length, 1);
+    assert.equal(deps.store.rows.size, 0);
+});

@@ -231,7 +231,7 @@ export async function startFrom(userId: string, orgId: string, template: CoworkT
     // A day ahead, and paused straight away: nothing is due in between, and the owner chooses when it runs.
     const item = await deps.createSchedule({
         userId, title: template.title, prompt: template.brief, repeatInterval: template.repeatInterval,
-        nextRunAt: new Date(deps.now() + DAY_MS).toISOString(), triggerKind: 'schedule', modelTier: 'fast',
+        nextRunAt: new Date(deps.now() + DAY_MS).toISOString(), triggerKind: 'schedule', modelTier: 'thinking',
     });
     if (!item) throw new Error('the cowork was not created');
     try {

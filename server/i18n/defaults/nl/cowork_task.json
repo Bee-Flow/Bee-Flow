@@ -1,5 +1,12 @@
 {
   "translations": {
+    "cowork_task.orb.choose_work": "Welke taak wil je openen?",
+    "cowork_task.orb.no_work": "Ik kon geen andere passende taak vinden. Probeer een andere naam.",
+    "cowork_task.orb.resume_connection": "Je kunt deze taak hervatten. De stappen hebben geen nieuwe aanmelding nodig.",
+    "cowork_task.orb.connect_named": "De taak is gepauzeerd. Koppel {apps} opnieuw om verder te gaan.",
+    "cowork_task.orb.connect_unknown": "De taak is gepauzeerd omdat aanmelden nodig is. Open Integraties om te zien welk account aandacht nodig heeft.",
+    "cowork_task.orb.steps_changed": "De stappen zijn gewijzigd. Selecteer ze opnieuw.",
+    "cowork_task.orb.apps_model": "Apps en model",
     "cowork_task.orb.preview": "Bekijk testvoorbeeld",
     "cowork_task.orb.preview_ready": "Je testvoorbeeld staat klaar.",
     "cowork_task.orb.run_details": "Bekijk de uitvoering",

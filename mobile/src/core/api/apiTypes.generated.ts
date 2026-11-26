@@ -2744,6 +2744,11 @@ export interface ApiOperations {
     'GET /api/cowork/{id}/plan/try/{tryId}/compare': Op<{ id: string | number; tryId: string | number }>;
     'GET /api/cowork/{id}/proposals': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/proposals': Op<{ id: string | number }, UndeclaredQuery, {
+        remove: {
+            fingerprint: string;
+            stepIds: Array<string>;
+        };
+    } | {
         instruction: string;
         scope?: {
             fingerprint: string;

@@ -137,7 +137,7 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                     <CoworkHome onAskTask={askTask} onOpenTask={openTask} onOpenPanel={open} seed={seed} />
                 </div>
                 {page && Page && (
-                    <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close}>
+                    <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close} ownBack={page.kind === 'task'}>
                         <Suspense fallback={<p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>}>
                             <GuidedPanelContext.Provider value><Page panel={page} user={user} close={close} open={open} fillComposer={fillComposer} /></GuidedPanelContext.Provider>
                         </Suspense>

@@ -84,7 +84,7 @@ export function useCoworkProposalActions(coworkId: string) {
         mutationFn: (version) => apiJson<'POST /api/cowork/{id}/plan/restore'>('POST /api/cowork/{id}/plan/restore', { params: { id: coworkId }, body: { version } }),
         onSuccess: settle,
     });
-    const requestChange = useMutation<ProposalList, Error, { instruction: string; scope?: { fingerprint: string; stepIds: string[] } } | { parameter: PlanParameter & { before: string } }>({
+    const requestChange = useMutation<ProposalList, Error, { instruction: string; scope?: { fingerprint: string; stepIds: string[] } } | { remove: { fingerprint: string; stepIds: string[] } } | { parameter: PlanParameter & { before: string } }>({
         mutationKey: interactionKey(coworkId),
         mutationFn: (body) => apiJson<'POST /api/cowork/{id}/proposals', ProposalList>(
             'POST /api/cowork/{id}/proposals', { params: { id: coworkId }, body }),
@@ -95,7 +95,8 @@ export function useCoworkProposalActions(coworkId: string) {
 
 type CoworkReplyAction = 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'share' | 'review' | 'overview';
 export interface ClockProposal { repeatInterval: 'daily' | 'weekdays' | 'weekly'; daysOfWeek: string[] | null; timeOfDay: string; timezone: string; nextRunAt: string }
-export interface CoworkReply { schedule?: ClockProposal; answer: string; action: CoworkReplyAction; instruction: string }
+export type CoworkSettingChoice = 'what' | 'when' | 'uses' | 'sends';
+export interface CoworkReply { tasks?: {id: string; title: string; detail: string; shared?: boolean}[]; switchTo?: string; choices?: CoworkSettingChoice[]; remove?: {fingerprint: string; stepIds: string[]}; schedule?: ClockProposal; answer: string; action: CoworkReplyAction; instruction: string }
 export interface CoworkMessage { role: 'user' | 'assistant'; text: string }
 
 export function useCoworkConversation(id: string) {

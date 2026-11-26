@@ -59,3 +59,18 @@ describe('useModelTierSelection', () => {
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith('/api/ai/config/tiers-for-user?taskType=app_builder', expect.anything()));
     });
 });
+
+it('starts Cowork in Thinking and remembers an explicit switch back to Auto', async () => {
+    scopedStorage.setCurrentUser('cowork-tier-test');
+    scopedStorage.setItem('coworkTier', 'auto');
+    scopedStorage.removeItem('coworkPreferredTier');
+    queryClient.clear();
+    authFetch.mockReturnValue(tiersResponse({auto: {}, thinking: {}}));
+    const useCoworkTier = () => useModelTierSelection({storageKey:'coworkPreferredTier', legacyStorageKey:'coworkTier', defaultTier:'thinking', taskType:'automation'});
+    const first = renderHook(useCoworkTier, {wrapper});
+    await waitFor(() => expect(first.result.current.modelTiers).toHaveProperty('thinking'));
+    expect(first.result.current.selectedTier).toBe('thinking');
+    act(() => first.result.current.setSelectedTier('auto'));
+    first.unmount();
+    expect(renderHook(useCoworkTier, {wrapper}).result.current.selectedTier).toBe('auto');
+});

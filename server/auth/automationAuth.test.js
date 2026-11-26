@@ -52,6 +52,7 @@ const MOCKS = {
     },
     '../stores/coworkStore': {
         getSchedules: async () => fx.tasks,
+        getApprovedPlan: async id => ({ permissions: { grants: [{ app: id === 'mail' ? 'gmail' : 'agent-search' }] } }),
         updateSchedule: async (id, patch) => { fx.taskUpdates.push({ id, patch }); },
     },
     '../stores/agentStore': {
@@ -145,6 +146,14 @@ test('400 invalid_grant → needs_reauth + pause + notify', async () => {
     assert.strictEqual(fx.notifications.length, 1);
     assert.strictEqual(fx.notifications[0].category, 'urgent');
     assert.match(fx.notifications[0].message, /automation_reauth:google/);
+});
+
+test('an expired Google credential pauses Gmail and leaves a scheduled Web Search plan running', async () => {
+    resetFx();
+    fx.tasks = ['web', 'mail'].map(id => ({ id, isActive: true, planId: id, triggerKind: 'schedule', enabledApps: null }));
+    fx.fetchImpl = async () => httpResponse(400, { error: 'invalid_grant' });
+    await getProviderAuth('u1', 'google');
+    assert.deepStrictEqual(fx.taskUpdates.map(update => update.id), ['mail']);
 });
 
 test('401 invalid_client → needs_reauth', async () => {
