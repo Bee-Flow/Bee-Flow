@@ -37,8 +37,7 @@ function ConversationHistory({ messages }: Pick<TaskConversation, 'messages'>) {
         return () => resize.disconnect();
     }, [messages]);
     if (!messages.length) return null;
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- keyboard users can scroll the transcript independently of the composer.
-    return <div ref={log} className="cowork-transcript" role="log" aria-label={t('cowork_task.history.heading', 'History')} tabIndex={0}
+    return <div ref={log} className="cowork-transcript" role="log" aria-label={t('cowork_task.history.heading', 'History')}
         onScroll={e => {
             const box = e.currentTarget;
             following.current = box.scrollHeight - box.clientHeight - box.scrollTop < 24;
