@@ -1,3 +1,4 @@
+import { beeTransition } from '../beeTransition';
 /** An owned Cowork task, with its status and actions above the task's detail tabs. */
 import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
 import { TaskBack } from '../CoworkPageFrame';
@@ -180,7 +181,7 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
         <CoworkOrbComposer chat={chat} />
         <TaskBack onBack={close} />
     </div>;
-    return <GuidedTask back={<TaskBack onBack={close} />} chat={chat} item={item} facts={facts} view={view} saved={saved} setView={setView} onAdvanced={() => setAdvanced(true)}
+    return <GuidedTask back={<TaskBack onBack={close} />} chat={chat} item={item} facts={facts} view={view} saved={saved} setView={setView} onAdvanced={() => beeTransition(() => setAdvanced(true))}
         panels={panels} header={header} actions={actions} t={t} />;
 }
 
@@ -233,7 +234,7 @@ function useTaskNavigation(panel: CoworkSheetPanelProps['panel']) {
     const [saved, setSaved] = useState(false);
     const [setting, setSetting] = useState<SettingRowId | null>(null);
     const tabId = useId();
-    const setView = (next: OrbView) => { setSaved(false); choose(next); };
+    const setView = (next: OrbView) => beeTransition(() => { setSaved(false); choose(next); });
     const openTab = (next: TaskTab, row: SettingRowId = 'what') => {
         setTab(next);
         setView(next === 'settings' ? row : next === 'steps' ? 'overview' : next);

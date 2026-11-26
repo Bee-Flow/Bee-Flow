@@ -66,10 +66,25 @@ beforeAll(async () => {
     ]);
 }, 60_000);
 
+async function wakeBee() {
+    await userEvent.setup().click(screen.getByRole('button', {name: 'Ask Bee…'}));
+}
+
 describe('CoworkPage', () => {
+    it('starts with only Bee and opens the task input from the keyboard', async () => {
+        serve();
+        renderWithClient(<CoworkPage />);
+        const orb = screen.getByRole('button', {name: 'Ask Bee…'});
+        expect(screen.getAllByRole('button')).toEqual([orb]);
+        expect(screen.queryByRole('textbox')).toBeNull();
+        orb.focus();
+        await userEvent.setup().keyboard('{Enter}');
+        expect(await screen.findByTestId('cowork-brief-input')).toHaveFocus();
+    });
     it('carries a question about a named task into its conversation once', async () => {
         serve();
         renderWithClient(<CoworkPage />);
+        await wakeBee();
         const user = userEvent.setup();
         const question = 'Why did Weekly digest stop?';
         await user.type(screen.getByTestId('cowork-brief-input'), question);
@@ -85,6 +100,7 @@ describe('CoworkPage', () => {
         serve();
         const onNavigate = vi.fn();
         renderWithClient(<CoworkPage onNavigate={onNavigate} />);
+        await wakeBee();
         const user = userEvent.setup();
         const row = await screen.findByRole('button', { name: /Weekly digest/ });
         await user.click(row);
@@ -118,6 +134,7 @@ describe('CoworkPage', () => {
     it('Back after opening a row gives the focus back to that row', async () => {
         serve();
         const { rerender } = renderWithClient(<CoworkPage />);
+        await wakeBee();
         const row = await screen.findByRole('button', { name: /Weekly digest/ });
         await userEvent.setup().click(row);
         // The router follows the click, then the reader presses Back.
@@ -133,6 +150,7 @@ describe('CoworkPage', () => {
         const onNavigate = vi.fn();
         const user = userEvent.setup();
         renderWithClient(<CoworkPage user={MEMBER} onNavigate={onNavigate} />);
+        await wakeBee();
         expect(screen.queryByRole('button', { name: 'Your menu' })).toBeNull();
         expect(screen.queryByRole('menu')).toBeNull();
         const gear = screen.getByRole('button', { name: 'Cowork preferences' });
@@ -149,10 +167,12 @@ describe('CoworkPage', () => {
         serve();
         const user = userEvent.setup();
         const { unmount } = renderWithClient(<CoworkPage user={MEMBER} />);
+        await wakeBee();
         expect(screen.queryByRole('button', { name: 'Admin rules' })).toBeNull();
         unmount();
         const onNavigate = vi.fn();
         renderWithClient(<CoworkPage user={ADMIN} onNavigate={onNavigate} />);
+        await wakeBee();
         await user.click(screen.getByRole('button', { name: 'Admin rules' }));
         expect(await screen.findByTestId('cowork-org-panel')).toBeInTheDocument();
         expect(onNavigate).toHaveBeenLastCalledWith('cowork/admin-rules');
@@ -162,6 +182,7 @@ describe('CoworkPage', () => {
         serve();
         const user = userEvent.setup();
         renderWithClient(<CoworkPage />);
+        await wakeBee();
         await user.click(screen.getByText('Start from a template'));
         await user.click(screen.getByRole('button', { name: 'All templates' }));
         expect(await screen.findByRole('heading', { level: 1, name: 'Start from a template' })).toBeInTheDocument();
@@ -175,6 +196,7 @@ describe('CoworkPage', () => {
         serve();
         const onNavigate = vi.fn();
         renderWithClient(<CoworkPage onNavigate={onNavigate} />);
+        await wakeBee();
         const entry = await screen.findByTestId('cowork-teamwork');
         expect(entry).toHaveTextContent('Let your tasks work together with colleagues’ tasks');
         await userEvent.setup().click(entry);
@@ -186,6 +208,7 @@ describe('CoworkPage', () => {
         serve();
         const user = userEvent.setup();
         renderWithClient(<CoworkPage />);
+        await wakeBee();
         await user.type(screen.getByTestId('cowork-brief-input'), 'Every day at 9');
         await user.click(screen.getByRole('button', { name: 'Cowork preferences' }));
         await screen.findByTestId('cowork-settings-panel');
@@ -197,6 +220,7 @@ describe('CoworkPage', () => {
         serve([]);
         const user = userEvent.setup();
         renderWithClient(<EntitlementsProvider><CoworkPage /></EntitlementsProvider>);
+        await wakeBee();
         expect(await screen.findByText('No tasks yet. Write one sentence above to start.')).toBeInTheDocument();
         await user.type(screen.getByTestId('cowork-brief-input'), 'Every day at 9, summarise my meetings');
         await user.click(screen.getByTestId('cowork-continue'));
@@ -210,6 +234,7 @@ describe('the Cowork page is crisp', () => {
         serve();
         const user = userEvent.setup();
         renderWithClient(<CoworkPage user={ADMIN} />);
+        await wakeBee();
         await screen.findByRole('button', { name: /Weekly digest/ });
         expect(softClasses(screen.getByTestId('cowork-page'))).toEqual([]);
         for (const [opener, shows] of [['Cowork preferences', 'cowork-settings-panel'], ['Admin rules', 'cowork-org-panel'], ['All templates', 'cowork-templates-panel']] as const) {

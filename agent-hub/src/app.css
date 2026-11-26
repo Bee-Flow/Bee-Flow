@@ -2206,3 +2206,19 @@ pre.hljs {
 @media (prefers-reduced-motion: reduce) {
     .cowork-orb::after { transition: none; }
 }
+
+/* Bee is the entry point. The Cowork pane owns the transition, so surrounding navigation stays still. */
+.cowork-arrival { height: 100%; min-height: 15rem; display: grid; place-items: center; }
+.cowork-wake { display: grid; place-items: center; border-radius: 50%; cursor: pointer; background: transparent; }
+.cowork-wake:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: .25rem; }
+.cowork-wake .cowork-orb { width: min(76vw, 50dvh, 28rem); }
+@media (prefers-reduced-motion: no-preference) {
+    :root:active-view-transition-type(cowork) { view-transition-name: none; }
+    :root:active-view-transition-type(cowork) [data-testid="cowork-page"] { view-transition-name: cowork-pane; }
+    :root:active-view-transition-type(cowork) :is(.cowork-wake, .cowork-welcome-orb, .cowork-task-guided .cowork-activity) > .cowork-orb { view-transition-name: cowork-bee; }
+    ::view-transition-group(cowork-bee) { animation-duration: 480ms; animation-timing-function: cubic-bezier(.22,.75,.22,1); }
+    ::view-transition-group(cowork-pane) { animation-duration: 300ms; }
+    .cowork-open-page [data-testid="cowork-page-frame"] > :not([role="status"]),
+    .cowork-orb-choices { animation: cowork-surface-arrival 280ms ease-out backwards; }
+    @keyframes cowork-surface-arrival { from { opacity: 0; translate: 0 .4rem; } }
+}
