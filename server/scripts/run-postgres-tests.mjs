@@ -23,8 +23,10 @@
  * but not the ones those refer to (kbSources reads `projects`, the automation
  * organisation backfill reads `users`).
  *
- * A new test that needs a real Postgres is added to FILES below; a file listed
- * here that no longer exists fails the run.
+ * A new test that needs a real Postgres is added to FILES below, by its tree
+ * path: it is found in server/ or in the module root it moved to
+ * (scripts/lib/roots.mjs). A file listed here that no root has fails the run.
+ * Like run-tests.mjs, the run gets the module-roots resolver through NODE_OPTIONS.
  *
  * Usage:
  *   export CORE_DATABASE_URL=postgresql://user@127.0.0.1:5432/disposable_db
@@ -34,14 +36,16 @@
  * POSTGRES_TEST_TIMEOUT_MS (default 120000, 0 = none) bounds one file.
  */
 
-import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveTreePath } from '../../scripts/lib/roots.mjs';
+import { resolverEnv } from './testScope.mjs';
 
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const RESOLVER = path.join(SERVER_DIR, 'moduleRoots.cjs');
 
-/** The tests that need a real Postgres, relative to server/. */
+/** The tests that need a real Postgres, by tree path (relative to their root). */
 export const FILES = [
     // Atomic claim, release and the stuck-run reaper of scheduled automations.
     'stores/automationStore.claim.test.js',
@@ -73,6 +77,17 @@ export const FILES = [
  */
 export function selectFiles(filters, files = FILES) {
     return files.filter((f) => filters.length === 0 || filters.some((x) => f.includes(x)));
+}
+
+/**
+ * The argument `node --test` gets for a tree path: the tree path itself for a file in
+ * server/ (the cwd), the absolute path for a file in a module root.
+ * @param {string} treePath
+ * @param {(treePath: string) => string | null} [resolve] the absolute path in the root that has it
+ */
+export function fileArg(treePath, resolve = (p) => resolveTreePath('server', p)) {
+    const abs = resolve(treePath);
+    return abs && !abs.startsWith(SERVER_DIR + path.sep) ? abs : treePath;
 }
 
 /**
@@ -109,12 +124,12 @@ export function nodeArgs(files, timeoutMs) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const files = selectFiles(process.argv.slice(2));
-    const why = refusal(process.env, files, (f) => existsSync(path.join(SERVER_DIR, f)));
+    const why = refusal(process.env, files, (f) => resolveTreePath('server', f) !== null);
     if (why) {
         process.stderr.write(`run-postgres-tests: ${why}\n`);
         process.exit(1);
     }
-    const env = {
+    const env = resolverEnv({
         ...process.env,
         NODE_ENV: process.env.NODE_ENV || 'test',
         REQUIRE_POSTGRES: '1',
@@ -122,9 +137,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
         SESSION_SECRET: process.env.SESSION_SECRET ?? 'ci-session-secret-value-at-least-32-chars-long', // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the fixed test value of a run against a disposable database, the same one run-tests.mjs sets
         MASTER_ENCRYPTION_KEY: process.env.MASTER_ENCRYPTION_KEY ?? 'ci-master-encryption-key-for-tests-only!!',
         DOCUMENT_TEST_DATABASE_URL: process.env.DOCUMENT_TEST_DATABASE_URL ?? process.env.CORE_DATABASE_URL,
-    };
+    }, { preload: RESOLVER, hide: null });
     const started = Date.now();
-    const res = spawnSync(process.execPath, nodeArgs(files, Number(process.env.POSTGRES_TEST_TIMEOUT_MS ?? 120_000)), { cwd: SERVER_DIR, stdio: 'inherit', env });
+    const res = spawnSync(process.execPath, nodeArgs(files.map((f) => fileArg(f)), Number(process.env.POSTGRES_TEST_TIMEOUT_MS ?? 120_000)), { cwd: SERVER_DIR, stdio: 'inherit', env });
     process.stdout.write(`run-postgres-tests: ${files.length} file(s) in ${Date.now() - started} ms\n`);
     process.exit(res.status ?? 1);
 }

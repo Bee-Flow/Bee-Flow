@@ -8,15 +8,16 @@
 
 import test from 'node:test';
 import assert from 'node:assert';
-import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { FILES, selectFiles, refusal, nodeArgs } from './run-postgres-tests.mjs';
+import { FILES, selectFiles, refusal, nodeArgs, fileArg } from './run-postgres-tests.mjs';
+import { resolveTreePath } from '../../scripts/lib/roots.mjs';
 
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SCRIPT = path.join(SERVER_DIR, 'scripts', 'run-postgres-tests.mjs');
-const onDisk = (/** @type {string} */ f) => fs.existsSync(path.join(SERVER_DIR, f));
+/** In any root of the server tree: a listed file may have moved to a module. */
+const onDisk = (/** @type {string} */ f) => resolveTreePath('server', f) !== null;
 
 test('every listed file exists, once', () => {
     assert.deepStrictEqual(FILES.filter((f) => !onDisk(f)), []);
@@ -44,6 +45,14 @@ test('the files share one database, so they run one at a time', () => {
     assert.deepStrictEqual(args.slice(-2), ['a.test.js', 'b.test.js']);
     assert.ok(!nodeArgs(['a.test.js'], 0).some((a) => a.startsWith('--test-timeout')));
     assert.ok(!args.includes('--test-force-exit'), 'results are never cut off (see run-tests.mjs)');
+});
+
+test('a file in server/ is passed by its tree path, a moved one by its absolute path', () => {
+    const moved = path.join(path.dirname(SERVER_DIR), 'modules', 'x', 'server', 'stores', 'a.test.js');
+    assert.strictEqual(fileArg('stores/a.test.js', () => path.join(SERVER_DIR, 'stores', 'a.test.js')), 'stores/a.test.js');
+    assert.strictEqual(fileArg('stores/a.test.js', () => moved), moved);
+    assert.strictEqual(fileArg('stores/gone.test.js', () => null), 'stores/gone.test.js');
+    assert.strictEqual(fileArg(FILES[0]), FILES[0], 'today every listed file is in server/');
 });
 
 test('started without CORE_DATABASE_URL it exits 1 and runs nothing', () => {

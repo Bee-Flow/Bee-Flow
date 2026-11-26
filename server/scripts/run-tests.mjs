@@ -4,8 +4,9 @@
  * Server test runner — the single entry point behind `npm test`.
  *
  * What it does:
- *   1. Collects every colocated *.test.js under server/ (skipping node_modules),
- *      the same set `find . -name '*.test.js' -not -path './node_modules/*'` yields.
+ *   1. Collects every *.test.js / *.test.mjs of server/ and every module root
+ *      (modules/<id>/server), each by its tree path, skipping node_modules and
+ *      journeys/; with no module directory, exactly the files under server/.
  *   2. Subtracts the files listed in scripts/test-exclusions.json (each with a
  *      bucket and an honest reason). If an excluded file no longer exists the
  *      run FAILS — a rename must update the exclusion list, so stale entries
@@ -41,24 +42,35 @@
  * Files are split by scripts/test-durations.json (greedy longest-first); a file
  * missing from it goes to a hash shard, never nowhere. See testShards.mjs.
  *
+ * Scope and core mode (testScope.mjs; shards and durations work within a scope):
+ *   --scope core|full|<id>[,<id>]  the core's files (ownership map), all, or modules'
+ *   --files a.test.js,b/c.test.js  exactly these tree paths
+ *   --hide-modules all|<ids>       BEEFLOW_HIDE_MODULES for every child
+ *   "The core alone": --scope core --hide-modules all. Every child (and its threads
+ *   and children) loads the resolver, moduleRoots.cjs, through NODE_OPTIONS.
+ *
  * Extra CLI arguments are passed through to `node --test` (e.g.
  * `node scripts/run-tests.mjs --test-name-pattern=canEdit`), except the
  * reporter flags: the runner reads each file's TAP summary itself, so it
  * refuses `--test-reporter` and `--test-reporter-destination` (see Run).
  */
 
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assignShards, fileTimeoutMs, orderLongestFirst, parseShard } from './testShards.mjs';
 import { normalizeCoverageDir } from './coverageUrls.mjs';
+import { VALUE_FLAGS, collectTestFiles, exclusionTable, flagValueOf, parseHide, parseScope, pickFiles, resolverEnv, scopeFilter, staleExclusions, walkFilter } from './testScope.mjs';
+import { resolveTreePath, walkTree } from '../../scripts/lib/roots.mjs';
+import { loadModuleMap } from '../../scripts/module-map.mjs';
 
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Fills core's feature-module registry the way index.js does (testUtils/registerFeatures.js).
 const FEATURES_PRELOAD = path.join(SERVER_DIR, 'testUtils', 'registerFeatures.js');
 const PRELOAD_ARGS = existsSync(FEATURES_PRELOAD) ? ['--require', FEATURES_PRELOAD] : [];
+const RESOLVER = path.join(SERVER_DIR, 'moduleRoots.cjs');
 const EXCLUSIONS_FILE = path.join(SERVER_DIR, 'scripts', 'test-exclusions.json');
 
 // ── Environment defaults ────────────────────────────────────────────────────
@@ -83,7 +95,25 @@ if (badBucket) {
     process.exit(1);
 }
 
-const stale = exclusions.filter((e) => !existsSync(path.join(SERVER_DIR, e.file)));
+/** A bad runner argument ends the run (exit 2) before anything starts. */
+const orExit = (fn) => {
+    try { return fn(); } catch (e) { console.error(`run-tests: ${e.message}`); process.exit(2); }
+};
+const flagValue = (name) => orExit(() => flagValueOf(process.argv, name));
+
+// ── Collect test files (every root, by tree path), and the scope ────────────
+const tests = collectTestFiles(walkTree('server', { filter: walkFilter }));
+let moduleMap = null;
+const map = () => (moduleMap ??= loadModuleMap());
+const scopeArg = flagValue('--scope');
+const scope = orExit(() => parseScope(scopeArg, scopeArg === null ? [] : map().modules()));
+const hideArg = flagValue('--hide-modules');
+const hide = hideArg === null ? null : orExit(() => parseHide(hideArg, map().modules()));
+const ownerOf = (p, moduleId) => moduleId ?? map().ownerOf('server', p);
+const inScopeOf = scopeFilter(scope, ownerOf);
+const inScope = (p) => inScopeOf(p, tests.get(p)?.moduleId ?? null);
+
+const stale = staleExclusions(exclusions, (f) => resolveTreePath('server', f) !== null, inScope);
 if (stale.length > 0) {
     for (const e of stale) {
         console.error(`Excluded test file no longer exists: ${e.file} — update scripts/test-exclusions.json (was excluded as "${e.bucket}": ${e.reason})`);
@@ -92,57 +122,24 @@ if (stale.length > 0) {
 }
 
 if (process.argv.includes('--list-excluded')) {
-    const width = Math.max(...exclusions.map((e) => e.file.length));
-    for (const bucket of [...VALID_BUCKETS]) {
-        const rows = exclusions.filter((e) => e.bucket === bucket);
-        if (rows.length === 0) continue;
-        console.log(`\n${bucket} (${rows.length}):`);
-        for (const e of rows) console.log(`  ${e.file.padEnd(width)}  ${e.reason}`);
-    }
-    console.log(`\n${exclusions.length} file(s) excluded. Remove entries as they are fixed — this list should only get shorter.`);
+    console.log(exclusionTable(exclusions, [...VALID_BUCKETS]));
     process.exit(0);
 }
 
-// ── Collect test files ──────────────────────────────────────────────────────
-function collectTestFiles(dir, prefix = '') {
-    const out = [];
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-        if (entry.isDirectory()) {
-            if (rel === 'node_modules') continue; // top-level only, matching the old find(1) invocation
-            if (rel === 'journeys') continue; // scripts/run-journeys.mjs runs them, in a CI job of their own
-            out.push(...collectTestFiles(path.join(dir, entry.name), rel));
-        } else if (entry.isFile() && (entry.name.endsWith('.test.js') || entry.name.endsWith('.test.mjs'))) {
-            out.push(rel);
-        }
-    }
-    return out;
-}
-
-// Runner options that take a value; they must not reach `node --test`.
-const VALUE_FLAGS = ['--shard', '--files-out', '--coverage-json', '--write-durations', '--durations'];
-const flagValue = (name) => {
-    const i = process.argv.indexOf(name);
-    if (i < 0) return null;
-    const v = process.argv[i + 1];
-    if (v === undefined || v.startsWith('--')) {
-        console.error(`run-tests: ${name} needs a value`);
-        process.exit(2);
-    }
-    return v;
-};
-
+// ── Select ──────────────────────────────────────────────────────────────────
 const excludedSet = new Set(exclusions.map((e) => e.file));
-const allFiles = collectTestFiles(SERVER_DIR).sort();
-const eligibleFiles = allFiles.filter((f) => !excludedSet.has(f));
+const allFiles = [...tests.keys()].filter(inScope);
+const filesArg = flagValue('--files');
+const eligibleFiles = filesArg === null
+    ? allFiles.filter((f) => !excludedSet.has(f))
+    : orExit(() => pickFiles(filesArg, { known: new Set(tests.keys()), excluded: excludedSet, inScope }));
 
 const durationsFile = flagValue('--durations') ?? path.join(SERVER_DIR, 'scripts', 'test-durations.json');
 const durations = existsSync(durationsFile) ? JSON.parse(readFileSync(durationsFile, 'utf8')).durations ?? {} : {};
 const shardArg = flagValue('--shard');
 let runFiles = eligibleFiles;
 if (shardArg) {
-    let shard;
-    try { shard = parseShard(shardArg); } catch (e) { console.error(`run-tests: ${e.message}`); process.exit(2); }
+    const shard = orExit(() => parseShard(shardArg));
     runFiles = assignShards(eligibleFiles, durations, shard.count)[shard.index - 1];
 }
 runFiles = orderLongestFirst(runFiles, durations);
@@ -157,7 +154,7 @@ if (process.argv.includes('--list')) {
 
 console.log(
     `Running ${runFiles.length} of ${allFiles.length} test files` +
-        `${shardArg ? ` (shard ${shardArg})` : ''} (${excludedSet.size} excluded — see scripts/test-exclusions.json).`,
+        `${scopeArg ? ` (scope ${scopeArg})` : ''}${hide ? ` (hiding ${hide})` : ''}${shardArg ? ` (shard ${shardArg})` : ''} (${excludedSet.size} excluded — see scripts/test-exclusions.json).`,
 );
 
 // ── Run ─────────────────────────────────────────────────────────────────────
@@ -212,11 +209,11 @@ const coverageTmp = coverage ? mkdtempSync(path.join(tmpdir(), 'server-v8-covera
 // rerun is warm too; an explicit NODE_COMPILE_CACHE in the environment wins.
 const compileCache = process.env.NODE_COMPILE_CACHE || path.join(SERVER_DIR, 'node_modules', '.cache', 'node-compile-cache');
 mkdirSync(compileCache, { recursive: true });
-const childEnv = {
+const childEnv = resolverEnv({
     ...process.env,
     NODE_COMPILE_CACHE: compileCache,
     ...(coverage ? { NODE_V8_COVERAGE: coverageTmp } : {}),
-};
+}, { preload: existsSync(RESOLVER) ? RESOLVER : null, hide });
 
 // IN PROCESS, OR NOT. `node --test <file>` runs the file in a child of its own
 // by default, so each file cost two Node start-ups; with
@@ -228,7 +225,10 @@ const childEnv = {
 // NO SUMMARY. The files that call it keep the child (checked on the source,
 // per file, before the run); everything else runs in-process. Verified file by
 // file on shard 3: the same tallies both ways, except exactly those files.
-const callsProcessExit = (file) => /\bprocess\.exit\(/.test(readFileSync(path.join(SERVER_DIR, file), 'utf8'));
+const absOf = (file) => tests.get(file)?.abs ?? path.join(SERVER_DIR, file);
+// A core file is passed as its tree path (relative to cwd, as always); a module's file absolute.
+const argOf = (file) => (tests.get(file)?.moduleId ? absOf(file) : file);
+const callsProcessExit = (file) => /\bprocess\.exit\(/.test(readFileSync(absOf(file), 'utf8'));
 const inProcessArgs = (file) => (callsProcessExit(file) ? [] : ['--experimental-test-isolation=none']);
 
 // The reporter is not a passthrough option, because the tallies below are read
@@ -293,7 +293,7 @@ function runFile(file) {
         // load average reached 26 on four cores and every suite crawled.
         const child = spawn(
             process.execPath,
-            ['--test', ...inProcessArgs(file), ...PRELOAD_ARGS, ...passthrough, file],
+            ['--test', ...inProcessArgs(file), ...PRELOAD_ARGS, ...passthrough, argOf(file)],
             { cwd: SERVER_DIR, env: childEnv, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
         );
         const t0 = Date.now();

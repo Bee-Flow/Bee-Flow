@@ -14,5 +14,9 @@
 
 'use strict';
 
+// The module-roots resolver first, so the registrations below see every root (and, in core
+// mode, not the hidden modules). scripts/run-tests.mjs also passes it through NODE_OPTIONS;
+// requiring it twice is harmless.
+require('../moduleRoots.cjs');
 require('../boot/featureModules');
 require('../integrations/integrationClients');
