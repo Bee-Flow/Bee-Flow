@@ -47,7 +47,7 @@ function chainWords(view: ReceiptsView | undefined, t: TranslateFn): string {
     return t('cowork_task.receipts.ok', 'All {count} receipts check out', { count: view.verdict.count });
 }
 
-function ProofBody({ coworkId, t }: { coworkId: string; t: TranslateFn }) {
+export function ProofBody({ coworkId, t }: { coworkId: string; t: TranslateFn }) {
     const receipts = useReceipts(coworkId);
     const [checked, setChecked] = useState(false);
     const again = () => { receipts.refetch().then(() => setChecked(true)).catch(() => undefined); };
@@ -91,7 +91,7 @@ function Change({ entry, current, busy, onRestore, t }: ChangeProps) {
     );
 }
 
-function ChangesBody({ coworkId, plan, t }: { coworkId: string; plan: PlanState | undefined; t: TranslateFn }) {
+export function ChangesBody({ coworkId, plan, t }: { coworkId: string; plan: PlanState | undefined; t: TranslateFn }) {
     const trail = useCoworkTrail(coworkId, true);
     const { restore } = useCoworkProposalActions(coworkId);
     const [restored, setRestored] = useState(false);

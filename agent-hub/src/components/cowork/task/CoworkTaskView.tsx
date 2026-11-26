@@ -1,3 +1,7 @@
+import { teamworkRequest } from '../coworkTeamworkRequest';
+import CoworkOperationReview, { type TaskOperation } from './CoworkOperationReview';
+import type { CoworkGlobalDestination } from '@/api/coworkProposals';
+import { administersOrg } from '../coworkViewer';
 import { beeTransition } from '../beeTransition';
 /** An owned Cowork task, with its status and actions above the task's detail tabs. */
 import { type ReactNode, useEffect, useId, useMemo, useState } from 'react';
@@ -14,13 +18,15 @@ import CoworkTaskOrb, { isSetting, type OrbView } from './CoworkTaskOrb';
 import { LINK_INLINE } from '../coworkUi';
 import CoworkTaskChange from './CoworkTaskChange';
 import CoworkTaskHeader, { CoworkTaskActions, type HeldBy } from './CoworkTaskHeader';
-import CoworkTaskHistory, { DeleteTask } from './CoworkTaskHistory';
+import CoworkTaskHistory, { ChangesBody, DeleteTask, ProofBody } from './CoworkTaskHistory';
 import CoworkTaskLive, { isLive } from './CoworkTaskLive';
 import CoworkTaskOffer from './CoworkTaskOffer';
 import CoworkTaskPeople, { type PeopleRowId } from './CoworkTaskPeople';
 import CoworkTaskRuns from './CoworkTaskRuns';
 import CoworkTaskResult, { AutoFixNote } from './CoworkTaskResult';
 import CoworkTaskSettings from './CoworkTaskSettings';
+import TaskSetTarget from './TaskSetTarget';
+import { MemoryPart, SpendingPart } from './TaskSetKeeps';
 import CoworkTaskShared from './CoworkTaskShared';
 import CoworkTaskSteps from './CoworkTaskSteps';
 import CoworkTaskTabs, { type TaskTab } from './CoworkTaskTabs';
@@ -134,17 +140,46 @@ function NowOfTask({ item, facts, mayPlan, open, onChange, locale, t }: { item: 
 
 function guidedSetting(view: OrbView) { return isSetting(view) ? view : 'what'; }
 
-function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts }) {
+const homeTransfers = {new_task: 'create', attention: 'attention', shared_tasks: 'shared'} as const;
+function goHome(next: string): next is keyof typeof homeTransfers {
+    return next in homeTransfers;
+}
+
+function peopleDestination(next: string): next is PeopleRowId {
+    return ['share', 'give', 'pass', 'template'].includes(next);
+}
+
+function needsRecovery(next: OrbView, facts: Facts) {
+    if (next === 'run') return !!facts.heldBy;
+    return next === 'resume' && facts.cards.some(card => card.kind === 'sign_in' && !card.connection?.canResume);
+}
+
+function TaskMain({ item, facts, panel, open, close, user, fillComposer }: OwnProps & { facts: Facts }) {
     const { t, locale } = useTranslation();
     const mayPlan = useMayPlan();
     const agents = useCoworkAgents(facts.mode === 'agent');
     const { advanced, setAdvanced, tabId, tab, setTab, view, setView, setting, setSetting, openTab, saved, setSaved } = useTaskNavigation(panel);
     const [people, setPeople] = useState<PeopleRowId | null>(null);
+    const [accessTurn, setAccessTurn] = useState({message: '', n: 0});
     const rebuild = () => { void facts.maker.start(false, facts.plan?.automationId ?? undefined); openTab('result'); };
-    const conversationView = (next: OrbView | 'share') => {
+    const conversationView = (next: OrbView | PeopleRowId | CoworkGlobalDestination, message = '', section?: string) => {
         setAdvanced(false);
-        if (next === 'people' || next === 'share') setPeople(next === 'share' ? 'share' : null);
-        setView(next === 'share' ? 'people' : next);
+        if (goHome(next)) return fillComposer(message, homeTransfers[next]);
+        if (next === 'teamwork') return open(teamworkRequest(message, item.id, true) ?? {kind: 'teamwork'});
+        if (next === 'org') {
+            if (administersOrg(user)) open({kind: 'org', section});
+            else chat.setReply(t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.'));
+            return;
+        }
+        if (next === 'preferences' || next === 'templates') return open({kind: next === 'preferences' ? 'settings' : next, section});
+        if (peopleDestination(next)) {
+            setAccessTurn(turn => ({message, n: turn.n + 1}));
+            setPeople(next);
+            return setView('people');
+        }
+        if (next === 'people') setPeople(null);
+        if (needsRecovery(next, facts)) return setView('overview');
+        setView(next);
     };
     const chat = useTaskConversation({ item, plan: facts.plan, view: advanced ? tab : view, live: facts.live,
         select: conversationView, openTask: (id, shared) => open({kind: shared ? 'shared' : 'task', id}), rebuild, t });
@@ -167,11 +202,11 @@ function TaskMain({ item, facts, panel, open, close }: OwnProps & { facts: Facts
             {advanced && change}
             <div className={facts.live ? undefined : 'peer-open/change:hidden'}>
                 <CoworkTaskSteps coworkId={item.id} mode={facts.mode} plan={facts.plan} latestRun={facts.latest} t={t}
-                    live={facts.live} readOnly={false} controlsOnly={!advanced && !!facts.plan?.draft} onRebuild={rebuild} agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
+                    requested={view === 'test' || view === 'compare' ? view : undefined} live={facts.live} readOnly={false} controlsOnly={!advanced && !!facts.plan?.draft} onRebuild={rebuild} agentName={agents.find((a) => a.id === item.agentId)?.name ?? null}
                     tryOut={{ state: facts.tryOut.state, starting: facts.startingTest, error: facts.tryOut.error, onStart: () => facts.tryOut.start.mutate() }} />
             </div>
         </>,
-        people: <CoworkTaskPeople coworkId={item.id} title={item.title} open={people} onOpen={setPeople} onGone={close} t={t} />,
+        people: <CoworkTaskPeople onAccessSaved={() => { setView('overview'); chat.setReply(t('cowork_task.share.saved', 'Access updated.')); }} onTeamwork={(mode, message) => open({kind: 'teamwork', request: {mode, message, itemId: item.id}})} focused={!advanced} key={advanced ? 'advanced' : accessTurn.n} request={accessTurn.message} coworkId={item.id} title={item.title} open={people} onOpen={setPeople} onGone={close} t={t} />,
         history: <CoworkTaskHistory onSteps={() => openTab('steps')} item={item} runs={facts.runs} plan={facts.plan} onGone={close} t={t} />,
     };
     if (advanced) return <div className="flex flex-col gap-6" data-testid="cowork-task-view">
@@ -218,8 +253,16 @@ function GuidedTask({ onGone, back, item, facts, view, saved, setView, onAdvance
     const current = view === 'edit' && facts.plan && !draft ? 'what' : view;
     const result = <GuidedResult item={item} facts={facts} onChange={() => setView('edit')} t={t} />;
     const history = <CoworkTaskRuns coworkId={item.id} runs={facts.runs} withReceipts heading={t('cowork_task.history.runs', 'Runs')} t={t} />;
-    const views = { ...panels, delete: <DeleteTask item={item} onGone={onGone} onCancel={() => setView('overview')} t={t} />, result, history, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
-    const showLive = facts.live && current !== 'result' && current !== 'history' && current !== 'delete';
+    const operation = (name: TaskOperation) => <CoworkOperationReview operation={name} item={item} heldBy={facts.heldBy} t={t} onDone={() => setView('overview')} />;
+    const {locale} = useTranslation();
+    const views = { ...panels,
+        goal: <TaskSetTarget coworkId={item.id} t={t} />,
+        memory: <MemoryPart coworkId={item.id} t={t} />,
+        budget: <SpendingPart coworkId={item.id} limit={item.monthlyBudget ?? null} locale={locale} t={t} />,
+        changes: <ChangesBody coworkId={item.id} plan={facts.plan} t={t} />,
+        proof: <ProofBody coworkId={item.id} t={t} />,
+        test: panels.steps, compare: panels.steps, run: operation('run'), pause: operation('pause'), resume: operation('resume'), delete: <DeleteTask item={item} onGone={onGone} onCancel={() => setView('overview')} t={t} />, result, history, review: panels.result, overview: workspace, edit: workspace, actions, what: panels.settings, when: panels.settings, uses: panels.settings, sends: panels.settings };
+    const showLive = facts.live && ['overview', 'review', 'edit', 'test'].includes(current);
     return <CoworkTaskOrb back={back} status={facts.status} coworkId={item.id} view={current} select={setView} onAdvanced={onAdvanced} live={showLive} saved={saved} composer={<CoworkOrbComposer chat={chat} />}
         heading={header} work={{ flow: draft ? inRunOrder(draft.view.steps, draft.view.runOrder) : [], apps: item.enabledApps, action: isSetting(current) ? 'edit' : 'rest' }} t={t}>
         {showLive ? workspace : views[current]}

@@ -53,6 +53,7 @@ const HelperDraftBody = z.object({
 const DRAFT_TEXT = 'draft is { deskName, chain, roles }: a name of 1 to 80 characters, 1 to 5 coworks by id, at most one role { role, holderId, standInId? }.';
 const HelperApplyBody = z.object({
     itemId: id.optional(),
+    expectedDeskId: id.nullable().optional(),
     draft: z.object({
         deskName: z.string({ error: DRAFT_TEXT }).trim().min(1, { error: DRAFT_TEXT }).max(80, { error: DRAFT_TEXT }),
         chain: z.array(id, { error: DRAFT_TEXT }).min(1, { error: DRAFT_TEXT }).max(5, { error: DRAFT_TEXT }),
@@ -103,7 +104,7 @@ function mountHelperRoutes(router, overrides) {
         res.json(await helper().draftDesk({ userId, text: req.body.text, itemId: req.body.itemId ?? null, userOrgId: await orgOf(req, userId) }));
     });
     router.post('/desks/helper/apply', limit, validate({ body: HelperApplyBody }), async (req, res) => {
-        res.status(201).json(await helper().applyDeskDraft({ userId: userIdOf(req), itemId: req.body.itemId ?? null, draft: req.body.draft }));
+        res.status(201).json(await helper().applyDeskDraft({ userId: userIdOf(req), itemId: req.body.itemId ?? null, expectedDeskId: req.body.expectedDeskId, draft: req.body.draft }));
     });
 }
 

@@ -117,7 +117,7 @@ async function planTriggerUpdate({ existing, body, resolvedAgentId, userId, sess
     }
     // An event item has no clock to write; a clock item writes what the body says.
     const clock = isEvent ? {} : { nextRunAt: body.nextRunAt, repeatInterval: body.repeatInterval, daysOfWeek: body.daysOfWeek, timeOfDay: body.timeOfDay };
-    return { kind, trigger: isEvent ? trigger : null, patch: { ...clock, ...eventFields }, syncs: isEvent || existing.triggerKind === 'app_event' };
+    return { kind, trigger: isEvent ? trigger : null, patch: { ...clock, ...eventFields }, syncs: isEvent || existing.triggerKind === 'app_event' || (kind === 'file' && body.isActive !== undefined) };
 }
 
 /**

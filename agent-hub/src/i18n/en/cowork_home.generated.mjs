@@ -6,6 +6,7 @@
  */
 
 export default {
+    "cowork_home.dialog.no_shared": "Nobody has shared a task with you yet.",
     "cowork_home.dialog.greeting": "Hi! How can I help?",
     "cowork_home.dialog.help": "Describe a new task, ask to see your tasks, or mention a task by name.",
     "cowork_home.existing.ask_task": "Ask Bee about {title}",

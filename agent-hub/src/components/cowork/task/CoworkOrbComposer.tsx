@@ -20,7 +20,7 @@ function ClockReview({ clock }: {clock: TaskConversation['clock']}) {
     </div>;
 }
 
-function ConversationHistory({ messages }: Pick<TaskConversation, 'messages'>) {
+export function ConversationHistory({ messages }: Pick<TaskConversation, 'messages'>) {
     const { t } = useTranslation();
     const log = useRef<HTMLDivElement>(null);
     const following = useRef(true);
@@ -51,21 +51,31 @@ function ConversationHistory({ messages }: Pick<TaskConversation, 'messages'>) {
 }
 
 export default function CoworkOrbComposer({ chat }: { chat: TaskConversation }) {
-    const { t, locale } = useTranslation();
-    const mic = useDictation({ language: locale, onText: words => chat.setText(current => [current.trim(), words].filter(Boolean).join(' ').slice(0, 2000)) });
-    const recording = mic.state === 'recording';
-    const micLabel = recording ? t('chat.composer.dictate_stop', 'Stop recording and insert the text') : t('chat.composer.dictate_start', 'Dictate — speak your instruction');
-    const label = t('cowork_task.orb.talk', 'Ask Bee…');
-    const disabled = !chat.text.trim() || chat.dialog.isPending || chat.selected.length > 100 || mic.state !== 'idle';
+    const { t } = useTranslation();
     return <div className="cowork-conversation">
         <ConversationHistory messages={chat.messages} />
+        {chat.responses.length > 0 && <div className="cowork-answer-options">
+            {chat.responses.map(value => <button type="button" key={value} onClick={() => chat.send(value)}>{value}</button>)}
+        </div>}
         <ClockReview clock={chat.clock} />
         <Failure error={chat.error} t={t} />
         {chat.selected.length > 100 && <p role="alert">{t('cowork_task.orb.shorten', 'Select fewer steps or shorten the change.')}</p>}
-        <form onSubmit={e => { e.preventDefault(); if (!disabled) chat.send(); }}>
-            <textarea rows={1} aria-label={label} placeholder={label} value={chat.text} maxLength={2000}
-                onChange={e => chat.setText(e.target.value)} onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (!disabled) chat.send(); }
+        <TaskMessageInput text={chat.text} setText={chat.setText} send={chat.send} busy={chat.dialog.isPending || chat.selected.length > 100} />
+    </div>;
+}
+
+export function TaskMessageInput({ text, setText, send, busy = false }: Pick<TaskConversation, 'text' | 'setText'> & { send: () => void; busy?: boolean }) {
+    const { t, locale } = useTranslation();
+    const mic = useDictation({ language: locale, onText: words => setText(current => [current.trim(), words].filter(Boolean).join(' ').slice(0, 2000)) });
+    const recording = mic.state === 'recording';
+    const micLabel = recording ? t('chat.composer.dictate_stop', 'Stop recording and insert the text') : t('chat.composer.dictate_start', 'Dictate — speak your instruction');
+    const label = t('cowork_task.orb.talk', 'Ask Bee…');
+    const disabled = !text.trim() || busy || mic.state !== 'idle';
+    return <>
+        <form onSubmit={e => { e.preventDefault(); if (!disabled) send(); }}>
+            <textarea rows={1} aria-label={label} placeholder={label} value={text} maxLength={2000}
+                onChange={e => setText(e.target.value)} onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (!disabled) send(); }
                 }} />
             {mic.supported && <button type="button" aria-label={micLabel} title={micLabel} aria-pressed={recording} disabled={mic.state === 'transcribing'} onClick={mic.toggle}>
                 {recording ? <Square size={16}/> : <Mic size={17}/>}
@@ -73,5 +83,5 @@ export default function CoworkOrbComposer({ chat }: { chat: TaskConversation }) 
             <button className="cowork-chat-send" aria-label={t('cowork_task.orb.send', 'Send message')} disabled={disabled}><ArrowUp size={18}/></button>
         </form>
         {mic.error && <p role="alert">{mic.error}</p>}
-    </div>;
+    </>;
 }

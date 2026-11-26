@@ -47,6 +47,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
 /**
  * @typedef {{
  *   loadItem: typeof loadOwnedItem,
+ *   sharedItem: typeof import('../usecases/coworkShares.mts').sharedItemOf,
  *   proposals: () => Pick<typeof import('../usecases/coworkProposals.mts'), 'proposalsOf' | 'approveProposal' | 'dismissProposal' | 'requestChange'>,
  *   versions: () => Pick<typeof import('../usecases/coworkPlanVersions.mts'), 'restoreVersion'>,
  * }} ProposalRouteDeps
@@ -55,6 +56,7 @@ const userIdOf = (req) => /** @type {NonNullable<Express.Session['user']>} */ (r
 /** @returns {ProposalRouteDeps} */
 const defaults = () => ({
     loadItem: loadOwnedItem,
+    sharedItem: (userId, itemId) => require('../usecases/coworkShares.mts').sharedItemOf(userId, itemId),
     proposals: () => require('../usecases/coworkProposals.mts'),
     versions: () => require('../usecases/coworkPlanVersions.mts'),
 });
@@ -64,15 +66,27 @@ const defaults = () => ({
  * @param {Partial<ProposalRouteDeps>} [overrides]
  */
 function mountProposalRoutes(router, overrides = {}) {
-    const { loadItem, proposals, versions } = { ...defaults(), ...overrides };
+    const { loadItem, sharedItem, proposals, versions } = { ...defaults(), ...overrides };
     const limit = perUserRateLimit({ windowMs: 60_000, max: 3, name: 'cowork-owner-change' });
     const questions = perUserRateLimit({ windowMs: 60_000, max: 10, name: 'cowork-step-question' });
     router.post('/:id/conversation', questions, validate({ params: ItemParams, body: ConversationBody }), async (req, res) => {
-        const item = await loadItem(req.params.id, userIdOf(req));
+        const reader = userIdOf(req);
+        const streaming = req.get('accept')?.includes('text/event-stream');
+        if (req.body.view === 'shared') {
+            const view = await sharedItem(reader, req.params.id);
+            await require('../core/cowork/spendGate.mts').assertSpendLeft({id: view.item.id, userId: reader});
+            const org = await require('../core/llm/modelResolver').resolveEffectiveOrgId(req, {userId: reader});
+            /** @param {Parameters<typeof import('../usecases/coworkConversation').converse>[3]} [stream] */
+            const answer = stream => require('../usecases/coworkSharedConversation').answerShared(view, {userId:reader, userOrgId:org}, req.body, stream);
+            if (streaming) return require('./coworkConversationStream').sendConversation(res, answer);
+            return res.json(await answer());
+        }
+        const item = await loadItem(req.params.id, reader);
         await require('../core/cowork/spendGate.mts').assertSpendLeft(item);
-        const { converse } = require('../usecases/coworkConversation');
-        if (!req.get('accept')?.includes('text/event-stream')) return res.json(await converse(item, req.body));
-        await require('./coworkConversationStream').sendConversation(res, item, req.body);
+        /** @param {Parameters<typeof import('../usecases/coworkConversation').converse>[3]} [stream] */
+        const answer = stream => require('../usecases/coworkConversation').converse(item, req.body, undefined, stream);
+        if (streaming) return require('./coworkConversationStream').sendConversation(res, answer);
+        res.json(await answer());
     });
     router.post('/:id/proposals', requireModule('automation'), limit, validate({ params: ItemParams, body: ChangeBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));

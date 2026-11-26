@@ -15,11 +15,12 @@ const { z } = require('../core/http/schemaParts');
 const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 
 const SHARE_TEXT = 'shares is a list of { userId, role } with role viewer or approver.';
+const ShareList = z.array(z.object({
+    userId: z.string({ error: SHARE_TEXT }).min(1, { error: SHARE_TEXT }).max(200, { error: SHARE_TEXT }),
+    role: z.enum(['viewer', 'approver'], { error: SHARE_TEXT }),
+}).strict(), { error: SHARE_TEXT }).max(50, { error: SHARE_TEXT });
 const ShareBody = z.object({
-    shares: z.array(z.object({
-        userId: z.string({ error: SHARE_TEXT }).min(1, { error: SHARE_TEXT }).max(200, { error: SHARE_TEXT }),
-        role: z.enum(['viewer', 'approver'], { error: SHARE_TEXT }),
-    }).strict(), { error: SHARE_TEXT }).max(50, { error: SHARE_TEXT }),
+    shares: ShareList, expected: ShareList.optional(),
 }).strict();
 const SharedParams = z.object({ id: z.string().min(1).max(200) }).strict();
 
@@ -44,7 +45,7 @@ function mountShareRoutes(router, overrides = {}) {
     });
     router.put('/:id/shares', validate({ body: ShareBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
-        res.json({ shares: await useCase().setSharesFor({ item, shares: req.body.shares }) });
+        res.json({ shares: await useCase().setSharesFor({ item, shares: req.body.shares, expected: req.body.expected }) });
     });
 }
 

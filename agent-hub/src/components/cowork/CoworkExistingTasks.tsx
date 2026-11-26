@@ -38,7 +38,7 @@ export function useExistingTaskAction(items: CoworkItem[], message: string, ask?
 
 type ExistingAction = ReturnType<typeof useExistingTaskAction>;
 
-function choiceDetail(task: CoworkItem, matches: CoworkItem[], t: TranslateFn) {
+export function choiceDetail(task: CoworkItem, matches: CoworkItem[], t: TranslateFn) {
     const sameName = matches.filter(other => words(other.title).join(' ') === words(task.title).join(' '));
     if (sameName.length < 2) return '';
     const schedule = whenLine(task, t);

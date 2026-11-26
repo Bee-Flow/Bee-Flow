@@ -31,7 +31,7 @@ function world() {
             listMembers: async (/** @type {string} */ org) => Object.values(PEOPLE).filter((p) => p.organizationId === org),
             shares: {
                 listShares: async (/** @type {string} */ id) => saved.get(id) ?? [],
-                setShares: async (/** @type {string} */ id, /** @type {any[]} */ shares) => { saved.set(id, shares); },
+                setShares: async (/** @type {string} */ id, /** @type {any[]} */ shares) => { saved.set(id, shares); return true; },
                 sharedWith: async (/** @type {string} */ userId) => (saved.get('w1') ?? []).filter((s) => s.userId === userId).map((s) => ({ id: 'w1', ownerId: 'ann', title: 'Supplier radar', role: s.role, lastStatus: 'success', lastRunAt: null, isActive: true })),
                 roleOf: async (/** @type {string} */ id, /** @type {string} */ userId) => (saved.get(id) ?? []).find((s) => s.userId === userId)?.role ?? null,
             },
@@ -66,4 +66,10 @@ test('someone it is shared with, and its owner, see it read only with its runs; 
         await assert.rejects(sharedItemOf(outsider, 'w1', w.deps), (/** @type {any} */ e) => e.status === 404, outsider);
     }
     await assert.rejects(sharedItemOf('cas', 'no-such-item', w.deps), (/** @type {any} */ e) => e.status === 404);
+});
+
+test('conflicting access edits ask the owner to review the current grants', async () => {
+    const w = world();
+    w.deps.shares.setShares = async () => false;
+    await assert.rejects(setSharesFor({item: ITEM, shares: [], expected: []}, w.deps), {status: 409, code: 'cowork_shares_changed'});
 });

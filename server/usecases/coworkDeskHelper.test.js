@@ -147,3 +147,13 @@ test('opened from a cowork on someone else\'s desk: changed there, not here', as
     deps.membershipOf = async () => ({ deskId: 'd-1', deskOwnerId: 'ben', accepted: true });
     await assert.rejects(draftDesk({ userId: 'ann', text: TEXT, itemId: 'cw-mails' }, deps), (/** @type {any} */ e) => e.status === 409);
 });
+
+test('an approved task cannot move a desk proposal to another desk if its membership changed', async () => {
+    const { applyDeskDraft } = require('./coworkDeskHelperApply.mts');
+    const { deps } = setup(null);
+    await assert.rejects(
+        applyDeskDraft({ userId: 'ann', itemId: 'cw-mails', expectedDeskId: 'previous-desk', draft: {deskName:'Invoices', chain:['cw-mails'], roles:[]} },
+            /** @type {any} */ ({ helper: deps })),
+        (/** @type {any} */ err) => err.status === 409 && err.message.includes('changed desks'),
+    );
+});

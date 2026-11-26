@@ -6,6 +6,13 @@
  */
 
 export default {
+    "cowork_task.steps.needs_plan": "This requires a task with fixed steps.",
+    "cowork_task.shared.owner_only": "Only the owner can change this shared task.",
+    "cowork_task.operation.run": "Run “{title}” once now using its current settings?",
+    "cowork_task.operation.pause": "Pause future runs of “{title}”?",
+    "cowork_task.operation.resume": "Let “{title}” run again on its usual trigger?",
+    "cowork_task.operation.already_paused": "This task is already paused.",
+    "cowork_task.operation.already_active": "This task is already active.",
     "cowork_task.orb.choose_work": "Which task would you like to open?",
     "cowork_task.orb.no_work": "I couldn’t find another matching task. Try a different name.",
     "cowork_task.orb.resume_connection": "This task was paused for a connection. You can resume it without signing in again.",
@@ -200,6 +207,8 @@ export default {
     "cowork_task.offer.steps_line": "The same steps every run. The AI only writes or judges where it must.",
     "cowork_task.pass.allowed": "Each result goes to {owner}'s task '{title}'.",
     "cowork_task.pass.no_desk": "Put this task on a desk with your colleagues under Teamwork. A colleague's task that starts after it can then get each result.",
+    "cowork_task.pass.desk_first": "Connect the two tasks on a team desk to pass results between them.",
+    "cowork_task.pass.review_invite": "Review the desk invitation",
     "cowork_task.pass.none": "On the desk '{desk}'. No colleague's task starts after this one yet.",
     "cowork_task.pass.only_result": "Only the result is sent, never access to your apps. You allow each colleague once.",
     "cowork_task.pass.send": "Send each result",
@@ -300,6 +309,10 @@ export default {
     "cowork_task.set.uses": "Uses",
     "cowork_task.set.what": "What",
     "cowork_task.share.can_answer": "Can answer",
+    "cowork_task.share.saved": "Access updated.",
+    "cowork_task.share.no_access": "{name} already has no access to this task.",
+    "cowork_task.share.replace_approver": "After confirmation, {next} will answer task questions. {previous} will keep view access.",
+    "cowork_task.share.apply": "Confirm access",
     "cowork_task.share.can_see": "Can see",
     "cowork_task.share.colleague": "Colleague",
     "cowork_task.share.hint": "Can see: the task and its results. Can answer: also handles what it asks under Needs you. Only one colleague can answer. Nobody else can edit it.",

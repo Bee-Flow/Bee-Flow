@@ -8,7 +8,7 @@
  */
 import { useState } from 'react';
 import { BTN_PRIMARY, BTN_QUIET, CARD_SOFT, FIELD, Failure, LABEL, META, ROW_ACTIONS, TAG_OK } from './taskUi';
-import { useDeskHandOff, useDeskView, useItemDesk, type DeskMember } from '@/api/coworkDesks';
+import { useDeskHandOff, useDeskView, useItemDesk, type DeskMember, type DeskView } from '@/api/coworkDesks';
 import { packageUrl, useSaveCoworkTemplate } from '@/api/coworkTemplates';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -30,12 +30,23 @@ function PassLine({ member, deskId, t }: { member: DeskMember; deskId: string; t
     );
 }
 
-export function PassBody({ coworkId, t }: { coworkId: string; t: TranslateFn }) {
-    const desk = useItemDesk(coworkId).data ?? null;
-    const view = useDeskView(desk?.accepted ? desk.id : null).data;
+export type OpenHandOffDesk = (mode: 'setup' | 'join', message: string) => void;
+
+export function PassBody({ coworkId, request, onTeamwork, t }: { coworkId: string; request?: string; onTeamwork?: OpenHandOffDesk; t: TranslateFn }) {
+    const membership = useItemDesk(coworkId);
+    const desk = membership.data;
+    const detail = useDeskView(desk?.accepted ? desk.id : null);
+    const view = detail.data;
     // A colleague's task that starts after this one, whose hand-off this task's owner decides.
     const after = (view?.members ?? []).filter((m) => m.after === coworkId && m.decidesHandOff && m.handOff !== null);
-    if (!desk?.accepted || !view) return <p className={META}>{t('cowork_task.pass.no_desk', "Put this task on a desk with your colleagues under Teamwork. A colleague's task that starts after it can then get each result.")}</p>;
+    if (membership.error || detail.error) return <Failure error={membership.error ?? detail.error} t={t} />;
+    if (membership.isPending || (desk?.accepted && detail.isPending)) return <p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>;
+    if (onTeamwork && !after.length) return <HandOffDesk desk={desk} request={request} open={onTeamwork} t={t} />;
+    if (!view) return <p className={META}>{t('cowork_task.pass.no_desk', "Put this task on a desk with your colleagues under Teamwork. A colleague's task that starts after it can then get each result.")}</p>;
+    return <PassRecipients view={view} after={after} t={t} />;
+}
+
+function PassRecipients({view, after, t}: {view: DeskView; after: DeskMember[]; t: TranslateFn}) {
     return (
         <>
             {after.length > 0
@@ -44,6 +55,19 @@ export function PassBody({ coworkId, t }: { coworkId: string; t: TranslateFn }) 
             <p className={META}>{t('cowork_task.pass.only_result', 'Only the result is sent, never access to your apps. You allow each colleague once.')}</p>
         </>
     );
+}
+
+function HandOffDesk({desk, request, open, t}: {desk?: {name: string; accepted: boolean} | null; request?: string; open: OpenHandOffDesk; t: TranslateFn}) {
+    const waiting = desk && !desk.accepted;
+    const message = request ?? t('cowork_task.people.pass', "Send each result to a colleague's task");
+    return <div className="grid gap-2">
+        <p className={META}>{desk?.accepted
+            ? t('cowork_task.pass.none', "On the desk '{desk}'. No colleague's task starts after this one yet.", {desk:desk.name})
+            : t('cowork_task.pass.desk_first', 'Connect the two tasks on a team desk to pass results between them.')}</p>
+        <button type="button" className={BTN_QUIET + ' justify-self-start'} onClick={() => open(waiting ? 'join' : 'setup', desk ? message + ' · ' + desk.name : message)}>
+            {waiting ? t('cowork_task.pass.review_invite', 'Review the desk invitation') : t('cowork_panels.team.propose', 'Propose a setup')}
+        </button>
+    </div>;
 }
 
 /** A file name from a title: "Weekly sales numbers" reads "weekly-sales-numbers". Plain string work, no pattern. */

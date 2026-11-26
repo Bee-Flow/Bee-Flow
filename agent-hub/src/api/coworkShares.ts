@@ -2,6 +2,7 @@
 // with me, and one of them read only.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { RefusedError } from './mutate';
 import { apiJson } from './typedRequest';
 
 export type ShareRole = 'viewer' | 'approver';
@@ -13,6 +14,10 @@ export interface SharedView {
     runs: Array<{ id: string; status: string | null; startedAt: string | null; result: string | null; durationMs: number | null }>;
 }
 
+function grantsOf(shares: Share[]) {
+    return shares.map(({userId, role}) => ({userId, role}));
+}
+
 export function useCoworkShares(coworkId: string, enabled: boolean) {
     const client = useQueryClient();
     const key = ['cowork', 'shares', coworkId] as const;
@@ -22,11 +27,14 @@ export function useCoworkShares(coworkId: string, enabled: boolean) {
         queryFn: async () => (await apiJson<'GET /api/cowork/{id}/shares', { shares?: Share[] }>('GET /api/cowork/{id}/shares', { params: { id: coworkId } })).shares ?? [],
         retry: false,
     });
-    const save = useMutation<Share[], Error, Share[]>({
-        mutationFn: async (shares) => (await apiJson<'PUT /api/cowork/{id}/shares', { shares?: Share[] }>('PUT /api/cowork/{id}/shares', {
-            params: { id: coworkId }, body: { shares: shares.map(({ userId, role }) => ({ userId, role })) },
+    const save = useMutation<Share[], Error, { shares: Share[]; expected: Share[] }>({
+        mutationFn: async ({shares, expected}) => (await apiJson<'PUT /api/cowork/{id}/shares', { shares?: Share[] }>('PUT /api/cowork/{id}/shares', {
+            params: { id: coworkId }, body: { shares: grantsOf(shares), expected: grantsOf(expected) },
         })).shares ?? [],
         onSuccess: (shares) => { client.setQueryData(key, shares); },
+        onError: async error => {
+            if (error instanceof RefusedError && error.status === 409) await client.invalidateQueries({queryKey: key});
+        },
     });
     return { query, save };
 }

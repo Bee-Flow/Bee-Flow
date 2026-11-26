@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkTeamworkPanel from './CoworkTeamworkPanel';
+import { teamworkRequest } from '../coworkTeamworkRequest';
 import { panelProps } from './panelProps.testkit';
 import type { DeskView } from '@/api/coworkDesks';
 import type { DeskProposal, HelperResult } from '@/api/coworkDeskHelper';
@@ -121,4 +122,106 @@ describe('CoworkTeamworkPanel', () => {
         await user.selectOptions(within(proposal).getByLabelText('To this task'), 'answer');
         expect(within(proposal).getByRole('button', { name: 'Send invitations' })).toBeEnabled();
     });
+});
+
+it('uses the original orb request and task for the draft and only applies after approval', async () => {
+    const calls = serve();
+    const message = 'Connect this task to Noor’s invoices in a team desk.';
+    renderWithClient(<CoworkTeamworkPanel {...panelProps({kind:'teamwork', request:{mode:'setup', message, itemId:'collect'}})} />);
+    const proposal = await screen.findByTestId('cowork-team-proposal');
+    expect(calls.filter(c => c.url.endsWith('/helper/draft')).map(c => c.body)).toEqual([{text:message, itemId:'collect'}]);
+    expect(calls.some(c => c.url.endsWith('/helper/apply'))).toBe(false);
+    await userEvent.setup().click(within(proposal).getByRole('button', {name:'Send invitations'}));
+    expect(await screen.findByTestId('cowork-team-sent')).toBeVisible();
+    expect(calls.find(c => c.url.endsWith('/helper/apply'))?.body).toMatchObject({itemId:'collect',expectedDeskId:null});
+});
+
+it('keeps desk selection in Bee and requires approval before removing the chosen desk', async () => {
+    const calls = serve({desks:[{id:'d1',name:'Supplier desk',isOwner:true},{id:'d2',name:'Other desk',isOwner:false}]});
+    const {rerender} = renderWithClient(<CoworkTeamworkPanel {...panelProps({kind:'teamwork',request:{mode:'browse',message:'Show my desks'}})} />);
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByRole('combobox', {name:'Choose a desk'}), 'd1');
+    expect(await screen.findByRole('article', {name:'Supplier desk'})).toBeVisible();
+    rerender(<CoworkTeamworkPanel {...panelProps({kind:'teamwork',request:{mode:'remove',message:'Verwijder deze desk'}})} />);
+    expect(await screen.findByText('Remove the desk “Supplier desk” and its connections?')).toBeVisible();
+    expect(calls.filter(c => c.method === 'DELETE')).toHaveLength(0);
+    await user.click(screen.getByRole('button', {name:'Not now'}));
+    expect(calls.filter(c => c.method === 'DELETE')).toHaveLength(0);
+    rerender(<CoworkTeamworkPanel {...panelProps({kind:'teamwork',request:{mode:'remove',message:'Verwijder Supplier desk'}})} />);
+    await user.click(await screen.findByRole('button', {name:'Remove the desk'}));
+    expect(calls.filter(c => c.method === 'DELETE' && c.url.endsWith('/desks/d1'))).toHaveLength(1);
+});
+
+it('prepares a named empty desk and creates it only after the user confirms', async () => {
+    const calls = stubRecordingFetch(({url,method}) => {
+        if (url.endsWith('/desks') && method === 'POST') return jsonResponse({desk:{id:'d1'}});
+        return jsonResponse({desks:[]});
+    });
+    renderWithClient(<CoworkTeamworkPanel {...panelProps({kind:'teamwork',request:{mode:'create',message:'Maak een desk genaamd Facturen'}})} />);
+    const field = await screen.findByRole('textbox', {name:'Name of a new desk'});
+    expect(field).toHaveValue('Facturen');
+    expect(calls.filter(c=>c.method === 'POST')).toHaveLength(0);
+    await userEvent.setup().click(screen.getByRole('button',{name:'Create desk'}));
+    expect(calls.find(c=>c.method === 'POST')?.body).toEqual({name:'Facturen'});
+});
+
+it('keeps another owner’s desk roles read-only at the orb', async () => {
+    const calls = serve({desks:[{id:'d1',name:'Supplier desk',isOwner:false}]});
+    renderWithClient(<CoworkTeamworkPanel {...panelProps({kind:'teamwork',request:{mode:'roles',message:'Edit the Supplier desk roles'}})} />);
+    expect(await screen.findByText('Only the desk owner can change its roles.')).toBeVisible();
+    expect(screen.queryByRole('button',{name:'Save the roles'})).toBeNull();
+    expect(calls.filter(c=>c.method === 'PUT')).toHaveLength(0);
+});
+
+it('leaves unrelated desks untouched when the requested desk does not exist', async () => {
+    const calls = serve({desks:[{id:'d1',name:'Supplier desk',isOwner:true}]});
+    const turn = teamworkRequest('Remove the Finance desk');
+    if (!turn) throw new Error('expected a desk request');
+    renderWithClient(<CoworkTeamworkPanel {...panelProps(turn)} />);
+    expect(await screen.findByRole('combobox', {name:'Choose a desk'})).toHaveValue('');
+    expect(screen.queryByRole('button',{name:'Remove the desk'})).toBeNull();
+    expect(calls.some(c=>c.method === 'DELETE')).toBe(false);
+});
+
+it('asks for the desk before drafting an ambiguous change and never interprets negation as a desk removal', async () => {
+    const calls = serve({desks:[{id:'d1',name:'Supplier desk',isOwner:true}]});
+    const turn = teamworkRequest('Change the tasks on a desk');
+    if (!turn) throw new Error('expected a desk request');
+    renderWithClient(<CoworkTeamworkPanel {...panelProps(turn)} />);
+    const select = await screen.findByRole('combobox', {name:'Choose a desk'});
+    expect(calls.some(c => c.url.endsWith('/helper/draft'))).toBe(false);
+    await userEvent.setup().selectOptions(select, 'd1');
+    expect(await screen.findByTestId('cowork-team-proposal')).toBeVisible();
+    expect(calls.find(c => c.url.endsWith('/helper/draft'))?.body).toMatchObject({itemId:'collect'});
+    expect(teamworkRequest('Verwijder de Supplier desk niet')?.request?.mode).toBe('browse');
+    expect(teamworkRequest('Remove a step on the desk')?.request?.mode).toBe('browse');
+});
+
+it('lets the task owner choose who answers questions without changing the desk’s roles', async () => {
+    const calls = serve({desks:[{id:'d1', name:'Supplier desk', isOwner:false}]});
+    const request = teamworkRequest('Change the role for my task on Supplier desk', 'collect');
+    if (!request) throw new Error('expected a desk request');
+    renderWithClient(<CoworkTeamworkPanel {...panelProps(request)} />);
+    const choice = await screen.findByRole('combobox',{name:'Who decides its questions'});
+    const user = userEvent.setup();
+    await user.selectOptions(choice, 'Purchasing');
+    expect(calls.some(c => c.method === 'PUT')).toBe(false);
+    await user.click(screen.getByRole('button',{name:'Save'}));
+    await waitFor(() => expect(calls.find(c => c.method === 'PUT' && c.url.endsWith('/desks/d1/members/collect'))?.body).toEqual({deskRole:'Purchasing'}));
+});
+
+it('shows the start attached to a desk invitation before accepting and reports a partial success', async () => {
+    const shared = {id:'d1', name:'Supplier desk', isOwner:false};
+    const calls = stubRecordingFetch(({url,method}) => {
+        if (method === 'POST' && url.endsWith('/accept')) return jsonResponse({plannedStart:{afterTitle:'Gather mails',applied:false,reason:'The first task has moved.'}});
+        if (url.endsWith('/cowork/desks')) return jsonResponse({desks:[shared]});
+        if (url.endsWith('/cowork/collect/desk')) return jsonResponse({desk:{id:'d1',accepted:false,plannedAfter:{id:'leader',title:'Gather mails',ownerName:'Noor'}}});
+        if (url.endsWith('/cowork/desks/d1')) return jsonResponse({...DESK,members:[{...DESK.members[0],accepted:false}]});
+        return jsonResponse({schedules:[{id:'collect',title:'Collect supplier mails'}]});
+    });
+    renderWithClient(<CoworkTeamworkPanel {...panelProps({kind:'teamwork',request:{mode:'join',message:'Accept the Supplier desk invitation',itemId:'collect'}})} />);
+    const accept = await screen.findByRole('button',{name:'Accept, and start "Collect supplier mails" after Noor\'s "Gather mails"'});
+    expect(calls.some(c => c.method === 'POST')).toBe(false);
+    await userEvent.setup().click(accept);
+    expect(await screen.findByText('Accepted. It could not start after "Gather mails": The first task has moved.')).toBeVisible();
 });

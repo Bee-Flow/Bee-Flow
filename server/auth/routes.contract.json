@@ -5602,6 +5602,9 @@
     "POST /api/cowork/desks/helper/draft": {
       "gate": "auth"
     },
+    "POST /api/cowork/home/intent": {
+      "gate": "auth"
+    },
     "POST /api/cowork/hooks": {
       "gate": "handler",
       "via": "mount"

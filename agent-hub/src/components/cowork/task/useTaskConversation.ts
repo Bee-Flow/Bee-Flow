@@ -1,7 +1,7 @@
 import useOrbDestinations from './useOrbDestinations';
 import useConversationClock from './useConversationClock';
 import { useState } from 'react';
-import { useCoworkConversation, useCoworkProposals, useCoworkProposalActions, type CoworkMessage, type CoworkReply } from '@/api/coworkProposals';
+import { useCoworkConversation, useCoworkProposals, useCoworkProposalActions, type CoworkGlobalDestination, type CoworkPeopleDestination, type CoworkMessage, type CoworkReply } from '@/api/coworkProposals';
 import type { CoworkItem } from '@/api/cowork.types';
 import type { PlanState } from '@/api/coworkPlan.types';
 import { useCoworkItemActions } from '@/api/coworkTask';
@@ -10,7 +10,7 @@ import type { OrbView } from './CoworkTaskOrb';
 
 interface Options {
     item: CoworkItem; plan?: PlanState; view: OrbView | 'settings'; live: boolean;
-    openTask: (id: string, shared?: boolean) => void; select: (view: OrbView | 'share') => void; rebuild: () => void; t: TranslateFn;
+    openTask: (id: string, shared?: boolean) => void; select: (view: OrbView | CoworkGlobalDestination | CoworkPeopleDestination, message?: string, section?: string) => void; rebuild: () => void; t: TranslateFn;
 }
 
 export default function useTaskConversation({ item, plan, view, live, select, openTask, rebuild, t }: Options) {
@@ -21,6 +21,7 @@ export default function useTaskConversation({ item, plan, view, live, select, op
     const setReply = (line: string) => setMessages(previous => [...previous, {role: 'assistant', text: line}]);
     const [selection, setSelection] = useState<{ fingerprint?: string; ids: string[] }>({ ids: [] });
     const [pendingBrief, setPendingBrief] = useState<{ prompt: string; fingerprint?: string } | null>(null);
+    const [responses, setResponses] = useState<string[]>([]);
     const dialog = useCoworkConversation(item.id);
     const edit = useCoworkProposalActions(item.id);
     const update = useCoworkItemActions(item.id).change;
@@ -53,19 +54,21 @@ export default function useTaskConversation({ item, plan, view, live, select, op
     const send = (messageOverride?: string) => {
         const message = (messageOverride ?? text).trim();
         if (!message || dialog.isPending || selected.length > 100) return;
+        setResponses([]);
         clock.cancel();
         destinations.clear();
         setText('');
         setMessages(previous => [...previous, {role: 'user', text: message}]);
         dialog.mutate({message, view, scope, history: history.slice(-6)}, {
             onSuccess: answer => {
+                setResponses(answer.responses ?? []);
                 const shown = destinations.receive(answer);
                 const context = answer.tasks?.length ? [shown, ...answer.tasks.map(task => task.title)].join('\n').slice(0, 2000) : shown;
                 setHistory(prev => [...prev, { role: 'user', text: message }, { role: 'assistant', text: context }].slice(-6) as CoworkMessage[]);
                 setReply(shown);
                 if (answer.action === 'when' && answer.schedule) clock.propose(answer.schedule);
                 else if (answer.action === 'change') change(answer.instruction, answer.remove);
-                else if (answer.action !== 'answer') select(answer.action);
+                else if (answer.action !== 'answer') select(answer.action, message, answer.section);
             },
             onError: () => setText(current => current || message),
         });
@@ -86,7 +89,7 @@ export default function useTaskConversation({ item, plan, view, live, select, op
         } });
     };
     const error = [dialog, edit.requestChange, edit.approve, edit.dismiss, update, proposals].find(operation => operation.error)?.error;
-    return { destinations, resume: () => update.mutate({isActive: true}), clock, text, setText, messages: dialog.partial ? [...messages, {role: 'assistant' as const, text: dialog.partial}] : messages, setReply, send, askRecipient, selected, toggle, dialog, edit, busy, proposal, error,
+    return { responses, destinations, resume: () => update.mutate({isActive: true}), clock, text, setText, messages: dialog.partial ? [...messages, {role: 'assistant' as const, text: dialog.partial}] : messages, setReply, send, askRecipient, selected, toggle, dialog, edit, busy, proposal, error,
         pendingBrief: pendingBrief?.fingerprint === fingerprint ? pendingBrief : null, saveBrief, cancel: () => setPendingBrief(null) };
 }
 export type TaskConversation = ReturnType<typeof useTaskConversation>;

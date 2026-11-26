@@ -11,7 +11,7 @@
  * week on the day it was asked; a template's sentence (`seed`) fills it too.
  */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import CoworkBeeInput from './CoworkBeeInput';
+import CoworkBeeInput, { type HomeDestinations } from './CoworkBeeInput';
 import CoworkStepPicker from './CoworkStepPicker';
 import CoworkExistingTasks, { ExistingSubmit, useExistingTaskAction } from './CoworkExistingTasks';
 import { type ExampleId, useExampleAccess } from './coworkExampleAccess';
@@ -33,15 +33,16 @@ import type { CoworkItem, CoworkPayload, CoworkTriggerPayload } from '@/api/cowo
 
 export interface CoworkHomeComposerProps {
     guided?: boolean;
+    destinations?: HomeDestinations;
     openTask?: (id: string) => void;
     items?: CoworkItem[];
-    onAskTask?: (id: string, message: string) => void;
+    onAskTask?: (id: string, message: string, shared?: boolean) => void;
     /** No room for another task: the box says so instead of offering to read the sentence. */
     atLimit: boolean;
     maxItems: number;
     stepTypes?: string[];
     /** A sentence to put in the box (a template's), with a counter so the same one can be put twice. */
-    seed?: { text: string; n: number } | null;
+    seed?: import('./coworkSheetPanels').ComposerSeed | null;
     onTemplates: () => void;
     /** A task was created: set up and test its steps. */
     onCreated: (item: CoworkItem) => void;
@@ -153,7 +154,7 @@ function useTaskBrief({ guided, atLimit, seed = null, onCreated }: CoworkHomeCom
         modelTier: selectedTier,
         prepareTest: quick ? draft => prepareTest(draft, sentence) : undefined,
     }));
-    const go = () => { if (ready) void submitBrief(text); };
+    const go = (sentence = text) => { if (canRead(sentence, atLimit, cowork)) { setText(sentence); void submitBrief(sentence); } };
     const clarify = (detail: string) => {
         const sentence = text.trimEnd() + '\n' + detail;
         stop();
@@ -189,7 +190,7 @@ interface EditorProps { props: CoworkHomeComposerProps; brief: ReturnType<typeof
 function BriefForm({ props: { atLimit, stepTypes, items = [], onAskTask }, brief, t }: EditorProps) {
     const { advanced, setAdvanced, text, box, selectedTier, setSelectedTier, modelTiers, cowork, quick, ready, go, edit } = brief;
     const action = useExistingTaskAction(items, text, cowork.draft ? undefined : onAskTask);
-    const submit = action.editing ? action.submit : go;
+    const submit = action.editing ? action.submit : () => go();
     return <BriefEditor review={!!cowork.draft} t={t}>
         <form className={`${CARD} overflow-hidden flex flex-col focus-within:ring-2 focus-within:ring-[var(--focus-ring)]`} data-tour="cowork-composer" onSubmit={(e) => { e.preventDefault(); submit(); }}>
             <label htmlFor="cowork-brief" className="px-4 pt-4 sm:px-5 text-[13px] font-semibold text-[var(--text-secondary)]">{t('cowork_home.brief_label', 'Task instructions')}</label>
@@ -214,7 +215,7 @@ function BriefForm({ props: { atLimit, stepTypes, items = [], onAskTask }, brief
                     {Object.keys(modelTiers).length > 0 && <CoworkModelPicker tiers={modelTiers} value={selectedTier} onChange={setSelectedTier} t={t} />}
                 </details>
                 {action.editing && <div className="flex flex-wrap justify-end items-center gap-2">
-                    <button type="button" className={LINK_BUTTON} disabled={!ready} onClick={go}>{t('cowork_home.existing.create_new', 'Create a new task')}</button>
+                    <button type="button" className={LINK_BUTTON} disabled={!ready} onClick={() => go()}>{t('cowork_home.existing.create_new', 'Create a new task')}</button>
                     <ExistingSubmit action={action} />
                 </div>}
                 {!action.editing && !cowork.draft && <button type="submit" className={BUTTON_PRIMARY} data-testid="cowork-continue" disabled={!ready}>{quick ? t('cowork_home.confirm.set_up', 'Set up and test') : t('cowork_home.show_understood', 'Preview task')}</button>}
@@ -244,8 +245,8 @@ function useExamplePicker(offerExamples: boolean) {
 function TaskEditor(editor: EditorProps) {
     const { props, brief } = editor;
     if (props.guided && !brief.cowork.draft) {
-        return <CoworkBeeInput text={brief.text} edit={brief.edit} go={brief.go} inputRef={brief.box}
-            items={props.items ?? []} ask={props.onAskTask} open={props.openTask} error={brief.cowork.error} atLimit={props.atLimit} />;
+        return <CoworkBeeInput seed={props.seed} key={props.destinations?.context} text={brief.text} edit={brief.edit} go={brief.go} inputRef={brief.box}
+            destinations={props.destinations} tier={brief.selectedTier} items={props.items ?? []} ask={props.onAskTask} open={props.openTask} error={brief.cowork.error} atLimit={props.atLimit} />;
     }
     return <TaskReviewEditor {...editor} />;
 }

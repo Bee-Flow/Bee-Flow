@@ -32,13 +32,23 @@ export interface SharedItem { id: string; ownerId: string; title: string; role: 
 
 export function makeCoworkShares({ db = nodeRequire('../db.js') as Db, ready = async () => {} }: { db?: Db; ready?: () => Promise<unknown> } = {}) {
     /** Replace the item's shares with `shares`, in one go. */
-    async function setShares(scheduleId: string, shares: Share[], addedBy: string): Promise<void> {
+    async function setShares(scheduleId: string, shares: Share[], addedBy: string, expected?: Share[]): Promise<boolean> {
         await ready();
-        await db.withTransaction(async (client) => {
+        return db.withTransaction(async (client) => {
+            // Even a task with no shares has a parent row to serialize writers on.
+            await client.query('SELECT id FROM cowork_schedules WHERE id = $1 FOR UPDATE', [scheduleId]);
+            if (expected) {
+                const current = await client.query(`SELECT c.user_id, c.role FROM ${LIVE_SHARES} AND c.schedule_id = $1`, [scheduleId]);
+                const roles = new Map(expected.map(s => [s.userId, s.role]));
+                if (current.rows.length !== roles.size || current.rows.some(s => roles.get(String(s.user_id)) !== s.role)) {
+                    return false;
+                }
+            }
             await client.query('DELETE FROM cowork_shares WHERE schedule_id = $1', [scheduleId]);
             for (const share of shares) {
                 await client.query('INSERT INTO cowork_shares (schedule_id, user_id, role, added_by) VALUES ($1, $2, $3, $4)', [scheduleId, share.userId, share.role, addedBy]);
             }
+            return true;
         });
     }
 

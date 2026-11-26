@@ -2258,3 +2258,7 @@ pre.hljs {
 .cowork-bee-options { display: grid; width: min(100%, 42rem); max-height: 30dvh; overflow: auto; scrollbar-width: thin; }
 .cowork-bee-options button { justify-content: space-between; text-align: start; }
 .cowork-bee-options small { color: var(--text-secondary); }
+
+.cowork-answer-options { display: flex; justify-content: center; flex-wrap: wrap; gap: .45rem; margin-block: .5rem; }
+.cowork-answer-options button { padding: .45rem .85rem; border-radius: var(--radius-md); background: var(--bg-secondary); color: var(--text-primary); }
+.cowork-answer-options button:hover { background: var(--item-hover-bg); }

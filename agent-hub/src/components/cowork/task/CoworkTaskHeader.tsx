@@ -58,7 +58,7 @@ export default function CoworkTaskHeader({ item, status, meta, sharedBy = null, 
 export type HeldBy = 'live' | 'approval' | 'test' | 'problem' | null;
 
 /** Why a button is off, in one line; null when nothing holds the task back. */
-function heldWords(heldBy: HeldBy, t: TranslateFn): string | null {
+export function heldWords(heldBy: HeldBy, t: TranslateFn): string | null {
     switch (heldBy) {
         case 'live': return t('cowork_task.held.live', 'It is running or being tested right now. You can run or pause it once that is over.');
         case 'approval': return t('cowork_task.held.approval', 'It cannot run for real yet: its steps wait for your approval.');

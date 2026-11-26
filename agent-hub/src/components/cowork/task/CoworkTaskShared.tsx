@@ -8,6 +8,7 @@ import { useId, useState } from 'react';
 import CoworkActivity from '../CoworkActivity';
 import { BUTTON_PRIMARY, LINK_INLINE } from '../coworkUi';
 import CoworkTaskHeader from './CoworkTaskHeader';
+import CoworkSharedConversation from './CoworkSharedConversation';
 import CoworkTaskResult from './CoworkTaskResult';
 import CoworkTaskRuns from './CoworkTaskRuns';
 import CoworkTaskTabs, { type TaskTab } from './CoworkTaskTabs';
@@ -39,7 +40,7 @@ function sharedAsItem(view: SharedView): { item: CoworkItem; runs: CoworkRun[] }
     return { item, runs };
 }
 
-function SharedTaskTabs({ item, runs }: { item: CoworkItem; runs: CoworkRun[] }) {
+function SharedTaskTabs({ item, runs, open, fillComposer, takeQuestion }: { takeQuestion?: () => string; item: CoworkItem; runs: CoworkRun[] } & Pick<CoworkSheetPanelProps, 'open' | 'fillComposer'>) {
     const { t, locale } = useTranslation();
     const tabId = useId();
     const [tab, setTab] = useState<TaskTab>('result');
@@ -55,6 +56,7 @@ function SharedTaskTabs({ item, runs }: { item: CoworkItem; runs: CoworkRun[] })
                 {view !== 'history' && <button className={LINK_INLINE} onClick={() => setView('history')}>{t('cowork_task.history.heading', 'History')}</button>}
             </div>
         </CoworkActivity>
+        <CoworkSharedConversation takeQuestion={takeQuestion} item={item} open={open} fillComposer={fillComposer} show={setView}/>
     </div>;
     return <><button className={LINK_INLINE} onClick={() => setAdvanced(false)}>{t('cowork_task.orb.back', 'Back to the orb')}</button><CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={{
         result: <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />,
@@ -62,7 +64,7 @@ function SharedTaskTabs({ item, runs }: { item: CoworkItem; runs: CoworkRun[] })
     }} /></>;
 }
 
-export default function CoworkTaskShared({ panel }: CoworkSheetPanelProps) {
+export default function CoworkTaskShared({ panel, open, fillComposer }: CoworkSheetPanelProps) {
     const { t } = useTranslation();
     const itemId = panel.kind === 'shared' || panel.kind === 'task' ? panel.id : '';
     const view = useSharedItem(itemId);
@@ -75,7 +77,7 @@ export default function CoworkTaskShared({ panel }: CoworkSheetPanelProps) {
     return (
         <div className="flex flex-col gap-6" data-testid="cowork-task-shared">
             <CoworkTaskHeader item={item} status={taskStatus(item)} meta={`${whenLine(item, t)} · ${t('cowork_task.head.sends_owner', 'as {owner} set it up', { owner })}`} sharedBy={{ owner, role }} t={t} />
-            <SharedTaskTabs key={item.id} item={item} runs={runs} />
+            <SharedTaskTabs takeQuestion={'takeQuestion' in panel ? panel.takeQuestion : undefined} key={item.id} item={item} runs={runs} open={open} fillComposer={fillComposer} />
         </div>
     );
 }

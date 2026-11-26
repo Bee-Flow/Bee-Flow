@@ -36,7 +36,7 @@ function MorningSection() {
     const { query, save } = useCoworkDailyMail();
     const mail = query.data;
     return (
-        <PanelSection title={t('cowork_panels.settings.morning_heading', 'E-mail')}>
+        <PanelSection section="mail" title={t('cowork_panels.settings.morning_heading', 'E-mail')}>
             <div className={CARD}>
                 <SwitchRow
                     id="cowork-panels-digest"
@@ -59,7 +59,7 @@ function SuggestSection() {
     const state = query.data;
     const allowed = state?.allowed ?? false;
     return (
-        <PanelSection title={t('cowork_panels.settings.suggest_heading', 'Suggestions')}>
+        <PanelSection section="suggestions" title={t('cowork_panels.settings.suggest_heading', 'Suggestions')}>
             <div className={CARD}>
                 <SwitchRow
                     id="cowork-panels-notice"

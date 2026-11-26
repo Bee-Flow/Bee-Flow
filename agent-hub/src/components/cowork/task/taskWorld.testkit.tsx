@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkTaskView from './CoworkTaskView';
+import CoworkTaskShared from './CoworkTaskShared';
 import EntitlementsContext, { useEntitlements } from '../../licensing/EntitlementsContext';
 import type { CoworkSheetPanel, CoworkSheetPanelProps } from '../coworkSheetPanels';
 
@@ -147,10 +148,11 @@ export function openTask(world: World = {}, panel: CoworkSheetPanel = { kind: 't
     const served = serveTask(world);
     const close = vi.fn();
     const open = vi.fn();
-    const props: CoworkSheetPanelProps = { panel, user: null, close, open, fillComposer: vi.fn() };
-    const page = <CoworkTaskView {...props} />;
+    const fillComposer = vi.fn();
+    const props: CoworkSheetPanelProps = { panel, user: null, close, open, fillComposer };
+    const page = panel.kind === 'shared' ? <CoworkTaskShared {...props} /> : <CoworkTaskView {...props} />;
     renderWithClient(world.automations ? <WithAutomations>{page}</WithAutomations> : page);
-    return { ...served, close, open, user: userEvent.setup() };
+    return { ...served, close, open, fillComposer, user: userEvent.setup() };
 }
 
 /** Enter the full controls through the same explicit action as an owner. */

@@ -14,11 +14,11 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { Settings } from 'lucide-react';
 import { beeTransition } from './beeTransition';
 import CoworkHome from './CoworkHome';
-import { GuidedPanelContext } from './panels/panelGuidance';
+import { GuidedPanelContext, PanelFocusContext } from './panels/panelGuidance';
 import CoworkPageFrame from './CoworkPageFrame';
 import type { TaskFocus } from './CoworkNeedFrame';
 import { ENTER } from './coworkMotion';
-import { COWORK_SHEET_PANELS, pageName, pageOfSegment, pageSegment, samePage, type CoworkSheetPanel } from './coworkSheetPanels';
+import { COWORK_SHEET_PANELS, pageName, pageOfSegment, pageSegment, samePage, type ComposerSeed, type CoworkSheetPanel, type HomeTransfer } from './coworkSheetPanels';
 import { ICON_BUTTON, LINK_INLINE, META } from './coworkUi';
 import { administersOrg } from './coworkViewer';
 import useCoworkList from './useCoworkList';
@@ -93,10 +93,24 @@ function homeLayout(dashboard: boolean) {
     return dashboard ? 'max-w-[760px] mx-auto px-4 pt-6 pb-24' : 'cowork-guided-home mx-auto px-4';
 }
 
+function homePlacement(page: CoworkSheetPanel | null, dashboard: boolean) {
+    const teamTurn = page?.kind === 'teamwork' ? page.request : undefined;
+    const embedded = !!page && !dashboard && ['settings', 'templates', 'org', 'teamwork'].includes(page.kind);
+    const hidden = !!page && !embedded;
+    const context = teamTurn ? 'teamwork: ' + teamTurn.message : page?.kind;
+    return {embedded, hidden, context, focus: page && 'section' in page ? page.section : undefined,
+        className: hidden ? 'hidden' : `${ENTER} flex flex-col gap-6 ${embedded ? 'order-last mt-4' : ''}`};
+}
+
+function inheritTeamTask(next: CoworkSheetPanel, current: CoworkSheetPanel | null) {
+    if (next.kind !== 'teamwork' || !next.request || current?.kind !== 'teamwork') return next;
+    return {...next, request: {...next.request, itemId: next.request.itemId ?? current.request?.itemId}};
+}
+
 export default function CoworkPage({ user = null, initialCoworkId = null, onNavigate }: CoworkPageProps) {
     const { t } = useTranslation();
     const [page, setPage] = usePageOfAddress(initialCoworkId);
-    const [seed, setSeed] = useState<{ text: string; n: number } | null>(null);
+    const [seed, setSeed] = useState<ComposerSeed | null>(null);
     const [dashboard, setDashboard] = useState(false);
     const label = usePageLabel(page);
     const { scroller, fallback, remember, pressed } = useHomePlace(page ? pageSegment(page) : null);
@@ -104,13 +118,14 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
     const open = useCallback((next: CoworkSheetPanel) => {
         remember();
         beeTransition(() => {
-            setPage(next);
+            if (next.kind === 'teamwork' && next.request) setDashboard(false);
+            setPage(inheritTeamTask(next, page));
             onNavigate?.(`cowork/${pageSegment(next)}`);
         });
-    }, [onNavigate, remember, setPage]);
-    const askTask = (id: string, message: string) => {
+    }, [onNavigate, page, remember, setPage]);
+    const askTask = (id: string, message: string, shared = false) => {
         let pending = message;
-        open({ kind: 'task', id, takeQuestion: () => {
+        open({ kind: shared ? 'shared' : 'task', id, takeQuestion: () => {
             const question = pending;
             pending = '';
             return question;
@@ -123,8 +138,14 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
             onNavigate?.('cowork');
         });
     }, [onNavigate, setPage]);
-    const fillComposer = useCallback((text: string) => {
-        setSeed((was) => ({ text, n: (was?.n ?? 0) + 1 }));
+    const fillComposer = useCallback((text: string, action?: HomeTransfer) => {
+        let pending = action;
+        if (action) setDashboard(false);
+        setSeed(was => ({text, n: (was?.n ?? 0) + 1, takeAction: () => {
+            const next = pending;
+            pending = undefined;
+            return next;
+        }}));
         close();
     }, [close]);
 
@@ -132,10 +153,11 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
         if (!page && document.activeElement === document.body) scroller.current?.querySelector<HTMLTextAreaElement>('#cowork-brief')?.focus({preventScroll: true});
     }, [page, scroller]);
     const Page = page ? COWORK_SHEET_PANELS[page.kind].component : null;
+    const placement = homePlacement(page, dashboard);
     return (
         <div ref={scroller} className="flex-1 min-h-0 min-w-0 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)] text-[14px] leading-5 text-[var(--text-primary)]" data-testid="cowork-page">
-            <div className={page ? 'cowork-open-page mx-auto pt-6 pb-24' : homeLayout(dashboard)}>
-                <div hidden={!!page} className={page ? 'hidden' : `${ENTER} flex flex-col gap-6`} onClickCapture={pressed}>
+            <div className={page ? 'cowork-open-page mx-auto pt-6 pb-24 flex flex-col' : homeLayout(dashboard)}>
+                <div data-bee-embedded={placement.embedded} hidden={placement.hidden} className={placement.className} onClickCapture={pressed}>
                     {dashboard && <header className="flex items-center gap-2">
                         <p ref={fallback} tabIndex={-1} className="m-0 mr-auto text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{t('sidebar.cowork', 'Cowork')}</p>
                         {administersOrg(user) && (
@@ -147,15 +169,15 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                             <Settings aria-hidden="true" size={16} />
                         </button>
                     </header>}
-                    <CoworkHome guided={!dashboard} onAskTask={askTask} onOpenTask={openTask} onOpenPanel={open} seed={seed} />
-                    <button type="button" className={LINK_INLINE + ' self-center'} onClick={() => beeTransition(() => setDashboard(!dashboard))}>
+                    <CoworkHome admin={administersOrg(user)} embedded={placement.embedded} context={placement.context} returnHome={close} guided={!dashboard} onAskTask={askTask} onOpenTask={openTask} onOpenPanel={open} seed={seed} />
+                    {!placement.embedded && <button type="button" className={LINK_INLINE + ' self-center'} onClick={() => beeTransition(() => setDashboard(!dashboard))}>
                         {dashboard ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}
-                    </button>
+                    </button>}
                 </div>
                 {page && Page && (
                     <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close} ownBack={page.kind === 'task'}>
                         <Suspense fallback={<p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>}>
-                            <GuidedPanelContext.Provider value><Page panel={page} user={user} close={close} open={open} fillComposer={fillComposer} /></GuidedPanelContext.Provider>
+                            <GuidedPanelContext.Provider value={!dashboard}><PanelFocusContext.Provider value={placement.focus}><Page panel={page} user={user} close={close} open={open} fillComposer={fillComposer} /></PanelFocusContext.Provider></GuidedPanelContext.Provider>
                         </Suspense>
                     </CoworkPageFrame>
                 )}

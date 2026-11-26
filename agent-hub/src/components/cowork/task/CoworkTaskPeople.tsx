@@ -9,8 +9,10 @@
  *     confirmation that says so.
  */
 import { useState } from 'react';
+import CoworkGuidedShare from './CoworkGuidedShare';
+import { namedColleague } from './coworkColleagueSelection';
 import { fullTimestamp } from '../coworkFormat';
-import { PassBody, TemplateBody } from './TaskPeopleResults';
+import { PassBody, TemplateBody, type OpenHandOffDesk } from './TaskPeopleResults';
 import { ROWS } from './taskRows';
 import { BTN_PRIMARY, BTN_QUIET, FIELD, Failure, FoldRow, LABEL, META, ROW_ACTIONS } from './taskUi';
 import { useCoworkColleagues, useCoworkHandOver } from '@/api/coworkHandOver';
@@ -22,12 +24,12 @@ export type PeopleRowId = 'share' | 'pass' | 'template' | 'give';
 
 const ROLE_WORDS = (t: TranslateFn): Record<ShareRole, string> => ({ viewer: t('cowork_task.share.can_see', 'Can see'), approver: t('cowork_task.share.can_answer', 'Can answer') });
 
-function RoleSelect({ id, value, label, onChange, t }: { id: string; value: ShareRole; label: string; onChange: (role: ShareRole) => void; t: TranslateFn }) {
+function RoleSelect({ id, value, label, onChange, disabled, t }: { id: string; value: ShareRole; label: string; onChange: (role: ShareRole) => void; disabled?: boolean; t: TranslateFn }) {
     const words = ROLE_WORDS(t);
     return (
         <span className="flex-[0_1_160px] min-w-0">
             <label htmlFor={id} className="sr-only">{label}</label>
-            <select id={id} className={FIELD} value={value} onChange={(e) => onChange(e.target.value as ShareRole)}>
+            <select id={id} className={FIELD} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value as ShareRole)}>
                 <option value="viewer">{words.viewer}</option>
                 <option value="approver">{words.approver}</option>
             </select>
@@ -78,10 +80,12 @@ function AddShare({ free, onAdd, busy, coworkId, t }: { free: Array<{ id: string
 function ShareBody({ coworkId, t }: { coworkId: string; t: TranslateFn }) {
     const colleagues = useCoworkColleagues(coworkId, true);
     const { query, save } = useCoworkShares(coworkId, true);
-    const list = colleagues.data ?? [];
-    const shares = query.data ?? [];
+    if (colleagues.error || query.error) return <Failure error={colleagues.error ?? query.error} t={t} />;
+    if (!colleagues.data || !query.data) return <p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>;
+    const list = colleagues.data;
+    const shares = query.data;
     const nameOf = (userId: string) => list.find((c) => c.id === userId)?.name ?? shares.find((s) => s.userId === userId)?.name ?? userId;
-    const write = (next: Share[]) => save.mutate(next);
+    const write = (next: Share[]) => save.mutate({shares: next, expected: shares});
     const free = list.filter((c) => !shares.some((s) => s.userId === c.id));
     return (
         <>
@@ -90,7 +94,7 @@ function ShareBody({ coworkId, t }: { coworkId: string; t: TranslateFn }) {
                     {shares.map((s) => (
                         <li key={s.userId} className="flex flex-wrap items-center gap-2 py-2 border-t first:border-t-0 border-[var(--border-subtle)] text-[14px]">
                             <span className="flex-1 min-w-[8rem] font-medium">{nameOf(s.userId)}</span>
-                            <RoleSelect id={`cowork-task-share-${coworkId}-${s.userId}`} value={s.role} label={t('cowork_task.share.what_they_do', 'What {name} can do', { name: nameOf(s.userId) })} t={t}
+                            <RoleSelect id={`cowork-task-share-${coworkId}-${s.userId}`} value={s.role} disabled={save.isPending} label={t('cowork_task.share.what_they_do', 'What {name} can do', { name: nameOf(s.userId) })} t={t}
                                 onChange={(role) => write(shares.map((x) => (x.userId === s.userId ? { ...x, role } : x)))} />
                             <button type="button" className={BTN_QUIET} disabled={save.isPending} onClick={() => write(shares.filter((x) => x.userId !== s.userId))}>{t('cowork_task.share.stop', 'Stop')}</button>
                         </li>
@@ -147,9 +151,38 @@ function GiveAwayBody({ coworkId, title, onGone, t }: { coworkId: string; title:
     );
 }
 
+function GuidedHandover({coworkId, title, request, onGone, t}: Pick<CoworkTaskPeopleProps, 'coworkId' | 'title' | 'request' | 'onGone' | 't'>) {
+    const people = useCoworkColleagues(coworkId, true);
+    const transfer = useCoworkHandOver(coworkId);
+    const [chosen, setChosen] = useState<string | null>(null);
+    if (people.error) return <Failure error={people.error} t={t} />;
+    if (!people.data) return <p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>;
+    if (!people.data.length) return <p className={META}>{t('cowork_task.give.nobody', 'There is nobody in your organisation to give it to.')}</p>;
+    const who = chosen ?? namedColleague(people.data, request ?? '');
+    const selected = people.data.find(c => c.id === who);
+    return <div className="grid gap-3">
+        <label className={LABEL}>{t('cowork_task.hand.new_owner', 'New owner')}
+            <select className={FIELD} value={selected?.id ?? ''} onChange={e => setChosen(e.target.value)} disabled={transfer.isPending}>
+                <option value="">{t('cowork_teamwork.choose_person', 'Choose a colleague')}</option>
+                {people.data.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+        </label>
+        {selected && <>
+            <p>{t('cowork_task.give.confirm', "Give '{title}' to {name}? {name} gets a paused copy and approves its steps first. The task leaves your list, with its runs.", {title, name:selected.name})}</p>
+            <button type="button" className={BTN_PRIMARY + ' justify-self-start'} disabled={transfer.isPending}
+                onClick={() => transfer.mutate(selected.id, {onSuccess: onGone})}>{t('cowork_task.give.go', 'Give it away')}</button>
+        </>}
+        <Failure error={transfer.error} t={t} />
+    </div>;
+}
+
 interface CoworkTaskPeopleProps {
     coworkId: string;
     title: string;
+    focused?: boolean;
+    onTeamwork?: OpenHandOffDesk;
+    onAccessSaved?: () => void;
+    request?: string;
     /** The row that is open, if one is. */
     open: PeopleRowId | null;
     onOpen: (row: PeopleRowId | null) => void;
@@ -158,7 +191,21 @@ interface CoworkTaskPeopleProps {
     t: TranslateFn;
 }
 
-export default function CoworkTaskPeople({ coworkId, title, open, onOpen, onGone, t }: CoworkTaskPeopleProps) {
+export default function CoworkTaskPeople(props: CoworkTaskPeopleProps) {
+    const {coworkId, title, open, t} = props;
+    if (props.focused && open) {
+        const forms = {
+            share: <CoworkGuidedShare coworkId={coworkId} request={props.request ?? ''} onSaved={props.onAccessSaved} t={t} />,
+            pass: <PassBody coworkId={coworkId} request={props.request} onTeamwork={props.onTeamwork} t={t} />,
+            template: <TemplateBody coworkId={coworkId} title={title} t={t} />,
+            give: <GuidedHandover key={props.request} {...props} />,
+        };
+        return <div className="flex flex-col gap-3" data-testid="cowork-task-people">{forms[open]}</div>;
+    }
+    return <PeopleRows {...props} />;
+}
+
+function PeopleRows({coworkId, title, open, onOpen, onGone, t}: CoworkTaskPeopleProps) {
     const sharedWith = useSharedWith(coworkId, t);
     const row = (id: PeopleRowId) => ({ id, open: open === id, onToggle: (next: string | null) => onOpen(next as PeopleRowId | null) });
     return (

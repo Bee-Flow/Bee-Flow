@@ -1,5 +1,13 @@
 {
   "translations": {
+    "cowork_teamwork.no_matching_tasks": "Je hebt geen taak waarop deze wijziging van toepassing is.",
+    "cowork_teamwork.pick_anchor": "Welke van je taken wil je aan deze desk toevoegen?",
+    "cowork_teamwork.create_desk": "Desk maken",
+    "cowork_teamwork.roles_owner": "Alleen de eigenaar van de desk kan de rollen aanpassen.",
+    "cowork_teamwork.owner_anchor": "Om deze samenwerking aan te passen heeft de eigenaar een geaccepteerde taak op deze desk nodig.",
+    "cowork_teamwork.no_desks": "Je hebt nog geen teamdesk.",
+    "cowork_teamwork.remove_owner": "Alleen de eigenaar kan deze desk verwijderen.",
+    "cowork_teamwork.remove_confirm": "Wil je de desk ‘{name}’ en de koppelingen verwijderen?",
     "cowork_teamwork.add_role": "Zeg wie de vragen beantwoordt",
     "cowork_teamwork.add_step": "Stap toevoegen",
     "cowork_teamwork.all_settings": "Alle instellingen",

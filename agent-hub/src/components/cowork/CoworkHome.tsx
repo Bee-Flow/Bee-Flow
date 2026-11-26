@@ -28,6 +28,7 @@ import useCoworkNeedCards from './useCoworkNeedCards';
 import useTaskSetup, { type TaskToSetUp } from './useTaskSetup';
 import { useCoworkHome, type CoworkHome as CoworkHomeData } from '@/api/coworkHome';
 import { useMyDesks } from '@/api/coworkDesks';
+import { useCoworkNeedsYou } from '@/api/coworkNeedsYou';
 import { useSharedWithMe } from '@/api/coworkShares';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
@@ -142,14 +143,28 @@ function FlashLine({ flash }: { flash: Flash | null }) {
 
 export interface CoworkHomeProps {
     guided?: boolean;
-    onAskTask?: (id: string, message: string) => void;
+    admin?: boolean;
+    embedded?: boolean;
+    context?: string;
+    returnHome?: () => void;
+    onAskTask?: (id: string, message: string, shared?: boolean) => void;
     onOpenTask: (itemId: string, focus?: TaskFocus) => void;
     onOpenPanel: (panel: CoworkSheetPanel) => void;
     /** A sentence to put in the composer (a template's). */
-    seed?: { text: string; n: number } | null;
+    seed?: import('./coworkSheetPanels').ComposerSeed | null;
 }
 
-export default function CoworkHome({ guided, onAskTask, onOpenTask, onOpenPanel, seed = null }: CoworkHomeProps) {
+function readSurface(query: {error: Error | null; isPending: boolean}, content: ReactNode, loading: string) {
+    if (query.error) return <p role="alert">{query.error.message}</p>;
+    if (query.isPending) return <p role="status">{loading}</p>;
+    return content;
+}
+
+function orEmpty(count: number, content: ReactNode, empty: string) {
+    return count ? content : empty;
+}
+
+export default function CoworkHome({ guided, admin = false, embedded = false, context, returnHome, onAskTask, onOpenTask, onOpenPanel, seed = null }: CoworkHomeProps) {
     const { t } = useTranslation();
     const client = useQueryClient();
     const list = useCoworkList();
@@ -157,30 +172,40 @@ export default function CoworkHome({ guided, onAskTask, onOpenTask, onOpenPanel,
     const maxItems = list.data?.maxItems ?? 10;
     const home = useCoworkHome().data;
     const cards = useCoworkNeedCards(items);
-    const shared = useSharedWithMe().data ?? [];
+    const sharedQuery = useSharedWithMe();
+    const needsQuery = useCoworkNeedsYou();
+    const shared = sharedQuery.data ?? [];
     const [flash, say] = useFlash();
     const homeElement = useRef<HTMLDivElement>(null);
     const finish = useCallback((_message: string, task: TaskToSetUp) => {
         // Home stays mounted behind other pages while setup finishes.
-        if (homeElement.current && !homeElement.current.closest('[hidden]')) onOpenTask(task.id);
+        if (homeElement.current && !homeElement.current.closest('[hidden], [data-bee-embedded=true]')) onOpenTask(task.id);
     }, [onOpenTask]);
     const { setup, begin } = useTaskSetup(finish);
     const created = useCallback((item: CoworkItem) => {
         void client.invalidateQueries({ queryKey: ['cowork'] });
         void begin(item);
     }, [client, begin]);
+    const needs = <NeedsSection cards={cards} onOpenTask={onOpenTask} onDone={say} />;
+    const sharedRows = <CoworkSharedRows items={shared} onOpen={id => onOpenPanel({kind: 'shared', id})} />;
+    const loading = t('cowork_pages.loading', 'Loading…');
+    const hasSharedTasks = shared.length > 0;
+    const destinations = {panel: onOpenPanel, admin, embedded, context, returnHome, sharedItems: shared,
+        attention: readSurface(needsQuery, orEmpty(cards.length, needs, t('cowork_panels.settings.digest_none', 'Nothing needs you right now.')), loading),
+        shared: readSurface(sharedQuery, orEmpty(shared.length, sharedRows, t('cowork_home.dialog.no_shared', 'Nobody has shared a task with you yet.')), loading),
+    };
     return (
         <div ref={homeElement} className="cowork-home flex flex-col gap-9" data-testid="cowork-home">
-            <CoworkHomeComposer guided={guided} openTask={onOpenTask} items={items} onAskTask={onAskTask} stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
+            <CoworkHomeComposer destinations={destinations} guided={guided} openTask={onOpenTask} items={items} onAskTask={onAskTask} stepTypes={list.data?.stepTypes} atLimit={items.length >= maxItems} maxItems={maxItems} seed={seed}
                 onTemplates={() => onOpenPanel({ kind: 'templates' })} onCreated={created} setup={setup} />
             {!guided && <div className="cowork-home-sections flex flex-col gap-9">
                 <FlashLine flash={flash} />
                 <CoworkHomeNotices budgetPercent={home?.budget?.percent} />
-                <NeedsSection cards={cards} onOpenTask={onOpenTask} onDone={say} />
+                {needs}
                 <TasksSection list={list} items={items} cards={cards} home={home} testingId={null} onOpen={(id) => onOpenTask(id)} />
-                {shared.length > 0 && (
+                {hasSharedTasks && (
                     <Section id="shared" heading={t('cowork_home.shared.heading', 'Shared with you')}>
-                        <CoworkSharedRows items={shared} onOpen={(id) => onOpenPanel({ kind: 'shared', id })} />
+                        {sharedRows}
                     </Section>
                 )}
                 <TeamworkEntry onOpen={() => onOpenPanel({ kind: 'teamwork' })} />

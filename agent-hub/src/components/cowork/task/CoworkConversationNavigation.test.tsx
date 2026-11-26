@@ -71,3 +71,14 @@ it('renders an answer while the stream is still open, then commits the final rep
     expect(await screen.findByText('Reading mail finished.')).toBeVisible();
     expect(screen.queryByText('Reading mail')).toBeNull();
 });
+
+it('uses a short answer as a reply, then opens just the requested proof of runs', async () => {
+    const {user, all} = openTask({conversation: body => (body as {message: string}).message === 'Signed receipts'
+        ? {action: 'proof', answer: 'Here are your receipts.'}
+        : {action: 'answer', answer: 'Which evidence do you want?', responses: ['Signed receipts', 'Change history']}});
+    await user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'Show the evidence{Enter}');
+    await user.click(await screen.findByRole('button', {name: 'Signed receipts'}));
+    expect(await screen.findByRole('link', {name: 'Export receipts'})).toBeVisible();
+    expect(screen.queryByRole('button', {name: 'Delete this task'})).toBeNull();
+    expect(all('POST', '/api/cowork/w1/conversation')[1].body).toMatchObject({message: 'Signed receipts'});
+});

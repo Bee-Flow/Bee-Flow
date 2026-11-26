@@ -5,7 +5,8 @@
  * /api/cowork/packages/preview) and the page says who signed it before "Add as a paused task" (POST
  * /api/cowork/packages/add) makes anything; the new task then opens as its page. Adding runs nothing.
  */
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import { GuidedPanelContext } from './panelGuidance';
 import { ShieldCheck } from 'lucide-react';
 import { useAddPackage, useCoworkTemplates, usePreviewPackage, type PackagePreview } from '@/api/coworkTemplates';
 import type { CoworkSheetPanelProps } from '../coworkSheetPanels';
@@ -14,7 +15,7 @@ import { MayDo } from '../CoworkPlanCard';
 import { repeatLabel } from '../coworkSchedule';
 import { STAGGER } from '../coworkMotion';
 import { ALERT, BUTTON_SECONDARY } from '../coworkUi';
-import { BODY, CARD, EYEBROW, META, PanelButton, PanelSection, PanelShell, Problem } from './panelParts';
+import { BODY, CARD, EYEBROW, META, PanelButton, PanelOverview, PanelSection, PanelShell, Problem } from './panelParts';
 
 const MAX_FILE_BYTES = 1_000_000;
 
@@ -75,7 +76,7 @@ function PackageSection({ onOpenTask }: { onOpenTask: (id: string) => void }) {
         }
     };
     return (
-        <PanelSection title={t('cowork_panels.templates.file_heading', 'Add a task from a file')}>
+        <PanelSection section="import" title={t('cowork_panels.templates.file_heading', 'Add a task from a file')}>
             <div className={CARD}>
                 <p className={BODY}>{t('cowork_panels.templates.package_intro', 'Got a task as a file from someone, from inside or outside your organisation? Add it here. Cowork checks who signed it before anything is added.')}</p>
                 {!preview.data && (
@@ -95,11 +96,12 @@ function PackageSection({ onOpenTask }: { onOpenTask: (id: string) => void }) {
 
 export default function CoworkTemplatesPanel({ open, fillComposer }: CoworkSheetPanelProps) {
     const { t } = useTranslation();
+    const guided = useContext(GuidedPanelContext);
     const list = useCoworkTemplates(true);
     const templates = list.data ?? [];
     return (
         <PanelShell testId="cowork-templates-panel" title={t('cowork_panels.templates.title', 'Start from a template')} meta={t('cowork_panels.templates.meta', 'Made by colleagues. You get your own copy, with your own apps.')}>
-            {list.isSuccess && templates.length === 0 && <p className={`m-0 ${META}`}>{t('cowork_panels.templates.none_yet', 'Your organisation has no templates yet. Save one from a task’s People section.')}</p>}
+            <PanelOverview>{list.isSuccess && templates.length === 0 && <p className={`m-0 ${META}`}>{t('cowork_panels.templates.none_yet', 'Your organisation has no templates yet. Save one from a task’s People section.')}</p>}
             <Problem error={list.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
             <ul className="m-0 flex list-none flex-col gap-3 p-0">
                 {templates.map((tpl, i) => (
@@ -109,12 +111,12 @@ export default function CoworkTemplatesPanel({ open, fillComposer }: CoworkSheet
                             <span className={`${META} whitespace-pre-wrap`}>{tpl.brief}</span>
                             {tpl.repeatInterval && <span className="text-[12px] leading-4 text-[var(--text-tertiary)]">{repeatLabel(tpl.repeatInterval, t)}</span>}
                         </div>
-                        <PanelButton look="secondary" aria-label={t('cowork_panels.templates.use_named', 'Use “{title}”', { title: tpl.title })} onClick={() => fillComposer(tpl.brief)}>
+                        <PanelButton look="secondary" aria-label={t('cowork_panels.templates.use_named', 'Use “{title}”', { title: tpl.title })} onClick={() => guided ? fillComposer(tpl.brief, 'create') : fillComposer(tpl.brief)}>
                             {t('cowork_panels.templates.use', 'Use')}
                         </PanelButton>
                     </li>
                 ))}
-            </ul>
+            </ul></PanelOverview>
             <PackageSection onOpenTask={(id) => open({ kind: 'task', id })} />
         </PanelShell>
     );

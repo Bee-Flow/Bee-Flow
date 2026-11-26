@@ -324,7 +324,12 @@ describe('CoworkTaskView', () => {
         const shared = await screen.findByTestId('cowork-task-shared');
         expect(await within(shared).findByTestId('cowork-task-shared-by')).toHaveTextContent('Shared by Sam Peters');
         expect(within(shared).getByTestId('cowork-task-when')).toHaveTextContent('as Sam Peters set it up');
-        await user.click(within(shared).getByRole('button', { name: 'Open result' }));
+        const bee = within(shared).getByRole('textbox', { name: 'Ask Bee…' });
+        await user.type(bee, 'Toon de eerdere uitvoeringen{Enter}');
+        expect(within(shared).getByTestId('cowork-task-runs')).toHaveTextContent('All in stock.');
+        await user.type(bee, 'Verwijder deze taak{Enter}');
+        expect(within(shared).getByText('Only the owner can change this shared task.')).toBeVisible();
+        await user.type(bee, 'Toon het resultaat{Enter}');
         expect(within(shared).getByTestId('cowork-task-result-text')).toHaveTextContent('All in stock.');
         await user.click(within(shared).getByRole('button', { name: 'Advanced' }));
         expect(within(shared).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Result', 'History']);

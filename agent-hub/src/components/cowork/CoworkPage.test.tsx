@@ -20,10 +20,14 @@ const NO_PLAN = { automationId: null, draft: null, approved: null, widens: [], u
 const TEMPLATE = { id: 't1', title: 'Monday summary', brief: 'Every Monday, summarise last week’s meetings', repeatInterval: 'weekly', hasPlan: false, createdAt: null, mine: false };
 
 let calls: RecordedCall[];
-function serve(items: CoworkItem[] = [ITEM]) {
-    calls = stubRecordingFetch(({ url, method }) => {
+function serve(items: CoworkItem[] = [ITEM], homeIntent?: (body: unknown) => Response, taskReply?: () => Response, shared = false) {
+    calls = stubRecordingFetch(({ url, method, body }) => {
         const path = new URL(url, 'http://x').pathname;
-        if (path === '/api/cowork/w1/conversation') return jsonResponse({ action: 'answer', answer: 'Your digest is ready.', instruction: '' });
+        if (path === '/api/cowork/home/intent' && homeIntent) return homeIntent(body);
+        if (shared && path === '/api/cowork/shared') return jsonResponse({items: [{...ITEM, id:'s1', title:'Planning', ownerName:'Noor', role:'viewer'}]});
+        if (shared && path === '/api/cowork/shared/s1') return jsonResponse({item: {...ITEM, id:'s1', title:'Planning'}, runs: [], role:'viewer'});
+        if (shared && path === '/api/cowork/s1/conversation') return jsonResponse({action:'answer', answer:'Noor shared the current planning.'});
+        if (path === '/api/cowork/w1/conversation') return taskReply?.() ?? jsonResponse({ action: 'answer', answer: 'Your digest is ready.', instruction: '' });
         if (path.endsWith('/my-entitlements')) return jsonResponse({ tier: 'full', effective: { core: ['automations'] } });
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
         // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up and tests them.
@@ -109,6 +113,96 @@ describe('CoworkPage', () => {
         expect(turns).toHaveLength(1);
         expect(turns[0].body).toMatchObject({ message: question });
         expect(calls.some(call => call.method === 'POST' && call.url.endsWith('/api/cowork'))).toBe(false);
+    });
+
+    it('asks once which task to share, carrying the instruction into the selected task', async () => {
+        serve([ITEM, {...ITEM, id: 'w2', title: 'Morning mail'}], () => jsonResponse({action: 'task', indices: []}));
+        renderWithClient(<CoworkPage />);
+        const user = userEvent.setup();
+        await user.type(screen.getByRole('textbox'), 'Kan Noor meekijken bij een taak?{Enter}');
+        const pick = await screen.findByRole('button', {name: /Weekly digest/});
+        expect(screen.getByRole('button', {name: /Morning mail/})).toBeVisible();
+        expect(calls.filter(call => call.method !== 'GET').map(path)).toEqual(['/api/cowork/home/intent']);
+        await user.click(pick);
+        expect(await screen.findByText('Your digest is ready.')).toBeVisible();
+        expect(calls.filter(call => path(call).endsWith('/conversation')).map(call => call.body)).toEqual([
+            expect.objectContaining({message: 'Kan Noor meekijken bij een taak?'}),
+        ]);
+    });
+
+    it('streams a home clarification before the choices arrive', async () => {
+        const stream = new TransformStream();
+        const writer = stream.writable.getWriter();
+        serve([], () => new Response(stream.readable, {headers: {'content-type': 'text/event-stream'}}));
+        renderWithClient(<CoworkPage />);
+        await userEvent.setup().type(screen.getByRole('textbox'), 'What can we do together?{Enter}');
+        const send = (frame: string) => writer.write(new TextEncoder().encode(frame + '\n\n'));
+        await send('event: answer\ndata: "Shall we"');
+        expect(await screen.findByText('Shall we')).toBeVisible();
+        await send('event: reply\ndata: {"action":"answer","answer":"Shall we pick a task?","responses":["List tasks","Start a new task"]}');
+        await writer.close();
+        expect(await screen.findByRole('button', {name: 'List tasks'})).toBeVisible();
+    });
+
+    it('keeps a clarification in context and treats a suggested answer as a conversation turn', async () => {
+        const intent = vi.fn()
+            .mockReturnValueOnce(jsonResponse({action: 'answer', answer: 'Welke informatie zoek je?', responses: ['Mijn resultaten', 'Mijn uitnodigingen']}))
+            .mockReturnValueOnce(jsonResponse({action: 'attention', indices: []}));
+        serve([], intent);
+        renderWithClient(<CoworkPage />);
+        const user = userEvent.setup();
+        await user.type(screen.getByRole('textbox'), 'Kun je me helpen met iets?{Enter}');
+        await user.click(await screen.findByRole('button', {name: 'Mijn uitnodigingen'}));
+        expect(await screen.findByText('Nothing needs you right now.')).toBeVisible();
+        expect(intent.mock.calls[1][0]).toMatchObject({message: 'Mijn uitnodigingen', previous: expect.stringContaining('Welke informatie zoek je?')});
+        expect(calls.filter(call => call.method !== 'GET').every(call => path(call) === '/api/cowork/home/intent')).toBe(true);
+    });
+
+    it('shows cross-task approvals from an opened task without another prompt or a dashboard visit', async () => {
+        serve([ITEM], undefined, () => jsonResponse({action: 'attention', answer: 'Here are your requests.'}));
+        renderWithClient(<CoworkPage initialCoworkId="w1" />);
+        const user = userEvent.setup();
+        await user.type(await screen.findByRole('textbox', {name: 'Ask Bee…'}), 'Which invitations need my approval?{Enter}');
+        expect(await screen.findByText('Nothing needs you right now.')).toBeVisible();
+        expect(screen.getByTestId('cowork-brief-input')).toBeVisible();
+        expect(calls.filter(call => call.method === 'POST').map(path)).toEqual(['/api/cowork/w1/conversation']);
+    });
+
+    it('carries a question from home straight into the named shared task as its reader', async () => {
+        serve([ITEM], () => jsonResponse({action: 'task', indices: [1]}), undefined, true);
+        renderWithClient(<CoworkPage />);
+        await userEvent.setup().type(screen.getByRole('textbox'), 'Wat zegt de planning van Noor?{Enter}');
+        expect(await screen.findByText('Noor shared the current planning.')).toBeVisible();
+        const turns = calls.filter(call => path(call).endsWith('/conversation'));
+        expect(turns).toHaveLength(1);
+        expect(path(turns[0])).toBe('/api/cowork/s1/conversation');
+        expect(turns[0].body).toMatchObject({message:'Wat zegt de planning van Noor?',view:'shared'});
+    });
+
+    it('opens a named task without starting a second model turn', async () => {
+        serve([ITEM], () => jsonResponse({action: 'open', indices: [0]}));
+        renderWithClient(<CoworkPage />);
+        await userEvent.setup().type(screen.getByRole('textbox'), 'Breng me naar mijn weekoverzicht{Enter}');
+        expect(await screen.findByRole('heading', {name: 'Weekly digest'})).toBeVisible();
+        expect(calls.some(call => path(call).endsWith('/conversation'))).toBe(false);
+    });
+
+    it('opens only the requested preference, with Bee ready for the next question', async () => {
+        serve([ITEM], () => jsonResponse({action: 'preferences', section: 'mail'}));
+        renderWithClient(<CoworkPage />);
+        const user = userEvent.setup();
+        await user.type(screen.getByRole('textbox'), 'Pas mijn dagelijkse mail aan{Enter}');
+        expect(await screen.findByRole('heading', {name: 'E-mail'})).toBeVisible();
+        expect(screen.queryByText('Suggestions')).toBeNull();
+        expect(screen.getByTestId('cowork-brief-input')).toBeVisible();
+    });
+
+    it('keeps organisation rules private when requested from Bee by a member', async () => {
+        serve([], () => jsonResponse({action: 'org', section: 'budget'}));
+        renderWithClient(<CoworkPage user={MEMBER} />);
+        await userEvent.setup().type(screen.getByRole('textbox'), 'Ik wil het organisatiebudget instellen{Enter}');
+        expect(await screen.findByText(/Only administrators of your organisation/)).toBeVisible();
+        expect(screen.queryByTestId('cowork-org-panel')).toBeNull();
     });
 
     it('opens a task from its row as a page in place of the home, says so in the address, and "Tasks" goes back to the row', async () => {

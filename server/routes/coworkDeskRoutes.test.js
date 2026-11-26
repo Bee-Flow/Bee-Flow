@@ -49,11 +49,11 @@ test('the draft and the apply route hand the use case the caller and what was as
     asked = [];
     assert.strictEqual((await api.call('POST', '/api/cowork/desks/helper/draft', { body: { text: '  Ben checks the invoices ', itemId: 'cw-1' } })).status, 200);
     assert.strictEqual((await api.call('POST', '/api/cowork/desks/helper/draft', { body: { text: 'Ben checks' } })).status, 200);
-    assert.strictEqual((await api.call('POST', '/api/cowork/desks/helper/apply', { body: { draft: DRAFT } })).status, 201);
+    assert.strictEqual((await api.call('POST', '/api/cowork/desks/helper/apply', { body: { draft: DRAFT, expectedDeskId: 'd-1' } })).status, 201);
     assert.deepStrictEqual(asked, [
         ['draftDesk', { userId: 'u1', text: 'Ben checks the invoices', itemId: 'cw-1', userOrgId: 'org-1' }],
         ['draftDesk', { userId: 'u1', text: 'Ben checks', itemId: null, userOrgId: 'org-1' }],
-        ['applyDeskDraft', { userId: 'u1', itemId: null, draft: DRAFT }],
+        ['applyDeskDraft', { userId: 'u1', itemId: null, expectedDeskId: 'd-1', draft: DRAFT }],
     ]);
 });
 

@@ -5,7 +5,7 @@
  */
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { createContext, useContext, useId, useState } from 'react';
-import { GuidedPanelContext } from './panelGuidance';
+import { GuidedPanelContext, PanelFocusContext } from './panelGuidance';
 import CoworkActivity from '../CoworkActivity';
 import { useTranslation } from '@/hooks/useTranslation';
 import Toggle from '@/components/shared/Toggle';
@@ -60,11 +60,19 @@ export function PanelShell({ title, meta, tag, testId, children }: { title: stri
     );
 }
 
+export function PanelOverview({children}: {children: ReactNode}) {
+    const group = useContext(PanelSectionsContext);
+    const focus = useContext(PanelFocusContext);
+    return group && focus ? null : children;
+}
+
 /** A titled group of cards. */
-export function PanelSection({ title, children }: { title: string; children: ReactNode }) {
+export function PanelSection({ title, children, section }: { title: string; section?: string; children: ReactNode }) {
     const headingId = useId();
     const group = useContext(PanelSectionsContext);
-    if (group) return <details name={group} className="rounded-[var(--radius-md)] bg-[var(--bg-secondary)] px-3 py-2">
+    const focus = useContext(PanelFocusContext);
+    if (group && focus && focus !== section) return null;
+    if (group && !focus) return <details name={group} className="rounded-[var(--radius-md)] bg-[var(--bg-secondary)] px-3 py-2">
         <summary className="cursor-pointer py-1 font-medium">{title}</summary><div className="mt-2">{children}</div>
     </details>;
     return (

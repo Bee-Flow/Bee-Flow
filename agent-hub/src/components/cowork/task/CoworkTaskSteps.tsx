@@ -114,21 +114,24 @@ interface CoworkTaskStepsProps {
     live: boolean;
     /** Someone else's task: the steps are shown, nothing is tested. */
     readOnly: boolean;
+    requested?: 'test' | 'compare';
     controlsOnly?: boolean;
     onRebuild?: () => void;
     t: TranslateFn;
 }
 
-function TestAndCompare({ coworkId, plan, tryOut, live, titleOf, t }: Pick<CoworkTaskStepsProps, 'coworkId' | 'tryOut' | 'live' | 't'> & { plan: PlanState; titleOf: (id: string) => string | null }) {
-    const { start, state, error } = useCoworkPlanReplay(coworkId);
-    const comparing = start.isPending || (state !== null && !state.done && !error);
+function TestAndCompare({ coworkId, plan, tryOut, live, titleOf, requested, t }: Pick<CoworkTaskStepsProps, 'requested' | 'coworkId' | 'tryOut' | 'live' | 't'> & { plan: PlanState; titleOf: (id: string) => string | null }) {
+    const { start, started, state, error } = useCoworkPlanReplay(coworkId);
+    const comparing = start.isPending || (!!started && !state?.done && !error);
+    const test = <button type="button" className={BTN_QUIET} disabled={live || tryOut.starting || !canTry(plan)} onClick={tryOut.onStart}>{t('cowork_task.steps.test', 'Test, sends nothing')}</button>;
+    const compare = <button type="button" className={BTN_QUIET} disabled={comparing} onClick={() => start.mutate()}>{t('cowork_task.steps.compare', 'Compare with last month')}</button>;
     return (
         <div className="flex flex-col gap-2">
             <div className={ROW_ACTIONS}>
-                <button type="button" className={BTN_QUIET} disabled={live || tryOut.starting || !canTry(plan)} onClick={tryOut.onStart}>{t('cowork_task.steps.test', 'Test, sends nothing')}</button>
-                <button type="button" className={BTN_QUIET} disabled={comparing} onClick={() => start.mutate()}>{t('cowork_task.steps.compare', 'Compare with last month')}</button>
+                {requested !== 'compare' && test}
+                {requested !== 'test' && compare}
             </div>
-            <p className={META}>{t('cowork_task.steps.both_safe', "Both are safe: a test reads real data but changes and sends nothing. A comparison runs today's steps on last month's runs and touches no app at all.")}</p>
+            {!requested && <p className={META}>{t('cowork_task.steps.both_safe', "Both are safe: a test reads real data but changes and sends nothing. A comparison runs today's steps on last month's runs and touches no app at all.")}</p>}
             <Failure error={tryOut.error || error} t={t} />
             {state && <CoworkTaskReplay state={state} titleOf={titleOf} onClose={() => start.reset()} t={t} />}
         </div>
@@ -146,7 +149,24 @@ function testInProgress(tryOut: TryOut) {
     return !tryOut.error && (tryOut.starting || (!!tryOut.state && !tryOut.state.done));
 }
 
-export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, controlsOnly, onRebuild, t }: CoworkTaskStepsProps) {
+function RequestedOperation({ requested, plan, readOnly, tryOut, coworkId, live, t }: CoworkTaskStepsProps) {
+    if (!plan?.draft || readOnly) return <p role="status">{t('cowork_task.steps.needs_plan', 'This requires a task with fixed steps.')}</p>;
+    if (requested === 'test' && testInProgress(tryOut)) return <CoworkTestProgress state={tryOut.state} runOrder={plan.draft.view.runOrder} t={t}/>;
+    if (requested === 'test' && !canTry(plan)) return <p role="status">{plan.draft.findings[0]?.message ?? t('cowork_task.steps.not_tested', 'Not tested yet: the steps cannot run as they are.')}</p>;
+    const tested = requested === 'test' ? testedOf('steps', plan, tryOut, t) : null;
+    const steps = planSteps(plan, t);
+    return <div className="grid gap-3">
+        {tested && <TestedLine tested={tested} t={t}/>}
+        {requested === 'test' && tryOut.state?.done && <CoworkEffectPreview effects={tryOut.state.steps.filter(s => s.held && s.status !== 'not_reached')} t={t} />}
+        <TestAndCompare requested={requested} plan={plan} coworkId={coworkId} live={live} tryOut={tryOut} titleOf={id => steps.find(step => id === step.id)?.title ?? null} t={t}/>
+    </div>;
+}
+
+export default function CoworkTaskSteps(props: CoworkTaskStepsProps) {
+    return props.requested ? <RequestedOperation {...props}/> : <TaskStepsOverview {...props}/>;
+}
+
+function TaskStepsOverview({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, controlsOnly, onRebuild, t }: CoworkTaskStepsProps) {
     const fixed = mode === 'steps' && !!plan;
     const steps = fixed ? planSteps(plan, t) : runSteps(latestRun, t);
     const may = fixed ? planMayDo(plan, t) : runMayDo(steps);

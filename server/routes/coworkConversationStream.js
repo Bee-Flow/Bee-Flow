@@ -12,15 +12,17 @@ function partialAnswer(raw) {
     return JSON.parse('"' + (tokens?.[0] ?? '') + '"').slice(0, 2000);
 }
 
-/** @param {import('express').Response} res @param {Parameters<typeof import('../usecases/coworkConversation').converse>[0]} item @param {Parameters<typeof import('../usecases/coworkConversation').converse>[1]} turn */
-async function sendConversation(res, item, turn) {
+/** @param {import('express').Response} res
+ * @param {(stream?: {signal:AbortSignal,onText:(raw:string)=>void})=>Promise<unknown>} respond
+ * @param {boolean} [answerOnly] */
+async function sendConversation(res, respond, answerOnly = false) {
     res.setHeader('X-Accel-Buffering', 'no');
     const { sendEvent, markEnded, abortController } = setupSSE(res);
     const stop = startSseHeartbeat(res);
     let previous = '';
     try {
-        const { converse } = require('../usecases/coworkConversation');
-        const reply = await converse(item, turn, undefined, { signal: abortController.signal, onText(raw) {
+        const reply = await respond({ signal: abortController.signal, onText(raw) {
+            if (answerOnly && !/^\s*(?:```(?:json)?\s*)?\{\s*"action"\s*:\s*"answer"/i.test(raw)) return;
             const text = partialAnswer(raw);
             if (text && text !== previous) sendEvent('answer', text);
             previous = text;

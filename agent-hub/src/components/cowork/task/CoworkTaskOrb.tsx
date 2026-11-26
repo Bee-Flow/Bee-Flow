@@ -7,14 +7,25 @@ import { LINK_INLINE } from '../coworkUi';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { TaskStatus } from '../coworkTaskStatus';
 import type { TaskTab } from './CoworkTaskTabs';
+import type { TaskOperation } from './CoworkOperationReview';
 import type { SettingRowId } from './coworkTaskSettingsModel';
 
-export type OrbView = Exclude<TaskTab, 'settings'> | SettingRowId | 'edit' | 'actions' | 'overview' | 'review' | 'delete';
+export type OrbView = 'goal' | 'memory' | 'budget' | 'changes' | 'proof' | 'test' | 'compare' | TaskOperation | Exclude<TaskTab, 'settings'> | SettingRowId | 'edit' | 'actions' | 'overview' | 'review' | 'delete';
 
 export const isSetting = (view: OrbView): view is SettingRowId => ['what', 'when', 'uses', 'sends'].includes(view);
 
 function labels(t: TranslateFn): Record<OrbView, string> {
     return {
+        goal: t('cowork_task.target.heading', 'Target to track'),
+        memory: t('cowork_task.remembers.heading', 'What it remembers'),
+        budget: t('cowork_task.limit.heading', 'Spending limit'),
+        changes: t('cowork_task.history.changes', 'Changes'),
+        proof: t('cowork_task.history.proof', 'Proof of each run'),
+        test: t('cowork_task.steps.test', 'Test, sends nothing'),
+        compare: t('cowork_task.steps.compare', 'Compare with last month'),
+        run: t('cowork_task.action.run_for_real', 'Run for real now'),
+        pause: t('cowork_task.action.pause', 'Pause'),
+        resume: t('cowork_task.action.resume', 'Resume'),
         delete: t('cowork_task.more.delete', 'Delete this task'),
         review: t('cowork_task.orb.review_result', 'Review task'),
         overview: t('cowork_task.orb.back', 'Back to the orb'),
@@ -47,7 +58,7 @@ export default function CoworkTaskOrb({ back, status, coworkId, view, select, on
     return <div className="cowork-task-guided flex flex-col gap-4" data-testid="cowork-task-view" data-status={status}>
         <div className="cowork-task-scroll">
         <div className="cowork-task-identity">{heading}</div>
-        {!ownOrb && <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => select('overview')}><ArrowLeft size={14}/>{names.overview}</button>}
+        {!ownOrb && !['run', 'pause', 'resume'].includes(view) && <button type="button" className={LINK_INLINE + ' self-start'} onClick={() => select('overview')}><ArrowLeft size={14}/>{names.overview}</button>}
         <section aria-label={names[view]} className={ownOrb ? undefined : 'cowork-orb-detail'}>
             {ownOrb ? children : <CoworkActivity message={message} work={work} tone="rest">
                 <div className="cowork-detail-content w-full min-w-0 text-left">{children}</div>

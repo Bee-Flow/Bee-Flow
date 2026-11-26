@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 2031 operations. */
+/** 2032 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2586,6 +2586,7 @@ export interface ApiOperations {
                 standInId?: string | null;
             }>;
         };
+        expectedDeskId?: string | null;
         itemId?: string;
     }>;
     'POST /api/cowork/desks/helper/draft': Op<NoParams, UndeclaredQuery, {
@@ -2619,6 +2620,12 @@ export interface ApiOperations {
     'GET /api/cowork/home': Op<NoParams, {
         from: string;
         to: string;
+    }>;
+    'POST /api/cowork/home/intent': Op<NoParams, UndeclaredQuery, {
+        message: string;
+        previous?: string;
+        tier?: string;
+        titles: Array<string>;
     }>;
     'POST /api/cowork/hooks': Op<NoParams, UndeclaredQuery, Record<string, unknown>>;
     'GET /api/cowork/mail-providers': Op;
@@ -2787,6 +2794,10 @@ export interface ApiOperations {
     }>;
     'GET /api/cowork/{id}/shares': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/shares': Op<{ id: string | number }, UndeclaredQuery, {
+        expected?: Array<{
+            role: 'viewer' | 'approver';
+            userId: string;
+        }>;
         shares: Array<{
             role: 'viewer' | 'approver';
             userId: string;

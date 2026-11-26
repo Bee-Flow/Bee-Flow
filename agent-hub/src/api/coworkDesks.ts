@@ -24,7 +24,7 @@ export interface DeskMember {
     decidesHandOff: boolean;
 }
 interface DeskRole { role: string; holderId: string | null; standInId: string | null; awayUntil: string | null; holderName: string | null; standInName: string | null; away: boolean }
-interface RoleInput { role: string; holderId: string; standInId?: string | null; awayUntil?: string | null }
+export interface RoleInput { role: string; holderId: string; standInId?: string | null; awayUntil?: string | null }
 export interface DeskView {
     desk: { id: string; name: string; isOwner: boolean; ownerName: string };
     /** In the order work moves along them. */
@@ -46,9 +46,10 @@ export function useMyDesks(enabled = true) {
     });
 }
 
-export function useItemDesk(coworkId: string) {
+export function useItemDesk(coworkId: string, enabled = true) {
     return useQuery<ItemDesk | null, Error>({
         queryKey: [...DESKS_KEY, 'item', coworkId],
+        enabled,
         queryFn: async () => (await apiJson<'GET /api/cowork/{id}/desk', { desk?: ItemDesk | null }>('GET /api/cowork/{id}/desk', { params: { id: coworkId } })).desk ?? null,
         retry: false,
     });
@@ -100,4 +101,16 @@ export function useDeskHandOff(deskId: string) {
         allow: useDeskChange<string>((scheduleId) => apiJson('POST /api/cowork/desks/{id}/members/{scheduleId}/hand-off', { params: params(scheduleId), body: {} })),
         withdraw: useDeskChange<string>((scheduleId) => apiJson('DELETE /api/cowork/desks/{id}/members/{scheduleId}/hand-off', { params: params(scheduleId) })),
     };
+}
+
+export function useRemoveDesk(deskId: string) {
+    return useDeskChange<void>(() => apiJson('DELETE /api/cowork/desks/{id}', {params: {id: deskId}}));
+}
+
+export function useCreateDesk() {
+    return useDeskChange<string, DeskView>(name => apiJson<'POST /api/cowork/desks', DeskView>('POST /api/cowork/desks', {body: {name}}));
+}
+
+export function useSaveDeskRoles(deskId: string) {
+    return useDeskChange<RoleInput[]>(roles => apiJson('PUT /api/cowork/desks/{id}/roles', {params: {id: deskId}, body: {roles}}));
 }

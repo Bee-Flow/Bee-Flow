@@ -164,9 +164,10 @@ async function handOffs(run: Run, steps: CoworkChoice[]): Promise<void> {
 }
 
 /** Set up the helper's proposal, as the caller. */
-export async function applyDeskDraft({ userId, itemId = null, draft }: { userId: string; itemId?: string | null; draft: DeskDraft }, deps: ApplyDeps = applyDeps()): Promise<ApplyResult> {
+export async function applyDeskDraft({ userId, itemId = null, expectedDeskId, draft }: { userId: string; itemId?: string | null; expectedDeskId?: string | null; draft: DeskDraft }, deps: ApplyDeps = applyDeps()): Promise<ApplyResult> {
     const me = await callerOf(userId, deps.helper);
     const { deskId } = await targetDeskOf(userId, itemId, deps.helper);
+    if (expectedDeskId !== undefined && expectedDeskId !== deskId) throw refuse(409, 'This task changed desks. Ask Bee for an updated proposal.');
     const cands = await candidatesFor(userId, me.organizationId, deskId, deps.helper);
     const { steps, nameOf } = checkedDraft(draft, cands);
     const d = deps.desks();

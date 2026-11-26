@@ -5,7 +5,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanParameter } from './coworkPlan.types';
-import { readEventStream } from './readEventStream';
+import { readCoworkReply } from './readCoworkReply';
 import { apiJson, apiRequest } from './typedRequest';
 import { coworkPlanKey } from './queries/coworkPlan';
 
@@ -95,10 +95,12 @@ export function useCoworkProposalActions(coworkId: string) {
     return { approve, dismiss, restore, requestChange };
 }
 
-type CoworkReplyAction = 'delete' | 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'share' | 'review' | 'overview';
+export type CoworkGlobalDestination = 'new_task' | 'attention' | 'shared_tasks' | 'teamwork' | 'preferences' | 'templates' | 'org';
+export type CoworkPeopleDestination = 'give' | 'pass' | 'template' | 'share';
+type CoworkReplyAction = CoworkGlobalDestination | CoworkPeopleDestination | 'goal' | 'memory' | 'budget' | 'changes' | 'proof' | 'test' | 'compare' | 'run' | 'pause' | 'resume' | 'delete' | 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'share' | 'review' | 'overview';
 export interface ClockProposal { repeatInterval: 'daily' | 'weekdays' | 'weekly'; daysOfWeek: string[] | null; timeOfDay: string; timezone: string; nextRunAt: string }
 export type CoworkSettingChoice = 'what' | 'when' | 'uses' | 'sends';
-export interface CoworkReply { tasks?: {id: string; title: string; detail: string; shared?: boolean}[]; switchTo?: string; choices?: CoworkSettingChoice[]; remove?: {fingerprint: string; stepIds: string[]}; schedule?: ClockProposal; answer: string; action: CoworkReplyAction; instruction: string }
+export interface CoworkReply { section?: string; ownerOnly?: boolean; responses?: string[]; tasks?: {id: string; title: string; detail: string; shared?: boolean}[]; switchTo?: string; choices?: CoworkSettingChoice[]; remove?: {fingerprint: string; stepIds: string[]}; schedule?: ClockProposal; answer: string; action: CoworkReplyAction; instruction: string }
 export interface CoworkMessage { role: 'user' | 'assistant'; text: string }
 
 interface ConversationRequest {
@@ -118,13 +120,7 @@ export function useCoworkConversation(id: string) {
             const response = await apiRequest('POST /api/cowork/{id}/conversation', {
                 params: { id }, body, init: { headers: { Accept: 'text/event-stream' }, signal },
             });
-            if (!response.headers?.get('content-type')?.includes('text/event-stream')) return await response.json() as CoworkReply;
-            for await (const {event, data} of readEventStream<string | CoworkReply>(response, {signal})) {
-                if (event === 'answer' && typeof data === 'string') setPartial(data);
-                if (event === 'reply' && typeof data === 'object' && data?.action) return data;
-                if (event === 'error' && typeof data === 'string') throw new Error(data);
-            }
-            throw new Error('The reply was interrupted.');
+            return readCoworkReply<CoworkReply>(response, signal, setPartial);
         },
     });
     return { ...mutation, partial };

@@ -36,7 +36,11 @@ const loadItem = async (/** @type {string} */ id, /** @type {string} */ userId) 
 
 const router = express.Router();
 router.use((req, res, next) => (req.session?.user ? next() : res.status(401).json({ error: 'Authentication required' })));
-mountProposalRoutes(router, { loadItem, proposals: () => /** @type {any} */ (proposals), versions: () => /** @type {any} */ (versions) });
+const sharedItem = async (reader, id) => {
+    asked.push(['sharedItem', {reader, id}]);
+    throw new HttpError(404, 'cowork_refused', 'That cowork does not exist.');
+};
+mountProposalRoutes(router, { loadItem, sharedItem, proposals: () => /** @type {any} */ (proposals), versions: () => /** @type {any} */ (versions) });
 const api = serve('/api/cowork', router, { user: { id: 'u1' } });
 after(api.close);
 
@@ -77,4 +81,14 @@ test('the bodies are exactly what the routes read', async () => {
         assert.strictEqual((await api.call('POST', '/api/cowork/cw-1/plan/restore', { body })).status, 400, JSON.stringify(body));
     }
     assert.deepStrictEqual(asked, []);
+});
+
+test('the read-only conversation checks the reader’s current grant on every turn before querying a model', async () => {
+    asked = [];
+    const body = {view:'shared', message:'What is the most recent result?', history:[]};
+    const url = '/api/cowork/cw-1/conversation';
+    assert.equal((await api.call('POST', url, {user:null, body})).status, 401);
+    assert.equal((await api.call('POST', url, {user:{id:'former-viewer'}, body})).status, 404);
+    assert.equal((await api.call('POST', url, {user:{id:'former-viewer'}, body:{...body,view:'result'}})).status, 403);
+    assert.deepEqual(asked, [['sharedItem', {reader:'former-viewer',id:'cw-1'}]]);
 });
