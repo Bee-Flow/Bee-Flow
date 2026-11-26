@@ -470,6 +470,13 @@ function lineIndex(src) {
 // ---------------------------------------------------------------------------
 // Walking the package.
 // ---------------------------------------------------------------------------
+//
+// agent-hub has module roots (modules/<id>/frontend, scripts/lib/roots.mjs):
+// its src/ is walked in every root, each file by its path below src/, and one
+// budget covers them all. Any other package is walked as one directory.
+
+/** Packages whose src/ is spread over module roots. */
+const TREE_PACKAGES = new Set(['agent-hub']);
 
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'coverage', '.vite']);
 // Trees whose literals are not app copy. See rules 10 and 11 in the header.
@@ -481,21 +488,40 @@ function collect(from, base, into) {
         const full = path.join(from, entry.name);
         if (entry.isDirectory()) {
             if (!SKIP_DIRS.has(entry.name)) collect(full, base, into);
-        } else if (entry.isFile() && /\.(jsx|tsx)$/.test(entry.name) && !/\.(test|spec)\./.test(entry.name)) {
+        } else if (entry.isFile() && isScanned(entry.name)) {
             into.push(path.relative(base, full).split(path.sep).join('/'));
         }
     }
     return into;
 }
 
-/** Every counted site in `srcDir`, plus the unbudgeted and unparsed files. */
-function scanTree(srcDir) {
+/** Is a file of this name scanned (a component file, not a test)? */
+const isScanned = (name) => /\.(jsx|tsx)$/.test(name) && !/\.(test|spec)\./.test(name);
+
+/**
+ * The files below src/ of a package: of every root for a TREE_PACKAGES one, else of `srcDir`.
+ * @returns {Promise<Array<{ rel: string, abs: string }>>} rel: the path below src/; abs: where the file is
+ */
+async function sourceFiles(pkg, srcDir) {
+    if (!TREE_PACKAGES.has(pkg)) return collect(srcDir, srcDir, []).map((rel) => ({ rel, abs: path.join(srcDir, rel) }));
+    const { walkTree } = await import('./lib/roots.mjs');
+    const files = [];
+    const keep = (treePath) => !treePath.split('/').some((seg) => SKIP_DIRS.has(seg));
+    for (const file of walkTree(pkg, { under: 'src', filter: keep })) {
+        const name = file.treePath.slice(file.treePath.lastIndexOf('/') + 1);
+        if (isScanned(name)) files.push({ rel: file.treePath.slice('src/'.length), abs: file.abs });
+    }
+    return files;
+}
+
+/** Every counted site in `files`, plus the unbudgeted and unparsed files. */
+function scanTree(files) {
     const sites = [];
     const unbudgeted = [];
     const unparsed = [];
-    for (const rel of collect(srcDir, srcDir, [])) {
+    for (const { rel, abs } of files) {
         if (OUT_OF_SCOPE.some(prefix => rel.startsWith(prefix))) continue;
-        const found = findUntranslated(rel, fs.readFileSync(path.join(srcDir, rel), 'utf8'));
+        const found = findUntranslated(rel, fs.readFileSync(abs, 'utf8'));
         if (found.unparsed) { unparsed.push(rel); continue; }
         if (UNBUDGETED.some(prefix => rel.startsWith(prefix))) unbudgeted.push(...found.sites);
         else sites.push(...found.sites);
@@ -507,7 +533,7 @@ function scanTree(srcDir) {
 // CLI.
 // ---------------------------------------------------------------------------
 
-function main(argv) {
+async function main(argv) {
     const pkg = argv.find((a) => !a.startsWith('--'));
     if (!pkg) {
         console.error('i18n-ratchet: usage: node scripts/i18n-ratchet.mjs <package> [--update] [--list]');
@@ -524,7 +550,7 @@ function main(argv) {
         return 2;
     }
 
-    const { sites, unbudgeted, unparsed } = scanTree(srcDir);
+    const { sites, unbudgeted, unparsed } = scanTree(await sourceFiles(pkg, srcDir));
     if (unparsed.length) {
         console.error(`❌ ${pkg}: ${unparsed.length} file(s) the JSX scanner could not read to the end, so the count is not trustworthy:\n  ${unparsed.join('\n  ')}`);
         return 1;
@@ -567,4 +593,4 @@ function main(argv) {
     return 0;
 }
 
-process.exit(main(process.argv.slice(2)));
+main(process.argv.slice(2)).then((code) => process.exit(code));

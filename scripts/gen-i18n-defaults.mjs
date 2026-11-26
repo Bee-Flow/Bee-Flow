@@ -8,7 +8,9 @@
  *
  * Source: server/i18n/defaults/en/ (one file per namespace, merged by
  *         en/index.js into GUI_DEFAULTS) — the canonical catalogue, the one
- *         the server serves through the API.
+ *         the server serves through the API. en/index.js reads the namespace
+ *         files of every root (server/ and modules/<id>/server/); the
+ *         resolver (server/moduleRoots.cjs) is loaded first, as in the server.
  * Output: agent-hub/src/i18n/en-defaults.js — the client-side fallback so t()
  *         returns English when the API is unreachable. One `"key": "value",`
  *         line per key, in GUI_DEFAULTS order, JSON-quoted.
@@ -30,6 +32,7 @@ import { isEntryPoint } from './entry-point.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = path.join(ROOT, 'server', 'i18n', 'defaults', 'en', 'index.js');
+const RESOLVER = path.join(ROOT, 'server', 'moduleRoots.cjs');
 const TARGET = path.join(ROOT, 'agent-hub', 'src', 'i18n', 'en-defaults.js');
 const REL_TARGET = 'agent-hub/src/i18n/en-defaults.js';
 const CHUNK_DIR = path.join(ROOT, 'agent-hub', 'src', 'i18n', 'en');
@@ -109,9 +112,20 @@ function writeChunks(want) {
     }
 }
 
+/**
+ * GUI_DEFAULTS of the server, loaded the way the server loads it: the resolver first (when
+ * the tree has one). Core mode does not apply: the copy holds every module that is present.
+ */
+function loadDictionary() {
+    delete process.env.BEEFLOW_HIDE_MODULES;
+    const require = createRequire(import.meta.url);
+    if (fs.existsSync(RESOLVER)) require(RESOLVER);
+    return require(SOURCE).GUI_DEFAULTS;
+}
+
 function main() {
     const check = process.argv.includes('--check');
-    const { GUI_DEFAULTS } = createRequire(import.meta.url)(SOURCE);
+    const GUI_DEFAULTS = loadDictionary();
     const want = render(GUI_DEFAULTS);
     const have = fs.existsSync(TARGET) ? fs.readFileSync(TARGET, 'utf8') : null;
     const count = Object.keys(GUI_DEFAULTS).length;

@@ -19,14 +19,25 @@
  * add-nl-* catalogue: a key an organisation already has (its own wording, or
  * Dutch shipped earlier) is never overwritten. Rewording Dutch that has
  * shipped is an update-nl-* catalogue, not an edit here.
+ *
+ * The files are read from the TREE: tree path i18n/defaults/nl/ joined over
+ * every root (server/ and each modules/<id>/server/, see server/moduleRoots.cjs),
+ * so a module that owns a namespace keeps its Dutch file in its own root, and a
+ * file whose module is absent (or hidden in core mode) is not read. A `dir`
+ * argument reads that one directory instead (tests).
  */
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { listTreeDir } = require('../../../moduleRoots.cjs');
 const { isNamespaceName } = require('../namespaceName.js');
 
 const NL_DIR = __dirname;
+/** Tree path of the Dutch data files. */
+const NL_TREE_DIR = 'i18n/defaults/nl';
+
+/** @typedef {{ name: string, abs: string, moduleId?: string | null }} DataFile */
 
 /**
  * @param {unknown} v
@@ -37,22 +48,43 @@ function isPlainObject(v) {
 }
 
 /**
- * The data files in `dir`, sorted. Anything that is neither a data file, this
- * loader nor a test throws: a Dutch file in another shape would be ignored.
+ * The entries to read: the tree directory over all roots, or one directory.
  * @param {string} [dir]
- * @returns {string[]} file names
+ * @returns {DataFile[]} sorted by name
  */
-function listFiles(dir = NL_DIR) {
+function entriesOf(dir) {
+    if (dir === undefined) return listTreeDir(NL_TREE_DIR);
+    return fs.readdirSync(dir).sort().map((name) => ({ name, abs: path.join(dir, name) }));
+}
+
+/**
+ * The data files, sorted by name. Anything that is neither a data file, this
+ * loader nor a test throws: a Dutch file in another shape would be ignored.
+ * @param {string} [dir] one directory; the tree directory over all roots when omitted
+ * @returns {DataFile[]}
+ */
+function dataFiles(dir) {
     const out = [];
-    for (const file of fs.readdirSync(dir).sort()) {
+    for (const entry of entriesOf(dir)) {
+        const file = entry.name;
         if (file === 'index.js' || file.endsWith('.test.js')) continue;
         const ns = file.endsWith('.json') ? file.slice(0, -'.json'.length) : '';
         if (!isNamespaceName(ns)) {
-            throw new Error(`i18n: ${file} in server/i18n/defaults/nl/ is not a namespace data file (name it <namespace>.json)`);
+            const where = entry.moduleId ? `i18n/defaults/nl/ of module "${entry.moduleId}"` : 'server/i18n/defaults/nl/';
+            throw new Error(`i18n: ${file} in ${where} is not a namespace data file (name it <namespace>.json)`);
         }
-        out.push(file);
+        out.push(entry);
     }
     return out;
+}
+
+/**
+ * The names of the data files, sorted.
+ * @param {string} [dir] one directory; the tree directory over all roots when omitted
+ * @returns {string[]} file names
+ */
+function listFiles(dir) {
+    return dataFiles(dir).map((entry) => entry.name);
 }
 
 /**
@@ -85,20 +117,20 @@ function checkFile(ns, data) {
 }
 
 /**
- * Every data file in `dir`, merged in file-name order.
- * @param {string} [dir]
+ * Every data file, merged in file-name order.
+ * @param {string} [dir] one directory; the tree directory over all roots when omitted
  * @returns {{ translations: Record<string, string>, sameAsEnglish: string[], namespaces: string[] }}
  */
-function loadNamespaceFiles(dir = NL_DIR) {
+function loadNamespaceFiles(dir) {
     /** @type {Record<string, string>} */
     const translations = {};
     /** @type {string[]} */
     const sameAsEnglish = [];
     /** @type {string[]} */
     const namespaces = [];
-    for (const file of listFiles(dir)) {
-        const ns = file.slice(0, -'.json'.length);
-        const one = checkFile(ns, JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8')));
+    for (const entry of dataFiles(dir)) {
+        const ns = entry.name.slice(0, -'.json'.length);
+        const one = checkFile(ns, JSON.parse(fs.readFileSync(entry.abs, 'utf8')));
         Object.assign(translations, one.translations);
         sameAsEnglish.push(...one.sameAsEnglish);
         namespaces.push(ns);
@@ -109,16 +141,17 @@ function loadNamespaceFiles(dir = NL_DIR) {
 /**
  * sha256 over this loader and every data file (name and bytes). The boot
  * ladder adds it to the catalogue's checksum, so a new or changed file makes
- * the catalogue run again on the next boot.
- * @param {string} [dir]
+ * the catalogue run again on the next boot. A file is hashed by its name, not
+ * by the root it lies in: moving it to a module does not change the hash.
+ * @param {string} [dir] one directory; the tree directory over all roots when omitted
  * @returns {string}
  */
-function sourceHash(dir = NL_DIR) {
+function sourceHash(dir) {
     const hash = crypto.createHash('sha256');
     hash.update(fs.readFileSync(__filename));
-    for (const file of listFiles(dir)) {
-        hash.update(`\0${file}\0`);
-        hash.update(fs.readFileSync(path.join(dir, file)));
+    for (const entry of dataFiles(dir)) {
+        hash.update(`\0${entry.name}\0`);
+        hash.update(fs.readFileSync(entry.abs));
     }
     return hash.digest('hex');
 }

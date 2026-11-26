@@ -9,7 +9,7 @@
  * endpoint switch, the self-hosted, Vertex and Scaleway subtitles, the transcription and Azure OpenAI service rows).
  *
  * Read from the dictionary itself (server/i18n/defaults/en, through require, so a key is counted once with its
- * merged value), not from source text. Namespaces counted: ADMIN_NAMESPACE. Same budget contract as
+ * merged value; the namespace files of every root, modules/<id>/server included), not from source text. Namespaces counted: ADMIN_NAMESPACE. Same budget contract as
  * scripts/count-ratchet.mjs: server/.vendor-name-ratchet.json, a rise fails, `--update` only lowers.
  *
  * Usage:
@@ -60,6 +60,10 @@ export function vendorKeys(dictionary) {
 function main() {
     const args = process.argv.slice(2);
     const require = createRequire(import.meta.url);
+    // The resolver first, as in the server: the dictionary then holds the namespace files of every root.
+    // Not in core mode: a hidden module would lower the count, and an --update the budget with it.
+    delete process.env.BEEFLOW_HIDE_MODULES;
+    require(path.join(ROOT, 'server/moduleRoots.cjs'));
     const { GUI_DEFAULTS } = require(path.join(ROOT, 'server/i18n/defaults/en/index.js'));
     const keys = vendorKeys(GUI_DEFAULTS);
     const oneLine = (s) => s.replace(/\s+/g, ' ').slice(0, 100);

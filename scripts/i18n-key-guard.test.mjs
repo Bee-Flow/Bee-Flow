@@ -18,6 +18,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { archiveExtras } from './i18n-key-guard.mjs';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(HERE, 'i18n-key-guard.mjs');
 const DEFAULTS = path.join('server', 'i18n', 'defaults');
@@ -67,8 +69,10 @@ function sandbox(layout = writeMonolith, dict = BASE) {
 
 function run(dir, args = ['--base', 'HEAD']) {
     try {
+        const env = { ...process.env };
+        delete env.BEEFLOW_MODULE_ROOTS;
         const stdout = execFileSync(process.execPath, [path.join(dir, 'scripts', 'i18n-key-guard.mjs'), ...args], {
-            cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+            cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env,
         });
         return { code: 0, stdout, stderr: '' };
     } catch (e) {
@@ -124,4 +128,75 @@ test('no --base, or a base git cannot read, is a usage error rather than a pass'
     const r = run(dir, ['--base', 'no-such-ref']);
     assert.strictEqual(r.code, 2);
     assert.match(r.stderr, /cannot read server\/i18n\/defaults at no-such-ref/);
+});
+
+// -- module roots (server/moduleRoots.cjs) ---------------------------------
+// A module keeps its namespace files in modules/<id>/server/i18n/defaults/en/.
+// The base archive holds them and the resolver, and keys are compared by key:
+// a namespace file that moved between roots loses nothing, and a key deleted
+// from a module root at the base is still seen as lost.
+
+const SERVER = path.join(HERE, '..', 'server');
+const RESOLVER_FILES = ['moduleRoots.cjs', 'modules/roots/rootSet.cjs', 'modules/roots/resolveHooks.cjs',
+    'modules/roots/treeCheck.cjs', 'i18n/defaults/namespaceName.js', 'i18n/defaults/en/index.js'];
+
+/**
+ * The real resolver and en/index.js; the namespaces in `inModule` live in module "x".
+ * @param {string[]} inModule
+ */
+function rootsLayout(inModule) {
+    return (dir, dict) => {
+        const en = path.join(dir, DEFAULTS, 'en');
+        const mod = path.join(dir, 'modules', 'x', DEFAULTS, 'en');
+        for (const d of [en, mod]) fs.rmSync(d, { recursive: true, force: true });
+        for (const rel of RESOLVER_FILES) {
+            fs.mkdirSync(path.dirname(path.join(dir, 'server', rel)), { recursive: true });
+            fs.copyFileSync(path.join(SERVER, rel), path.join(dir, 'server', rel));
+        }
+        fs.mkdirSync(mod, { recursive: true });
+        const byNs = {};
+        for (const [k, v] of Object.entries(dict)) (byNs[k.split('.')[0]] ||= {})[k] = v;
+        for (const [ns, entries] of Object.entries(byNs)) {
+            fs.writeFileSync(path.join(inModule.includes(ns) ? mod : en, `${ns}.js`), `module.exports = ${JSON.stringify(entries, null, 4)};\n`);
+        }
+        fs.writeFileSync(path.join(dir, DEFAULTS, 'en.js'), "module.exports = require('./en/index.js');\n");
+    };
+}
+
+test('a namespace file that moved into a module root loses no keys', () => {
+    const dir = sandbox(rootsLayout([]));
+    rootsLayout(['b'])(dir, BASE);
+    const r = run(dir);
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.match(r.stdout, /no keys lost against HEAD \(4 before, 4 now\)/);
+});
+
+test('the base archive holds the module roots: a key lost from a module file fails, a move back does not', () => {
+    const dir = sandbox(rootsLayout(['b']));
+    rootsLayout(['b'])(dir, without(BASE, 'b.three'));
+    const lost = run(dir);
+    assert.strictEqual(lost.code, 1);
+    assert.match(lost.stderr, /^ {2}b\.three$/m);
+
+    rootsLayout([])(dir, BASE);
+    const back = run(dir);
+    assert.strictEqual(back.code, 0, back.stderr);
+    assert.match(back.stdout, /\(4 before, 4 now\)/);
+});
+
+test('core mode does not count a hidden module as lost keys', () => {
+    const dir = sandbox(rootsLayout(['b']));
+    const env = { ...process.env, BEEFLOW_HIDE_MODULES: 'x' };
+    delete env.BEEFLOW_MODULE_ROOTS;
+    const out = execFileSync(process.execPath, [path.join(dir, 'scripts', 'i18n-key-guard.mjs'), '--base', 'HEAD'], { cwd: dir, encoding: 'utf8', env, stdio: ['ignore', 'pipe', 'pipe'] });
+    assert.match(out, /\(4 before, 4 now\)/);
+});
+
+test('the archive takes the resolver and the dictionary of every module root, nothing else', () => {
+    assert.deepStrictEqual(archiveExtras([
+        'server/moduleRoots.cjs', 'server/modules/roots/rootSet.cjs', 'server/modules/firstParty/moduleState.js',
+        'modules/README.md', 'modules/x/server/i18n/defaults/en/b.js', 'modules/x/server/i18n/defaults/nl/b.json',
+        'modules/x/server/core/a.js', 'modules/x/frontend/server/i18n/defaults/en/c.js',
+    ]), ['server/moduleRoots.cjs', 'server/modules/roots/rootSet.cjs', 'modules/x/server/i18n/defaults/en/b.js',
+        'modules/x/server/i18n/defaults/nl/b.json']);
 });

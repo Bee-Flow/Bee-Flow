@@ -45,13 +45,23 @@ function writeDict(dir, dict) {
     fs.writeFileSync(path.join(en, 'index.js'), `module.exports = { GUI_DEFAULTS: ${JSON.stringify(dict)} };\n`);
 }
 
-function run(dir, extra = []) {
+function run(dir, extra = [], env = {}) {
     try {
-        const stdout = execFileSync(process.execPath, [path.join(dir, 'scripts', 'gen-i18n-defaults.mjs'), ...extra], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+        const stdout = execFileSync(process.execPath, [path.join(dir, 'scripts', 'gen-i18n-defaults.mjs'), ...extra], {
+            cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...withoutRootsEnv(), ...env },
+        });
         return { code: 0, stdout, stderr: '' };
     } catch (e) {
         return { code: e.status, stdout: e.stdout || '', stderr: e.stderr || '' };
     }
+}
+
+/** The environment without the variables that point the resolver elsewhere. */
+function withoutRootsEnv() {
+    const env = { ...process.env };
+    delete env.BEEFLOW_MODULE_ROOTS;
+    delete env.BEEFLOW_HIDE_MODULES;
+    return env;
 }
 
 const target = (dir) => path.join(dir, 'agent-hub', 'src', 'i18n', 'en-defaults.js');
@@ -146,4 +156,40 @@ test('--check refuses a hand-edited, missing or stray chunk', () => {
     assert.match(stray.stderr, /gone\.generated\.mjs/);
     assert.strictEqual(run(dir).code, 0);
     assert.ok(!fs.existsSync(chunkFile(dir, 'gone')), 'a regenerate removes a chunk whose namespace is gone');
+});
+
+// -- module roots (server/moduleRoots.cjs) ---------------------------------
+// With the real resolver and the real en/index.js in the sandbox, a namespace
+// file in modules/<id>/server/i18n/defaults/en/ lands in its pinned position,
+// and core mode (BEEFLOW_HIDE_MODULES) does not shrink the generated copy.
+
+const SERVER = path.join(HERE, '..', 'server');
+const RESOLVER_FILES = ['moduleRoots.cjs', 'modules/roots/rootSet.cjs', 'modules/roots/resolveHooks.cjs',
+    'modules/roots/treeCheck.cjs', 'i18n/defaults/namespaceName.js', 'i18n/defaults/en/index.js'];
+
+function rootsSandbox() {
+    const dir = sandbox();
+    for (const rel of RESOLVER_FILES) {
+        fs.mkdirSync(path.dirname(path.join(dir, 'server', rel)), { recursive: true });
+        fs.copyFileSync(path.join(SERVER, rel), path.join(dir, 'server', rel));
+    }
+    const core = path.join(dir, 'server', 'i18n', 'defaults', 'en');
+    const mod = path.join(dir, 'modules', 'x', 'server', 'i18n', 'defaults', 'en');
+    fs.mkdirSync(mod, { recursive: true });
+    fs.writeFileSync(path.join(core, 'appearance.js'), "module.exports = { 'appearance.a': 'A' };\n");
+    fs.writeFileSync(path.join(core, 'activity.js'), "module.exports = { 'activity.b': 'B' };\n");
+    fs.writeFileSync(path.join(mod, 'nc_onboarding.js'), "module.exports = { 'nc_onboarding.c': 'C' };\n");
+    return dir;
+}
+
+test('a namespace file in a module root is generated in its pinned place, also in core mode', async () => {
+    const dir = rootsSandbox();
+    for (const env of [{}, { BEEFLOW_HIDE_MODULES: 'all' }]) {
+        fs.rmSync(target(dir), { force: true });
+        const r = run(dir, [], env);
+        assert.strictEqual(r.code, 0, r.stderr);
+        const mod = await import(`${pathToFileURL(target(dir)).href}?${Math.random()}`);
+        assert.deepStrictEqual(Object.keys(mod.default), ['appearance.a', 'nc_onboarding.c', 'activity.b'], JSON.stringify(env));
+    }
+    assert.ok(fs.existsSync(chunkFile(dir, 'nc_onboarding')));
 });

@@ -10,9 +10,15 @@
  * name is not a namespace name all THROW at require time rather than silently
  * vanish.
  *
- * Adding a namespace: create ./<namespace>.js (copy the header of any sibling)
- * and nothing else. Files not in NAMESPACES below are found by reading this
- * directory and merged after the listed ones, in file-name order, so two
+ * The namespace files are read from the TREE, not from this directory alone:
+ * tree path i18n/defaults/en/ joined over every root (server/ and each
+ * modules/<id>/server/, see server/moduleRoots.cjs), so a module that owns a
+ * namespace keeps its file in its own root. A namespace whose file is absent
+ * (its module is not installed, or hidden in core mode) is skipped.
+ *
+ * Adding a namespace: create <namespace>.js (copy the header of any sibling)
+ * and nothing else. Files not in NAMESPACES below are found by listing the
+ * tree directory and merged after the listed ones, in file-name order, so two
  * branches that each add a namespace touch no shared file (the generated
  * frontend copy is regenerated after the merge). After any change here,
  * regenerate the frontend copy: `node scripts/gen-i18n-defaults.mjs`.
@@ -24,184 +30,100 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { listTreeDir } = require('../../../moduleRoots.cjs');
 const { isNamespaceName } = require('../namespaceName.js');
 
-const NAMESPACES = {
-    "appearance":      require('./appearance.js'),
-    "nc_onboarding":   require('./nc_onboarding.js'),
-    "init_setup":      require('./init_setup.js'),
-    "activity":        require('./activity.js'),
-    "adoption":        require('./adoption.js'),
-    "admin":           require('./admin.js'),
-    "agent":           require('./agent.js'),
-    "agent_schedules": require('./agent_schedules.js'),
-    "agent_skills":    require('./agent_skills.js'),
-    "agent_studio":    require('./agent_studio.js'),
-    "agent_usage":     require('./agent_usage.js'),
-    "agent_wizard":    require('./agent_wizard.js'),
-    "ai_step_checks":  require('./ai_step_checks.js'),
-    "app":             require('./app.js'),
-    "app_studio":      require('./app_studio.js'),
-    "approvals":       require('./approvals.js'),
-    "apps":            require('./apps.js'),
-    "azure":           require('./azure.js'),
-    "billing":         require('./billing.js'),
-    "changepw":        require('./changepw.js'),
-    "chat":            require('./chat.js'),
-    "chat_monitoring": require('./chat_monitoring.js'),
-    "checkout":        require('./checkout.js'),
-    "cms_blog":        require('./cms_blog.js'),
-    "cms_site":         require('./cms_site.js'),
-    "cms_redirects":    require('./cms_redirects.js'),
-    "cms_share":        require('./cms_share.js'),
-    "code_step":       require('./code_step.js'),
-    "comments":        require('./comments.js'),
-    "common":          require('./common.js'),
-    "compliance":      require('./compliance.js'),
-    "condition_node":  require('./condition_node.js'),
-    "connections":     require('./connections.js'),
-    "consent":         require('./consent.js'),
-    "contacts":        require('./contacts.js'),
-    "cowork":          require('./cowork.js'),
-    "crm":             require('./crm.js'),
-    "datatables":      require('./datatables.js'),
-    "dlp":             require('./dlp.js'),
-    "documents":       require('./documents.js'),
-    "dsr_public":      require('./dsr_public.js'),
-    "editor":          require('./editor.js'),
-    "egress_map":      require('./egress_map.js'),
-    "encryption":      require('./encryption.js'),
-    "error":           require('./error.js'),
-    "flatten_node":    require('./flatten_node.js'),
-    "forms":           require('./forms.js'),
-    "greet":           require('./greet.js'),
-    "handover":        require('./handover.js'),
-    "http_query":      require('./http_query.js'),
-    "integ":           require('./integ.js'),
-    "kb_studio":       require('./kb_studio.js'),
-    "knowledge":       require('./knowledge.js'),
-    "languages":       require('./languages.js'),
-    "learn":           require('./learn.js'),
-    "license":         require('./license.js'),
-    "login":           require('./login.js'),
-    "maintenance":     require('./maintenance.js'),
-    "managed_part":    require('./managed_part.js'),
-    "mcp_access":      require('./mcp_access.js'),
-    "mcp_library":     require('./mcp_library.js'),
-    "meeting_notes":   require('./meeting_notes.js'),
-    "meetings":        require('./meetings.js'),
-    "mfa":             require('./mfa.js'),
-    "modules":         require('./modules.js'),
-    "nc_scope":        require('./nc_scope.js'),
-    "nc_trigger_scope": require('./nc_trigger_scope.js'),
-    "notebooks":       require('./notebooks.js'),
-    "notification":    require('./notification.js'),
-    "notifications":   require('./notifications.js'),
-    "org":             require('./org.js'),
-    "pii":             require('./pii.js'),
-    "playbooks":       require('./playbooks.js'),
-    "privacy":         require('./privacy.js'),
-    "project_collab":  require('./project_collab.js'),
-    "project_chat":    require('./project_chat.js'),
-    "project_content": require('./project_content.js'),
-    "project_home":    require('./project_home.js'),
-    "project_participation": require('./project_participation.js'),
-    "project_tasks":   require('./project_tasks.js'),
-    "projects":        require('./projects.js'),
-    "reset":           require('./reset.js'),
-    "automationAgentBindings": require('./automationAgentBindings.js'),
-    "automation_editor":  require('./automation_editor.js'),
-    "automation_tables":  require('./automation_tables.js'),
-    "automation_run_checks": require('./automation_run_checks.js'),
-    "automation_testing": require('./automation_testing.js'),
-    "automations":        require('./automations.js'),
-    "run_status":      require('./run_status.js'),
-    "runs":            require('./runs.js'),
-    "security_studio": require('./security_studio.js'),
-    "settings":        require('./settings.js'),
-    "shield_activity": require('./shield_activity.js'),
-    "shield_checks":   require('./shield_checks.js'),
-    "shield_data":     require('./shield_data.js'),
-    "shield_look":     require('./shield_look.js'),
-    "shield_overview": require('./shield_overview.js'),
-    "shield_shell":    require('./shield_shell.js'),
-    "sidebar":         require('./sidebar.js'),
-    "signup":          require('./signup.js'),
-    "skill_form":      require('./skill_form.js'),
-    "skills":          require('./skills.js'),
-    "skills_studio":   require('./skills_studio.js'),
-    "solution_stages": require('./solution_stages.js'),
-    "solutions":       require('./solutions.js'),
-    "stage_settings":  require('./stage_settings.js'),
-    "spreadsheet":     require('./spreadsheet.js'),
-    "starter":         require('./starter.js'),
-    "store":           require('./store.js'),
-    "studio":          require('./studio.js'),
-    "suggestions":     require('./suggestions.js'),
-    "support":         require('./support.js'),
-    "tasks":           require('./tasks.js'),
-    "teams_setup":     require('./teams_setup.js'),
-    "templates":       require('./templates.js'),
-    "tests_studio":    require('./tests_studio.js'),
-    "tier":            require('./tier.js'),
-    "time":            require('./time.js'),
-    "tour":            require('./tour.js'),
-    "training":        require('./training.js'),
-    "usage":           require('./usage.js'),
-    "vault":           require('./vault.js'),
-    "versions":        require('./versions.js'),
-    "visibility":      require('./visibility.js'),
-    "voiceprint":      require('./voiceprint.js'),
-    "webpages":        require('./webpages.js'),
-    "admin_ai_config": require('./admin_ai_config.js'),
-    "admin_languages": require('./admin_languages.js'),
-    "admin_monitoring": require('./admin_monitoring.js'),
-    "admin_org": require('./admin_org.js'),
-    "admin_security": require('./admin_security.js'),
-    "admin_shared": require('./admin_shared.js'),
-    "admin_subscriptions": require('./admin_subscriptions.js'),
-    "studio_apps_bi": require('./studio_apps_bi.js'),
-    "studio_apps_edit": require('./studio_apps_edit.js'),
-    "studio_apps_tables": require('./studio_apps_tables.js'),
-    "studio_apps_insp": require('./studio_apps_insp.js'),
-    "studio_apps_panels": require('./studio_apps_panels.js'),
-    "studio_apps_runtime": require('./studio_apps_runtime.js'),
-    "studio_apps_runs": require('./studio_apps_runs.js'),
-    "studio_apps_validate": require("./studio_apps_validate.js"),
-    "studio_app_documents": require('./studio_app_documents.js'),
-    "studio_misc": require('./studio_misc.js'),
-};
+/** Tree path of the English namespace files. */
+const EN_TREE_DIR = 'i18n/defaults/en';
+
+const NAMESPACES = Object.freeze([
+    "appearance", "nc_onboarding", "init_setup", "activity", "adoption", "admin", "agent",
+    "agent_schedules", "agent_skills", "agent_studio", "agent_usage", "agent_wizard",
+    "ai_step_checks", "app", "app_studio", "approvals", "apps", "azure", "billing", "changepw",
+    "chat", "chat_monitoring", "checkout", "cms_blog", "cms_site", "cms_redirects", "cms_share",
+    "code_step", "comments", "common", "compliance", "condition_node", "connections", "consent",
+    "contacts", "cowork", "crm", "datatables", "dlp", "documents", "dsr_public", "editor",
+    "egress_map", "encryption", "error", "flatten_node", "forms", "greet", "handover", "http_query",
+    "integ", "kb_studio", "knowledge", "languages", "learn", "license", "login", "maintenance",
+    "managed_part", "mcp_access", "mcp_library", "meeting_notes", "meetings", "mfa", "modules",
+    "nc_scope", "nc_trigger_scope", "notebooks", "notification", "notifications", "org", "pii",
+    "playbooks", "privacy", "project_collab", "project_chat", "project_content", "project_home",
+    "project_participation", "project_tasks", "projects", "reset", "automationAgentBindings",
+    "automation_editor", "automation_tables", "automation_run_checks", "automation_testing",
+    "automations", "run_status", "runs", "security_studio", "settings", "shield_activity",
+    "shield_checks", "shield_data", "shield_look", "shield_overview", "shield_shell", "sidebar",
+    "signup", "skill_form", "skills", "skills_studio", "solution_stages", "solutions",
+    "stage_settings", "spreadsheet", "starter", "store", "studio", "suggestions", "support",
+    "tasks", "teams_setup", "templates", "tests_studio", "tier", "time", "tour", "training",
+    "usage", "vault", "versions", "visibility", "voiceprint", "webpages", "admin_ai_config",
+    "admin_languages", "admin_monitoring", "admin_org", "admin_security", "admin_shared",
+    "admin_subscriptions", "studio_apps_bi", "studio_apps_edit", "studio_apps_tables",
+    "studio_apps_insp", "studio_apps_panels", "studio_apps_runtime", "studio_apps_runs",
+    "studio_apps_validate", "studio_app_documents", "studio_misc",
+]);
+
+/** @typedef {{ name: string, abs: string, moduleId?: string | null }} NamespaceFileEntry */
+
+/**
+ * @param {NamespaceFileEntry} a
+ * @param {NamespaceFileEntry} b
+ */
+function byName(a, b) {
+    return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+}
+
+/**
+ * The namespace files among `entries`, in file-name order. A `.js` file whose
+ * name is not a namespace name throws: it would otherwise be skipped, and its
+ * keys lost.
+ * @param {NamespaceFileEntry[]} entries the entries of one directory, or of the tree directory over all roots
+ * @returns {Map<string, string>} namespace -> absolute path of its file
+ */
+function namespaceFiles(entries) {
+    /** @type {Map<string, string>} */
+    const files = new Map();
+    for (const entry of [...entries].sort(byName)) {
+        const file = entry.name;
+        if (!file.endsWith('.js') || file === 'index.js') continue;
+        const ns = file.slice(0, -'.js'.length);
+        if (!isNamespaceName(ns)) {
+            const where = entry.moduleId ? `i18n/defaults/en/ of module "${entry.moduleId}"` : 'server/i18n/defaults/en/';
+            throw new Error(`i18n: ${file} in ${where} is not a namespace file (name it <namespace>.js: letters, digits, underscores)`);
+        }
+        files.set(ns, entry.abs);
+    }
+    return files;
+}
 
 /**
  * The namespace files in `dir` that NAMESPACES does not list, in file-name
- * order. A `.js` file whose name is not a namespace name throws: it would
- * otherwise be skipped, and its keys lost.
+ * order. A `.js` file whose name is not a namespace name throws.
  * @param {string} dir
  * @param {Set<string>} listed namespace names already in NAMESPACES
  * @returns {string[]}
  */
 function discoverNamespaces(dir, listed) {
-    const found = [];
-    for (const file of fs.readdirSync(dir).sort()) {
-        if (!file.endsWith('.js') || file === 'index.js') continue;
-        const ns = file.slice(0, -'.js'.length);
-        if (!isNamespaceName(ns)) {
-            throw new Error(`i18n: ${file} in server/i18n/defaults/en/ is not a namespace file (name it <namespace>.js: letters, digits, underscores)`);
-        }
-        if (!listed.has(ns)) found.push(ns);
-    }
-    return found;
+    const entries = fs.readdirSync(dir).map((name) => ({ name, abs: path.join(dir, name) }));
+    return [...namespaceFiles(entries).keys()].filter((ns) => !listed.has(ns));
 }
 
-const LISTED_NAMESPACES = Object.freeze(Object.keys(NAMESPACES));
-const DISCOVERED_NAMESPACES = Object.freeze(discoverNamespaces(__dirname, new Set(LISTED_NAMESPACES)));
+/** Every namespace file of the tree: namespace -> absolute path. */
+const FILES = namespaceFiles(listTreeDir(EN_TREE_DIR));
+const PINNED = new Set(NAMESPACES);
 
-/** @returns {Record<string, Record<string, string>>} every namespace: the listed ones first, then the discovered ones */
+/** The pinned namespaces whose file is present, in pinned order. */
+const LISTED_NAMESPACES = Object.freeze(NAMESPACES.filter((ns) => FILES.has(ns)));
+/** The pinned namespaces whose file is absent (module not installed, or hidden): skipped. */
+const SKIPPED_NAMESPACES = Object.freeze(NAMESPACES.filter((ns) => !FILES.has(ns)));
+/** The present namespaces NAMESPACES does not list, in file-name order. */
+const DISCOVERED_NAMESPACES = Object.freeze([...FILES.keys()].filter((ns) => !PINNED.has(ns)));
+
+/** @returns {Record<string, Record<string, string>>} every present namespace: the listed ones first, then the discovered ones */
 function allNamespaces() {
     /** @type {Record<string, Record<string, string>>} */
-    const all = { ...NAMESPACES };
-    for (const ns of DISCOVERED_NAMESPACES) {
-        all[ns] = require(path.join(__dirname, `${ns}.js`));
+    const all = {};
+    for (const ns of [...LISTED_NAMESPACES, ...DISCOVERED_NAMESPACES]) {
+        all[ns] = require(/** @type {string} */ (FILES.get(ns)));
     }
     return all;
 }
@@ -240,6 +162,9 @@ module.exports = {
     GUI_DEFAULTS,
     getGUINamespaces,
     discoverNamespaces,
+    namespaceFiles,
+    NAMESPACES,
     LISTED_NAMESPACES,
+    SKIPPED_NAMESPACES,
     DISCOVERED_NAMESPACES,
 };

@@ -23,6 +23,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { resolveTreePath } from './lib/roots.mjs';
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(HERE, 'i18n-ratchet.mjs');
 
@@ -357,7 +359,7 @@ test('every package with a budget file is wired into a lint:i18n-ratchet* script
     }
 });
 
-test('the skipped and unbudgeted trees still exist in agent-hub/src', () => {
+test('the skipped and unbudgeted trees still exist in agent-hub/src (in some root)', () => {
     // Every prefix in the script is a claim about the tree, and a claim that
     // has stopped being true silently exempts whatever moved in behind it —
     // the failure the rot checks in i18nGuard.test.js exist to prevent. This
@@ -371,6 +373,31 @@ test('the skipped and unbudgeted trees still exist in agent-hub/src', () => {
     };
     const prefixes = [...listed('OUT_OF_SCOPE'), ...listed('UNBUDGETED')];
     assert.ok(prefixes.length >= 4, 'expected i18n/, test/, demo/ and marketing/');
-    const gone = prefixes.filter(p => !fs.existsSync(path.join(HERE, '..', 'agent-hub/src', p)));
+    const gone = prefixes.filter(p => !resolveTreePath('agent-hub', `src/${p}`));
     assert.deepStrictEqual(gone, [], 'these trees are gone — drop them from the script instead of leaving a dead exemption');
+});
+
+test('agent-hub is counted over every root: a module frontend counts against the one budget', () => {
+    // Module roots (scripts/lib/roots.mjs): modules/<id>/frontend/src next to
+    // agent-hub/src, each file by its path below src/.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-ratchet-roots-'));
+    const copy = (rel) => {
+        fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+        fs.copyFileSync(path.join(HERE, '..', rel), path.join(dir, rel));
+    };
+    for (const rel of ['scripts/i18n-ratchet.mjs', 'scripts/lib/roots.mjs', 'server/modules/roots/rootSet.cjs', 'server/modules/roots/treeCheck.cjs']) copy(rel);
+    const write = (rel, body) => {
+        fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+        fs.writeFileSync(path.join(dir, rel), body);
+    };
+    write('agent-hub/src/A.jsx', component('<p>In the core</p>'));
+    write('modules/x/frontend/src/pages/B.jsx', component('<p>In a module</p>'));
+    write('modules/x/frontend/src/i18n/C.jsx', component('<p>Out of scope</p>'));
+    write('agent-hub/.i18n-ratchet.json', JSON.stringify({ strings: 9 }));
+    const env = { ...process.env };
+    delete env.BEEFLOW_MODULE_ROOTS;
+    const stdout = execFileSync(process.execPath, [path.join(dir, 'scripts/i18n-ratchet.mjs'), 'agent-hub', '--list'], { cwd: dir, encoding: 'utf8', env });
+    assert.deepStrictEqual(stdout.split('\n').map(l => SITE_RX.exec(l)).filter(Boolean).map(m => JSON.parse(m[1])), ['In the core', 'In a module']);
+    assert.match(stdout, /^src\/pages\/B\.jsx:3 /m);
+    assert.match(stdout, /2 untranslated literals under src/);
 });

@@ -8,6 +8,8 @@
  * The dictionary is server/i18n/defaults/en/<namespace>.js (one file per
  * namespace); the frontend copy agent-hub/src/i18n/en-defaults.js is generated
  * from it, so after adding keys this script runs scripts/gen-i18n-defaults.mjs.
+ * A namespace file is written where it lives: in server/ or in the module root
+ * that owns it (modules/<id>/server/, found through server/moduleRoots.cjs).
  *
  * Idempotent: a key already present in the dictionary is skipped (a differing
  * English is reported, never overwritten — the dictionary wins). New keys are
@@ -27,6 +29,9 @@ const KEYS_DIR = path.join(ROOT, '.claude', 'handoff', 'compliance', 'keys');
 const SERVER_DIR = path.join(ROOT, 'server', 'i18n', 'defaults', 'en');
 const GEN_DEFAULTS = path.join(ROOT, 'scripts', 'gen-i18n-defaults.mjs');
 const NL_OUT = path.join(ROOT, 'server', 'migrations', 'data', 'compliance-center-nl.json');
+const nodeRequire = createRequire(import.meta.url);
+// The resolver first, as in the server: the dictionary is read over every root.
+const { treePath } = nodeRequire(path.join(ROOT, 'server', 'moduleRoots.cjs'));
 const MARK_START = 'Compliance Center redesign (2026-09-14) — merged from .claude/handoff/compliance/keys/*.json by server/scripts/mergeComplianceKeys.mjs';
 const check = process.argv.includes('--check');
 
@@ -45,7 +50,7 @@ const esc = (v) => String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace
 const END_MARK = '    // ── end Compliance Center redesign block ──';
 
 function merge() {
-    const { GUI_DEFAULTS } = createRequire(import.meta.url)(path.join(SERVER_DIR, 'index.js'));
+    const { GUI_DEFAULTS } = nodeRequire(path.join(SERVER_DIR, 'index.js'));
     const byNs = new Map(); const differ = [];
     let added = 0;
     for (const [k, v] of en) {
@@ -57,8 +62,8 @@ function merge() {
         } else if (GUI_DEFAULTS[k] !== v) differ.push(`${k}: dictionary "${GUI_DEFAULTS[k]}" ≠ keys "${v}"`);
     }
     for (const [ns, add] of byNs) {
-        const file = path.join(SERVER_DIR, `${ns}.js`);
-        if (!fs.existsSync(file)) throw new Error(`no namespace file en/${ns}.js — create it and list it in en/index.js first`);
+        const file = treePath('i18n', 'defaults', 'en', `${ns}.js`);
+        if (!fs.existsSync(file)) throw new Error(`no namespace file en/${ns}.js — create it first (en/index.js finds it)`);
         let src = fs.readFileSync(file, 'utf8');
         const lines = add.map(([k, v]) => `    '${esc(k)}': '${esc(v)}',`).join('\n');
         // Extend the existing block if present, else open one before the file's closing brace.
