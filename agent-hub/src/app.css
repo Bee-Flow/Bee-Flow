@@ -2228,6 +2228,12 @@ pre.hljs {
     @keyframes cowork-surface-arrival { from { opacity: 0; translate: 0 .4rem; } }
 }
 
+/* Let the overview use the page's own scroll area until a conversation starts. */
+.cowork-task-guided:has(.cowork-orb-workspace):not(:has(.cowork-transcript)) .cowork-task-scroll {
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
 /* The transcript takes the space between Bee and the composer as the conversation grows. */
 .cowork-task-guided:has(.cowork-transcript) .cowork-task-scroll {
     flex: 0 0 auto;
