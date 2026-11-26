@@ -19,11 +19,15 @@ const path = require('node:path');
 
 const CORE_ROOT = path.resolve(__dirname, '..', '..');
 
-/** The directories that hold `<id>/server`, from the environment or the default place. */
-function moduleParents() {
+/**
+ * The directories that hold `<id>/server`, from the environment or the default place.
+ * Read at call time; scripts/lib/roots.mjs calls it too, with the core root of a fixture.
+ * @param {string} [coreRoot] the core root whose default parent (`../modules`) applies
+ */
+function moduleParents(coreRoot = CORE_ROOT) {
     const fromEnv = process.env.BEEFLOW_MODULE_ROOTS;
     if (fromEnv !== undefined) return fromEnv.split(path.delimiter).filter(Boolean).map((p) => path.resolve(p));
-    return [path.resolve(CORE_ROOT, '..', 'modules')];
+    return [path.resolve(coreRoot, '..', 'modules')];
 }
 
 /**
@@ -135,6 +139,7 @@ function rootHidden(root) {
 module.exports = {
     CORE_ROOT,
     ROOTS,
+    moduleParents,
     readDir,
     rootOf,
     toTreePath,

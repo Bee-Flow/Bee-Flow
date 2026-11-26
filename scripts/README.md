@@ -311,6 +311,7 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `release-manifest.mjs` | The release candidate manifest: which image digests one build produced, that its security checks passed, and that staging accepted exactly those digests. |
 | `release-tag.sh` | Tag a downstream repo with the version found in its source-of-truth file. |
 | `release-workflow-evidence.mjs` | Verify that release evidence comes from a successful, manually started run of the named workflow on main, and hand its commit and attempt to the next step. |
+| `roots-inventory.mjs` | Check scripts/roots-inventory.json: every script, runner and config that walks, globs or names a package directory, with whether it knows about module roots. |
 | `rq-codemod.mjs` | rq-codemod: move agent-hub data fetching onto react-query, for the canonical shapes only. |
 | `run-local-nc.sh` | Run Bee Flow against a local Nextcloud — no App Store, no public registry. |
 | `runtime-watch.mjs` | runtime-watch — is a runtime we ship behind on a security release, or past its end of life? |
