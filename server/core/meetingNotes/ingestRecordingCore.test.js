@@ -631,6 +631,17 @@ test('core: transcription failure unlinks the input and throws a classified Inge
     assert.ok(!fs.existsSync(filePath), 'input file consumed');
 });
 
+test('core: an engine that gave up waiting keeps its `timeout` code', async () => {
+    resetFx();
+    fx.transcribeError = Object.assign(new Error('Azure Whisper batch job timed out after 35 minutes.'), { code: 'timeout' });
+    const filePath = makeLocalFile();
+    await assert.rejects(
+        () => ingestLocalRecording({ userId: 'u1', filePath, provider: 'whisperx', source: 'teams', sourceUri: 'teams://orgA/slow1' }),
+        (err) => err instanceof IngestError && err.code === 'timeout' && err.status === 504 && /timed out after 35 minutes/.test(err.message),
+    );
+    assert.strictEqual(fx.creates.length, 0);
+});
+
 test('core: speaker turns without a single word are an empty transcription, not a note', async () => {
     resetFx();
     const saved = fx.whisperResponse;

@@ -624,6 +624,28 @@ test('a manual import that fails is final with its own code, not a silent backgr
     assert.strictEqual(fx.store.jobs[0].errorCode, 'download_failed');
 });
 
+test('a transcription that timed out is retried, and the last attempt leaves `timeout` on the job, not `failed`', async () => {
+    await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.ingestError = coded('Azure Whisper batch job timed out after 35 minutes.', 'timeout');
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        fx.store.jobs[0].nextAttemptAt = new Date(Date.now() - 1000).toISOString();
+        await auto.processDue();
+        if (attempt < 3) assert.strictEqual(fx.store.jobs[0].status, 'pending', `attempt ${attempt} is retried`);
+    }
+    assert.strictEqual(fx.ingestCalls.length, 3);
+    assert.strictEqual(fx.store.jobs[0].status, 'timeout');
+    assert.strictEqual(fx.store.jobs[0].errorCode, 'timeout');
+});
+
+test('a manual import whose transcription timed out says `timeout`', async () => {
+    const job = await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    fx.ingestError = coded('Azure Whisper batch job timed out after 150 minutes.', 'timeout');
+    await assert.rejects(auto.processJobInline({ job, session: { accessToken: 'at' }, manual: true }), (e) => e.code === 'timeout');
+    assert.strictEqual(fx.store.jobs[0].errorCode, 'timeout');
+});
+
 test('already_imported freezes the job instead of three pointless retries', async () => {
     await seeded();
     fx.recordings = [{ id: 'R1' }];

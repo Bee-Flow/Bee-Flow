@@ -53,31 +53,95 @@ const WHISPER_BATCH_BYTES_PER_SECOND = {
     '.m4a': 12000, '.mp4': 12000, '.ogg': 8000, '.opus': 8000,
 };
 /**
+ * Azure schedules batch jobs on a best-effort basis: at peak hours a job can
+ * wait up to 30 minutes before it starts, and that wait already shows as
+ * `Running`. Every job gets this much on top of its own audio.
+ */
+const WHISPER_BATCH_QUEUE_ALLOWANCE_MS = 30 * 60_000;
+/** Without a size estimate, wait as for an hour of audio. */
+const WHISPER_BATCH_UNKNOWN_AUDIO_MS = 60 * 60_000;
+/** The longest wait computed here; WHISPER_AZURE_POLL_TIMEOUT_MS sets any other value. */
+const WHISPER_BATCH_MAX_POLL_MS = 6 * 60 * 60_000;
+
+/**
  * Duration-scaled limits for an Azure Whisper batch run.
  *
- * The old fixed limits (10-min poll cap, 15-min download URL) were shorter
- * than the batch turnaround for long recordings, so exactly the meetings this
- * provider exists for timed out. Estimate the audio duration from byte size
- * and format, and size both the poll ceiling and the URL TTL from it. The URL
- * must outlive the job's queue time — Azure may only fetch the audio when the
- * job starts running.
+ * The wait is the queue allowance plus the length of the audio. Both parts
+ * matter: with the audio length alone a five-minute recording times out while
+ * it is still in Azure's queue, and with a ceiling of an hour a meeting of two
+ * hours or more gets the same wait as one of an hour. The download URL and the
+ * job's own lifetime at Azure follow the wait: the URL must outlive the queue
+ * time (Azure may only fetch the audio when the job starts), and the result
+ * must still exist when the job finishes near the end of the wait.
  *
  * @param {{bytes?: number, ext?: string, env?: NodeJS.ProcessEnv}} [opts]
- * @returns {{pollCapMs: number, urlTtlSeconds: number, estimatedSeconds: number|null}}
+ * @returns {{pollCapMs: number, urlTtlSeconds: number, estimatedSeconds: number|null, jobTimeToLive: string}}
  */
 function computeWhisperBatchTimeouts({ bytes, ext, env = process.env } = {}) {
     const bps = WHISPER_BATCH_BYTES_PER_SECOND[String(ext || '').toLowerCase()];
     const estimatedSeconds = bps && Number(bytes) > 0 ? Math.round(Number(bytes) / bps) : null;
     const override = Number(env.WHISPER_AZURE_POLL_TIMEOUT_MS);
-    /**
-     * @param {number} v
-     */
-    const clampMs = (v) => Math.min(60 * 60_000, Math.max(15 * 60_000, v));
+    const audioMs = estimatedSeconds ? estimatedSeconds * 1000 : WHISPER_BATCH_UNKNOWN_AUDIO_MS;
     const pollCapMs = override > 0
         ? override
-        : (estimatedSeconds ? clampMs(estimatedSeconds * 1000) : 30 * 60_000);
+        : Math.min(WHISPER_BATCH_MAX_POLL_MS, WHISPER_BATCH_QUEUE_ALLOWANCE_MS + audioMs);
     const urlTtlSeconds = Math.round(pollCapMs / 1000) + 900;
-    return { pollCapMs, urlTtlSeconds, estimatedSeconds };
+    const jobTimeToLive = `PT${Math.max(4, Math.ceil(pollCapMs / 3_600_000) + 1)}H`;
+    return { pollCapMs, urlTtlSeconds, estimatedSeconds, jobTimeToLive };
+}
+
+/**
+ * How long to wait before the next status poll. A job that is still running
+ * after a few minutes is in the queue or on a long recording: asking every
+ * five seconds for an hour is 700 requests and as many log lines for nothing.
+ * @param {number} elapsedMs
+ */
+function whisperBatchPollDelayMs(elapsedMs) {
+    if (elapsedMs < 2 * 60_000) return 5_000;
+    if (elapsedMs < 15 * 60_000) return 15_000;
+    return 30_000;
+}
+
+/**
+ * Poll a batch job until Azure reports a final status, and return that last
+ * poll response. Gives up after `pollCapMs` with an error coded `timeout`, so
+ * a meeting import can tell "took too long" from "failed".
+ *
+ * @param {{
+ *   jobUrl: string,
+ *   speechKey: string,
+ *   pollCapMs: number,
+ *   sleep?: (ms: number) => Promise<unknown>,
+ *   now?: () => number,
+ *   fetchJob?: (url: string, init: { headers: Record<string, string> }) => Promise<{ ok: boolean, status: number, json: () => Promise<unknown> }>,
+ * }} opts `sleep`, `now` and `fetchJob` are test seams
+ * @returns {Promise<{ status?: string, properties?: { error?: { code?: string, message?: string } } }>}
+ */
+async function pollWhisperBatchJob({ jobUrl, speechKey, pollCapMs, sleep = (ms) => new Promise(r => setTimeout(r, ms)), now = Date.now, fetchJob = fetchFixedEndpoint }) {
+    const pollStart = now();
+    let loggedStatus = '';
+    let loggedAt = pollStart;
+    for (;;) {
+        const elapsedMs = now() - pollStart;
+        if (elapsedMs > pollCapMs) {
+            throw Object.assign(
+                new Error(`Azure Whisper batch job timed out after ${Math.round(pollCapMs / 60000)} minutes.`),
+                { code: 'timeout' },
+            );
+        }
+        await sleep(whisperBatchPollDelayMs(elapsedMs));
+        const pollResp = await fetchJob(jobUrl, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
+        if (!pollResp.ok) throw new Error(`Polling failed: HTTP ${pollResp.status}`);
+        const pollData = /** @type {{ status?: string, properties?: { error?: { code?: string, message?: string } } }} */ (await pollResp.json());
+        const status = String(pollData.status);
+        // A status change, and otherwise one line a minute: enough to see it is alive.
+        if (status !== loggedStatus || now() - loggedAt >= 60_000) {
+            log.info(`[Transcription:AzureWhisper] Status: ${status} (${Math.round((now() - pollStart) / 1000)}s)`);
+            loggedStatus = status;
+            loggedAt = now();
+        }
+        if (status !== 'Running' && status !== 'NotStarted') return pollData;
+    }
 }
 
 /**
@@ -172,7 +236,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         const uploadExt = '.flac';
         log.info(`[Transcription:AzureWhisper] Conditioned to FLAC: ${(inputBytes / 1024).toFixed(0)} KB → ${(uploadBuffer.length / 1024).toFixed(0)} KB`);
 
-        const { pollCapMs, urlTtlSeconds, estimatedSeconds } = computeWhisperBatchTimeouts({ bytes: uploadBuffer.length, ext: uploadExt });
+        const { pollCapMs, urlTtlSeconds, estimatedSeconds, jobTimeToLive } = computeWhisperBatchTimeouts({ bytes: uploadBuffer.length, ext: uploadExt });
 
         // ── Step 2: Upload to RustFS, generate public temp URL ──
         // Azure's batch API needs to download the audio from a public URL.
@@ -217,7 +281,8 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         log.info(`[Transcription:AzureWhisper] Using model: ${bestWhisper.displayName} (${bestWhisper.self})`);
 
         // ── Step 4: Create batch transcription job ──
-        // TTL is generous because the job is explicitly DELETEd in `finally`.
+        // The job is explicitly DELETEd in `finally`; its lifetime at Azure only
+        // has to outlast the wait (computeWhisperBatchTimeouts).
         const jobBody = {
             contentUrls: [audioUrl],
             locale,
@@ -232,7 +297,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
                 diarization: azureDiarizationSpeakers(numSpeakers),
                 punctuationMode: 'DictatedAndAutomatic',
                 profanityFilterMode: 'None',
-                timeToLive: 'PT4H',
+                timeToLive: jobTimeToLive,
             },
         };
 
@@ -251,20 +316,8 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         log.info(`[Transcription:AzureWhisper] Job created: ${transcriptionJobUrl.split('/').pop()}`);
 
         // ── Step 5: Poll until Succeeded or Failed ──
-        const pollStart = Date.now();
-        let jobStatus = 'Running';
-        /** @type {{ status?: string; properties?: { error?: { code?: string; message?: string; }; }; } | null} */
-        let pollData = null;
-        while (jobStatus === 'Running' || jobStatus === 'NotStarted') {
-            if (Date.now() - pollStart > pollCapMs)
-                throw new Error(`Azure Whisper batch job timed out after ${Math.round(pollCapMs / 60000)} minutes.`);
-            await new Promise(r => setTimeout(r, 5000));
-            const pollResp = await fetchFixedEndpoint(transcriptionJobUrl, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
-            if (!pollResp.ok) throw new Error(`Polling failed: HTTP ${pollResp.status}`);
-            pollData = /** @type {{ status?: string, properties?: { error?: { code?: string, message?: string } } }} */ (await pollResp.json());
-            jobStatus = pollData.status;
-            log.info(`[Transcription:AzureWhisper] Status: ${jobStatus} (${Math.round((Date.now() - pollStart) / 1000)}s)`);
-        }
+        const pollData = await pollWhisperBatchJob({ jobUrl: transcriptionJobUrl, speechKey, pollCapMs });
+        const jobStatus = pollData.status;
         if (jobStatus !== 'Succeeded') {
             const jobErr = pollData?.properties?.error;
             if (jobErr) log.error(`[Transcription:AzureWhisper] Job ${jobStatus}: ${jobErr.code || '?'} — ${jobErr.message || ''}`);
@@ -329,4 +382,7 @@ function azureDiarizationSpeakers(numSpeakers) {
 }
 
 
-module.exports = { runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeouts, azureDiarizationSpeakers };
+module.exports = {
+    runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeouts, azureDiarizationSpeakers,
+    pollWhisperBatchJob, whisperBatchPollDelayMs,
+};

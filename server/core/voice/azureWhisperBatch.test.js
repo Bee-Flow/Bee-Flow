@@ -69,7 +69,34 @@ stubModule('./audioPreprocess', {
     },
 });
 
-const { runAzureWhisperBatch } = require('./azureWhisperBatch');
+const { runAzureWhisperBatch, pollWhisperBatchJob, whisperBatchPollDelayMs } = require('./azureWhisperBatch');
+
+/**
+ * A fake Azure job and clock for pollWhisperBatchJob: `statuses` are answered
+ * in order (the last one repeats), and sleeping moves the clock.
+ * @param {string[]} statuses
+ */
+function fakeJob(statuses) {
+    let clock = 1_000_000;
+    /** @type {number[]} */
+    const sleeps = [];
+    let polls = 0;
+    return {
+        sleeps,
+        polls: () => polls,
+        opts: {
+            jobUrl: 'https://westeurope.api.cognitive.microsoft.com/speechtotext/v3.2/transcriptions/job-1',
+            speechKey: 'test-speech-key',
+            now: () => clock,
+            sleep: async (/** @type {number} */ ms) => { sleeps.push(ms); clock += ms; },
+            fetchJob: async () => {
+                const status = statuses[Math.min(polls, statuses.length - 1)];
+                polls += 1;
+                return { ok: true, status: 200, json: async () => ({ status }) };
+            },
+        },
+    };
+}
 
 const realFetch = globalThis.fetch;
 const realNow = Date.now;
@@ -122,4 +149,37 @@ test('a file on disk goes to ffmpeg as it is and is left for its owner', async (
     } finally {
         fs.unlinkSync(src);
     }
+});
+
+test('a job that sits in the queue for 25 minutes is waited for, with fewer polls as time passes', async () => {
+    // 25 minutes of Running, then done: every 5 s at first, then every 15 s, then every 30 s.
+    const job = fakeJob([...Array(96).fill('Running'), 'Succeeded']);
+    const done = await pollWhisperBatchJob({ ...job.opts, pollCapMs: 35 * 60_000 });
+    assert.strictEqual(done.status, 'Succeeded');
+    assert.strictEqual(job.polls(), 97);
+    assert.deepStrictEqual([...new Set(job.sleeps)], [5_000, 15_000, 30_000]);
+    assert.strictEqual(whisperBatchPollDelayMs(0), 5_000);
+    assert.strictEqual(whisperBatchPollDelayMs(5 * 60_000), 15_000);
+    assert.strictEqual(whisperBatchPollDelayMs(60 * 60_000), 30_000);
+});
+
+test('a job that never finishes ends as an error coded `timeout` once the wait is over', async () => {
+    const job = fakeJob(['NotStarted', 'Running']);
+    await assert.rejects(
+        pollWhisperBatchJob({ ...job.opts, pollCapMs: 35 * 60_000 }),
+        (/** @type {Error & { code?: string }} */ err) => err.code === 'timeout' && /timed out after 35 minutes/.test(err.message),
+    );
+    const waited = job.sleeps.reduce((a, b) => a + b, 0);
+    assert.ok(waited > 35 * 60_000 && waited <= 36 * 60_000, `waited ${waited} ms`);
+});
+
+test('a final status other than Succeeded is handed back with what Azure said, and a failed poll is an error', async () => {
+    const failed = fakeJob(['Running', 'Failed']);
+    assert.strictEqual((await pollWhisperBatchJob({ ...failed.opts, pollCapMs: 60_000 })).status, 'Failed');
+
+    const down = fakeJob(['Running']);
+    await assert.rejects(
+        pollWhisperBatchJob({ ...down.opts, pollCapMs: 60_000, fetchJob: async () => ({ ok: false, status: 503, json: async () => ({}) }) }),
+        /Polling failed: HTTP 503/,
+    );
 });

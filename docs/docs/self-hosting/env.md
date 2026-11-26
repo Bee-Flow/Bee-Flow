@@ -257,6 +257,7 @@ tests and organisation-wide import do.
 | `NEXTCLOUD_MAX_RECORDING_BYTES` | `2147483648` (2 GiB) | Largest Nextcloud (Talk) recording Bee Flow downloads for meeting notes. A video recording is kept whole so the meeting player shows the picture; only its extracted audio goes to the transcription engine, with its own fixed 500 MB cap. A bigger download fails as `recording_too_large`. `0` = unlimited. |
 | `MEETING_IMPORT_MAX_CONCURRENT_PER_USER` | `3` | Manual meeting imports (Teams, Google Meet) one user runs at once on one server process; more gets a `429`. `0` = unlimited. |
 | `MEETING_IMPORT_MAX_CONCURRENT_PER_ORG` | `10` | The same per organisation. `0` = unlimited. |
+| `WHISPER_AZURE_POLL_TIMEOUT_MS` | unset | How long Bee Flow waits for an Azure Whisper batch transcription, in milliseconds. Unset or `0`: 30 minutes for Azure's queue plus the length of the audio, six hours at most (a two-hour meeting waits up to 2.5 hours). A transcription that is not ready by then ends the import as `timeout`. |
 
 ## Redis
 

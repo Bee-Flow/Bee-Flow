@@ -241,13 +241,15 @@ function withExtras(artifact, items, slot) {
 // Always throws: classified codes freeze the job; anything else retries up to
 // MAX_INGEST_ATTEMPTS, then freezes as 'failed'. A run the user is watching
 // (`manual`) is not retried behind their back: its failure is final and keeps
-// its own code, so the screen and the job agree.
+// its own code, so the screen and the job agree. A transcription that timed
+// out keeps `timeout` on the last attempt too: "took too long" is what the
+// user who opens the meeting later has to read, not "failed".
 async function failIngest(job, err, { manual = false } = {}) {
     return kit.failIngest({
         store: d.teamsImportStore, job, err,
         terminalCodes: TERMINAL_CODES,
         maxAttempts: manual ? 1 : MAX_INGEST_ATTEMPTS,
-        keepCode: manual,
+        keepCode: manual || err?.code === 'timeout',
         fallbackMessage: 'Teams import failed',
     });
 }

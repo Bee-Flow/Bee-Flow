@@ -225,13 +225,13 @@ async function releaseClaimAfterTerminalFailure(job) {
  * @param {Error & { code?: string }} err
  */
 async function failIngest(job, err, { manual = false } = {}) {
-    // A run the user is watching (`manual`) is not retried behind their back:
-    // its failure is final and keeps its own code, so screen and job agree.
+    // A run the user is watching (`manual`) is not retried behind their back: its failure is final and
+    // keeps its own code, so screen and job agree. A timed-out transcription keeps `timeout` on the last attempt too.
     return kit.failIngest({
         store: gmeetImportStore, job, err,
         terminalCodes: TERMINAL_CODES,
         maxAttempts: manual ? 1 : MAX_INGEST_ATTEMPTS,
-        keepCode: manual,
+        keepCode: manual || err?.code === 'timeout',
         fallbackMessage: 'Google Meet import failed',
         onTerminal: releaseClaimAfterTerminalFailure,
     });
