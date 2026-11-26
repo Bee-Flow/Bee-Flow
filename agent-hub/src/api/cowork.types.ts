@@ -201,6 +201,9 @@ export interface CoworkAgent {
 
 /** What POST /api/cowork/compose answers; every field may be missing. */
 export interface CoworkSpec {
+    timeIsSuggested?: boolean;
+    firstRunDate?: string;
+    oneOff?: 'now' | 'scheduled';
     delivery?: { quote: string; to: string[] };
     missingTarget?: 'folder' | 'table' | 'recipient';
     title?: string;

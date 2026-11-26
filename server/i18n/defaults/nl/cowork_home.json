@@ -61,6 +61,7 @@
     "cowork_home.confirm.show_first": "Laat mij elk bericht eerst zien",
     "cowork_home.confirm.show_first_off": "Cowork laat je in het begin toch elk bericht zien. Nadat je het 10 keer hebt doorgelaten, kun je in de taak ‘Niet vragen’ kiezen.",
     "cowork_home.confirm.show_first_on": "Er gaat niets naar iemand anders voordat jij het hebt gezien, onder Wacht op jou.",
+    "cowork_home.confirm.start_question": "Wil je ‘{title}’ volgens deze planning starten?",
     "cowork_home.confirm.start_ai": "Starten",
     "cowork_home.confirm.starting": "Bezig met starten…",
     "cowork_home.confirm.target_folder": "In welke map wil je de bestanden opslaan?",

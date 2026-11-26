@@ -78,9 +78,9 @@ async function createSchedule(fields) {
         `INSERT INTO cowork_schedules
            (id, user_id, title, prompt, repeat_interval, next_run_at, model_tier,
             timezone, tools_enabled, agent_id, days_of_week, time_of_day, enabled_apps,
-            trigger_kind, trigger_json)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-        [id, userId, ...insertValues(fields)],
+            trigger_kind, trigger_json, setup_state, setup_json, independence)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+        [id, userId, ...insertValues(fields), fields.initialSetup?.state ?? null, fields.initialSetup?.json ?? null, fields.initialSetup?.independence ?? null],
     );
     log.info(`[CoworkStore] Created "${title}" for user ${userId}, next run: ${nextRunAt}`);
     return getSchedule(id);

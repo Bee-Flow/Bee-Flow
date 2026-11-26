@@ -5,6 +5,8 @@
  * where its questions arrive.
  */
 import { useId, useState } from 'react';
+import CoworkActivity from '../CoworkActivity';
+import { BUTTON_PRIMARY, LINK_INLINE } from '../coworkUi';
 import CoworkTaskHeader from './CoworkTaskHeader';
 import CoworkTaskResult from './CoworkTaskResult';
 import CoworkTaskRuns from './CoworkTaskRuns';
@@ -41,10 +43,23 @@ function SharedTaskTabs({ item, runs }: { item: CoworkItem; runs: CoworkRun[] })
     const { t, locale } = useTranslation();
     const tabId = useId();
     const [tab, setTab] = useState<TaskTab>('result');
-    return <CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={{
+    const [advanced, setAdvanced] = useState(false);
+    const [view, setView] = useState<'result' | 'history' | null>(null);
+    if (!advanced) return <div className="cowork-task-guided">
+        <button className={LINK_INLINE} onClick={() => setAdvanced(true)}>{t('cowork_overview.advanced', 'Advanced')}</button>
+        <CoworkActivity tone="rest" message={view === 'history' ? t('cowork_task.tabs.history', 'History') : t('cowork_task.tabs.result', 'Result')}>
+            {view === 'result' && <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />}
+            {view === 'history' && <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />}
+            <div className="flex gap-2">
+                {view !== 'result' && <button className={BUTTON_PRIMARY} onClick={() => setView('result')}>{t('cowork_task.orb.open_result', 'Open result')}</button>}
+                {view !== 'history' && <button className={LINK_INLINE} onClick={() => setView('history')}>{t('cowork_task.tabs.history', 'History')}</button>}
+            </div>
+        </CoworkActivity>
+    </div>;
+    return <><button className={LINK_INLINE} onClick={() => setAdvanced(false)}>{t('cowork_task.orb.back', 'Back to the orb')}</button><CoworkTaskTabs idPrefix={tabId} value={tab} onChange={setTab} panels={{
         result: <CoworkTaskResult item={item} latest={latestRunOf(runs)} locale={locale} t={t} />,
         history: <CoworkTaskRuns coworkId={item.id} runs={runs} withReceipts={false} heading={t('cowork_task.runs.heading', 'Earlier runs')} t={t} />,
-    }} />;
+    }} /></>;
 }
 
 export default function CoworkTaskShared({ panel }: CoworkSheetPanelProps) {

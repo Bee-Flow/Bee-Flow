@@ -242,7 +242,7 @@ export default function useCoworkComposer({ enabled = true, weeklyOn = null, onC
             // starts tomorrow rather than firing immediately.
             let useWhen: WhenState = when;
             if (!touched.when && spec?.timeOfDay) {
-                const first = nextOccurrence(spec.timeOfDay, spec.daysOfWeek);
+                const first = spec.firstRunDate ? resolveWhen('custom', { date: spec.firstRunDate, time: spec.timeOfDay }) : nextOccurrence(spec.timeOfDay, spec.daysOfWeek);
                 if (first) {
                     useWhen = { presetId: 'custom', date: toDateInput(first), time: toTimeInput(first) };
                 }

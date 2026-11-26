@@ -84,6 +84,7 @@ export default {
     "cowork_home.confirm.show_first": "Show me each message first",
     "cowork_home.confirm.show_first_off": "Cowork still shows you each message at first. After 10 runs you let through, you can choose “Don’t ask” in the task.",
     "cowork_home.confirm.show_first_on": "Nothing goes to someone else before you have seen it, under Needs you.",
+    "cowork_home.confirm.start_question": "Start “{title}” on this schedule?",
     "cowork_home.confirm.start_ai": "Start",
     "cowork_home.confirm.starting": "Starting…",
     "cowork_home.confirm.uses": "Uses",

@@ -3,7 +3,7 @@
 // changed, an edit of the sentence updates the card without losing what was changed by hand, and "Set up and test"
 // creates the task with what the card shows. The network is the seam (a recording fetch).
 import type { ReactElement } from 'react';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
@@ -111,25 +111,35 @@ describe('CoworkHomeComposer', () => {
         expect(within(card).queryByLabelText('Add an address')).toBeNull();
     });
 
-    it('a sentence without a day: the card asks "Which day?", and "Set up and test" waits for the answer', async () => {
+    it('asks for the missing frequency, day and time under the orb before creating a task', async () => {
         serve({ title: 'Meeting overview', prompt: 'Summarise my meetings' });
         const { onCreated } = renderComposer();
-        const { user, card } = await write('Summarise my meetings');
-        expect(within(card).getByLabelText('Task name')).toHaveValue('Meeting overview');
-        expect(within(card).queryByTestId('cowork-confirm-sends')).toBeNull();
-        expect(within(card).getByText('Available in this Cowork task')).toBeVisible();
-        expect(within(card).getByText('Your sentence does not say when. Pick a day and it is ready to start.')).toBeInTheDocument();
-        expect(within(card).getByRole('button', { name: 'Set up and test' })).toBeDisabled();
-        const days = within(card).getByRole('combobox', { name: 'Which day?' });
-        const monday = within(days).getAllByRole('option').find((o) => (o as HTMLOptionElement).value === 'mon') as HTMLOptionElement;
-        await user.selectOptions(days, monday);
-        expect(within(card).queryByRole('combobox', { name: 'Which day?' })).toBeNull();
-        expect(screen.getByTestId('cowork-confirm-when')).toHaveTextContent(/Every .+ at/);
-        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        const { user, card } = await write('Summarise my meetings', false);
+        expect(card.querySelector('.cowork-orb')).toBeVisible();
+        const next = within(card).getByRole('button', { name: 'Set up and test' });
+        expect(next).toBeDisabled();
+        await user.selectOptions(within(card).getByLabelText('How often'), 'weekly');
+        await user.selectOptions(within(card).getByLabelText('Which day?'), 'mon');
+        expect(next).toBeDisabled();
+        fireEvent.change(within(card).getByLabelText('At what time?'), { target: { value: '15:45' } });
+        expect(created()).toBeUndefined();
+        await user.dblClick(next);
         await waitFor(() => expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: 'new' })));
-        expect(created()?.body).toMatchObject({ title: 'Meeting overview', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00', setup: { steps: true, sendsTo: [] } });
+        expect(created()?.body).toMatchObject({ title: 'Meeting overview', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '15:45', setup: { steps: true, sendsTo: [] } });
         expect((created()?.body as { startNow?: boolean }).startNow).toBeUndefined();
         expect(box()).toHaveValue('');
+    });
+
+    it('keeps the stated weekday and asks only for the missing time before setup', async () => {
+        serve({ ...WEEKLY, timeOfDay: undefined });
+        renderComposer();
+        const { user, card } = await write('Every Monday, summarise my meetings', false);
+        expect(card.querySelector('.cowork-orb')).toBeVisible();
+        expect(within(card).queryByRole('combobox')).toBeNull();
+        expect(created()).toBeUndefined();
+        fireEvent.change(within(card).getByLabelText('At what time?'), { target: { value: '11:15' } });
+        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ daysOfWeek: ['mon'], timeOfDay: '11:15' }));
     });
 
     it('a sentence that says when: no question, every row can be changed, and Cancel makes nothing', async () => {
@@ -285,15 +295,63 @@ describe('CoworkHomeComposer', () => {
         expect(screen.queryByTestId('cowork-confirm')).toBeNull();
     });
 
-    it('keeps optional fields and controls out of the simple review and leaves the requested delivery visible', async () => {
-        serve({ ...WEEKLY, delivery: { quote: 'mail sam@example.com', to: ['sam@example.com'] } });
+    it.each([
+        ['Send the summary to me', ['me']],
+        ['Mail sam@example.com', ['sam@example.com']],
+    ] as const)('starts a single held test for an explicit delivery: %s', async (quote, to) => {
+        serve({ ...WEEKLY, delivery: { quote, to: [...to] } });
+        const { onCreated } = renderComposer();
+        const user = userEvent.setup();
+        await user.type(box(), 'Every Monday at 09:00, summarise my Fireflies meetings. ' + quote);
+        await user.dblClick(screen.getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+        expect(calls.filter(c => c.method === 'POST' && pathOf(c) === '/api/cowork')).toHaveLength(1);
+        expect(created()?.body).toMatchObject({ setup: { steps: true, sendsTo: to } });
+        expect(screen.queryByText('Review your task')).toBeNull();
+    });
+
+    it('uses a stated one-off date and asks only for the time', async () => {
+        serve({ firstRunDate: '2099-04-16', oneOff: 'scheduled' });
         renderComposer();
-        const { user, card } = await write('Every Monday, mail sam@example.com', false);
-        expect(within(card).getByText(/Sends to · sam@example.com/)).toBeVisible();
-        expect(within(card).queryByRole('textbox')).toBeNull();
-        expect(within(card).getByRole('button', { name: 'Set up and test' })).toBeEnabled();
-        await user.click(within(card).getByRole('button', { name: 'Advanced' }));
-        expect(within(card).getByLabelText('Task name')).toHaveValue(WEEKLY.title);
+        const { user, card } = await write('Summarise my meetings on April 16, 2099', false);
+        expect(within(card).queryByRole('combobox')).toBeNull();
+        expect(within(card).queryByLabelText('Date')).toBeNull();
+        fireEvent.change(within(card).getByLabelText('At what time?'), { target: { value: '15:10' } });
+        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ nextRunAt: new Date(2099, 3, 16, 15, 10).toISOString(), repeatInterval: null }));
+    });
+
+    it('keeps a live task behind an explicit start in the orb', async () => {
+        serve(WEEKLY);
+        renderComposer({ steps: false });
+        const { user, card } = await write('Summarise my meetings every Monday at 09:00', false);
+        expect(card.querySelector('.cowork-orb')).toBeVisible();
+        expect(created()).toBeUndefined();
+        await user.click(within(card).getByRole('button', { name: 'Start' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ setup: { steps: false } }));
+    });
+
+    it('keeps a suggested morning time editable and cancels without creating a task', async () => {
+        serve({ ...WEEKLY, repeatInterval: 'daily', daysOfWeek: [], timeOfDay: '08:00', timeIsSuggested: true });
+        renderComposer();
+        const { user, card } = await write('Every morning, summarise my meetings', false);
+        expect(within(card).getByLabelText('At what time?')).toHaveValue('08:00');
+        await user.click(within(card).getByRole('button', { name: 'Cancel' }));
+        expect(box()).toHaveValue('Every morning, summarise my meetings');
+        expect(created()).toBeUndefined();
+    });
+
+    it('uses the recipient answer and the schedule without another model call', async () => {
+        serve({ ...WEEKLY, timeOfDay: undefined, delivery: { quote: 'email the summary', to: [] } });
+        renderComposer();
+        const { user, card } = await write('Every Monday email the summary', false);
+        const recipient = within(card).getByLabelText('Who should receive the result?');
+        await user.type(recipient, 'sam@example.com');
+        await user.click(within(card).getByRole('button', { name: 'Continue' }));
+        fireEvent.change(screen.getByLabelText('At what time?'), { target: { value: '10:30' } });
+        await user.click(screen.getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ timeOfDay: '10:30', setup: { sendsTo: ['sam@example.com'], askFirst: true } }));
+        expect(composed()).toHaveLength(1);
     });
 
     it('shows only the current setup phase and keeps creation controls out of the way', () => {
@@ -306,15 +364,16 @@ describe('CoworkHomeComposer', () => {
     });
 });
 
-it('asks for the destination, reads the answer and only then enables setup', async () => {
+it('reads the table answer and starts the held test directly', async () => {
     serve((brief) => ({ ...WEEKLY, ...(brief.includes('Orders') ? {} : { missingTarget: 'table' }) }));
     renderComposer();
-    const { user, card } = await write('Every Monday add new rows to a table');
+    const { user, card } = await write('Every Monday add new rows to a table', false);
     expect(within(card).queryByTestId('cowork-confirm-start')).toBeNull();
+    expect(card.querySelector('.cowork-orb')).toBeVisible();
     await user.type(within(card).getByLabelText('Which table should receive the rows?'), 'Orders');
-    await user.click(within(card).getByRole('button', { name: 'Continue' }));
-    expect(await screen.findByTestId('cowork-confirm-start', {}, { timeout: 4000 })).toBeEnabled();
-    expect(created()).toBeUndefined();
+    await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+    await waitFor(() => expect(created()?.body).toMatchObject({ setup: { steps: true } }));
+    expect(composed()).toHaveLength(2);
 });
 
 it('the file example asks for the folder and table in turn and leaves the result editable', async () => {

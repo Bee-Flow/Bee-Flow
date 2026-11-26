@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import { CalendarDays, FileInput, Mail, Table2 } from 'lucide-react';
+import CoworkActivity from './CoworkActivity';
 import { FIELD, LINK_BUTTON } from './coworkUi';
 import { useReadableTables } from '@/api/coworkStart';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -18,8 +19,7 @@ function examples(t: TranslateFn) {
     ];
 }
 
-export default function CoworkExamples({ onPick, t }: { onPick: (text: string) => void; t: TranslateFn }) {
-    const [selected, select] = useState<number | null>(null);
+export default function CoworkExamples({ selected, select, onPick, t }: { selected: number | null; select: (index: number | null) => void; onPick: (text: string) => void; t: TranslateFn }) {
     const [answers, setAnswers] = useState<string[]>([]);
     const [answer, setAnswer] = useState('');
     const options = examples(t);
@@ -44,6 +44,14 @@ export default function CoworkExamples({ onPick, t }: { onPick: (text: string) =
         setAnswers(filled);
         setAnswer('');
     };
+    if (question) return <CoworkActivity message={question} tone="rest" work={{ action: 'ask' }}>
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); next(); }}>
+            <label className="flex flex-col gap-1"><span className="sr-only">{question}</span><input type={selected === 1 && answers.length === 1 ? 'email' : 'text'} list={tableQuestion ? suggestionsId : undefined} className={FIELD} maxLength={200} value={answer} onChange={(event) => setAnswer(event.target.value)} /></label>
+            {tableQuestion && <datalist id={suggestionsId}>{tables.data?.map((table) => <option key={table.id} value={table.name || table.id} />)}</datalist>}
+            <button type="button" className={LINK_BUTTON} onClick={() => select(null)}>{t('cowork_home.confirm.cancel', 'Cancel')}</button>
+            <button className={LINK_BUTTON} disabled={!answer.trim()}>{t('cowork_home.examples.next', 'Continue')}</button>
+        </form>
+    </CoworkActivity>;
     return <div className="flex flex-col gap-2">
         <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
             {options.map(({ label, Icon }, i) => (
@@ -54,10 +62,6 @@ export default function CoworkExamples({ onPick, t }: { onPick: (text: string) =
                 </button>
             ))}
         </div>
-        {question && <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); next(); }}>
-            <label className="flex flex-col gap-1">{question}<input type={selected === 1 && answers.length === 1 ? 'email' : 'text'} list={tableQuestion ? suggestionsId : undefined} className={FIELD} maxLength={200} value={answer} onChange={(event) => setAnswer(event.target.value)} /></label>
-            {tableQuestion && <datalist id={suggestionsId}>{tables.data?.map((table) => <option key={table.id} value={table.name || table.id} />)}</datalist>}
-            <button className={LINK_BUTTON} disabled={!answer.trim()}>{t('cowork_home.examples.next', 'Continue')}</button>
-        </form>}
+
     </div>;
 }

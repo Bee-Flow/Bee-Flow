@@ -6,6 +6,21 @@
  */
 
 export default {
+    "cowork_task.orb.active": "In progress",
+    "cowork_task.orb.selected": "{count} steps selected",
+    "cowork_task.orb.open_result": "Open result",
+    "cowork_task.orb.review_result": "Review task",
+    "cowork_task.orb.shorten": "Select fewer steps or shorten the change.",
+    "cowork_task.orb.recipient": "Change recipient",
+    "cowork_task.orb.tests": "Tests and permissions",
+    "cowork_task.orb.talk": "Ask a question or describe a change…",
+    "cowork_task.orb.ready": "How can I help with this task?",
+    "cowork_task.orb.send": "Send message",
+    "cowork_task.orb.wait_edit": "I can change the steps when the current work finishes.",
+    "cowork_task.orb.thinking": "I’m looking into that.",
+    "cowork_task.orb.review": "Apply this tested change?",
+    "cowork_task.orb.schedule": "Schedule",
+    "cowork_task.orb.back": "Back to the orb",
     "cowork_task.flow.step_count": "{count} steps",
     "cowork_task.test.active": "Testing",
     "cowork_task.test.waiting": "Waiting",

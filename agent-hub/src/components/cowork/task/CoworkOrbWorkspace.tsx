@@ -1,0 +1,98 @@
+import { useId, useState, type ReactNode } from 'react';
+import { ChevronDown, FileText } from 'lucide-react';
+import type { CoworkItem } from '@/api/cowork.types';
+import type { PlanState } from '@/api/coworkPlan.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import CoworkActivity from '../CoworkActivity';
+import type { OrbWork } from '../CoworkOrbSources';
+import CoworkProposalDetails from '../CoworkProposalDetails';
+import { BUTTON_PRIMARY, LINK_INLINE } from '../coworkUi';
+import CoworkStepRail from './CoworkStepRail';
+import { inRunOrder, planSteps } from './coworkTaskModel';
+import type { OrbView } from './CoworkTaskOrb';
+import type { TaskConversation } from './useTaskConversation';
+
+interface Props {
+    item: CoworkItem; plan?: PlanState; select: (v: OrbView) => void; chat: TaskConversation;
+    saved: boolean; needs: boolean; hasOutput: boolean; live?: ReactNode; active?: string; t: TranslateFn;
+}
+
+function feedback(s: TaskConversation, t: TranslateFn) {
+    if (s.dialog.isPending) return t('cowork_task.orb.thinking', 'I’m looking into that.');
+    if (s.edit.requestChange.isPending) return t('cowork_home.activity.proposal', 'Preparing and testing your change…');
+    if (s.edit.approve.isPending) return t('cowork_home.activity.applying', 'Applying your change…');
+    if (s.edit.dismiss.isPending) return t('cowork_home.activity.discarding', 'Discarding the proposal…');
+    if (s.proposal) return t('cowork_task.orb.review', 'Apply this tested change?');
+    if (s.edit.approve.isSuccess) return t('cowork_home.activity.applied', 'Your change has been applied.');
+    if (s.edit.dismiss.isSuccess) return t('cowork_home.activity.discarded', 'Proposal discarded.');
+    return null;
+}
+
+function Review({ state: s, t }: { state: TaskConversation; t: TranslateFn }) {
+    const p = s.proposal;
+    if (!p) return null;
+    return <div className="cowork-review">
+        <h2 className="text-lg font-semibold">{t('cowork_task.orb.review', 'Apply this tested change?')}</h2>
+        <CoworkProposalDetails proposal={p} t={t} compact />
+        {!!p.recipients?.length && <p>{t('cowork_task.set.sends', 'Sends to')} · {p.recipients.join(', ')}</p>}
+        <div className="flex flex-wrap gap-2">
+            <button className={BUTTON_PRIMARY} onClick={() => s.edit.approve.mutate({ proposalId: p.id, fingerprint: p.fingerprint })}>{t('cowork_task.tested.approve', 'Approve')}</button>
+            <button className={LINK_INLINE} onClick={() => s.edit.dismiss.mutate(p.id)}>{t('cowork_task.edit.discard', 'Discard proposal')}</button>
+        </div>
+    </div>;
+}
+
+
+function Controls({ chat, needs, hasOutput, select, plan, t }: Props) {
+    if (chat.busy) return null;
+    if (chat.pendingBrief) return <div className="flex gap-2">
+        <button className={BUTTON_PRIMARY} onClick={chat.saveBrief}>{plan?.draft ? t('cowork_task.edit.save_test', 'Save and test') : t('cowork_task.edit.save', 'Save')}</button>
+        <button className={LINK_INLINE} onClick={chat.cancel}>{t('cowork_task.edit.cancel', 'Cancel')}</button>
+    </div>;
+    return <div className="flex flex-wrap justify-center gap-2">
+        {hasOutput && <button className={LINK_INLINE} onClick={() => select('result')}><FileText size={15}/>{t('cowork_task.orb.open_result', 'Open result')}</button>}
+        {needs && <button className={BUTTON_PRIMARY} onClick={() => select('review')}>{t('cowork_task.orb.review_result', 'Review task')}</button>}
+    </div>;
+}
+
+function caption(props: Props) {
+    const {chat, saved, t} = props;
+    const status = feedback(chat, t);
+    if (status) return status;
+    if (chat.selected.length) return t('cowork_task.orb.selected', '{count} steps selected', { count: chat.selected.length });
+    if (saved) return t('cowork_task.edit.saved', 'Saved');
+    return t('cowork_task.orb.ready', 'How can I help with this task?');
+}
+
+function orbWork({ item, plan, chat }: Props, thinking: boolean): OrbWork {
+    const draft = plan?.draft;
+    const flow = draft ? inRunOrder(draft.view.steps, draft.view.runOrder) : [];
+    const focus = flow.findIndex(step => step.id === chat.selected.at(-1));
+    return { flow, apps: item.enabledApps, focus: focus < 0 ? undefined : focus, action: thinking ? 'thinking' : 'rest' };
+}
+
+export default function CoworkOrbWorkspace(props: Props) {
+    const { plan, live, active, t, chat } = props;
+    const rows = plan ? planSteps(plan, t) : [];
+    const thinking = chat.busy || chat.dialog.isPending;
+    const [expanded, setExpanded] = useState(false);
+    const railId = useId();
+    const review = !!chat.proposal && !live && !chat.busy;
+    const work = orbWork(props, thinking);
+    const rail = <CoworkStepRail steps={rows} selected={chat.selected} toggle={chat.toggle} disabled={chat.dialog.isPending} active={active} t={t} />;
+    return <>
+        <div className={'cowork-orb-workspace' + (rows.length ? ' has-steps' : '') + (review ? ' is-review' : '')}>
+            <div className="min-w-0">{live || <CoworkActivity message={caption(props)} tone={thinking ? 'thinking' : 'rest'} work={work}>
+                {!review && <Controls {...props} />}
+            </CoworkActivity>}</div>
+            {!!rows.length && <div className="cowork-workspace-steps">
+                {review && <button className="cowork-step-disclosure" aria-expanded={expanded} aria-controls={railId} onClick={() => setExpanded(!expanded)}>
+                    {chat.selected.length ? t('cowork_task.orb.selected', '{count} steps selected', {count: chat.selected.length}) : t('cowork_task.steps.heading', 'Steps')}
+                    <ChevronDown size={15} aria-hidden="true" />
+                </button>}
+                <div id={railId}>{rail}</div>
+            </div>}
+        </div>
+        {review && <Review state={chat} t={t} />}
+    </>;
+}

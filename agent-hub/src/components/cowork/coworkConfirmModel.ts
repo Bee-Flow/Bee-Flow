@@ -11,7 +11,7 @@
  * sends is the draft with those choices in it (`startPayload`): the name, the schedule, the apps as the task's own
  * list, and who it sends to with "show me each message first" as its set-up (server usecases/coworkSetup.mts).
  */
-import { cadenceLine, nextOccurrence, repeatLabel, toTimeInput } from './coworkSchedule';
+import { cadenceLine, nextOccurrence, repeatLabel, toDateInput, toTimeInput } from './coworkSchedule';
 import type { CoworkPayload, CoworkTriggerPayload } from '@/api/cowork.types';
 import type { CoworkDraft } from './useCoworkComposer';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -29,9 +29,34 @@ export const isClockPayload = (p: CoworkPayload | CoworkTriggerPayload): p is Co
 export function needsDay({ payload, spec }: CoworkDraft): boolean {
     if (!isClockPayload(payload)) return false;
     const days = Array.isArray(payload.daysOfWeek) && payload.daysOfWeek.length > 0;
-    if (payload.repeatInterval === 'weekly' && !days) return true;
+    if ((payload.repeatInterval === 'weekly' || payload.repeatInterval === 'biweekly') && !days) return true;
     if (!spec) return true;
     return !spec.repeatInterval && !spec.timeOfDay && !(spec.daysOfWeek?.length);
+}
+
+function knownDate(draft: CoworkDraft, now = new Date()): string | undefined {
+    const date = draft.spec?.firstRunDate;
+    if (!date || date < toDateInput(now)) return undefined;
+    if (draft.spec?.timeOfDay && new Date(date + 'T' + draft.spec.timeOfDay) <= now) return undefined;
+    return date;
+}
+
+export function scheduleInputs(draft: CoworkDraft) {
+    const { spec } = draft;
+    return {
+        firstDate: knownDate(draft),
+        knownTime: spec?.timeIsSuggested ? undefined : spec?.timeOfDay,
+        once: !!spec?.firstRunDate || spec?.oneOff === 'scheduled',
+    };
+}
+
+export function needsScheduleAnswer(draft: CoworkDraft): boolean {
+    const { payload, spec } = draft;
+    if (!isClockPayload(payload)) return false;
+    if (spec?.oneOff === 'now' && payload.startNow) return false;
+    const { knownTime, once, firstDate } = scheduleInputs(draft);
+    const dated = once || ['monthly', 'quarterly', 'yearly'].includes(payload.repeatInterval ?? '');
+    return dated ? !firstDate || !knownTime : needsDay(draft) || (hasTimeOfDay(payload) && !knownTime);
 }
 
 /** The time the draft runs at, as HH:MM: its own, that of its first run, or 09:00. */
@@ -240,6 +265,18 @@ export function confirmView(draft: CoworkDraft, choices: ConfirmChoices, sentenc
         sendsToOthers,
         showFirst: sendsToOthers && (choices.showFirst ?? true),
     };
+}
+
+/** Only an unresolved destination requires an answer. A manual choice in Advanced is final. */
+export function missingDestination(draft: CoworkDraft, view: ConfirmView, choices: ConfirmChoices) {
+    const target = draft.spec?.missingTarget;
+    if (target === 'table' || target === 'folder') return target;
+    if (view.deliveryRequested && !choices.recipients && !view.recipients.me && !view.recipients.others.length) return 'recipient';
+    return undefined;
+}
+
+export function canTestDraft(payload: CoworkPayload | CoworkTriggerPayload): payload is CoworkPayload {
+    return isClockPayload(payload) && !payload.agentId;
 }
 
 /**

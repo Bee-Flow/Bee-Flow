@@ -3682,11 +3682,6 @@
       "count": 2
     }
   },
-  "core/cowork/coworkCompose.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "core/cowork/coworkShield.js": {
     "complexity": {
       "count": 1

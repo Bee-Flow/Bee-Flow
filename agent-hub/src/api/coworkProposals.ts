@@ -2,7 +2,7 @@
 // kept failing, or an offer to make a steady AI step fixed. Nothing is applied until the owner approves it here; an
 // approved fixed step can be undone (POST /api/cowork/:id/plan/restore).
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanParameter } from './coworkPlan.types';
 import { apiJson } from './typedRequest';
 import { coworkPlanKey } from './queries/coworkPlan';
@@ -42,6 +42,11 @@ const listOf = (answer: unknown): CoworkProposal[] => {
     return Array.isArray(list) ? list as CoworkProposal[] : [];
 };
 
+const interactionKey = (id: string) => ['cowork', 'task-interaction', id] as const;
+export function useTaskInteractionBusy(id: string) {
+    return useIsMutating({ mutationKey: interactionKey(id) }) > 0;
+}
+
 const coworkProposalsKey = (coworkId: string) => ['cowork', 'proposals', coworkId] as const;
 
 /** The item's proposals, newest first. */
@@ -64,11 +69,13 @@ export function useCoworkProposalActions(coworkId: string) {
         void client.invalidateQueries({ queryKey: ['cowork', 'needs-you'] });
     };
     const approve = useMutation<ProposalList, Error, { proposalId: string; fingerprint: string }>({
+        mutationKey: interactionKey(coworkId),
         mutationFn: ({ proposalId, fingerprint }) => apiJson<'POST /api/cowork/{id}/proposals/{proposalId}/approve', ProposalList>(
             'POST /api/cowork/{id}/proposals/{proposalId}/approve', { params: { id: coworkId, proposalId }, body: { fingerprint } }),
         onSuccess: settle,
     });
     const dismiss = useMutation<ProposalList, Error, string>({
+        mutationKey: interactionKey(coworkId),
         mutationFn: (proposalId) => apiJson<'POST /api/cowork/{id}/proposals/{proposalId}/dismiss', ProposalList>(
             'POST /api/cowork/{id}/proposals/{proposalId}/dismiss', { params: { id: coworkId, proposalId }, body: {} }),
         onSuccess: settle,
@@ -77,10 +84,23 @@ export function useCoworkProposalActions(coworkId: string) {
         mutationFn: (version) => apiJson<'POST /api/cowork/{id}/plan/restore'>('POST /api/cowork/{id}/plan/restore', { params: { id: coworkId }, body: { version } }),
         onSuccess: settle,
     });
-    const requestChange = useMutation<ProposalList, Error, { instruction: string } | { parameter: PlanParameter & { before: string } }>({
+    const requestChange = useMutation<ProposalList, Error, { instruction: string; scope?: { fingerprint: string; stepIds: string[] } } | { parameter: PlanParameter & { before: string } }>({
+        mutationKey: interactionKey(coworkId),
         mutationFn: (body) => apiJson<'POST /api/cowork/{id}/proposals', ProposalList>(
             'POST /api/cowork/{id}/proposals', { params: { id: coworkId }, body }),
         onSuccess: settle,
     });
     return { approve, dismiss, restore, requestChange };
+}
+
+export type CoworkReplyAction = 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'review' | 'overview';
+export interface CoworkReply { answer: string; action: CoworkReplyAction; instruction: string }
+export interface CoworkMessage { role: 'user' | 'assistant'; text: string }
+
+export function useCoworkConversation(id: string) {
+    return useMutation({
+        mutationKey: interactionKey(id),
+        mutationFn: (body: { message: string; view: string; history: CoworkMessage[]; scope?: { stepIds: string[]; fingerprint: string } }) =>
+            apiJson<'POST /api/cowork/{id}/conversation', CoworkReply>('POST /api/cowork/{id}/conversation', { params: { id }, body }),
+    });
 }

@@ -34,15 +34,17 @@ interface SettingRowProps<Id extends string> {
     open: boolean;
     /** It was saved a moment ago: the closed row says so. */
     saved?: boolean;
+    focused?: boolean;
     onToggle: (id: Id | null) => void;
     t: TranslateFn;
     children: ReactNode;
 }
 
 /** One row of Settings: opened, it is edited in place, right under its value. Only the opened row renders its body. */
-export function SettingRow<Id extends string>({ id, label, value, note, open, saved = false, onToggle, t, children }: SettingRowProps<Id>) {
+export function SettingRow<Id extends string>({ id, label, value, note, open, saved = false, focused, onToggle, t, children }: SettingRowProps<Id>) {
     const bodyId = useId();
     const ref = useReveal<HTMLDivElement>(open);
+    if (focused) return open ? <div className="flex flex-col gap-4">{children}</div> : null;
     return (
         <div ref={ref} className="scroll-my-4 border-t border-[var(--border-subtle)]" data-testid={`cowork-task-setting-${id}`}>
             <button

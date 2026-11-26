@@ -2,6 +2,7 @@
 // "Weekly digest" with approved fixed steps, served over a recording fetch (no module is mocked), and the page opened
 // on it. A test replaces only the part of the world it is about.
 import type { ReactNode } from 'react';
+import { screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { renderWithClient } from '@/test/render';
@@ -62,6 +63,7 @@ export interface World {
     needs?: unknown[];
     testProgress?: () => unknown;
     proposals?: unknown[];
+    conversation?: (body: unknown) => unknown;
     shared?: unknown;
     independence?: unknown;
     audit?: unknown[];
@@ -101,7 +103,9 @@ function otherRead(world: World): Record<string, unknown> {
     };
 }
 
-function testResponse(progress: World['testProgress'], path: string, method: string) {
+function testResponse(world: World, path: string, method: string, body: unknown) {
+    const progress = world.testProgress;
+    if (method === 'POST' && path === TASK + '/conversation' && world.conversation) return jsonResponse(world.conversation(body));
     if (progress && path === TASK + '/plan/try' && method === 'POST') return jsonResponse({ tryId: 'try-1', fingerprint: FINGERPRINT });
     if (progress && path === TASK + '/plan/try/try-1') return jsonResponse(progress());
     return null;
@@ -113,7 +117,7 @@ function serveTask(world: World = {}) {
     const others = otherRead(world);
     const calls = stubRecordingFetch(({ url, method, body }) => {
         const path = pathOf(url);
-        const testReply = testResponse(world.testProgress, path, method);
+        const testReply = testResponse(world, path, method, body);
         if (testReply) return testReply;
         if (method === 'PUT' && path === `${TASK}/plan/independence`) return jsonResponse({ ...INDEPENDENCE, chosen: (body as { level?: string }).level });
         if (method !== 'GET') return jsonResponse(method === 'DELETE' ? { success: true } : {});
@@ -144,4 +148,11 @@ export function openTask(world: World = {}, panel: CoworkSheetPanel = { kind: 't
     const page = <CoworkTaskView {...props} />;
     renderWithClient(world.automations ? <WithAutomations>{page}</WithAutomations> : page);
     return { ...served, close, open, user: userEvent.setup() };
+}
+
+/** Enter the full controls through the same explicit action as an owner. */
+export async function openAdvancedTask(...args: Parameters<typeof openTask>) {
+    const world = openTask(...args);
+    await world.user.click(await screen.findByRole('button', { name: 'Advanced' }));
+    return world;
 }

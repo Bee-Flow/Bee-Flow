@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-92 routes, 63 with a request schema. Back to the [endpoint reference](../reference.md).
+93 routes, 64 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -85,6 +85,29 @@ No request schema.
 **Access:** Signed-in user · middleware `trainingGate`
 
 No request schema.
+
+### `POST /api/cowork/:id/conversation`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `message` | string | yes | min length 1; max length 2000 |
+| `scope` | object |  | no other keys |
+| `scope.stepIds` | array of string | yes | min items 1; max items 100 |
+| `scope.fingerprint` | string | yes | min length 64; max length 64 |
+| `view` | string | yes | max length 24 |
+| `history` | array of object | yes | max items 6 |
+| `history[].role` | one of `"user"`, `"assistant"` | yes |  |
+| `history[].text` | string | yes | max length 2000 |
 
 ### `GET /api/cowork/:id/desk`
 

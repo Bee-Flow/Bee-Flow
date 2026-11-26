@@ -4,7 +4,7 @@
 // "Ask me" choice maps to the three levels; the apps chips save `enabledApps`.
 import { screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { INDEPENDENCE, ITEM, NO_PLAN, PLAN_WAITING, openTask } from './taskWorld.testkit';
+import { INDEPENDENCE, ITEM, NO_PLAN, PLAN_WAITING, openAdvancedTask, openTask } from './taskWorld.testkit';
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -22,7 +22,7 @@ const TASK = '/api/cowork/w1';
 
 describe('CoworkTaskSettings', () => {
     it('shows the current value of all four rows in plain words while they are closed', async () => {
-        const { user } = openTask();
+        const { user } = await openAdvancedTask();
         await user.click(await screen.findByRole('tab', { name: 'Settings' }));
         await row('what');
         expect(value('what')).toHaveTextContent('Sum up the week.');
@@ -34,7 +34,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('opens one row at a time, in place', async () => {
-        const { user } = openTask();
+        const { user } = await openAdvancedTask();
         const what = await openRow(user, 'what');
         expect(within(what).getByLabelText('Name')).toHaveValue('Weekly digest');
         const when = await openRow(user, 'when');
@@ -44,7 +44,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('What: a new name is "Save", sent at once as the name and the sentence only, and the steps stay', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const what = await openRow(user, 'what');
         expect(within(what).getByRole('button', { name: 'Save' })).toBeDisabled();
         await user.type(within(what).getByLabelText('Name'), ' on Monday');
@@ -56,7 +56,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('What: a new sentence for fixed steps says before saving that the steps are rebuilt and tested, then does it', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const what = await openRow(user, 'what');
         await user.type(within(what).getByLabelText('What should be done?'), ' Add the open invoices.');
         expect(within(what).queryByRole('button', { name: 'Save' })).toBeNull();
@@ -68,7 +68,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('What: the target to track is saved by itself, through the goal route', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const what = await openRow(user, 'what');
         const target = within(what).getByTestId('cowork-task-target');
         expect(target).toHaveTextContent('Target to track');
@@ -80,7 +80,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('When: another schedule is "Save", sent as the clock only', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const when = await openRow(user, 'when');
         await user.selectOptions(within(when).getByLabelText('How often'), 'daily');
         await user.click(within(when).getByRole('button', { name: 'Save' }));
@@ -91,7 +91,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('When: every start is offered, a mail start says it only drafts, and a webhook is "Save and test" through the start route', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const when = await openRow(user, 'when');
         const kinds = within(when).getByLabelText('It starts');
         expect(within(kinds).getAllByRole('option').map((o) => o.textContent)).toEqual([
@@ -106,7 +106,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Uses: the apps are chips, and switching one on saves the task\'s own list as enabledApps', async () => {
-        const { user, sent } = openTask({ plan: NO_PLAN });
+        const { user, sent } = await openAdvancedTask({ plan: NO_PLAN });
         const uses = await openRow(user, 'uses');
         const chip = await within(uses).findByRole('button', { name: 'OneDrive' });
         expect(chip).toHaveAttribute('aria-pressed', 'false');
@@ -117,7 +117,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('saves a chosen model tier and tests the replacement of the current fixed steps', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const uses = await openRow(user, 'uses');
         const option = await within(uses).findByRole('option', { name: 'Fast · mail-model' });
         await user.selectOptions(within(uses).getByLabelText('AI model'), option);
@@ -127,7 +127,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Uses: other apps for fixed steps are "Save and test"', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const uses = await openRow(user, 'uses');
         await user.click(await within(uses).findByRole('button', { name: 'OneDrive' }));
         await user.click(within(uses).getByRole('button', { name: 'Save and test' }));
@@ -136,7 +136,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Uses: fixed steps back to the AI is "Save", says before saving that the steps are taken off, and takes them off', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const uses = await openRow(user, 'uses');
         await user.click(within(uses).getByRole('radio', { name: 'The AI works it out every run' }));
         expect(within(uses).getByTestId('cowork-task-save-note')).toHaveTextContent('Saving takes its fixed steps off: from then on the task is worked out again on every run.');
@@ -147,7 +147,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Uses: a task the AI does becomes fixed steps with "Save and test", where the organisation has automations', async () => {
-        const { user, sent } = openTask({ plan: NO_PLAN, automations: true });
+        const { user, sent } = await openAdvancedTask({ plan: NO_PLAN, automations: true });
         const uses = await openRow(user, 'uses');
         expect(within(uses).getByRole('radio', { name: 'The AI works it out every run' })).toBeChecked();
         await user.click(within(uses).getByRole('radio', { name: 'Fixed steps' }));
@@ -156,7 +156,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Uses: holds what it remembers and its spending limit, and the limit saves by itself', async () => {
-        const { user, sent } = openTask();
+        const { user, sent } = await openAdvancedTask();
         const uses = await openRow(user, 'uses');
         expect(within(uses).getByTestId('cowork-task-remembers')).toHaveTextContent('What it remembers');
         const limit = within(uses).getByTestId('cowork-task-limit');
@@ -167,7 +167,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Sends to: the one "Ask me" choice maps to the three levels of independence', async () => {
-        const { user, all } = openTask();
+        const { user, all } = await openAdvancedTask();
         const sends = await openRow(user, 'sends');
         expect(within(sends).getByTestId('cowork-task-recipients')).toHaveTextContent('You');
         const ask = within(sends).getByTestId('cowork-task-ask');
@@ -187,7 +187,7 @@ describe('CoworkTaskSettings', () => {
 
     it('Sends to: a level that is not open yet is off and says why', async () => {
         const options = INDEPENDENCE.options.map((o) => (o.level === 'on_its_own' ? { ...o, open: false } : o));
-        const { user } = openTask({ independence: { ...INDEPENDENCE, letThrough: 3, options } });
+        const { user } = await openAdvancedTask({ independence: { ...INDEPENDENCE, letThrough: 3, options } });
         const sends = await openRow(user, 'sends');
         const off = await within(sends).findByRole('radio', { name: /Don't ask/ });
         await waitFor(() => expect(off).toBeDisabled());
@@ -195,7 +195,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Sends to: is there before the steps are approved too, switched off, with one line that says why', async () => {
-        const { user, sent } = openTask({ plan: PLAN_WAITING });
+        const { user, sent } = await openAdvancedTask({ plan: PLAN_WAITING });
         await row('sends');
         await waitFor(() => expect(screen.getByTestId('cowork-task-setting-sends')).toHaveTextContent('Asking first starts once its steps are approved'));
         const sends = await openRow(user, 'sends');
@@ -205,7 +205,7 @@ describe('CoworkTaskSettings', () => {
     });
 
     it('Sends to: for a task the AI does it says that asking first belongs to fixed steps', async () => {
-        const { user } = openTask({ plan: NO_PLAN, item: { ...ITEM, enabledApps: null } });
+        const { user } = await openAdvancedTask({ plan: NO_PLAN, item: { ...ITEM, enabledApps: null } });
         const sends = await openRow(user, 'sends');
         expect(within(sends).getByTestId('cowork-task-ask-why')).toHaveTextContent('This applies to fixed steps.');
         await waitFor(() => expect(value('uses')).toHaveTextContent('The AI works it out every run'));

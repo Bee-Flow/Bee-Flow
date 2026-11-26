@@ -22,8 +22,9 @@ const { loadOwnedItem } = require('../usecases/coworkItems.mts');
 const { requireModule } = require('../modules');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const instruction = z.string().trim().min(1).max(2000);
+const stepSelection = { stepIds: z.array(z.string().min(1).max(200)).min(1).max(100), fingerprint: z.string().length(64) };
 const ChangeBody = z.union([
-    bodyOf({ instruction }, 'Changing the steps'),
+    bodyOf({ instruction, scope: z.object(stepSelection).strict().optional() }, 'Changing the steps'),
     bodyOf({ parameter: z.object({ stepId: z.string().min(1).max(200), field: z.enum(['query', 'folder', 'path', 'subject', 'to']),
         before: z.string().max(2000), value: instruction }).strict() }, 'Changing a step setting'),
 ]);
@@ -32,6 +33,10 @@ const VERSION_TEXT = 'version is the number of an approved version of the plan.'
 const ApproveBody = bodyOf({ fingerprint: worded(FINGERPRINT_TEXT).length(64, FINGERPRINT_TEXT) }, 'Approving a proposal');
 const DismissBody = bodyOf({}, 'Putting a proposal aside');
 const RestoreBody = bodyOf({ version: wholeNumber(VERSION_TEXT, { min: 1, max: 1_000_000 }) }, 'Restoring a plan');
+const ConversationBody = bodyOf({
+    message: instruction, scope: z.object(stepSelection).strict().optional(), view: z.string().max(24),
+    history: z.array(z.object({ role: z.enum(['user', 'assistant']), text: z.string().max(2000) }).strict()).max(6),
+}, 'Talking to a Cowork task');
 const ItemParams = z.object({ id: z.string().min(1).max(200) }).strict();
 const ProposalParams = z.object({ id: z.string().min(1).max(200), proposalId: z.string().min(1).max(200) }).strict();
 
@@ -60,6 +65,12 @@ const defaults = () => ({
 function mountProposalRoutes(router, overrides = {}) {
     const { loadItem, proposals, versions } = { ...defaults(), ...overrides };
     const limit = perUserRateLimit({ windowMs: 60_000, max: 3, name: 'cowork-owner-change' });
+    const questions = perUserRateLimit({ windowMs: 60_000, max: 10, name: 'cowork-step-question' });
+    router.post('/:id/conversation', questions, validate({ params: ItemParams, body: ConversationBody }), async (req, res) => {
+        const item = await loadItem(req.params.id, userIdOf(req));
+        await require('../core/cowork/spendGate.mts').assertSpendLeft(item);
+        res.json(await require('../usecases/coworkConversation').converse(item, req.body));
+    });
     router.post('/:id/proposals', requireModule('automation'), limit, validate({ params: ItemParams, body: ChangeBody }), async (req, res) => {
         const item = await loadItem(req.params.id, userIdOf(req));
         await require('../core/cowork/spendGate.mts').assertSpendLeft(item);

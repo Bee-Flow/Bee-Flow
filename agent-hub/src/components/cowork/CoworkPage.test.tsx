@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
+import { EntitlementsProvider } from '../licensing/EntitlementsContext';
 import CoworkPage from './CoworkPage';
 import { softClasses } from './crisp.testkit';
 import type { CoworkItem } from '@/api/cowork.types';
@@ -22,6 +23,7 @@ let calls: RecordedCall[];
 function serve(items: CoworkItem[] = [ITEM]) {
     calls = stubRecordingFetch(({ url, method }) => {
         const path = new URL(url, 'http://x').pathname;
+        if (path.endsWith('/my-entitlements')) return jsonResponse({ tier: 'full', effective: { core: ['automations'] } });
         if (path === '/api/cowork' && method === 'GET') return jsonResponse({ schedules: items, maxSchedules: 10 });
         // A new task that waits for its steps (server usecases/coworkSetup.mts): the home then sets them up and tests them.
         if (path === '/api/cowork' && method === 'POST') return jsonResponse({ id: 'new', title: 'Meeting overview', prompt: 'Summarise', runCount: 0, setup: { steps: 'wanted', cause: null, since: null, sendsTo: null, askFirst: null, canUndo: false } });
@@ -179,11 +181,11 @@ describe('CoworkPage', () => {
     it('a new task is started, then Cowork sets up and tests its steps', async () => {
         serve([]);
         const user = userEvent.setup();
-        renderWithClient(<CoworkPage />);
+        renderWithClient(<EntitlementsProvider><CoworkPage /></EntitlementsProvider>);
         expect(await screen.findByText('No tasks yet. Write one sentence above to start.')).toBeInTheDocument();
         await user.type(screen.getByTestId('cowork-brief-input'), 'Every day at 9, summarise my meetings');
         await user.click(screen.getByTestId('cowork-continue'));
-        await user.click(await screen.findByTestId('cowork-confirm-start'));
+        expect(screen.queryByText('Review your task')).toBeNull();
         await waitFor(() => expect(calls.some((c) => c.method === 'POST' && path(c) === '/api/cowork/new/plan/make')).toBe(true));
     });
 });

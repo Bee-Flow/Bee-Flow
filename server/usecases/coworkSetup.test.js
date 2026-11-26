@@ -12,7 +12,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { startSetup, setupStarted, setupFailed, chooseMode } = require('./coworkSetup.mts');
+const { initialSetup, setupStarted, setupFailed, chooseMode } = require('./coworkSetup.mts');
 const { heldForSetup } = require('../core/cowork/taskSetup.mts');
 const { setupViewOf } = require('../stores/coworkSetup.mts');
 const { HttpError } = require('../core/http/errors');
@@ -32,7 +32,6 @@ function world({ mayAsk = true, stepsAvailable = true, state = null, record = {}
             detachForAi: async (_id, rec) => { row.setup_state = 'ai'; row.record = { ...rec }; row.planAutomationId = null; row.planId = null; },
             restoreFromAi: async (_id, was, rec) => { row.setup_state = was.state; row.record = { ...rec }; row.planAutomationId = was.planAutomationId; row.planId = was.planId; },
         },
-        setIndependence: async (_id, level) => { row.independence = level; },
         mayAsk: async () => mayAsk,
         stepsAvailable: async () => stepsAvailable,
         now: () => NOW,
@@ -42,35 +41,31 @@ function world({ mayAsk = true, stepsAvailable = true, state = null, record = {}
     return { row, deps, item };
 }
 
-test('a new task keeps what its owner chose: it waits for its steps, sends to me and sam, and shows each message first', async () => {
-    const w = world();
-    const setup = await startSetup({ item: w.item(), chosen: { steps: true, sendsTo: ['me', 'sam@example.com'], askFirst: true } }, w.deps);
+const owner = { userId: 'u1', organizationId: null };
+
+test('the initial row holds the task and its chosen recipients before the scheduler can see it', async () => {
+    const { deps } = world();
+    const fields = await initialSetup(owner, { steps: true, sendsTo: ['me', 'sam@example.com'], askFirst: true }, deps);
+    assert.ok(fields);
+    const setup = setupViewOf(fields.state, fields.json);
     assert.deepStrictEqual(setup, { steps: 'wanted', cause: null, since: NOW.toISOString(), sendsTo: { me: true, others: ['sam@example.com'] }, askFirst: true, canUndo: false });
-    assert.strictEqual(w.row.independence, 'asks_before_sending', 'the wish is its level from the first run on');
-    assert.strictEqual(heldForSetup(w.item()), true, 'it does not run before its steps are approved');
+    assert.strictEqual(fields.independence, 'asks_before_sending');
+    assert.strictEqual(heldForSetup({ setup }), true);
 });
 
-test('"show me each message first" is only set where a task can ask at all; the wish stays with the task', async () => {
-    const w = world({ mayAsk: false });
-    const setup = await startSetup({ item: w.item(), chosen: { steps: true, sendsTo: ['sam@example.com'], askFirst: true } }, w.deps);
-    assert.strictEqual(w.row.independence, null);
-    assert.strictEqual(setup?.askFirst, true);
-    assert.deepStrictEqual(setup?.sendsTo, { me: false, others: ['sam@example.com'] }, 'its owner took "me" off');
-
-    const off = world();
-    await startSetup({ item: off.item(), chosen: { steps: true, askFirst: false } }, off.deps);
-    assert.strictEqual(off.row.independence, null, 'switched off: no level is chosen for them');
+test('asking before delivery follows the licence and the owner’s choice', async () => {
+    const limited = await initialSetup(owner, { steps: true, sendsTo: ['sam@example.com'], askFirst: true }, world({ mayAsk: false }).deps);
+    assert.ok(limited);
+    assert.strictEqual(limited.independence, null);
+    assert.strictEqual(setupViewOf(limited.state, limited.json)?.askFirst, true);
+    const off = await initialSetup(owner, { steps: true, askFirst: false }, world().deps);
+    assert.strictEqual(off?.independence, null);
 });
 
-test('an owner who cannot have fixed steps gets a task the AI works out, said in the answer; nothing chosen stores nothing', async () => {
-    const w = world({ stepsAvailable: false });
-    const setup = await startSetup({ item: w.item(), chosen: { steps: true, sendsTo: ['me'] } }, w.deps);
-    assert.strictEqual(setup?.steps, null);
-    assert.strictEqual(heldForSetup(w.item()), false);
-
-    const none = world();
-    assert.strictEqual(await startSetup({ item: none.item(), chosen: undefined }, none.deps), null);
-    assert.strictEqual(none.row.setup_state, null);
+test('a held test cannot fall back to live execution when fixed steps become unavailable', async () => {
+    const { deps } = world({ stepsAvailable: false });
+    await assert.rejects(initialSetup(owner, { steps: true, sendsTo: ['me'] }, deps), { code: 'cowork_setup_unavailable' });
+    assert.strictEqual(await initialSetup(owner, undefined, deps), null);
 });
 
 test('a set-up that fails, or that its owner left, leaves the task waiting with the class of what went wrong', async () => {

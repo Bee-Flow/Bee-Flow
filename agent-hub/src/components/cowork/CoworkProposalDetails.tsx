@@ -10,7 +10,7 @@ import type { CoworkProposal, ProposalChange } from '@/api/coworkProposals';
 const LABEL = 'text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]';
 const CHANGE_FALLBACK: Record<ProposalChange['change'], string> = { added: 'New', changed: 'Changed', removed: 'Removed' };
 
-export default function CoworkProposalDetails({ proposal, t }: { proposal: CoworkProposal; t: TranslateFn }) {
+export default function CoworkProposalDetails({ proposal, t, compact = false }: { proposal: CoworkProposal; t: TranslateFn; compact?: boolean }) {
     return (
         <div className="flex flex-col gap-2.5" data-testid="cowork-proposal-details">
             {proposal.changes.length > 0 && (
@@ -35,10 +35,10 @@ export default function CoworkProposalDetails({ proposal, t }: { proposal: Cowor
                         </ul>
                     )}
             </div>
-            <div className="flex flex-col gap-1">
+            {(!compact || proposal.replay) && <div className="flex flex-col gap-1">
                 <span className={LABEL}>{t('cowork_proposals.replay.heading', 'On the past runs')}</span>
                 <span className="text-[12px] text-[var(--text-secondary)]" data-testid="cowork-proposal-replay">{replayLine(proposal.replay, t)}</span>
-            </div>
+            </div>}
         </div>
     );
 }

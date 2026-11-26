@@ -13,6 +13,7 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { Settings } from 'lucide-react';
 import CoworkHome from './CoworkHome';
+import { GuidedPanelContext } from './panels/panelGuidance';
 import CoworkPageFrame from './CoworkPageFrame';
 import type { TaskFocus } from './CoworkNeedFrame';
 import { ENTER } from './coworkMotion';
@@ -112,7 +113,7 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
     const Page = page ? COWORK_SHEET_PANELS[page.kind].component : null;
     return (
         <div ref={scroller} className="flex-1 min-h-0 min-w-0 overflow-y-auto custom-scrollbar bg-[var(--bg-primary)] text-[14px] leading-5 text-[var(--text-primary)]" data-testid="cowork-page">
-            <div className="max-w-[760px] mx-auto px-4 pt-6 pb-24">
+            <div className={page ? 'cowork-open-page mx-auto pt-6 pb-24' : 'max-w-[760px] mx-auto px-4 pt-6 pb-24'}>
                 <div hidden={!!page} className={page ? 'hidden' : `${ENTER} flex flex-col gap-6`} onClickCapture={pressed}>
                     <header className="flex items-center gap-2">
                         <p ref={fallback} tabIndex={-1} className="m-0 mr-auto text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{t('sidebar.cowork', 'Cowork')}</p>
@@ -130,7 +131,7 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                 {page && Page && (
                     <CoworkPageFrame key={pageSegment(page)} label={label} onBack={close}>
                         <Suspense fallback={<p role="status" className={META}>{t('cowork_pages.loading', 'Loading…')}</p>}>
-                            <Page panel={page} user={user} close={close} open={open} fillComposer={fillComposer} />
+                            <GuidedPanelContext.Provider value><Page panel={page} user={user} close={close} open={open} fillComposer={fillComposer} /></GuidedPanelContext.Provider>
                         </Suspense>
                     </CoworkPageFrame>
                 )}

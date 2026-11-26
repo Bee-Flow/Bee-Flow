@@ -17,7 +17,7 @@ import { ChevronRight, Users } from 'lucide-react';
 import CoworkHomeComposer from './CoworkHomeComposer';
 import CoworkHomeNotices from './CoworkHomeNotices';
 import CoworkNeedCard from './CoworkNeedCard';
-import type { TaskFocus } from './CoworkNeedFrame';
+import { NeedsOverview, type TaskFocus } from './CoworkNeedFrame';
 import CoworkTaskRows, { CoworkSharedRows } from './CoworkTaskRows';
 import { ENTER, LEAVE, useLeave } from './coworkMotion';
 import type { NeedCardData } from './coworkNeedsModel';
@@ -52,7 +52,7 @@ function NeedsSection({ cards, onOpenTask, onDone }: NeedsSectionProps) {
         <section aria-labelledby="cowork-needs-heading" className="flex flex-col gap-2" data-testid="cowork-needs">
             <h2 id="cowork-needs-heading" className="m-0 text-[16px] leading-6 font-semibold text-[var(--text-primary)]">{t('cowork_home.needs.heading', 'Needs you · {count}', { count: cards.length })}</h2>
             <div className={`${CARD} overflow-hidden divide-y divide-[var(--border-subtle)]`}>
-                {shown.map((need) => <CoworkNeedCard key={need.key} need={need} onOpenTask={onOpenTask} onDone={onDone} />)}
+                <NeedsOverview.Provider value>{shown.map((need) => <CoworkNeedCard key={need.key} need={need} onOpenTask={onOpenTask} onDone={onDone} />)}</NeedsOverview.Provider>
             </div>
             {cards.length > NEEDS_SHOWN && (
                 <button type="button" className={`${LINK_BUTTON} self-start`} aria-expanded={all} onClick={() => setAll((v) => !v)}>

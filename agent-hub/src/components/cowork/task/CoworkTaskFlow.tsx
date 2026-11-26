@@ -17,7 +17,7 @@ const ICON = { read: FileSearch, change: PenLine, send: Send, ask: Hand } as con
 /** The tile of a step a model does: a mark, the same in every language (hidden from screen readers; the word below says it). */
 const AI_MARK = 'AI';
 
-function StepTile({ step }: { step: TaskStep }) {
+export function StepTile({ step }: { step: TaskStep }) {
     const base = 'w-8 h-8 rounded-[var(--radius-md)] border grid place-items-center flex-shrink-0 text-[12px] font-semibold';
     const tone = `${base} border-[var(--border-subtle)] bg-[var(--bg-tertiary)] ${TILE[step.sort]}`;
     const Icon = paletteItemForType(step.type ?? '')?.icon ?? (step.sort === 'ai' ? null : ICON[step.sort]);

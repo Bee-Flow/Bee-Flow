@@ -4,7 +4,10 @@
  * style. The look is ../coworkUi.ts, so these pages and an opened task read as one product.
  */
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { useId } from 'react';
+import { createContext, useContext, useId, useState } from 'react';
+import { GuidedPanelContext } from './panelGuidance';
+import CoworkActivity from '../CoworkActivity';
+import { useTranslation } from '@/hooks/useTranslation';
 import Toggle from '@/components/shared/Toggle';
 import { errorMessage } from '@/utils/caughtError';
 import { ALERT, BUTTON_PRIMARY, BUTTON_SECONDARY, CARD as SURFACE, FIELD_WIDE, ICON_BUTTON, LABEL, LINK_BUTTON, LINK_INLINE, SECTION_HEADING, TAG_PLAIN } from '../coworkUi';
@@ -33,16 +36,26 @@ export function PanelButton({ look = 'primary', busy = false, disabled, classNam
     return <button type={type} {...rest} disabled={busy || disabled} aria-busy={busy || undefined} className={`${LOOK[look]} ${className}`} />;
 }
 
+
+const PanelSectionsContext = createContext<string | null>(null);
+
 /** A page: its heading (the page frame moves the focus to it), a one-line meta, then its sections. */
 export function PanelShell({ title, meta, tag, testId, children }: { title: string; meta?: string; tag?: string; testId: string; children: ReactNode }) {
+    const guided = useContext(GuidedPanelContext);
+    const [advanced, setAdvanced] = useState(false);
+    const group = useId();
+    const { t } = useTranslation();
     return (
-        <div className="flex flex-col gap-6" data-testid={testId}>
+        <div className="cowork-task-guided flex flex-col gap-6" data-testid={testId}>
             <header className="flex flex-col items-start gap-1">
                 {tag && <span className={TAG_PLAIN}>{tag}</span>}
                 <h1 className="m-0 text-[20px] leading-7 font-semibold text-[var(--text-primary)] outline-none">{title}</h1>
-                {meta && <p className={META_LINE}>{meta}</p>}
+                {guided && <button className={LINK_INLINE} onClick={() => setAdvanced(!advanced)}>{advanced ? t('cowork_task.orb.back', 'Back to the orb') : t('cowork_overview.advanced', 'Advanced')}</button>}
+                {meta && (!guided || advanced) && <p className={META_LINE}>{meta}</p>}
             </header>
-            {children}
+            {guided && !advanced ? <CoworkActivity tone="rest" work={{ action: 'ask' }} message={meta || title}>
+                <div className="flex w-full max-w-lg flex-col gap-2 text-left"><PanelSectionsContext.Provider value={group}>{children}</PanelSectionsContext.Provider></div>
+            </CoworkActivity> : children}
         </div>
     );
 }
@@ -50,6 +63,10 @@ export function PanelShell({ title, meta, tag, testId, children }: { title: stri
 /** A titled group of cards. */
 export function PanelSection({ title, children }: { title: string; children: ReactNode }) {
     const headingId = useId();
+    const group = useContext(PanelSectionsContext);
+    if (group) return <details name={group} className="rounded-[var(--radius-md)] bg-[var(--bg-secondary)] px-3 py-2">
+        <summary className="cursor-pointer py-1 font-medium">{title}</summary><div className="mt-2">{children}</div>
+    </details>;
     return (
         <section className="flex flex-col gap-2" aria-labelledby={headingId}>
             <h2 id={headingId} className={SECTION_HEADING}>{title}</h2>

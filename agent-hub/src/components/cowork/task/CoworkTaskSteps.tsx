@@ -51,7 +51,9 @@ function leadOf(mode: TaskMode, agentName: string | null, t: TranslateFn): strin
 interface Tested { line: string; ok: boolean; technical: string | null }
 
 /** How it was tested: the test just made, else the last one the steps know of. */
-function testedOf(plan: PlanState | undefined, tryState: PlanTryState | null, t: TranslateFn): Tested | null {
+function testedOf(mode: TaskMode, plan: PlanState | undefined, tryOut: TryOut, t: TranslateFn): Tested | null {
+    if (mode !== 'steps' || tryOut.error) return null;
+    const tryState = tryOut.state;
     if (tryState?.done) {
         const failed = !!tryState.error || tryState.steps.some((s) => s.status === 'failed' || s.status === 'error');
         return failed
@@ -112,6 +114,7 @@ interface CoworkTaskStepsProps {
     live: boolean;
     /** Someone else's task: the steps are shown, nothing is tested. */
     readOnly: boolean;
+    controlsOnly?: boolean;
     onRebuild?: () => void;
     t: TranslateFn;
 }
@@ -143,17 +146,17 @@ function testInProgress(tryOut: TryOut) {
     return !tryOut.error && (tryOut.starting || (!!tryOut.state && !tryOut.state.done));
 }
 
-export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, onRebuild, t }: CoworkTaskStepsProps) {
+export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, controlsOnly, onRebuild, t }: CoworkTaskStepsProps) {
     const fixed = mode === 'steps' && !!plan;
     const steps = fixed ? planSteps(plan, t) : runSteps(latestRun, t);
     const may = fixed ? planMayDo(plan, t) : runMayDo(steps);
     if (testInProgress(tryOut)) return <CoworkTestProgress state={tryOut.state} runOrder={plan?.draft?.view.runOrder} t={t} />;
-    const tested = mode === 'steps' && !tryOut.error ? testedOf(plan, tryOut.state, t) : null;
+    const tested = testedOf(mode, plan, tryOut, t);
     const titleOf = (id: string) => steps.find((s) => s.id === id)?.title ?? null;
     return (
         <div className="flex flex-col gap-3" data-testid="cowork-task-steps">
-            <p className={META}>{leadOf(mode, agentName, t)}</p>
-            {steps.length ? <CoworkTaskFlow steps={steps} t={t} /> : <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>}
+            {!controlsOnly && <><p className={META}>{leadOf(mode, agentName, t)}</p>
+            {steps.length ? <CoworkTaskFlow steps={steps} t={t} /> : <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>}</>}
             <NotebookRepair plan={plan} live={live} onRebuild={onRebuild} t={t} />
             {tested && <TestedLine tested={tested} t={t} />}
             {tryOut.state?.done && <CoworkEffectPreview effects={tryOut.state.steps.filter((s) => s.held && s.status !== 'not_reached')} t={t} />}
