@@ -41,6 +41,8 @@
 
 'use strict';
 
+const { assertProviderNotFailed } = require('../../modules/firstParty/moduleState');
+
 /** name -> () => client module */
 const getters = new Map();
 
@@ -64,6 +66,19 @@ function integrationClient(name) {
     return get();
 }
 
+/**
+ * The client module, or null when it is not registered and no failed module
+ * declared it (an absent module). A name whose declared provider failed to
+ * load throws a ModuleFailedError (code 'MODULE_FAILED').
+ * @param {string} name
+ */
+function optionalIntegrationClient(name) {
+    const get = getters.get(name);
+    if (get) return get();
+    assertProviderNotFailed('integrationClients', name);
+    return null;
+}
+
 function hasIntegrationClient(name) {
     return getters.has(name);
 }
@@ -74,4 +89,4 @@ function _clearIntegrationClientsForTests(name) {
     else getters.clear();
 }
 
-module.exports = { registerIntegrationClients, integrationClient, hasIntegrationClient, _clearIntegrationClientsForTests };
+module.exports = { registerIntegrationClients, integrationClient, optionalIntegrationClient, hasIntegrationClient, _clearIntegrationClientsForTests };

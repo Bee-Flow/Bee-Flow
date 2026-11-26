@@ -11,6 +11,16 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const ports = require('./featurePorts');
+const { optionalLookupContract } = require('../../testUtils/optionalLookup.testkit');
+
+optionalLookupContract({
+    kind: 'runnerPorts',
+    name: '_probeOptional',
+    register: (port) => ports.registerRunnerPorts({ _probeOptional: /** @type {any} */ (port) }),
+    required: (name) => ports.runnerPort(name),
+    optional: (name) => ports.optionalRunnerPort(name),
+    clear: (name) => ports._clearRunnerPortsForTests(name),
+});
 
 test('a registered port is returned; an unregistered one throws naming the boot module', () => {
     ports.registerRunnerPorts({ _probe: { ping: () => 'pong' } });

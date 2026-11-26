@@ -12,6 +12,16 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const registry = require('./integrationClients');
+const { optionalLookupContract } = require('../../testUtils/optionalLookup.testkit');
+
+optionalLookupContract({
+    kind: 'integrationClients',
+    name: '_probeOptional',
+    register: (value) => registry.registerIntegrationClients({ _probeOptional: () => value }),
+    required: (name) => registry.integrationClient(name),
+    optional: (name) => registry.optionalIntegrationClient(name),
+    clear: (name) => registry._clearIntegrationClientsForTests(name),
+});
 
 test('a registered client is looked up through its getter on every call', () => {
     let n = 0;
