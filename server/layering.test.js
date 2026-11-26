@@ -96,6 +96,9 @@ const LAYERS = {
     i18n: 'platform', config: 'platform', 'core/entitlements': 'platform',
     templates: 'platform', 'db.js': 'platform', 'storeModules.js': 'platform',
     'version.js': 'platform', 'package.json': 'platform',
+    // The preload that makes the roots of the tree (server/ and each module's server/)
+    // resolve as one; it requires modules/roots/ only.
+    'moduleRoots.cjs': 'platform',
     // data: no code.
     data: 'data', assets: 'data', prompts: 'data',
 };
