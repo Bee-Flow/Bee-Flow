@@ -1399,6 +1399,12 @@
       "group": "server-tree-tests"
     },
     {
+      "file": "server/moduleRoots.test.js",
+      "status": "not-applicable",
+      "what": "tests of the module-roots resolver",
+      "reason": "a test with fixture paths only: it builds its multi-root tree in a temp directory"
+    },
+    {
       "file": "server/routes.contract.test.js",
       "status": "pending",
       "what": "walks the real app (gen-api-reference walkServer) against server/auth/routes.contract.json",
@@ -1703,6 +1709,12 @@
       "status": "pending",
       "what": "stub keys from path.join(server, rel)",
       "group": "test-kits"
+    },
+    {
+      "file": "server/testUtils/moduleRootsFixture.testkit.js",
+      "status": "not-applicable",
+      "what": "builds the temp-dir multi-root tree for the resolver tests",
+      "reason": "names only the resolver files it copies (server/moduleRoots.cjs, server/modules/roots/*.cjs), which are core and never move"
     },
     {
       "file": "server/testUtils/pgliteLadderDb.js",

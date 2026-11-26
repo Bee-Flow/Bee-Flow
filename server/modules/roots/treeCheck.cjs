@@ -3,8 +3,9 @@
  * The one-root-per-tree-path rule, checked.
  *
  * Every tree path a module root holds must exist in that root only, and a file `x.js` may
- * not shadow a directory `x/` of another root: with either, which file a request lands on
- * would depend on who asks. Not run on load (it walks the module roots): the server calls
+ * not shadow a directory `x/` of another root, in either direction (a module's `x.js` next
+ * to the core's `x/`, or a module's `x/` next to the core's `x.js`): with either, which file
+ * a request lands on would depend on who asks. Not run on load (it walks the module roots): the server calls
  * it once at boot and the repository checks call it in CI.
  */
 
@@ -12,7 +13,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { ROOTS, readDir } = require('./rootSet.cjs');
+const { CORE_ROOT, ROOTS, readDir } = require('./rootSet.cjs');
 
 /** Files a root may hold beside its tree: they configure the root, they are not part of it. */
 const ROOT_CONTROL_FILES = new Set(['node_modules', 'eslint.config.js', 'eslint-suppressions.json', 'coverage']);
@@ -20,15 +21,33 @@ const ROOT_CONTROL_FILES = new Set(['node_modules', 'eslint.config.js', 'eslint-
 /**
  * @param {string} dir absolute
  * @param {string} rel tree path of dir, '' for the root
- * @param {string[]} out tree paths of the files below dir
+ * @param {{ files: string[], dirs: string[] }} out tree paths of the files and directories below dir
  */
 function collectFiles(dir, rel, out) {
     for (const entry of readDir(dir)) {
         if (rel === '' && ROOT_CONTROL_FILES.has(entry.name)) continue;
         const child = rel ? `${rel}/${entry.name}` : entry.name;
-        if (entry.isDirectory()) collectFiles(path.join(dir, entry.name), child, out);
-        else out.push(child);
+        if (entry.isDirectory()) {
+            out.dirs.push(child);
+            collectFiles(path.join(dir, entry.name), child, out);
+        } else {
+            out.files.push(child);
+        }
     }
+}
+
+/**
+ * The files of the core root named `<dir>.<ext>`: they shadow the directory `dir` of a
+ * module root. (A module file next to a module directory is found from the file's side.)
+ * @param {string} dir tree path of a directory in a module root
+ * @returns {string[]} their tree paths
+ */
+function coreFilesShadowing(dir) {
+    const parent = path.posix.dirname(dir);
+    const base = path.posix.basename(dir);
+    return readDir(path.join(CORE_ROOT, parent))
+        .filter((entry) => !entry.isDirectory() && entry.name.replace(/\.[^.]+$/, '') === base && entry.name !== base)
+        .map((entry) => (parent === '.' ? entry.name : `${parent}/${entry.name}`));
 }
 
 /** @param {string} file */
@@ -49,10 +68,13 @@ function duplicateTreePaths() {
     /** @type {{ treePath: string, roots: (string | null)[] }[]} */
     const clashes = [];
     for (const root of ROOTS.slice(1)) {
-        /** @type {string[]} */
-        const files = [];
-        collectFiles(root.dir, '', files);
-        for (const rel of files) {
+        /** @type {{ files: string[], dirs: string[] }} */
+        const found = { files: [], dirs: [] };
+        collectFiles(root.dir, '', found);
+        for (const dir of found.dirs) {
+            for (const rel of coreFilesShadowing(dir)) clashes.push({ treePath: rel, roots: [null, root.id] });
+        }
+        for (const rel of found.files) {
             const stem = rel.replace(/\.[^./]+$/, '');
             const holders = ROOTS.filter((other) => other !== root
                 && (fs.existsSync(path.join(other.dir, rel)) || isDirectory(path.join(other.dir, stem))));

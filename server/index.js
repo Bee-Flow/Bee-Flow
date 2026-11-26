@@ -1,7 +1,8 @@
+require('./moduleRoots.cjs'); // first: the roots of the tree (server/, modules/<id>/server/) resolve as one
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
-// OpenTelemetry MUST load before express/pg/http so auto-instrumentation can
-// patch them. Self-gated: a no-op unless OTEL is enabled (see telemetry/otel).
+// OpenTelemetry MUST load before express/pg/http so auto-instrumentation can patch them (a no-op unless enabled).
 const otel = require('./telemetry/otel');
+require('./boot/moduleTree').assertSoundModuleTree(); // refuse to start when two roots hold one tree path
 const express = require('express');
 // @typecheck
 // Core modules
@@ -19,11 +20,10 @@ const memoryRouter = require('./routes/memory');
 const reportsRouter = require('./routes/reports');
 const appsRouter = require('./routes/apps');
 
-// Platform-module gate — 404-conceals a modular route when its module is not
-// imported (defense in depth in FRONT of the capability gate, which already
-// omits inactive-module capabilities from the ceiling). Required up here
-// because the first gated mounts (/apps, /api/compliance, /api/dsr) run
-// before the route section further down.
+// Platform-module gate — 404-conceals a modular route when its module is not imported
+// (defense in depth in FRONT of the capability gate, which already omits inactive-module
+// capabilities from the ceiling). Required up here because the first gated mounts
+// (/apps, /api/compliance, /api/dsr) run before the route section further down.
 const { requireModule } = require('./modules');
 const log = require('./telemetry/log');
 

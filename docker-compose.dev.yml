@@ -83,6 +83,11 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=${SERVER_PORT:-3001}
+      # The module-roots resolver (server/moduleRoots.cjs) in every Node process of this
+      # container, so worker threads and child processes of the dev server resolve the
+      # roots (/app and /modules/<id>/server) as one tree too. Inert without modules.
+      # SERVER_NODE_OPTIONS adds flags, as in docker-compose.yml.
+      - NODE_OPTIONS=--require=/app/moduleRoots.cjs ${SERVER_NODE_OPTIONS:-}
       # Must be ≥32 chars — supportInboxStore derives an AES-256 key
       # from it and refuses to boot otherwise. Override via SESSION_SECRET
       # in your .env for anything that needs token persistence across rebuilds

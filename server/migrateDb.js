@@ -32,6 +32,9 @@
  *   MIGRATE_TIMEOUT_MS=1200000 node migrateDb.js   # more generous watchdog
  */
 
+// The roots of the source tree resolve as one tree (server/moduleRoots.cjs); first, so
+// every require below goes through it. Inert without module directories.
+require('./moduleRoots.cjs');
 const path = require('path');
 const { STORE_MODULES, collectStoreModules } = require('./storeModules');
 const telemetryLog = require('./telemetry/log');

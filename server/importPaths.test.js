@@ -43,6 +43,11 @@ const ALLOWED = new Set([
 // exists for. Same shape as the EXEMPT maps in migrateDb.registration.test.js
 // and boot/bootMigrations.test.js — an entry here is a claim a reviewer can
 // check, not an escape hatch.
+/** @param {string[]} specs requests written in the source of a test's temp-dir fixture tree */
+function fixtureTree(specs) {
+    return new Map(specs.map((spec) => [spec, 'fixture source: a file of the temp-dir tree the resolver tests build']));
+}
+
 const ALLOWED_PER_FILE = new Map([
     ['stores/lib/_ddl.js', new Map([
         // Documented dual-resolve (see the _dbFacade docblock): the hermetic
@@ -95,6 +100,15 @@ const ALLOWED_PER_FILE = new Map([
         ['./routes/studioAppUsage', 'source needle into index.js: mount-order proof'],
         ['./routes/studioApps', 'source needle into index.js: mount-order proof'],
     ])],
+    // The resolver tests write a throwaway multi-root tree to a temp directory and run
+    // probes there: these are the sources of that tree's files, resolved inside it
+    // (and two that must not resolve anywhere), never from server/.
+    ['moduleRoots.test.js', fixtureTree([
+        '../feat/a', '../lib/shared', '../other/b', '../lib/own', '../lib/fromCore', '../other/fromM2',
+        '../thing', '../data/conf.json', '../feat/e.mts', '../feat/pkgs', '../use/pkg', '../use/pkg.mjs',
+        '../lib/esmCore.mts', '../nowhere/x', '../nowhere/x.mjs',
+    ])],
+    ['modules/roots/rootSet.test.js', fixtureTree(['../n', '../n8', '../feat/a', '../feat/e.mjs'])],
 ]);
 
 function stripComments(src) {

@@ -20,7 +20,7 @@ const { fileURLToPath, pathToFileURL } = require('node:url');
 const Module = /** @type {typeof import('node:module') & {
  *   _resolveFilename: (request: string, parent: NodeJS.Module | null | undefined, ...rest: unknown[]) => string,
  * }} */ (/** @type {unknown} */ (require('node:module')));
-const { CORE_ROOT, ROOTS, rootOf, hiddenOwner, rootHidden, hiding } = require('./rootSet.cjs');
+const { CORE_ROOT, ROOTS, rootOf, hiddenOwner, hiding } = require('./rootSet.cjs');
 
 /** @typedef {NodeJS.ErrnoException & { requireStack?: string[] }} ResolveError */
 /** @typedef {{ parentURL?: string, conditions?: string[], importAttributes?: Record<string, string> }} Context */
@@ -29,6 +29,8 @@ const { CORE_ROOT, ROOTS, rootOf, hiddenOwner, rootHidden, hiding } = require('.
 
 const INSTALLED = Symbol.for('beeflow.moduleRoots.installed');
 const NOT_FOUND = new Set(['MODULE_NOT_FOUND', 'ERR_MODULE_NOT_FOUND']);
+/** @type {WeakSet<Error>} the errors that say a hidden module holds the request */
+const ABSENT = new WeakSet();
 const RELATIVE = /^\.{1,2}(?:[\\/]|$)/;
 /** A parent to resolve package names from: any file in the core root will do. */
 const CORE_PARENT = path.join(CORE_ROOT, 'moduleRoots.cjs');
@@ -36,7 +38,9 @@ const CORE_PARENT = path.join(CORE_ROOT, 'moduleRoots.cjs');
 /**
  * Where else a request may live: the same tree path in the other roots, core first.
  * Keyed on the place the request points at, not on who asks, so a test in another
- * package that reaches into server/ follows a moved file as well.
+ * package that reaches into server/ follows a moved file as well. Hidden roots are
+ * included: a file found there is refused by name ("module x is not present") instead of
+ * being reported as a plain miss.
  * @param {string} request as written
  * @param {string | null | undefined} parentFile absolute path of the asking file
  * @returns {string[]} absolute candidates
@@ -49,7 +53,7 @@ function alternatives(request, parentFile) {
     const from = target && rootOf(target);
     if (!target || !from) return [];
     const rel = path.relative(from.dir, target);
-    return ROOTS.filter((root) => root !== from && !rootHidden(root)).map((root) => path.join(root.dir, rel));
+    return ROOTS.filter((root) => root !== from).map((root) => path.join(root.dir, rel));
 }
 
 /** @param {string} request */
@@ -77,6 +81,7 @@ function absentError(request, owner, parentFile, code) {
         + (parentFile ? `\nRequire stack:\n- ${parentFile}` : ''));
     err.code = code;
     if (parentFile) err.requireStack = [parentFile];
+    ABSENT.add(err);
     return err;
 }
 
@@ -90,20 +95,25 @@ function isNotFound(err) {
 
 /**
  * Run `attempt` on each candidate until one resolves; a candidate that is not found is
- * skipped, any other failure is thrown.
+ * skipped, any other failure is thrown. When none resolves but one lies in a hidden module,
+ * that refusal is thrown, so the error names the module.
  * @template T
  * @param {string[]} candidates
  * @param {(candidate: string) => T} attempt
  * @returns {{ found: T } | null}
  */
 function firstFound(candidates, attempt) {
+    /** @type {ResolveError | null} */
+    let absent = null;
     for (const candidate of candidates) {
         try {
             return { found: attempt(candidate) };
         } catch (err) {
             if (!isNotFound(err)) throw err;
+            if (!absent && ABSENT.has(err)) absent = err;
         }
     }
+    if (absent) throw absent;
     return null;
 }
 
@@ -115,11 +125,12 @@ function installRequireHook() {
      * @param {string} request
      * @param {NodeJS.Module | null | undefined} parent
      * @param {unknown[]} rest
+     * @param {string} [asWritten] the request as the caller wrote it, for the error
      */
-    function resolveOnce(request, parent, rest) {
+    function resolveOnce(request, parent, rest, asWritten = request) {
         const found = original.call(Module, request, parent, ...rest);
         const owner = hiddenOwner(found);
-        if (owner) throw absentError(request, owner, parent && parent.filename, 'MODULE_NOT_FOUND');
+        if (owner) throw absentError(asWritten, owner, parent && parent.filename, 'MODULE_NOT_FOUND');
         return found;
     }
 
@@ -133,7 +144,7 @@ function installRequireHook() {
             return resolveOnce(request, parent, rest);
         } catch (err) {
             if (!isNotFound(err)) throw err;
-            const elsewhere = firstFound(alternatives(request, parentFile), (c) => resolveOnce(c, parent, rest));
+            const elsewhere = firstFound(alternatives(request, parentFile), (c) => resolveOnce(c, parent, rest, request));
             if (elsewhere) return elsewhere.found;
             throw err;
         }
@@ -155,12 +166,13 @@ function installImportHook() {
      * @param {string} specifier
      * @param {Context} context
      * @param {Next} next
+     * @param {string} [asWritten] the specifier as the importer wrote it, for the error
      */
-    function resolveOnce(specifier, context, next) {
+    function resolveOnce(specifier, context, next, asWritten = specifier) {
         const result = next(specifier, context);
         const file = fileOf(result.url);
         const owner = file ? hiddenOwner(file) : null;
-        if (owner) throw absentError(specifier, owner, fileOf(context.parentURL), 'ERR_MODULE_NOT_FOUND');
+        if (owner) throw absentError(asWritten, owner, fileOf(context.parentURL), 'ERR_MODULE_NOT_FOUND');
         return result;
     }
 
@@ -181,7 +193,7 @@ function installImportHook() {
             if (!isNotFound(err)) throw err;
             const request = fileOf(specifier) ?? specifier;
             const elsewhere = firstFound(alternatives(request, parentFile),
-                (c) => resolveOnce(pathToFileURL(c).href, context, next));
+                (c) => resolveOnce(pathToFileURL(c).href, context, next, specifier));
             if (elsewhere) return elsewhere.found;
             throw err;
         }
