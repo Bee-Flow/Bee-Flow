@@ -210,7 +210,7 @@ export default function CoworkConfirmCard({ advanced, onAdvanced, cowork, senten
     const question = targetQuestion(target, t);
     const asking = changing || mustPick;
     const busy = cowork.submitting || rereading;
-    if (question && busy) return <CoworkActivity message={t('cowork_home.activity.preview', 'Preparing your task preview…')} testId="cowork-confirm" />;
+    if (question && busy) return <CoworkActivity message={t('cowork_home.activity.preview', 'I’m preparing an outline for you to review.')} testId="cowork-confirm" />;
     if (question) return <AskDestination question={question} busy={busy} onClarify={onClarify} onCancel={onCancel} error={cowork.error} t={t} />;
     return (
         <section className={`${CARD} ${ENTER} p-4 flex flex-col gap-4`} aria-labelledby="cowork-confirm-heading" data-testid="cowork-confirm" data-tour="cowork-options">

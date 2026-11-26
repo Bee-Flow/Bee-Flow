@@ -11,10 +11,11 @@ export function updatePattern(layers: OrbPattern[], marks: OrbPattern['marks'], 
         layers.push(current);
     }
     current.marks = marks;
+    const previousActive = current.active;
     current.active = step ? marks.findIndex(m => m?.id === step.id) : -1;
     current.converge = step?.kind === 'ai';
-    if (step && current.active >= 0 && progress.id !== step.id) {
-        current.from = marks.findIndex(m => m?.id === progress.id);
+    if (step && current.active >= 0 && (progress.id !== step.id || previousActive < 0)) {
+        current.from = progress.id === step.id ? -1 : marks.findIndex(m => m?.id === progress.id);
         current.phase = reduced ? 1 : 0;
         progress.id = step.id;
     }

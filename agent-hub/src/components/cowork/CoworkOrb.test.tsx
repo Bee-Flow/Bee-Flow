@@ -23,9 +23,10 @@ it('advances one scene through successive steps and keeps moving after completio
     };
     const { rerender, unmount } = render(<CoworkOrb activity="Preparing" />);
     frame(0); frame(50);
-    const lastTime = () => vi.mocked(drawOrbFrame).mock.lastCall![2];
+    const lastTime = () => vi.mocked(drawOrbFrame).mock.lastCall![2].time;
     const first = lastTime();
-    expect(first).toBeGreaterThan(0);
+    expect(first).toBeCloseTo(.48 * .65 / 30, 6);
+    expect(vi.mocked(drawOrbFrame).mock.lastCall![4]).toMatchObject({ version: 0, themeColors: true, tempo: .65 });
     const scheduled = [...frames.keys()];
     rerender(<CoworkOrb tone="executing" activity="Reading" />);
     expect([...frames.keys()]).toEqual(scheduled);

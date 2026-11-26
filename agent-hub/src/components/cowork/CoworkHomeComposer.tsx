@@ -232,8 +232,8 @@ export default function CoworkHomeComposer(props: CoworkHomeComposerProps) {
         </div>
     </CoworkActivity>;
     else if (setup) content = <CoworkActivity title={setup.title} {...setupActivity(setup.phase, t, setup.step, setup.apps, setup.flow)} testId="cowork-setup" />;
-    else if (brief.starting) content = <CoworkActivity work={{ action: 'creating', apps: brief.cowork.draft?.payload.enabledApps }} title={brief.cowork.draft?.payload.title} message={t('cowork_home.activity.creating', 'Creating your task…')} />;
-    else if (scene === 'preview') content = <CoworkActivity message={brief.quick ? t('cowork_home.activity.thinking', 'Thinking through your task…') : t('cowork_home.activity.preview', 'Preparing your task preview…')} />;
+    else if (brief.starting) content = <CoworkActivity work={{ action: 'creating', apps: brief.cowork.draft?.payload.enabledApps }} title={brief.cowork.draft?.payload.title} message={t('cowork_home.activity.creating', 'I’m putting your task together.')} />;
+    else if (scene === 'preview') content = <CoworkActivity message={brief.quick ? t('cowork_home.activity.thinking', 'I’m working out what your task needs.') : t('cowork_home.activity.preview', 'I’m preparing an outline for you to review.')} />;
     else content = <TaskEditor props={props} brief={brief} t={t} />;
     return <div data-cowork-engaged={scene !== 'write'}><CoworkSurface scene={scene}>{content}</CoworkSurface></div>;
 }

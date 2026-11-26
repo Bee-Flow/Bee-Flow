@@ -300,7 +300,7 @@ describe('CoworkHomeComposer', () => {
         serve({});
         renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={{ id: 'new', title: 'Meeting overview', phase: 'trying' }} />));
         expect(softClasses(screen.getByTestId('cowork-setup'))).toEqual([]);
-        expect(screen.getByRole('status')).toHaveTextContent('Testing once, nothing is sent');
+        expect(screen.getByRole('status')).toHaveTextContent('I’m trying the steps once. Nothing is sent.');
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
         expect(screen.queryByText('Ready for your check')).not.toBeInTheDocument();
     });

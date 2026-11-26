@@ -108,13 +108,15 @@ test('the first draft fails its try-out, the facts go back without a meeting tit
     assert.deepStrictEqual([result.tried.status, result.tried.rounds, result.findings], ['passed', 2, []]);
     assert.deepStrictEqual(result.tried.summary.reads, [{ title: 'List meetings', items: 2 }, { title: 'Get summaries', items: 2 }]);
     assert.strictEqual(result.tried.summary.ai, 1);
-    assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('trying')), ['trying', 'repairing', 'trying']);
+    assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('trying')), ['trying', 'repairing', 'drafted', 'trying']);
     assert.strictEqual(seen.spends, 2, 'one try-out per round, each through the budget');
 
     assert.deepStrictEqual(seen.steps.filter(s => s.round === 2).map(({ number, total, title }) => [number, total, title]),
         BATCH.map((step, i) => [i + 1, BATCH.length, step.spec.label]));
     assert.strictEqual(seen.steps.find(s => s.title === 'Write the overview').kind, 'ai');
     assert.ok(seen.steps.some(s => s.round === 1 && s.title === 'Get summaries'));
+
+    assert.ok(seen.steps.every(step => typeof step.id === 'string' && step.id.length > 0));
 
     const [report] = reports;
     assert.strictEqual(report.role, 'user');
@@ -177,5 +179,5 @@ test('a bad list reference gets a targeted repair before the first dry run', asy
     const { deps, seen } = planner([INSPECT, calls(['builder_add_steps', { steps }]), DONE, fixReference, DONE]);
     const result = await makePlan({ item, onProgress: (p) => p.step ? seen.steps.push({ round: p.round, ...p.step }) : seen.progress.push(p.phase) }, deps);
     assert.deepStrictEqual([result.tried.status, result.tried.rounds], ['passed', 1]);
-    assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('saving')), ['saving', 'repairing', 'trying']);
+    assert.deepStrictEqual(seen.progress.slice(seen.progress.indexOf('saving')), ['saving', 'repairing', 'drafted', 'trying']);
 });

@@ -13,7 +13,7 @@
     "cowork_wiring.failure.date_missing": "'{step}' kon de datum niet lezen: het leest uit een stap die niet in het plan staat.",
     "cowork_wiring.failure.step": "'{step}' werkte niet.",
     "cowork_wiring.failure.step_from": "'{step}' kon niet werken met wat '{source}' het gaf.",
-    "cowork_wiring.make.repairing": "Herstellen wat de proefrun vond…",
+    "cowork_wiring.make.repairing": "Ik pas de stappen aan op basis van de proefrun.",
     "cowork_wiring.make.trying": "Het plan één keer uitproberen, zonder iets te wijzigen of te versturen…",
     "cowork_wiring.note.fixed": "Vanzelf hersteld: {changes}.",
     "cowork_wiring.note.reads": "'{step}' leest nu uit '{other}'",

@@ -1,3 +1,4 @@
+import type { OrbLook } from './coworkOrbAppearance';
 // Distant arms share a vanishing point. Their tiny stars move less than the
 // foreground as the viewer looks through the rotating neural volume.
 const planes = Array.from({ length: 8 }, (_, i) => {
@@ -24,7 +25,7 @@ function starCloud(index: number) {
     return path;
 }
 
-export function drawDeepSky(ctx: CanvasRenderingContext2D, time: number) {
+export function drawDeepSky(ctx: CanvasRenderingContext2D, time: number, palette: OrbLook) {
     const sway = Math.sin(time * .16), lift = Math.cos(time * .12);
     ctx.save();
     ctx.translate(-13, -8);
@@ -34,7 +35,7 @@ export function drawDeepSky(ctx: CanvasRenderingContext2D, time: number) {
         ctx.save();
         ctx.translate((12 + 5 * sway) * near, (7 + 3 * lift) * near);
         ctx.rotate(-.18 + .34 * i + .045 * near * sway);
-        ctx.fillStyle = i < 3 ? '#b3c6e4' : '#909ac8';
+        ctx.fillStyle = palette.deepColor;
         ctx.globalAlpha = .16 + .48 * Math.sqrt(near);
         ctx.fill(plane.dust ??= starCloud(i));
         ctx.restore();

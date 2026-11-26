@@ -33,6 +33,7 @@
   },
   "packageManager": "npm@10.9.0",
   "scripts": {
+    "demo:orb": "vite orb-demo --config orb-demo/vite.config.mjs",
     "predev": "node scripts/generate-module-shims.mjs",
     "dev": "vite",
     "dev:clean": "rm -rf node_modules/.vite && vite",

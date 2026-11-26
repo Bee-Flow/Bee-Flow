@@ -18,9 +18,11 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 function RunLive({ coworkId, run, runOrder, t }: { coworkId: string; run: CoworkRun; runOrder?: string[]; t: TranslateFn }) {
     const trace = useCoworkRunTrace(coworkId, run.id).data;
     const steps = trace?.recorded ? inRunOrder(trace.steps, runOrder) : [];
+    if (run.status !== 'running') return <div data-testid="cowork-task-live"><CoworkActivity tone="rest" work={{ flow: steps, action: 'rest' }}
+        message={t('cowork_task.run.reason_done', 'Every step finished as planned.')} /></div>;
     const active = steps.findLast((step) => step.status === 'running');
     return <div data-testid="cowork-task-live"><CoworkActivity title={t('cowork_task.live.running', 'Running now')}
-        work={{ apps: [active?.app], stepType: active?.type, flow: steps, focus: active ? steps.indexOf(active) : undefined }} tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
+        work={{ action: 'executing', apps: [active?.app], stepType: active?.type, flow: steps, focus: active ? steps.indexOf(active) : undefined }} tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
         message={active ? plainStepTitle(active, t) : t('cowork_task.live.working', 'Working on it')} /></div>;
 }
 

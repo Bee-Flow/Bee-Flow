@@ -1,3 +1,4 @@
+import type { OrbLook } from './coworkOrbAppearance';
 import { drawDeepSky } from './coworkOrbDeepSky';
 import type { NeuralGlyph } from './coworkOrbGlyph';
 import type { Fibre, OrbGeometry, Point } from './coworkOrbGeometry';
@@ -7,14 +8,42 @@ export type ActivityTone = 'thinking' | 'executing' | 'repair' | 'rest';
 const TAU = 2 * Math.PI;
 const COLOURS = ['#3e4a89', '#566baa', '#8494d3', '#9dbbed', '#c1ddfa', '#e1f4ff'];
 
-function drawCore(ctx: CanvasRenderingContext2D, project: Project) {
+function drawLightCore(ctx: CanvasRenderingContext2D, light: Point, palette: OrbLook) {
+    // Keep the sky behind the fine fibres dense on a bright page. Offset
+    // the inner shadow so only one side catches the reflected rim light.
+    const body = ctx.createRadialGradient(20 + light.x * .10, 17 + light.y * .10, 9, 0, 0, 104);
+    body.addColorStop(0, palette.coreColor);
+    body.addColorStop(.58, palette.coreColor);
+    body.addColorStop(.78, palette.rimColor);
+    body.addColorStop(.87, palette.rimColor + 'ed');
+    body.addColorStop(.945, palette.rimColor + '70');
+    body.addColorStop(1, palette.mistColor + '00');
+    ctx.save();
+    ctx.globalAlpha = 1 - palette.transparency ** 1.55;
+    ctx.fillStyle = body;
+    ctx.fillRect(-105, -105, 210, 210);
+
+    const reflection = ctx.createRadialGradient(-46, -41, 0, -46, -41, 42);
+    reflection.addColorStop(0, palette.mistColor + '40');
+    reflection.addColorStop(.55, palette.mistColor + '18');
+    reflection.addColorStop(1, palette.mistColor + '00');
+    ctx.fillStyle = reflection;
+    ctx.fillRect(-88, -83, 84, 84);
+    ctx.restore();
+}
+
+function drawCore(ctx: CanvasRenderingContext2D, project: Project, palette: OrbLook) {
     const light = project({ x: -.42, y: -.27, z: .47 });
+    if (palette.lightSurface) {
+        drawLightCore(ctx, light, palette);
+        return;
+    }
     const mist = ctx.createRadialGradient(light.x * .78, light.y * .78, 3, 0, 0, 104);
-    mist.addColorStop(0, 'rgba(12,17,42,.99)');
-    mist.addColorStop(.48, 'rgba(16,22,51,.99)');
-    mist.addColorStop(.79, 'rgba(27,32,70,.91)');
-    mist.addColorStop(.90, 'rgba(56,70,130,.36)');
-    mist.addColorStop(1, 'rgba(112,133,194,0)');
+    mist.addColorStop(0, palette.coreColor);
+    mist.addColorStop(.48, palette.coreColor);
+    mist.addColorStop(.79, palette.rimColor + 'dc');
+    mist.addColorStop(.90, palette.rimColor + '5c');
+    mist.addColorStop(1, palette.rimColor + '00');
     ctx.fillStyle = mist;
     ctx.fillRect(-105, -105, 210, 210);
 }
@@ -48,6 +77,20 @@ function projector(time: number) {
     };
 }
 type Project = ReturnType<typeof projector>;
+
+// Sample one smooth displacement field for the fibres, synapses and passing
+// impulses. Shared world coordinates always meet, including at branch points.
+function driftingNetwork(project: Project, time: number): Project {
+    const point = { x: 0, y: 0, z: 0 };
+    return ({ x, y, z }) => {
+        const phase = 3.6 * x - 2.8 * y + 1.7 * z + time * .70;
+        const curl = 2.1 * y + 2.9 * z - time * .47;
+        point.x = x + .050 * Math.sin(curl);
+        point.y = y + .055 * Math.sin(phase) + .018 * Math.cos(curl);
+        point.z = z + .034 * Math.cos(phase + curl);
+        return project(point);
+    };
+}
 
 function trace(ctx: CanvasRenderingContext2D, project: Project, points: Point[]) {
     ctx.beginPath();
@@ -95,13 +138,13 @@ function drawGrains(ctx: CanvasRenderingContext2D, project: Project, dust: Point
     }
 }
 
-function drawNebula(ctx: CanvasRenderingContext2D, project: Project) {
+function drawNebula(ctx: CanvasRenderingContext2D, project: Project, palette: OrbLook) {
     for (let i = -5; i <= 5; i++) {
         const u = i / 6;
         const { x, y } = project({ x: u, y: -.35 * u + .07 * Math.sin(4 * u), z: .18 * Math.cos(3 * u) });
         const radius = 15 + 12 * (1 - Math.abs(u));
         const haze = ctx.createRadialGradient(x, y, 0, x, y, radius);
-        haze.addColorStop(0, i % 3 === 0 ? 'rgba(173,144,212,.23)' : 'rgba(138,161,218,.19)');
+        haze.addColorStop(0, palette.mistColor + '38');
         haze.addColorStop(.5, 'rgba(112,127,193,.09)');
         haze.addColorStop(1, 'rgba(97,109,172,0)');
         ctx.fillStyle = haze;
@@ -109,9 +152,11 @@ function drawNebula(ctx: CanvasRenderingContext2D, project: Project) {
     }
 }
 
-function drawStarBand(ctx: CanvasRenderingContext2D, project: Project, stars: Point[]) {
+function drawStarBand(ctx: CanvasRenderingContext2D, project: Project, stars: Point[], palette: OrbLook) {
     const fine = new Path2D(), bright = new Path2D();
-    for (const [i, star] of stars.entries()) {
+    const count = stars.length;
+    for (let i=0; i<count; i++) {
+        const star = stars[i];
         const { x, y, z } = project(star);
         const standout = i % 29 === 0;
         const radius = (standout ? .48 : .19) * (1 + .23 * z);
@@ -121,7 +166,7 @@ function drawStarBand(ctx: CanvasRenderingContext2D, project: Project, stars: Po
         } else fine.rect(x - radius, y - radius, radius * 2, radius * 2);
     }
     ctx.globalAlpha = .64;
-    ctx.fillStyle = '#abb4e6';
+    ctx.fillStyle = palette.starColor;
     ctx.fill(fine);
     ctx.globalAlpha = .74;
     ctx.fillStyle = '#e2dff8';
@@ -129,18 +174,23 @@ function drawStarBand(ctx: CanvasRenderingContext2D, project: Project, stars: Po
     ctx.globalAlpha = 1;
 }
 
-function lightPoint(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, light: number) {
+function lightPoint(ctx: CanvasRenderingContext2D, { x, y }: { x: number; y: number }, size: number, light: number, color = '#cdeaff') {
     const halo = ctx.createRadialGradient(x, y, 0, x, y, size * 3.5);
     halo.addColorStop(0, '#f3fbff');
-    halo.addColorStop(.18, '#cdeaff');
-    halo.addColorStop(.35, 'rgba(154,195,255,.52)');
-    halo.addColorStop(1, 'rgba(133,158,245,0)');
+    halo.addColorStop(.18, color);
+    halo.addColorStop(.35, color + '85');
+    halo.addColorStop(1, color + '00');
     ctx.fillStyle = halo;
     ctx.globalAlpha = light;
     ctx.fillRect(x - size * 3.5, y - size * 3.5, size * 7, size * 7);
 }
 
-function drawImpulse(ctx: CanvasRenderingContext2D, project: Project, axon: Axon, age: number, light: number) {
+interface NeuralScene {
+    project: Project; look: OrbLook; time: number; intensity: number; lineInk: string | CanvasGradient;
+}
+
+function drawImpulse(ctx: CanvasRenderingContext2D, scene: NeuralScene, axon: Axon, age: number, light: number) {
+    const { project, look } = scene;
     const end = axon.path.length - 1;
     const head = Math.min(1, age / axon.duration) * end;
     const tail = Math.max(0, (age - .24) / axon.duration) * end;
@@ -149,36 +199,80 @@ function drawImpulse(ctx: CanvasRenderingContext2D, project: Project, axon: Axon
     trace(ctx, project, axon.path.slice(Math.floor(tail), i + 1));
     const { x, y } = project({ x: a.x + (b.x - a.x) * mix, y: a.y + (b.y - a.y) * mix, z: a.z + (b.z - a.z) * mix });
     ctx.lineTo(x, y);
-    ctx.strokeStyle = '#d6f3ff';
+    ctx.strokeStyle = look.pulseColor;
     ctx.globalAlpha = light * .88;
     ctx.lineWidth = .94;
     ctx.stroke();
-    if (age < axon.duration) lightPoint(ctx, x, y, 1.4, light);
+    if (age < axon.duration) lightPoint(ctx, { x, y }, 1.4, light);
 }
 
-function drawAxon(ctx: CanvasRenderingContext2D, project: Project, axon: Axon, time: number, intensity: number) {
+function drawAxon(ctx: CanvasRenderingContext2D, scene: NeuralScene, axon: Axon) {
+    const { project, time, intensity, look, lineInk } = scene;
     const depth = project(axon.path[8]).z;
     const light = Math.max(.07, .45 + depth * .62);
     const age = impulseAge(time, axon.arrival);
-    ctx.strokeStyle = '#a3c9f4';
+
+    const boost = look.lightSurface ? 1.35 : 1;
+    ctx.strokeStyle = lineInk;
     ctx.lineWidth = .55 + light * .42;
-    ctx.globalAlpha = light * (.29 + intensity * .22 * Math.max(0, 1 - age));
+    ctx.globalAlpha = Math.min(1,boost * light * (.29 + intensity * .22 * Math.max(0, 1 - age)));
     trace(ctx, project, axon.path);
+    {
+        const alpha = ctx.globalAlpha;
+        const width = ctx.lineWidth;
+        ctx.globalAlpha = alpha * .17;
+        ctx.lineWidth = width * 3;
+        ctx.stroke();
+        ctx.globalAlpha = alpha * .77;
+        ctx.lineWidth = width * .8;
+    }
     ctx.stroke();
     ctx.lineWidth = .46;
-    ctx.globalAlpha = light * .21;
+    ctx.globalAlpha = light * .21 * boost;
     trace(ctx, project, axon.twig);
     ctx.stroke();
-    if (intensity > .01 && age < axon.duration + .24) drawImpulse(ctx, project, axon, age, light * intensity);
+    if (intensity > .01 && age < axon.duration + .24) drawImpulse(ctx, scene, axon, age, light * intensity);
 }
 
-function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: NeuralNetwork, time: number, beat: number) {
-    for (const axon of network.axons) drawAxon(ctx, project, axon, time, beat * 2);
+function nerveInk(ctx: CanvasRenderingContext2D, look: OrbLook) {
+
+    if (look.lightSurface) {
+        const gradient = ctx.createRadialGradient(0,0,0,0,0,104);
+        gradient.addColorStop(0,look.pulseColor);
+        gradient.addColorStop(.79,look.nerveColor);
+        gradient.addColorStop(.95,look.rimColor);
+        gradient.addColorStop(1,look.rimColor + 'a8');
+        return gradient;
+    }
+    return look.nerveColor;
+}
+
+function drawNetwork(ctx: CanvasRenderingContext2D, project: Project, network: NeuralNetwork, clock: { time: number; beat: number }, look: OrbLook) {
+    const time = clock.time * .46;
+    const beat = clock.beat;
+    // The backplate under a neuron changes from a dark core to the page at
+    // the limb. Vary contrast over that same distance, including along one axon.
+    const onLight = look.lightSurface;
+    const scene = { project, time, intensity: beat * 2, look, lineInk: nerveInk(ctx, look) };
+    for (const axon of network.axons) drawAxon(ctx, scene, axon);
     for (const neuron of network.neurons) {
         const { x, y, z } = project(neuron.position);
         const pulse = beat * 2 * Math.max(0, 1 - impulseAge(time, neuron.arrival) / .6);
         const light = Math.max(.07, .40 + z * .57);
-        lightPoint(ctx, x, y, neuron.radius * (1.10 + pulse * 1.6), Math.min(1, light * (.42 + pulse * .60 + beat * .12)));
+        if (onLight) {
+            const edge = Math.min(1,Math.max(0,(Math.hypot(x,y)-80)/21));
+            if (edge > 0) {
+                const radius = neuron.radius * (2.8 + pulse);
+                const shade = ctx.createRadialGradient(x,y,0,x,y,radius);
+                shade.addColorStop(0,look.rimColor);
+                shade.addColorStop(.45,look.rimColor+'76');
+                shade.addColorStop(1,look.rimColor+'00');
+                ctx.fillStyle = shade;
+                ctx.globalAlpha = edge * (.18 + .32 * light);
+                ctx.fillRect(x-radius,y-radius,radius*2,radius*2);
+            }
+        }
+        lightPoint(ctx, { x, y }, neuron.radius * (1.10 + pulse * 1.6), Math.min(1, light * (onLight ? 1.5 : 1) * (.42 + pulse * .60 + beat * .12)),look.nerveColor);
     }
 }
 
@@ -208,7 +302,7 @@ function paintMark(ctx: CanvasRenderingContext2D, glyph: NeuralGlyph, site: Site
     const opacity = ctx.globalAlpha;
     for (const [i, p] of glyph.sparks.entries()) {
         const pulse = Math.max(0, Math.sin(time * 1.7 + i * 2.4));
-        if (pulse > .6) lightPoint(ctx, p.x, p.y, .95, pulse * .7 * site.depth * opacity);
+        if (pulse > .6) lightPoint(ctx, p, .95, pulse * .7 * site.depth * opacity);
     }
     ctx.restore();
 }
@@ -251,7 +345,7 @@ function drawStrand(ctx: CanvasRenderingContext2D, ends: [Point, Point], project
     ctx.stroke();
     if (pulse >= 0 && pulse <= 1) {
         const head = project(strandPoint(a, b, pulse, wave));
-        lightPoint(ctx, head.x, head.y, 1.8, ctx.globalAlpha);
+        lightPoint(ctx, head, 1.8, ctx.globalAlpha);
     }
 }
 
@@ -297,21 +391,25 @@ function drawWork(ctx: CanvasRenderingContext2D, pattern: OrbPattern, time: numb
     }
 }
 
-export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, time: number, beat: number, patterns: OrbPattern[]) {
+export function drawOrbFrame(ctx: CanvasRenderingContext2D, geometry: OrbGeometry, clock: { time: number; beat: number }, patterns: OrbPattern[], look: OrbLook) {
+    const { time } = clock;
     const size = ctx.canvas.width;
     ctx.resetTransform();
     ctx.clearRect(0, 0, size, size);
-    const breath = 1 + .036 * Math.sin(time * TAU / 7);
+    const breath = .95 * (1 + look.breath * Math.sin(time * TAU / 7));
     ctx.setTransform(size / 256 * breath, 0, 0, size / 256 * breath, size / 2, size / 2);
     const project = projector(time);
-    drawCore(ctx, project);
-    drawDeepSky(ctx, time);
-    drawNebula(ctx, project);
+    ctx.globalAlpha = 1 - look.transparency;
+    drawCore(ctx, project, look);
+    drawDeepSky(ctx, time, look);
+    ctx.globalAlpha = 1;
+    drawNebula(ctx, project, look);
     ctx.lineCap = 'round';
     for (const fibre of geometry.fibres) drawFibre(ctx, project, fibre);
     drawGrains(ctx, project, geometry.dust);
-    drawStarBand(ctx, project, geometry.stars);
-    drawNetwork(ctx, project, geometry.network, time * .46, beat);
-    for (const pattern of patterns) drawWork(ctx, pattern, time * .55, geometry.network, project);
+    drawStarBand(ctx, project, geometry.stars, look);
+    const neuralProject = driftingNetwork(project, time);
+    drawNetwork(ctx, neuralProject, geometry.network, clock, look);
+    for (const pattern of patterns) drawWork(ctx, pattern, time * .55, geometry.network, neuralProject);
     ctx.globalAlpha = 1;
 }

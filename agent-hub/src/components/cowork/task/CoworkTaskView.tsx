@@ -18,7 +18,7 @@ import CoworkTaskSteps from './CoworkTaskSteps';
 import CoworkTaskTabs, { type TaskTab } from './CoworkTaskTabs';
 import CoworkTaskTested, { triedResultOf } from './CoworkTaskTested';
 import { canTry } from '../coworkPlanModel';
-import { latestRunOf, liveRunOf, taskModeOf } from './coworkTaskModel';
+import { latestRunOf, liveRunOf, runStatus, taskModeOf } from './coworkTaskModel';
 import { BTN_LINK, Failure, META } from './taskUi';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import { useCoworkItem, useCoworkItemActions } from '@/api/coworkTask';
@@ -89,6 +89,15 @@ function TopOfTask({ item, facts, onRun, onShare, t }: { item: CoworkItem; facts
     );
 }
 
+function CurrentActivity({ item, facts, t }: { item: CoworkItem; facts: Facts; t: TranslateFn }) {
+    const [observedRunId, setObservedRunId] = useState<string | null>(null);
+    if (facts.liveRun && observedRunId !== facts.liveRun.id) setObservedRunId(facts.liveRun.id);
+    const latest = facts.latest;
+    const completed = latest && latest.id === observedRunId && runStatus(latest) === 'done' ? latest : null;
+    if (!facts.live && (!completed || facts.blocked)) return null;
+    return <CoworkTaskLive startingTest={facts.startingTest} coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun ?? completed} runOrder={facts.plan?.draft?.view.runOrder} t={t} />;
+}
+
 /** What waits for the owner, what is on the go, or the latest result; and what it could do cheaper. */
 function NowOfTask({ item, facts, mayPlan, open, onChange, locale, t }: { item: CoworkItem; facts: Facts; mayPlan: boolean; open: CoworkSheetPanelProps['open']; onChange: () => void; locale: string; t: TranslateFn }) {
     const [done, setDone] = useState<string | null>(null);
@@ -104,7 +113,7 @@ function NowOfTask({ item, facts, mayPlan, open, onChange, locale, t }: { item: 
                 <CoworkTaskTested coworkId={item.id} plan={facts.plan} fingerprint={check?.fingerprint ?? null} changed={!!check?.changed} onApproved={setDone} onChange={onChange}
                     onTest={() => facts.tryOut.start.mutate()} testing={facts.tryOut.start.isPending || !canTry(facts.plan)} t={t} />
             )}
-            {facts.live && <CoworkTaskLive startingTest={facts.startingTest} coworkId={item.id} making={facts.maker.making} tryState={facts.tryOut.state} liveRun={facts.liveRun} runOrder={facts.plan?.draft?.view.runOrder} t={t} />}
+            <CurrentActivity item={item} facts={facts} t={t} />
             {quiet && (
                 <>
                     <AutoFixNote coworkId={item.id} t={t} />

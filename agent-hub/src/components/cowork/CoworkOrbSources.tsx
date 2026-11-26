@@ -17,7 +17,7 @@ export default function CoworkOrbSources({ action = 'thinking', apps, flow, focu
     })) ?? [];
     const marks = steps.length ? steps : ids.map(id => ({ id, app: id, Icon: Boxes }));
     if (!steps.length || focus === undefined || focus < 0 || focus >= steps.length) {
-        marks.push({ id: 'activity-' + action, app: null, Icon: paletteItemForType(stepType ?? '')?.icon ?? ICONS[action] });
+        marks.push({ id: 'activity-' + action, app: stepType ? ids[0] : null, Icon: paletteItemForType(stepType ?? '')?.icon ?? ICONS[action] });
     }
     const key = JSON.stringify([marks.map(mark => [mark.id, mark.app]), flow?.map(s => [s.type, s.kind]), stepType]);
     useEffect(() => {

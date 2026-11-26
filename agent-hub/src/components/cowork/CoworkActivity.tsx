@@ -10,13 +10,16 @@ interface ActivityProps {
     work?: OrbWork; message: string; title?: string; tone?: ActivityTone; testId?: string; children?: ReactNode;
 }
 
+export function ActivityLine({message}: {message: string}) {
+    return <span key={message} className="cowork-activity-label">{message}</span>;
+}
+
 export default function CoworkActivity({ message, title, tone, work, testId, children }: ActivityProps) {
     return <div className="cowork-activity" data-testid={testId}>
         <CoworkOrb tone={tone} work={work} activity={message} />
         <div className="cowork-activity-caption">
-            {title && <p className="m-0 mb-1 break-words text-[13px] font-medium text-[var(--text-secondary)]">{title}</p>}
-            <div role="status" aria-atomic="true" className="cowork-activity-current">
-                <span key={message} className="cowork-activity-label">{message}</span>
+            <div role="status" aria-label={title} aria-atomic="true" className="cowork-activity-current">
+                <ActivityLine key={title} message={message} />
             </div>
         </div>
         {children}
@@ -25,15 +28,15 @@ export default function CoworkActivity({ message, title, tone, work, testId, chi
 
 export function setupActivity(phase: PlanMakeProgress['phase'] | 'checking' | null, t: TranslateFn, step?: PlanningTestStep, apps?: string[] | null, flow?: OrbStep[]): ActivityProps {
     switch (phase) {
-        case 'checking': return { work: { action: 'testing', apps, flow }, message: t('cowork_home.activity.checking', 'Checking task setup…') };
-        case 'saving': return { work: { action: 'saving', apps, flow }, tone: 'executing', message: t('cowork_home.activity.saving', 'Saving task steps…') };
+        case 'checking': return { work: { action: 'testing', apps, flow }, message: t('cowork_home.activity.checking', 'I’m checking how your task is set up.') };
+        case 'saving': return { work: { action: 'saving', apps, flow }, tone: 'executing', message: t('cowork_home.activity.saving', 'I’m saving these steps for the trial run.') };
         case 'trying': return step && step.total > 0 ? {
-            work: { action: step.kind === 'ai' ? 'thinking' : 'testing', apps: step.app ? [step.app] : [], stepType: step.type, flow, focus: step.number - 1 },
+            work: { action: step.kind === 'ai' ? 'thinking' : 'testing', apps: step.app ? [step.app] : [], stepType: step.type, flow, focus: step.id ? flow?.findIndex(s => s.id === step.id) : step.number - 1 },
             tone: step.kind === 'ai' ? 'thinking' : 'executing',
-            message: t('cowork_task.test.current', 'Testing step {number} of {total}: {title}', { ...step }),
-        } : { work: { action: 'testing', apps, flow }, tone: 'executing', message: t('cowork_home.setup.testing', 'Testing once, nothing is sent') };
-        case 'repairing': return { work: { action: 'repair', apps, flow }, tone: 'repair', message: t('cowork_wiring.make.repairing', 'Fixing what the try-out found…') };
-        case 'drafted': return { work: { action: 'creating', apps, flow }, message: t('cowork_home.activity.check_draft', 'Checking the proposed steps…') };
-        default: return { work: { action: 'thinking', apps, flow }, message: t('cowork_task.live.make_think', 'Working out the steps') };
+            message: t('cowork_task.test.current', 'I’m testing step {number} of {total}: {title}', { ...step }),
+        } : { work: { action: 'testing', apps, flow }, tone: 'executing', message: t('cowork_home.setup.testing', 'I’m trying the steps once. Nothing is sent.') };
+        case 'repairing': return { work: { action: 'repair', apps, flow }, tone: 'repair', message: t('cowork_wiring.make.repairing', 'I’m adjusting the steps after the trial run.') };
+        case 'drafted': return { work: { action: 'creating', apps, flow }, message: t('cowork_home.activity.check_draft', 'I’m checking how the proposed steps fit together.') };
+        default: return { work: { action: 'thinking', apps, flow }, message: t('cowork_task.live.make_think', 'First I’ll put the steps in order.') };
     }
 }

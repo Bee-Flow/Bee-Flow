@@ -1676,7 +1676,7 @@ pre.hljs {
     overflow-wrap: anywhere;
     text-wrap: balance;
 }
-.cowork-activity-label { display: inline-block; }
+.cowork-activity-label { display: inline-block; max-width: 42ch; text-wrap: balance; font-weight: 550; line-height: 1.5; }
 @media (prefers-reduced-motion: no-preference) {
     .cowork-activity-label { animation: coworkStepArrives 200ms ease-out backwards; }
 }

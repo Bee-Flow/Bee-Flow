@@ -1,7 +1,9 @@
 import { advanceLayers, updatePattern } from './coworkOrbPattern';
 import CoworkOrbSources, { type OrbWork } from './CoworkOrbSources';
 import type { NeuralGlyph } from './coworkOrbGlyph';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { OrbAppearanceContext } from './coworkOrbAppearance';
+import { useOrbTheme } from './useOrbTheme';
+import { useContext, useMemo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { drawOrbFrame, type ActivityTone, type OrbPattern } from './coworkOrbFrame';
 import { makeOrbGeometry, type OrbGeometry } from './coworkOrbGeometry';
@@ -22,14 +24,17 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
     const clock = useRef({ time: 0, beat: 0 });
     const layers = useRef<OrbPattern[]>([]);
     const reduced = useReducedMotion();
-    const target = Math.max(0, Math.min(work?.focus ?? marks.length - 1, marks.length - 1));
+    const step = work?.flow?.[work?.focus ?? -1];
+    const target = Math.max(0, Math.min(step ? (work?.focus ?? 0) : marks.length - 1, marks.length - 1));
     const ordered = !!work?.flow?.length;
     const progress = useRef({ id: '' });
-    const step = work?.flow?.[work?.focus ?? -1];
-    const controls = useRef({ target, tone });
+    const options = useContext(OrbAppearanceContext);
+    const palette = useOrbTheme();
+    const look = useMemo(() => options.themeColors ? { ...options, ...palette } : { ...options, lightSurface: palette.lightSurface }, [options, palette]);
+    const controls = useRef({ target, tone, look });
     const repaint = useRef<() => void>(() => {});
     useLayoutEffect(() => {
-        controls.current = { target, tone };
+        controls.current = { target, tone, look };
         updatePattern(layers.current, marks, { ordered, target, step, reduced }, progress.current);
         if (reduced) {
             const current = layers.current.at(-1)!;
@@ -37,7 +42,7 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
             layers.current = [current];
             repaint.current();
         }
-    }, [marks, ordered, reduced, target, tone, activity, step]);
+    }, [marks, ordered, reduced, target, tone, activity, step, look]);
     useEffect(() => {
         const el = canvas.current;
         if (!el || typeof CanvasRenderingContext2D === 'undefined') return;
@@ -45,7 +50,7 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
         if (!ctx) return;
         const model = geometry ??= makeOrbGeometry();
         const state = clock.current;
-        const draw = repaint.current = () => drawOrbFrame(ctx, model, state.time, state.beat, layers.current);
+        const draw = repaint.current = () => drawOrbFrame(ctx, model, state, layers.current, controls.current.look);
         const resize = () => {
             fitCanvas(el);
             draw();
@@ -57,7 +62,7 @@ export default function CoworkOrb({ tone = 'thinking', activity, work }: { tone?
             const elapsed = last === undefined ? 0 : now - last;
             const seconds = Math.min(elapsed / 1000, 1 / 30);
             const { target, tone } = controls.current;
-            state.time += seconds * ORB_CLOCK_RATE;
+            state.time += seconds * ORB_CLOCK_RATE * controls.current.look.tempo;
             state.beat += ((tone === 'rest' ? 0 : .5) - state.beat) * (1 - Math.exp(-seconds * 3));
             advanceLayers(layers.current, target, seconds);
             last = now;

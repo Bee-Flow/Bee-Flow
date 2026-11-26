@@ -113,7 +113,7 @@ describe('CoworkTaskView', () => {
         const { user } = openTask({ testProgress }, { kind: 'task', id: 'w1', focus: 'steps' });
         const panel = within(await screen.findByRole('tabpanel', { name: 'Steps' }));
         await user.click(await panel.findByRole('button', { name: 'Test, sends nothing' }));
-        expect(await panel.findByText('Testing step 2 of 3: Keep this week')).toBeVisible();
+        expect(await panel.findByText('I’m testing step 2 of 3: Keep this week')).toBeVisible();
         await user.click(panel.getByText('Details', { selector: 'summary' }));
         expect(panel.getByText('Keep this week').closest('li')).toHaveAttribute('aria-current', 'step');
         expect(panel.getByText('Tell me').closest('li')).toHaveTextContent('Waiting');
