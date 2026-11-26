@@ -10,7 +10,7 @@ export default function CoworkOrbComposer({ chat }: { chat: TaskConversation }) 
     const mic = useDictation({ language: locale, onText: words => chat.setText(current => [current.trim(), words].filter(Boolean).join(' ').slice(0, 2000)) });
     const recording = mic.state === 'recording';
     const micLabel = recording ? t('chat.composer.dictate_stop', 'Stop recording and insert the text') : t('chat.composer.dictate_start', 'Dictate — speak your instruction');
-    const label = t('cowork_task.orb.talk', 'Ask a question or describe a change…');
+    const label = t('cowork_task.orb.talk', 'Ask Bee…');
     const disabled = !chat.text.trim() || chat.dialog.isPending || chat.selected.length > 100 || mic.state !== 'idle';
     return <div className="cowork-conversation">
         {chat.reply && <div aria-live="polite" className="cowork-chat-reply"><MarkdownRenderer content={chat.reply} /></div>}

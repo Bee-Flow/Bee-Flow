@@ -2164,3 +2164,14 @@ pre.hljs {
 .cowork-chat-send { background: var(--text-primary); color: var(--bg-primary); }
 .cowork-chat-send:disabled { opacity: .4; }
 .cowork-chat-reply { margin-bottom: .65rem; padding: .75rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); text-align: start; max-height: min(30vh, 14rem); overflow-y: auto; }
+
+.cowork-welcome-orb .cowork-orb { width: min(100%, clamp(9rem, 26dvh, 16rem)); }
+@container (min-width: 36rem) {
+    .cowork-orb-workspace.has-steps {
+        max-width: none;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr) minmax(0, 1fr);
+        column-gap: clamp(.75rem, 2cqw, 2rem);
+    }
+    .cowork-orb-workspace.has-steps > :first-child { grid-column: 2; }
+    .cowork-orb-workspace.has-steps .cowork-workspace-steps { grid-column: 3; align-self: center; padding-top: 0; min-width: 0; }
+}

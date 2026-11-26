@@ -9,6 +9,7 @@ test('questions use the selected steps of the current owned plan and the ownerâ€
     const steps = [{ id: 'read' }, { id: 'sum' }, { id: 'send' }];
     const deps = {
         planStateOf: async () => /** @type {any} */ ({ draft: { fingerprint: 'f', view: { steps }, recipients: { send: 'owner' } } }),
+        latestRun: async () => ({ status: 'failed', error: 'Mailbox unavailable' }),
         output: async () => undefined,
         user: async () => ({ organizationId: 'org' }),
         /** @param {Parameters<typeof import('../core/cowork/coworkCompose').coworkTextTurn>[0]} turn */
@@ -16,6 +17,7 @@ test('questions use the selected steps of the current owned plan and the ownerâ€
             assert.equal(turn.tier, 'deep');
             assert.deepEqual([turn.userOrgId, turn.userId], ['org', 'owner']);
             const facts = JSON.parse(turn.messages[1].content);
+            assert.deepEqual(facts.state.latestRun, { status: 'failed', error: 'Mailbox unavailable' });
             assert.equal(facts.message, pick.message);
             assert.deepEqual(facts.state.steps, steps.slice(1));
             return JSON.stringify({ action: 'answer', answer: 'Only to you.' });

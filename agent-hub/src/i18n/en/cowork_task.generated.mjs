@@ -13,7 +13,7 @@ export default {
     "cowork_task.orb.shorten": "Select fewer steps or shorten the change.",
     "cowork_task.orb.recipient": "Change recipient",
     "cowork_task.orb.tests": "Tests and permissions",
-    "cowork_task.orb.talk": "Ask a question or describe a change…",
+    "cowork_task.orb.talk": "Ask Bee…",
     "cowork_task.orb.ready": "How can I help with this task?",
     "cowork_task.orb.send": "Send message",
     "cowork_task.orb.wait_edit": "I can change the steps when the current work finishes.",

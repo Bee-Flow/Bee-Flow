@@ -41,7 +41,7 @@ it('keeps talking while reading the result and opens a requested setting in the 
         return message === 'Show the result' ? { action: 'result', answer: 'Here is the latest run.' }
             : { action: 'when', answer: 'Choose when to run it.' };
     } });
-    const input = await screen.findByRole('textbox', { name: 'Ask a question or describe a change…' });
+    const input = await screen.findByRole('textbox', { name: 'Ask Bee…' });
     expect(screen.queryByRole('button', { name: 'Adjust this task' })).toBeNull();
     expect(screen.queryByRole('combobox', { name: 'Other task options' })).toBeNull();
     await user.type(input, 'Show the result{Enter}');

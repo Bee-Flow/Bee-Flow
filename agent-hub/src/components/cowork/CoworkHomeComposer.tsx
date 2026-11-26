@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import CoworkStepPicker from './CoworkStepPicker';
 import CoworkExamples from './CoworkExamples';
 import CoworkConfirmCard, { useMayHaveSteps } from './CoworkConfirmCard';
+import CoworkOrb from './CoworkOrb';
 import CoworkSurface from './CoworkSurface';
 import CoworkActivity, { setupActivity } from './CoworkActivity';
 import { canTestDraft, confirmView, isClockPayload, missingDestination, needsScheduleAnswer, startPayload, type ConfirmChoices } from './coworkConfirmModel';
@@ -211,6 +212,15 @@ function BriefForm({ props: { atLimit, stepTypes }, brief, t }: EditorProps) {
     </BriefEditor>;
 }
 
+function TaskHeading({ welcome, t }: { welcome: boolean; t: TranslateFn }) {
+    return <>
+            {welcome && <div className="cowork-welcome-orb"><CoworkOrb tone="rest" /></div>}
+            <h1 id="cowork-ask-heading" className={welcome ? 'm-0 text-center text-[24px] sm:text-[28px] leading-tight tracking-tight font-semibold text-[var(--text-primary)]' : 'sr-only'}>
+                {t('cowork_home.ask', 'What should be done for you?')}
+            </h1>
+    </>;
+}
+
 function TaskEditor({ props, brief, t }: EditorProps) {
     const { atLimit, maxItems, onTemplates } = props;
     const [example, selectExample] = useState<number | null>(null);
@@ -218,9 +228,7 @@ function TaskEditor({ props, brief, t }: EditorProps) {
     const { advanced, setAdvanced, text, box, choices, setChoices, cowork, reread, clarify, start, close, setText } = brief;
     return (
         <section data-cowork-engaged={askingExample} aria-labelledby="cowork-ask-heading" className="flex flex-col gap-4">
-            <h1 id="cowork-ask-heading" className={cowork.draft || askingExample ? 'sr-only' : 'm-0 text-[24px] sm:text-[28px] leading-tight tracking-tight font-semibold text-[var(--text-primary)]'}>
-                {t('cowork_home.ask', 'What should be done for you?')}
-            </h1>
+            <TaskHeading welcome={!cowork.draft && !askingExample} t={t} />
             {!askingExample && (!cowork.draft || advanced) && <BriefForm props={props} brief={brief} t={t} />}
             {showExamples(atLimit, text, cowork) && <details><summary className={askingExample ? 'hidden' : 'w-fit cursor-pointer text-[13px] text-[var(--text-secondary)]'}>{t('cowork_home.from_template', 'Start from a template')}</summary>
                 <CoworkExamples selected={example} select={selectExample} onPick={(brief) => { setText(brief); setChoices({}); box.current?.focus(); }} t={t} />
