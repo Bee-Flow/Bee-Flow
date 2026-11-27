@@ -25,8 +25,9 @@ const path = require('path');
 const RUNNER = fs.readFileSync(path.join(__dirname, 'aiTaskRunner.js'), 'utf8');
 // A schedule run as its agent lives in cowork/agentScheduleRun.js.
 const AGENT_RUN = fs.readFileSync(path.join(__dirname, 'cowork', 'agentScheduleRun.js'), 'utf8');
-// The custom-integration family (and its unattended rule) is registered here.
-const DISPATCHER = fs.readFileSync(path.join(__dirname, '..', 'integrations', 'toolFamilies.js'), 'utf8');
+// The custom-integration family (and its unattended rule) is registered by the custom_integrations
+// module (firstParty/custom_integrations.register.js): the composition text holds every part file.
+const DISPATCHER = require('../testUtils/compositionText').compositionText();
 // The agent runtime's tool dispatch moved with the tool round into
 // agentRuntime/toolRoundExecutor.js — scan the spine and the round together.
 // The spine is a FOLDER (agentRuntime/chatStream/), so every module in it is

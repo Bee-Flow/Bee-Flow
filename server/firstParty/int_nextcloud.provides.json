@@ -1,0 +1,20 @@
+{
+  "integrationClients": [
+    "nextcloud",
+    "nextcloudWebdav",
+    "nextcloudTables",
+    "nextcloudTalk",
+    "nextcloudCalendar",
+    "nextcloudMail",
+    "nextcloudDeck",
+    "nextcloudFiles",
+    "nextcloudTalkBot",
+    "nextcloudAdminNotify",
+    "nextcloudActivity",
+    "nextcloudNotifications"
+  ],
+  "runnerPorts": [
+    "nextcloudAdmin",
+    "nextcloudFiles"
+  ]
+}

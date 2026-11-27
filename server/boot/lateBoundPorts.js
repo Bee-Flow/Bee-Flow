@@ -6,33 +6,34 @@
  * the first call. Registering lazy wrappers here, at boot, removes that
  * load-order dependency: the target loads on first use.
  *
- *   core/tools/automationExecutorPort.js   <- core/automationRunner.js
  *   core/privacy/customTypes/registry.js   <- core/privacy/orgShield.js
  *   stores/configStore.js (legacy secrets) <- stores/integrationConnectionStore.js
- *   stores/user/billingPorts.js            <- core/entitlements/planEntitlements.js, services/trialService.js
- *   stores/user/seatSyncPort.js            <- services/stripeService.js
+ *   stores/user/billingPorts.js            <- core/entitlements/planEntitlements.js
  *   core/kb/embeddingMigration.js (retry)  <- core/kb/sources/index.js
  *   stores/agent/conversationStatePort.js  <- core/dlp/dlpRunner.js
- *   stores/resourceSyncPort.js             <- services/githubSyncService.js
+ *
+ * A setter whose target belongs to a first-party module is filled in that
+ * module's firstParty/<id>.register.js, contributed to the channel
+ * 'boot/lateBoundPorts' (modules/firstParty/registrationChannels.js) that this
+ * file opens once its own are in:
+ *
+ *   core/tools/automationExecutorPort.js   <- core/automationRunner.js (automation)
+ *   stores/user/billingPorts.js            <- services/trialService.js (billing_stripe)
+ *   stores/user/seatSyncPort.js            <- services/stripeService.js (billing_stripe)
+ *   stores/resourceSyncPort.js             <- services/githubSyncService.js (int_saas)
  */
 
 'use strict';
 
-require('../core/tools/automationExecutorPort')
-    .setAutomationExecutor((...args) => require('../core/automationRunner').executeAutomation(...args));
 require('../core/privacy/customTypes/registry')
     .setOrgShieldResolver((/** @type {string} */ orgId) => require('../core/privacy/orgShield').resolveOrgShield(orgId));
 require('../stores/configStore')
     .setLegacySecretResolver((/** @type {string} */ key) => require('../stores/integrationConnectionStore').getLegacySecretValue(key));
 require('../stores/user/billingPorts')
     .setApplyPlanToOrg((...args) => require('../core/entitlements/planEntitlements').applyPlanToOrg(...args));
-require('../stores/user/billingPorts')
-    .setMaybeAutoGrantOrgTrial((orgId) => require('../services/trialService').maybeAutoGrantOrgTrial(orgId));
-require('../stores/user/seatSyncPort')
-    .setSeatSync((orgId) => require('../services/stripeService').syncSeatQuantityForOrg(orgId));
 require('../core/kb/embeddingMigration')
     .setSourceSync((...args) => require('../core/kb/sources').syncSource(...args));
 require('../stores/agent/conversationStatePort')
     .setConversationStateCleaner((conversationId) => require('../core/dlp/dlpRunner').clearConversationState(conversationId));
-require('../stores/resourceSyncPort')
-    .setAutoSyncResource((orgId, resourceType, resourceId, action) => require('../services/githubSyncService').autoSyncResource(orgId, resourceType, resourceId, action));
+
+require('../modules/firstParty/registrationChannels').openChannel('boot/lateBoundPorts');

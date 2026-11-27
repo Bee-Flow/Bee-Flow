@@ -113,6 +113,51 @@ function providesProblem(provides) {
     return bad ? `provides.${bad} is a list of names` : null;
 }
 
+/**
+ * The pure-data provides file of a module: firstParty/<id>.provides.json, beside its composition.
+ * The loader declares it before it requires any of the module's code (modules/firstParty/loader.js).
+ */
+const PROVIDES_FILE = /^([A-Za-z][A-Za-z0-9_]*)\.provides\.json$/;
+
+/**
+ * The provides files in a listing of firstParty/: module id -> absolute path.
+ * @param {Array<{ name: string, abs: string }>} listing
+ * @returns {Map<string, string>}
+ */
+function providesFilesOf(listing) {
+    /** @type {Map<string, string>} */
+    const out = new Map();
+    for (const { name, abs } of listing) {
+        const m = PROVIDES_FILE.exec(name);
+        if (m) out.set(/** @type {string} */ (m[1]), abs);
+    }
+    return out;
+}
+
+/**
+ * Read a provides file: its contents, or what is wrong with it.
+ * @param {(file: string) => unknown} load require
+ * @param {string} file
+ * @returns {{ provides: import('./moduleState').Provides } | { problem: string }}
+ */
+function readProvidesFile(load, file) {
+    /** @type {unknown} */
+    let provides;
+    try { provides = load(file); } catch (err) { return { problem: `could not be read: ${messageOf(err)}` }; }
+    const problem = provides === undefined ? 'is empty' : providesProblem(provides);
+    return problem ? { problem } : { provides: /** @type {import('./moduleState').Provides} */ (provides) };
+}
+
+/**
+ * Do two provides declare the same names (per kind, in any order; a missing kind is an empty list)?
+ * @param {import('./moduleState').Provides} a
+ * @param {import('./moduleState').Provides} b
+ */
+function sameProvides(a, b) {
+    const names = (/** @type {Record<string, unknown>} */ p, /** @type {string} */ k) => JSON.stringify([.../** @type {string[]} */ (p[k] || [])].sort());
+    return PROVIDE_KINDS.every((k) => names(a, k) === names(b, k));
+}
+
 /** @param {Record<string, unknown>} comp */
 function plainKeysProblem(comp) {
     const unknown = Object.keys(comp).find((k) => !KNOWN_KEYS.has(k));
@@ -241,5 +286,6 @@ async function runBounded(log, what, fn, timeoutMs) {
 }
 
 module.exports = {
-    SLOTS, STARTUP_PHASE_NAMES, compositionProblem, duplicateKeys, requiresOrder, orderRows, startJob, runBounded, messageOf,
+    SLOTS, STARTUP_PHASE_NAMES, PROVIDES_FILE, providesFilesOf, compositionProblem, readProvidesFile, sameProvides, duplicateKeys, requiresOrder, orderRows,
+    startJob, runBounded, messageOf,
 };

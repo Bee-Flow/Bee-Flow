@@ -1,0 +1,8 @@
+{
+  "featureModules": [
+    "integrations/customIntegrationRunner"
+  ],
+  "runnerPorts": [
+    "customIntegrations"
+  ]
+}

@@ -19,10 +19,13 @@ installResolveStub({
 });
 const { wirePorts } = require('./ports');
 
-test('the token-map reader is always wired; marking only with compliance', async () => {
+test('the token-map reader is always wired; marking comes from the compliance module, when wirePorts runs', async () => {
+    assert.strictEqual(seen.marking, undefined, 'nothing is wired before wirePorts');
+    // The flag is no longer read: the compliance module registers the resolver itself
+    // (firstParty/compliance.register.js, channel boot/ports), and a module that is not
+    // available does not register at all (core mode: BEEFLOW_HIDE_MODULES=all).
     wirePorts({ compliance: false });
     assert.deepStrictEqual(await seen.reader('c1'), { '[person_1]': 'Sem' });
-    assert.strictEqual(seen.marking, undefined);
-    wirePorts({ compliance: true });
-    assert.strictEqual(typeof seen.marking, 'function');
+    const compliance = require('../modules/firstParty/loader').modules().find((m) => m.id === 'compliance');
+    assert.strictEqual(typeof seen.marking, compliance?.state === 'loaded' ? 'function' : 'undefined');
 });

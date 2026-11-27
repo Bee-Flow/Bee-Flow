@@ -6,6 +6,11 @@
  *
  * Loaded at boot by boot/featureRegistrations.js, and by the scripts that
  * delete users. Requires are lazy so loading costs nothing.
+ *
+ * The projects port belongs to the projects module and is registered in
+ * firstParty/projects.register.js, contributed to the channel
+ * 'projects/erasurePorts' (modules/firstParty/registrationChannels.js) that
+ * this file opens once its own ports are in.
  */
 
 'use strict';
@@ -15,9 +20,6 @@ const { registerErasurePorts } = require('../stores/user/erasurePorts');
 registerErasurePorts({
     notebooks: {
         deleteAllForUser: (userId) => require('../core/kb/notebookCascade').deleteAllNotebooksForUser(userId),
-    },
-    projects: {
-        makeTeardown: () => require('./projectTeardown').makeProjectTeardown(),
     },
     content: {
         eraseTranscriptions: (userId) => require('./accountContentErasure').eraseTranscriptions(userId),
@@ -31,3 +33,5 @@ registerErasurePorts({
         forgetTeamsAppImportMember: (userId) => require('./accountContentErasure').forgetTeamsAppImportMember(userId),
     },
 });
+
+require('../modules/firstParty/registrationChannels').openChannel('projects/erasurePorts');

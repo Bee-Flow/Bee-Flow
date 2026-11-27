@@ -17,7 +17,9 @@
  * requires cycle, or that requires a module that is absent or failed, is FAILED and
  * contributes nothing; the others carry on. The rest is LOADED. The names a composition
  * provides are declared (declareProvides) before any of its code beyond the composition runs,
- * so an optional lookup of a failed module's name throws instead of answering "absent".
+ * so an optional lookup of a failed module's name throws instead of answering "absent"; a module's
+ * firstParty/<id>.provides.json is declared before its composition is even required (a `provides`
+ * in the composition must then say the same), so a composition that throws on load fails visibly.
  * Later, a mount row, register() or afterListen() that throws marks its module failed (and
  * every loaded module that requires it); a job, drain or close that throws is only logged,
  * as boot/ does today.
@@ -38,7 +40,8 @@
 const ORDER = require('./order.json');
 const moduleState = require('./moduleState');
 const {
-    SLOTS, STARTUP_PHASE_NAMES, compositionProblem, duplicateKeys, requiresOrder, orderRows, startJob, runBounded, messageOf,
+    SLOTS, STARTUP_PHASE_NAMES, providesFilesOf, compositionProblem, readProvidesFile, sameProvides, duplicateKeys, requiresOrder, orderRows,
+    startJob, runBounded, messageOf,
 } = require('./loaderRules');
 
 /** @typedef {import('./contract').ModuleComposition} ModuleComposition */
@@ -58,8 +61,10 @@ const {
  */
 /** @typedef {'pending' | 'absent' | 'loaded' | 'failed'} EntryState */
 /**
- * @typedef {{ id: string, comp: ModuleComposition | null, state: EntryState, detail?: string, started: boolean }} Entry
+ * @typedef {{ id: string, comp: ModuleComposition | null, state: EntryState, detail?: string, started: boolean,
+ *   declared?: import('./moduleState').Provides }} Entry
  *   started: passed load(), so drain and close reach it even after a later failure
+ *   declared: the provides read from firstParty/<id>.provides.json, declared before the composition loaded
  */
 /** @typedef {{ id: string, state: 'absent' | 'loaded' | 'failed', requires: string[], uses: string[], detail?: string }} ModuleInfo */
 
@@ -96,17 +101,34 @@ function fail(log, entry, detail) {
     log.error(`[firstParty] module "${entry.id}" failed: ${detail}`);
 }
 
+/** Declare a module's provides file; false (and the module failed) when it is not valid.
+ * @param {ReturnType<typeof resolveDeps>} d
+ * @param {Entry} entry
+ * @param {string} file
+ */
+function declareProvidesFile(d, entry, file) {
+    const read = readProvidesFile(d.load, file);
+    try {
+        if ('problem' in read) throw new Error(read.problem);
+        moduleState.declareProvides(entry.id, (entry.declared = read.provides));
+        return true;
+    } catch (err) { fail(d.log, entry, `firstParty/${entry.id}.provides.json: ${messageOf(err)}`); }
+    return false;
+}
+
 /**
- * Require and check one composition.
+ * Require and check one composition, after declaring its provides file when it has one.
  * @param {ReturnType<typeof resolveDeps>} d
  * @param {string} id
  * @param {string} file
+ * @param {string | undefined} providesFile
  * @returns {Entry}
  */
-function readComposition(d, id, file) {
+function readComposition(d, id, file, providesFile) {
     /** @type {Entry} */
     const entry = { id, comp: null, state: 'pending', started: false };
     if (!d.isAvailable(id)) return { ...entry, state: 'absent', detail: 'not available in this edition' };
+    if (providesFile !== undefined && !declareProvidesFile(d, entry, providesFile)) return entry;
     try {
         const comp = d.load(file);
         const problem = compositionProblem(comp, id);
@@ -132,7 +154,11 @@ const inState = (entries, state = 'pending') => [...entries.values()].filter((e)
  */
 function settle(d, entries) {
     for (const e of inState(entries)) {
-        try { moduleState.declareProvides(e.id, /** @type {ModuleComposition} */ (e.comp).provides || {}); } catch (err) { fail(d.log, e, messageOf(err)); }
+        const own = /** @type {ModuleComposition} */ (e.comp).provides;
+        try {
+            if (!e.declared) moduleState.declareProvides(e.id, own || {});
+            else if (own !== undefined && !sameProvides(own, e.declared)) throw new Error(`its provides differ from firstParty/${e.id}.provides.json`);
+        } catch (err) { fail(d.log, e, messageOf(err)); }
     }
     const pending = inState(entries).sort((a, b) => (a.id < b.id ? -1 : 1));
     for (const [id, clash] of duplicateKeys(pending.map((e) => /** @type {ModuleComposition} */ (e.comp)))) {
@@ -177,9 +203,10 @@ function load(deps = {}) {
     const d = resolveDeps(deps);
     /** @type {Map<string, Entry>} */
     const entries = new Map();
-    for (const { name, abs } of d.listTreeDir('firstParty')) {
+    const listing = d.listTreeDir('firstParty'), providesFiles = providesFilesOf(listing);
+    for (const { name, abs } of listing) {
         const m = COMPOSITION_FILE.exec(name);
-        if (m) entries.set(/** @type {string} */ (m[1]), readComposition(d, /** @type {string} */ (m[1]), abs));
+        if (m) entries.set(/** @type {string} */ (m[1]), readComposition(d, /** @type {string} */ (m[1]), abs, providesFiles.get(/** @type {string} */ (m[1]))));
     }
     const order = settle(d, entries);
     current = { entries, order, log: d.log, index: d.index };

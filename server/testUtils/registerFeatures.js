@@ -18,5 +18,11 @@
 // mode, not the hidden modules). scripts/run-tests.mjs also passes it through NODE_OPTIONS;
 // requiring it twice is harmless.
 require('../moduleRoots.cjs');
+// The core's two getter registries; each opens its registration channel, so the first-party
+// modules' getters for them come in too (modules/firstParty/registrationChannels.js). Only those
+// two: a module's other registrations (tool families, runner ports, setters, listeners) wait for
+// the core file of their channel, as they did before, so the preload loads no integration code.
 require('../boot/featureModules');
 require('../integrations/integrationClients');
+// The modules' register() (loader.register(), once per process; the requires above already ran it).
+require('../modules/firstParty/registrationChannels').registerModules();

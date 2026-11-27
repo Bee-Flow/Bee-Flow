@@ -50,7 +50,7 @@
         "core/kb/sources/datatable.js",
         "jobs/datatable*",
         "i18n/defaults/en/datatables.js",
-        "firstParty/datatables{,.*}.js"
+        "firstParty/datatables{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Datatables/**",
@@ -118,7 +118,7 @@
         "i18n/defaults/en/code_step.js",
         "i18n/defaults/en/flatten_node.js",
         "i18n/defaults/en/http_query.js",
-        "firstParty/automation{,.*}.js"
+        "firstParty/automation{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/automation/**",
@@ -192,7 +192,7 @@
         "jobs/coworkDailyMail.mts",
         "i18n/defaults/en/cowork*.js",
         "i18n/defaults/nl/cowork*.json",
-        "firstParty/cowork{,.*}.js"
+        "firstParty/cowork{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/cowork/**",
@@ -254,7 +254,7 @@
         "i18n/defaults/en/apps.js",
         "i18n/defaults/en/studio_app*.js",
         "i18n/defaults/nl/studio_app*.json",
-        "firstParty/apps{,.*}.js"
+        "firstParty/apps{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/admin/Studio/AppStudio/**",
@@ -296,7 +296,7 @@
         "usecases/playbooks/**",
         "stores/playbookStore.js",
         "i18n/defaults/en/playbooks.js",
-        "firstParty/playbooks{,.*}.js"
+        "firstParty/playbooks{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Playbooks/**",
@@ -343,7 +343,7 @@
         "stores/dsrStore.js",
         "i18n/defaults/en/dsr_public.js",
         "utils/compliancePdf.js",
-        "firstParty/compliance{,.*}.js"
+        "firstParty/compliance{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/admin/compliance/**",
@@ -371,7 +371,7 @@
         "stores/sanctionsStore.mts",
         "i18n/defaults/en/sanctions.js",
         "i18n/defaults/nl/sanctions.json",
-        "firstParty/sanctions{,.*}.js"
+        "firstParty/sanctions{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/integrations/IntegrationsAdminPanel/SanctionsListsSection*",
@@ -412,7 +412,7 @@
         "usecases/publicRenderBlogSitemap.js",
         "shared/cmsReact/**",
         "i18n/defaults/en/cms_*.js",
-        "firstParty/cms{,.*}.js"
+        "firstParty/cms{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/marketing/**",
@@ -459,7 +459,7 @@
         "core/kb/sources/webpage.js",
         "shared/webpage/**",
         "i18n/defaults/en/webpages.js",
-        "firstParty/webpages{,.*}.js"
+        "firstParty/webpages{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/webpages/**",
@@ -500,7 +500,7 @@
         "agents/notebooks/**",
         "i18n/defaults/en/notebooks.js",
         "i18n/defaults/nl/notebooks.json",
-        "firstParty/notebooks{,.*}.js"
+        "firstParty/notebooks{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/pages/documents/notebook/**",
@@ -531,7 +531,7 @@
         "usecases/ai/templateChat*",
         "stores/templateStore.js",
         "i18n/defaults/en/templates.js",
-        "firstParty/templates{,.*}.js"
+        "firstParty/templates{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/pages/templates/**",
@@ -585,7 +585,7 @@
         "i18n/defaults/en/voiceprint.js",
         "i18n/defaults/en/teams_setup.js",
         "utils/summaryTemplates.js",
-        "firstParty/meetingNotes{,.*}.js"
+        "firstParty/meetingNotes{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/pages/meeting-notes/**",
@@ -633,7 +633,7 @@
         "services/support*",
         "services/outboundChatNotifier.js",
         "i18n/defaults/en/support.js",
-        "firstParty/support{,.*}.js"
+        "firstParty/support{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/support/**",
@@ -663,7 +663,7 @@
         "stores/learningContentStore.js",
         "i18n/defaults/en/learn.js",
         "i18n/defaults/en/training.js",
-        "firstParty/learning{,.*}.js"
+        "firstParty/learning{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/onboarding/LessonPlayerHost.tsx",
@@ -709,7 +709,7 @@
         "integrations/nextcloudFiles/**",
         "routes/nextcloudTaskProcessing.js",
         "usecases/nextcloudTaskProcessingUsage.js",
-        "firstParty/int_nextcloud{,.*}.js"
+        "firstParty/int_nextcloud{,.*}.{js,json}"
       ],
       "agent-hub": []
     },
@@ -740,7 +740,7 @@
         "routes/integrations/calendar.js",
         "routes/integrations/contacts.js",
         "routes/integrations/keep.js",
-        "firstParty/int_google{,.*}.js"
+        "firstParty/int_google{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/chat/GmailPicker.tsx",
@@ -770,7 +770,7 @@
         "routes/integrations/oneDrive.js",
         "routes/integrations/outlook.js",
         "routes/integrations/mailSchemaParts.js",
-        "firstParty/int_microsoft{,.*}.js"
+        "firstParty/int_microsoft{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/pages/settings/Microsoft365Integration*",
@@ -801,7 +801,7 @@
         "usecases/ai/config/twobaFields.mts",
         "i18n/defaults/en/twoba.js",
         "i18n/defaults/nl/twoba.json",
-        "firstParty/int_erp_nl{,.*}.js"
+        "firstParty/int_erp_nl{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/pages/settings/{Firebird,FrappeCrm,Nmbrs,Twoba,Vplan}Integration*",
@@ -835,7 +835,7 @@
         "services/githubSyncService.js",
         "services/testGenerator.js",
         "stores/githubSyncStore.js",
-        "firstParty/int_saas{,.*}.js"
+        "firstParty/int_saas{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/integrations/github/**",
@@ -862,7 +862,7 @@
         "stores/lib/customIntegrationSource.js",
         "stores/ddl/org-custom-integrations-2026-06.js",
         "i18n/defaults/en/mcp_library.js",
-        "firstParty/custom_integrations{,.*}.js"
+        "firstParty/custom_integrations{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/i18n/en/mcp_library.generated.mjs"
@@ -885,7 +885,7 @@
         "routes/mcpCms.js",
         "routes/mcpStudio.js",
         "routes/mcpScopes.test.js",
-        "firstParty/mcp_server{,.*}.js"
+        "firstParty/mcp_server{,.*}.{js,json}"
       ],
       "agent-hub": []
     },
@@ -912,7 +912,7 @@
         "i18n/defaults/en/project*.js",
         "i18n/defaults/nl/project_*.json",
         "routes/solutionStages.js",
-        "firstParty/projects{,.*}.js"
+        "firstParty/projects{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/projects/**",
@@ -958,7 +958,7 @@
         "routes/stripe/**",
         "routes/billing.js",
         "usecases/stripe/**",
-        "firstParty/billing_stripe{,.*}.js"
+        "firstParty/billing_stripe{,.*}.{js,json}"
       ],
       "agent-hub": [
         "src/components/admin/subscriptions/stripe/**",
