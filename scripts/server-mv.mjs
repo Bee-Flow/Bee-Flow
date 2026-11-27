@@ -28,20 +28,19 @@
 // of those still resolves to the same target (taking the move into account).
 //
 // Prints a JSON report: { moved, rewritten, warnings }. Exit 2 on a refusal.
-// Zero dependencies: node:* only.
+// Zero dependencies: node:* only (and scripts/lib/repo-text.mjs).
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { TEXT_EXT, walkFiles as walk } from './lib/repo-text.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const posix = (p) => p.split(path.sep).join('/');
 
 const CODE_EXT = /\.(?:c|m)?[jt]s$/;
 const RESOLVE_EXT = ['', '.js', '.cjs', '.mjs', '.json', '.ts', '.mts', '.d.ts'];
-const TEXT_EXT = /\.(?:m?js|cjs|ts|mts|tsx|jsx|json|ya?ml|md|mdx|sh|txt)$/;
-const SKIP_DIR = new Set(['node_modules', '.git', '.claude', 'coverage', 'dist', 'build', '.next']);
 /** A quoted specifier that starts with ./ or ../ (or is exactly . / ..). */
 const REL_LITERAL = /(['"`])(\.{1,2}(?:\/[^'"`\n\\]*)?)\1/g;
 /** `path.join(ROOT, 'stores/x')` / `path.resolve(SERVER, "stores/x.js")` */
@@ -55,17 +54,6 @@ export function resolveSpec(abs) {
     for (const ext of RESOLVE_EXT) if (isFile(abs + ext)) return abs + ext;
     for (const idx of ['index.js', 'index.cjs', 'index.mjs']) if (isFile(path.join(abs, idx))) return path.join(abs, idx);
     return null;
-}
-
-/** All files under dir (skipping vendored folders), absolute. */
-function walk(dir, ok, out = []) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (SKIP_DIR.has(e.name)) continue;
-        const full = path.join(dir, e.name);
-        if (e.isDirectory()) walk(full, ok, out);
-        else if (ok(e.name)) out.push(full);
-    }
-    return out;
 }
 
 /** Relative specifier from fromDir to target, written in the style of `oldSpec`. */

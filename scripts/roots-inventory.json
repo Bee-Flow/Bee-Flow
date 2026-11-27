@@ -890,6 +890,17 @@
       "group": "generators"
     },
     {
+      "file": "scripts/lib/path-mentions.mjs",
+      "status": "root-aware",
+      "what": "finds and rewrites server/<tree path> mentions of moved files to modules/<id>/server/<tree path>, given where every tree path ends up"
+    },
+    {
+      "file": "scripts/lib/path-mentions.test.mjs",
+      "status": "not-applicable",
+      "what": "tests the mention rewriter",
+      "reason": "literal fixture strings only; it reads no file"
+    },
+    {
       "file": "scripts/lib/roots.mjs",
       "status": "root-aware",
       "what": "the roots helper: rootsOf, walkTree, resolveTreePath, locate"
@@ -951,6 +962,17 @@
       "file": "scripts/module-map.test.mjs",
       "status": "root-aware",
       "what": "format rules on fixtures, and the committed map against the real tree"
+    },
+    {
+      "file": "scripts/module-move.mjs",
+      "status": "root-aware",
+      "what": "moves a module's server files to modules/<id>/server on their tree paths: the ownership map over every root, the module roots through module-boundary and treeCheck"
+    },
+    {
+      "file": "scripts/module-move.test.mjs",
+      "status": "not-applicable",
+      "what": "tests the module move",
+      "reason": "temp-dir git fixtures only; it copies rootSet.cjs and treeCheck.cjs from the real tree and reads nothing else of it"
     },
     {
       "file": "scripts/modules-gitignore.test.mjs",
