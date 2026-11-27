@@ -11,50 +11,20 @@
  * Three seams, all on objects the product shares (testUtils/swaps.js): the
  * signature check of stripeService answers the event `deliver` was given, the
  * billing mails of utils/emailService are collected in `mails` instead of
- * sent, and the pool is `guardedPglitePool()`'s, which can refuse a write.
+ * sent, and the pool is `guardedPglitePool()`'s (testUtils/guardedPglitePool.js),
+ * which can refuse a write.
  */
 
 'use strict';
 
-const { usePglitePool } = require('./pglitePool');
+const { guardedPglitePool, STATUS_WRITE } = require('./guardedPglitePool');
 const { makeSwaps } = require('./swaps');
 const h = require('./routeHarness');
 
 const BILLING_MAILS = ['sendPaymentFailedEmail', 'sendSubscriptionSuspendedEmail', 'sendSubscriptionConfirmationEmail', 'sendTrialEndingEmail', 'sendSubscriptionStartedAdminEmail'];
 const TABLES = ['organization_subscriptions', 'consumer_subscriptions', 'subscription_audit_log', 'notifications_sent', 'stripe_processed_events'];
 
-/**
- * @typedef {Record<string, unknown>} Row
- * @typedef {(sql: string | { text?: string }, params?: unknown[]) => Promise<unknown>} Query
- * @typedef {{ query: Query, connect: () => Promise<{ query: Query, release: () => void }> }} PoolSeam
- * @typedef {{ test: (sql: string) => boolean }} Refusal  a RegExp, or anything that decides per statement
- */
-
-/**
- * The real db.js pool on a fresh PGlite (testUtils/pglitePool.js), with one
- * addition: `failWrites(/regex/)` makes it refuse every statement that
- * matches (a RegExp, or any `{ test(sql) }`), the way a database error
- * would, until `failWrites(null)`.
- * `STATUS_WRITE` matches the row write of setOrgSubscription and
- * setConsumerSubscription.
- */
-function guardedPglitePool() {
-    const { pg, query, close } = usePglitePool();
-    const pool = /** @type {PoolSeam} */ (/** @type {unknown} */ (require('../db').pool));
-    /** @type {Refusal | null} */
-    let refused = null;
-    /** @type {Query} */
-    const guarded = async (sql, params) => {
-        const text = typeof sql === 'string' ? sql : String(sql?.text || '');
-        if (refused && refused.test(text)) throw new Error('simulated database failure');
-        return query(sql, params);
-    };
-    pool.query = guarded;
-    pool.connect = async () => ({ query: guarded, release() {} });
-    return { pg, close, failWrites: (/** @type {Refusal | null} */ re) => { refused = re; } };
-}
-
-const STATUS_WRITE = /UPDATE "?(organization|consumer)_subscriptions"? SET "/;
+/** @typedef {Record<string, unknown>} Row */
 
 function stripeWebhookKit() {
     const { pg, close: closePool, failWrites } = guardedPglitePool();

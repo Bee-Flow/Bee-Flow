@@ -2,7 +2,9 @@
 /**
  * Tenant-isolation fixtures: the settings an organisation keeps under its own
  * id (`/api/<area>/:orgId`). What a fixture is and how the matrix drives it is
- * in testUtils/tenantFixtures.js, which puts these in its list.
+ * in testUtils/tenantFixtures.js, which puts these in its list. The settings
+ * areas of a module sit beside this file (`orgSettings.<module>.js`) and build
+ * their kinds with `orgArea` from here.
  *
  * Every kind here is org B itself, and the owner of the fixture is made org
  * B's admin. A member of org A gets the 403 of an organisation they do not
@@ -45,16 +47,6 @@ const SHIELD_DRAFT = { id: 'cdt_0123456789', method: 'words', words: { values: [
 
 /** @type {import('../tenantFixtures').TenantFixture[]} */
 const FIXTURES = [
-    ...orgArea('coworkShield', '/api/cowork', () => require('../../routes/coworkShieldSettings'), {
-        memberReads: ['GET /api/cowork/shield/:orgId'],
-        adminRoutes: ['PUT /api/cowork/shield/:orgId'],
-        bodies: { 'PUT /api/cowork/shield/:orgId': { enabled: true } },
-    }),
-    ...orgArea('coworkPolicy', '/api/cowork', () => require('../../routes/coworkPolicyRoutes'), {
-        memberReads: ['GET /api/cowork/policy/:orgId'],
-        adminRoutes: ['PUT /api/cowork/policy/:orgId', 'GET /api/cowork/policy/:orgId/audit'],
-        bodies: { 'PUT /api/cowork/policy/:orgId': { readOnly: false } },
-    }),
     ...orgArea('orgPrivacyShield', '/api/org-privacy-shield', () => require('../../routes/orgPrivacyShield'), {
         memberReads: ['GET /api/org-privacy-shield/:orgId', 'GET /api/org-privacy-shield/:orgId/effective'],
         adminRoutes: [
@@ -79,21 +71,6 @@ const FIXTURES = [
     ...orgArea('orgMemory', '/api/org-memory', () => require('../../routes/orgMemory'), {
         adminRoutes: ['GET /api/org-memory/:orgId', 'PUT /api/org-memory/:orgId', 'POST /api/org-memory/:orgId/clear'],
         bodies: { 'POST /api/org-memory/:orgId/clear': { confirm: 'DELETE' } },
-    }),
-    ...orgArea('aiParticipation', '/api/ai-participation', () => require('../../routes/aiParticipation'), {
-        memberReads: ['GET /api/ai-participation/org/:orgId'],
-        adminRoutes: ['PUT /api/ai-participation/org/:orgId'],
-        bodies: { 'PUT /api/ai-participation/org/:orgId': { autoAllowed: true, alwaysAllowed: true, commentsAutoAllowed: true } },
-    }),
-    ...orgArea('orgCollab', '/api/org-collab', () => require('../../routes/orgCollab'), {
-        memberReads: ['GET /api/org-collab/:orgId'],
-        adminRoutes: ['PUT /api/org-collab/:orgId'],
-        bodies: { 'PUT /api/org-collab/:orgId': { collabEnabled: true } },
-    }),
-    ...orgArea('orgAutomationImageAi', '/api/org-automation-image-ai', () => require('../../routes/orgAutomationImageAi.mts').orgAutomationImageAiRouter, {
-        memberReads: ['GET /api/org-automation-image-ai/:orgId'],
-        adminRoutes: ['PUT /api/org-automation-image-ai/:orgId'],
-        bodies: { 'PUT /api/org-automation-image-ai/:orgId': { enabled: false } },
     }),
     ...orgArea('orgIntegrationCache', '/api/org-integration-cache', () => require('../../routes/orgIntegrationCache'), {
         memberReads: ['GET /api/org-integration-cache/:orgId'],
@@ -129,33 +106,6 @@ const FIXTURES = [
         // other routes are the platform administrator's.
         adminOwnerStatus: 404,
     }),
-    ...orgArea('customIntegrations', '/api/organizations/:orgId/custom-integrations', () => require('../../routes/orgIntegrations/builder'), {
-        adminRoutes: [
-            'GET /api/organizations/:orgId/custom-integrations', 'POST /api/organizations/:orgId/custom-integrations',
-            'GET /api/organizations/:orgId/custom-integrations/:id', 'GET /api/organizations/:orgId/custom-integrations/:id/session',
-            'POST /api/organizations/:orgId/custom-integrations/:id/activate', 'POST /api/organizations/:orgId/custom-integrations/:id/deactivate',
-            'POST /api/organizations/:orgId/custom-integrations/:id/refresh-tools',
-            'POST /api/organizations/:orgId/custom-integrations/:id/test-call',
-            'POST /api/organizations/:orgId/custom-integrations/:id/validate',
-            'PUT /api/organizations/:orgId/custom-integrations/:id/credentials',
-            'PUT /api/organizations/:orgId/custom-integrations/:id/definition', 'DELETE /api/organizations/:orgId/custom-integrations/:id',
-        ],
-    }),
-    ...orgArea('talkNotesSettings', '/api/talk-notes-settings', () => require('../../routes/talkNotesSettings'), {
-        memberReads: ['GET /api/talk-notes-settings/:orgId'], adminRoutes: ['PUT /api/talk-notes-settings/:orgId'],
-        bodies: { 'PUT /api/talk-notes-settings/:orgId': {} },
-    }),
-    ...orgArea('gmeetNotesSettings', '/api/gmeet-notes-settings', () => require('../../routes/gmeetNotesSettings'), {
-        memberReads: ['GET /api/gmeet-notes-settings/:orgId'], adminRoutes: ['PUT /api/gmeet-notes-settings/:orgId'],
-    }),
-    ...orgArea('teamsNotesSettings', '/api/teams-notes-settings', () => require('../../routes/teamsNotesSettings'), {
-        memberReads: ['GET /api/teams-notes-settings/:orgId'], adminRoutes: ['PUT /api/teams-notes-settings/:orgId'],
-    }),
-    ...orgArea('voiceprints', '/api/voiceprints', () => require('../../routes/voiceprints'), {
-        memberReads: ['GET /api/voiceprints/org/:orgId/coverage'],
-        adminRoutes: ['DELETE /api/voiceprints/org/:orgId/user/:userId'],
-        params: { userId: 'u-matrix-b' },
-    }),
 ];
 
-module.exports = { FIXTURES };
+module.exports = { FIXTURES, orgArea };

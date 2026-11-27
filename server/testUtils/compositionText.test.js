@@ -20,7 +20,11 @@ test('on the real tree: index.js first, then every composition file, whole', () 
     const index = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
     assert.ok(text.startsWith(index), 'index.js comes first');
     const files = compositionFiles();
-    assert.ok(files.some((f) => path.basename(f) === 'learning.js'), 'the compositions of the tree are found');
+    // The compositions that are present: every module the loader sees (all of them in full mode, none with
+    // every module hidden) has its composition file in the text.
+    for (const { id } of require('../modules/firstParty/loader').load()) {
+        assert.ok(files.some((f) => path.basename(f) === `${id}.js`), `the composition of ${id} is found`);
+    }
     for (const file of files) assert.ok(text.includes(fs.readFileSync(file, 'utf8')), `${path.basename(file)} is part of the text`);
     assert.equal(compositionText({ list: () => [] }), index, 'without composition files it is index.js alone');
 });

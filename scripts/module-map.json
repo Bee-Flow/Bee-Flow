@@ -51,7 +51,13 @@
         "jobs/datatable*",
         "i18n/defaults/en/datatables.js",
         "migrations/datatable-*",
-        "firstParty/datatables{,.*}.{js,json}"
+        "firstParty/datatables{,.*}.{js,json}",
+        "testUtils/columnRightsWorlds.testkit.js",
+        "testUtils/columnRightsLinkedWorlds.testkit.js",
+        "testUtils/linkedEngines.testkit.js",
+        "testUtils/pgDatatableEngine.testkit.js",
+        "testUtils/relationEngines.testkit.js",
+        "testUtils/tenantFixtures/datatables.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Datatables/**",
@@ -124,7 +130,17 @@
         "migrations/n8n-connections-2026-06{,.*}.js",
         "migrations/agent-mail-trigger-2026-11{,.*}.js",
         "migrations/drop-automation-trigger-samples-2026-09{,.*}.js",
-        "firstParty/automation{,.*}.{js,json}"
+        "firstParty/automation{,.*}.{js,json}",
+        "testUtils/aiAnswerCacheKit.js",
+        "testUtils/aiStepHarness.js",
+        "testUtils/automationRouteSwaps.testkit.js",
+        "testUtils/automationWebhookStore.testkit.js",
+        "testUtils/memoryTableStore.testkit.js",
+        "testUtils/tenantFixtures/automation.js",
+        "testUtils/tenantFixtures/orgSettings.automation.js",
+        "testUtils/tenantFixtures/personal.automation.js",
+        "scripts/test-automation-e2e.js",
+        "scripts/assistantInstall.js"
       ],
       "agent-hub": [
         "src/components/automation/**",
@@ -201,7 +217,11 @@
         "migrations/prompt-tasks-to-cowork-2026-08{,.*}.js",
         "migrations/agent-tasks-to-cowork-2026-10{,.*}.js",
         "migrations/cowork-conversation-origin-2026-11{,.*}.js",
-        "firstParty/cowork{,.*}.{js,json}"
+        "firstParty/cowork{,.*}.{js,json}",
+        "testUtils/tenantFixtures/coworkDesks.js",
+        "testUtils/tenantFixtures/coworkTemplates.js",
+        "testUtils/tenantFixtures/orgSettings.cowork.js",
+        "testUtils/tenantFixtures/personal.cowork.js"
       ],
       "agent-hub": [
         "src/components/cowork/**",
@@ -264,7 +284,17 @@
         "i18n/defaults/en/studio_app*.js",
         "i18n/defaults/nl/studio_app*.json",
         "migrations/studio-app-*",
-        "firstParty/apps{,.*}.{js,json}"
+        "firstParty/apps{,.*}.{js,json}",
+        "testUtils/appCatalogExtensions.testkit.js",
+        "testUtils/backgroundRunHarness.testkit.js",
+        "testUtils/portableAssets.testkit.js",
+        "testUtils/recordOutboxStandIn.testkit.js",
+        "testUtils/sqliteAppStores.testkit.js",
+        "testUtils/triggerHarness.testkit.js",
+        "testUtils/webhookTriggerHarness.testkit.js",
+        "testUtils/tenantFixtures/studioApps.js",
+        "scripts/migrateStudioAppsToPg.js",
+        "scripts/template-to-file.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/AppStudio/**",
@@ -306,7 +336,10 @@
         "usecases/playbooks/**",
         "stores/playbookStore.js",
         "i18n/defaults/en/playbooks.js",
-        "firstParty/playbooks{,.*}.{js,json}"
+        "firstParty/playbooks{,.*}.{js,json}",
+        "testUtils/tenantFixtures/personal.playbooks.js",
+        "scripts/playbook-compliance-dry-run.js",
+        "scripts/print-playbook-briefs.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Playbooks/**",
@@ -353,7 +386,10 @@
         "stores/dsrStore.js",
         "i18n/defaults/en/dsr_public.js",
         "utils/compliancePdf.js",
-        "firstParty/compliance{,.*}.{js,json}"
+        "firstParty/compliance{,.*}.{js,json}",
+        "testUtils/tenantFixtures/compliance.js",
+        "testUtils/tenantFixtures/organisation.compliance.js",
+        "scripts/genComplianceDemoCatalog.js"
       ],
       "agent-hub": [
         "src/components/admin/compliance/**",
@@ -423,7 +459,10 @@
         "shared/cmsReact/**",
         "i18n/defaults/en/cms_*.js",
         "migrations/cms-routine-demo-2026-10{,.*}.js",
-        "firstParty/cms{,.*}.{js,json}"
+        "firstParty/cms{,.*}.{js,json}",
+        "scripts/content/**",
+        "scripts/seedBeeflowSite.js",
+        "scripts/renderOgImages.js"
       ],
       "agent-hub": [
         "src/marketing/**",
@@ -471,7 +510,8 @@
         "shared/webpage/**",
         "i18n/defaults/en/webpages.js",
         "migrations/webpage-published-version-2026-09{,.*}.js",
-        "firstParty/webpages{,.*}.{js,json}"
+        "firstParty/webpages{,.*}.{js,json}",
+        "testUtils/tenantFixtures/webpages.js"
       ],
       "agent-hub": [
         "src/components/webpages/**",
@@ -512,7 +552,8 @@
         "agents/notebooks/**",
         "i18n/defaults/en/notebooks.js",
         "i18n/defaults/nl/notebooks.json",
-        "firstParty/notebooks{,.*}.{js,json}"
+        "firstParty/notebooks{,.*}.{js,json}",
+        "testUtils/tenantFixtures/notebooks.js"
       ],
       "agent-hub": [
         "src/pages/documents/notebook/**",
@@ -597,7 +638,11 @@
         "i18n/defaults/en/voiceprint.js",
         "i18n/defaults/en/teams_setup.js",
         "utils/summaryTemplates.js",
-        "firstParty/meetingNotes{,.*}.{js,json}"
+        "firstParty/meetingNotes{,.*}.{js,json}",
+        "testUtils/tenantFixtures/meetings.js",
+        "testUtils/tenantFixtures/orgSettings.meetingNotes.js",
+        "testUtils/tenantFixtures/personal.meetingNotes.js",
+        "scripts/backfillSavedAudioKeys.js"
       ],
       "agent-hub": [
         "src/pages/meeting-notes/**",
@@ -646,7 +691,8 @@
         "services/outboundChatNotifier.js",
         "i18n/defaults/en/support.js",
         "migrations/support-audit-log-backfill-2026-06{,.*}.js",
-        "firstParty/support{,.*}.{js,json}"
+        "firstParty/support{,.*}.{js,json}",
+        "testUtils/tenantFixtures/support.js"
       ],
       "agent-hub": [
         "src/components/support/**",
@@ -877,7 +923,8 @@
         "stores/lib/customIntegrationSource.js",
         "stores/ddl/org-custom-integrations-2026-06.js",
         "i18n/defaults/en/mcp_library.js",
-        "firstParty/custom_integrations{,.*}.{js,json}"
+        "firstParty/custom_integrations{,.*}.{js,json}",
+        "testUtils/tenantFixtures/orgSettings.customIntegrations.js"
       ],
       "agent-hub": [
         "src/i18n/en/mcp_library.generated.mjs"
@@ -900,7 +947,8 @@
         "routes/mcpCms.js",
         "routes/mcpStudio.js",
         "routes/mcpScopes.test.js",
-        "firstParty/mcp_server{,.*}.{js,json}"
+        "firstParty/mcp_server{,.*}.{js,json}",
+        "testUtils/tenantFixtures/personal.mcpServer.js"
       ],
       "agent-hub": []
     },
@@ -927,7 +975,9 @@
         "i18n/defaults/en/project*.js",
         "i18n/defaults/nl/project_*.json",
         "routes/solutionStages.js",
-        "firstParty/projects{,.*}.{js,json}"
+        "firstParty/projects{,.*}.{js,json}",
+        "testUtils/tenantFixtures/projects.js",
+        "testUtils/tenantFixtures/orgSettings.projects.js"
       ],
       "agent-hub": [
         "src/components/projects/**",
@@ -973,7 +1023,8 @@
         "routes/stripe/**",
         "routes/billing.js",
         "usecases/stripe/**",
-        "firstParty/billing_stripe{,.*}.{js,json}"
+        "firstParty/billing_stripe{,.*}.{js,json}",
+        "testUtils/stripeWebhookKit.js"
       ],
       "agent-hub": [
         "src/components/admin/subscriptions/stripe/**",

@@ -25,6 +25,12 @@
  * (lint:tenant-matrix-ratchet). A new route with a `:id` therefore registers
  * its fixture kind or says why it cannot be driven this way.
  *
+ * With a first-party module absent (core mode, BEEFLOW_HIDE_MODULES=all) the
+ * matrix runs over the kinds that are here (testUtils/tenantFixtures.js lists
+ * them), and the inventory leaves out the routes whose file belongs to a module
+ * that is not loaded (testUtils/absentModuleRoutes.js): those are held to it in
+ * full mode, where nothing is left out.
+ *
  * Run: cd server && node --test tenantIsolation.matrix.test.js
  */
 
@@ -41,6 +47,8 @@ const { close: closePg } = usePglitePool();
 
 const h = require('./testUtils/routeHarness');
 const { FIXTURES } = require('./testUtils/tenantFixtures');
+const { routesOfAbsentModules } = require('./testUtils/absentModuleRoutes');
+const { listTreeDir } = require('./moduleRoots.cjs');
 
 const ORG_A = 'org-matrix-a';
 const ORG_B = 'org-matrix-b';
@@ -77,8 +85,11 @@ before(async () => {
     }
     await userStore.createGroup({ id: GROUP_B_PLAIN, organizationId: ORG_B, name: 'Org B plain group', permissions: [], roles: [] });
     for (const u of [USER_A, USER_B, ADMIN_A, USER_B_ADMIN]) await userStore.createUser({ ...u, passwordHash: 'x' });
-    // Stores initialise their schema on first use; PGlite is one session, so one at a time.
+    // Stores initialise their schema on first use; PGlite is one session, so one at a time. A store of a
+    // module that is not here is not listed, and neither is a kind that would use it.
+    const here = new Set(listTreeDir('stores').map((e) => e.name));
     for (const store of ['agentStore', 'webpageStore', 'automationStore', 'datatableStore', 'notebookStore', 'studioAppStore']) {
+        if (!here.has(`${store}.js`)) continue;
         const s = require(`./stores/${store}`);
         if (typeof s.initDB === 'function') await s.initDB();
     }
@@ -207,7 +218,9 @@ test('agent: an agent is created only in an organisation where manage_agents hol
 // support_inbox and the admin role hold per organisation: the inbox list of
 // USER_AB (admin of A, a plain group member of B) leaves out B's inboxes.
 
-test('supportInbox: the inbox list of an admin of org A who is a plain group member of org B leaves out B\'s inboxes', async () => {
+// A test about one kind is declared where the kind is, as the matrix above is: the support kinds come with
+// the support module.
+if (FIXTURES.some((f) => f.kind === 'supportInbox')) test('supportInbox: the inbox list of an admin of org A who is a plain group member of org B leaves out B\'s inboxes', async () => {
     const { id, api } = created.get('supportInbox');
     const own = await api.call('GET', '/api/support-inbox/inboxes', { user: USER_B });
     assert.ok(own.body.inboxes.some((i) => i.id === id), `the owner lists their inbox: ${own.text.slice(0, 200)}`);
@@ -226,7 +239,10 @@ const paramRoutes = Object.keys(contract.routes).filter((id) => PARAM.test(id.sp
 const covered = new Set(FIXTURES.flatMap((f) => f.routes));
 
 test('every route with a path parameter is covered by a fixture or exempted with a reason', () => {
-    const missing = paramRoutes.filter((id) => !covered.has(id) && !exemptions.routes[id]);
+    const uncovered = paramRoutes.filter((id) => !covered.has(id) && !exemptions.routes[id]);
+    // A route of a module that is not loaded has no kind here; with every module present nothing is left out.
+    const absent = routesOfAbsentModules(uncovered);
+    const missing = uncovered.filter((id) => !absent.has(id));
     assert.deepEqual(missing, [],
         `routes with a parameter that no fixture kind drives and no exemption names:\n  ${missing.join('\n  ')}\n` +
         'Add the route to a kind in testUtils/tenantFixtures.js (or add the kind), or list it in tenantIsolation.exemptions.json with the reason it cannot be driven by id.');

@@ -1,7 +1,8 @@
 // @typecheck strict
 /**
  * Tenant-isolation fixtures: the people of an organisation and the
- * organisation itself. What a fixture is and how the matrix drives
+ * organisation itself (the KB query-log subjects of the compliance module are in
+ * organisation.compliance.js). What a fixture is and how the matrix drives
  * it is in testUtils/tenantFixtures.js, which puts these in its list.
  */
 
@@ -18,22 +19,6 @@ async function makeOwnerOrgAdmin(userId) {
 
 /** @type {import('../tenantFixtures').TenantFixture[]} */
 const FIXTURES = [
-    {
-        // The data-subject routes of the KB query log (routes/compliance/kbQueryLog.js). The id is a
-        // PERSON of org B (the owner, made an org admin so the first route answers 200 for them); a
-        // member of org A has no `admin_compliance` and gets the permission gate's 403.
-        kind: 'kbQueryLogSubject',
-        mount: '/api/compliance',
-        router: () => require('../../routes/compliance/kbQueryLog'),
-        create: async ({ userId }) => {
-            await require('../../stores/userStore').updateUser(userId, { orgRole: 'org_admin' });
-            return userId;
-        },
-        routes: [
-            'GET /api/compliance/kb-query-log/subjects/:userId', 'GET /api/compliance/kb-query-log/subjects/:userId/content',
-            'GET /api/compliance/kb-query-log/subjects/:userId/export', 'DELETE /api/compliance/kb-query-log/subjects/:userId',
-        ],
-    },
     {
         // A person of org B and the user-management routes that take them by id
         // (auth/admin/userRoutes.js, requireOrgAdminForUser). The MFA reset is first:
