@@ -9,6 +9,7 @@
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 const { envInt } = require('../utils/envNumber.mts');
+const loader = require('../modules/firstParty/loader');
 
 /** Org-health and integration-cache prunes, and the delayed orphan-chunk purge. */
 function startPruneSchedulers() {
@@ -73,6 +74,7 @@ function startPruneSchedulers() {
         // migration interrupted by a restart) is picked up here.
         require('../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'boot' });
     }, 5000);
+    loader.runStartupPhase('startPruneSchedulers');
 }
 
 module.exports = { startPruneSchedulers };

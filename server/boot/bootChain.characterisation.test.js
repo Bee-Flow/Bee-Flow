@@ -336,8 +336,16 @@ function lifecycleFakes({ enabled = false, initFails = false } = {}) {
         createServer: (a) => { order.push(a === app ? 'createServer(app)' : 'createServer(?)'); return server; },
         userStore: { initDB: async () => { order.push('userStore.initDB'); if (initFails) throw new Error('db down'); } },
         authConfigStore: { migrate: async () => { order.push('authConfigStore.migrate'); } },
-        webpageRuntimeManager: { startReaper: () => order.push('startReaper'), isEnabled: () => enabled },
-        fullTierProxy: { mountFullTierProxy: (a, s) => order.push(`mountFullTierProxy:${a === app}:${s === server}`) },
+        // The modules' after-listen wiring is the loader's (the webpage runtime is a row of the
+        // webpages module, firstParty/webpages.jobs.js): this double does what that row does.
+        loader: {
+            afterListen: (a, s, ctx) => {
+                order.push('startReaper');
+                if (!enabled) return;
+                order.push(`mountFullTierProxy:${a === app}:${s === server}`);
+                a.use(ctx.terminalErrorHandler);
+            },
+        },
     };
     return {
         order, server, app, deps, terminalErrorHandler,
@@ -381,16 +389,24 @@ test('startServer refuses to start when a startup migration fails: logged, exit 
     assert.deepEqual(proc.exits, [1]);
 });
 
-function shutdownFakes({ drainThrows = false } = {}) {
+function shutdownFakes({ drainThrows = false, log = quietLog() } = {}) {
     const order = [];
     const deps = {
-        automationRunner: { stop: async (opts) => { order.push(`automationRunner.stop:${opts.timeoutMs}`); if (drainThrows) throw new Error('stuck'); } },
+        // The modules' drains and closes are the loader's (firstParty/<id>.jobs.js): this double
+        // stands for the automation drain (which logs its own failure) and the two blob engines.
+        loader: {
+            drain: async (opts) => {
+                try {
+                    order.push(`automationRunner.stop:${opts.timeoutMs}`);
+                    if (drainThrows) throw new Error('stuck');
+                } catch (e) { log.warn('[Server] automation runner drain failed:', e.message); }
+            },
+            close: async () => { order.push('studioAppDbStore.closeAll'); order.push('webpageDbStore.closeAll'); },
+        },
         usageOpenObservePush: { stop: () => order.push('usageOpenObservePush.stop') },
         opsMetricsPush: { stop: () => { order.push('opsMetricsPush.stop'); throw new Error('ignored'); } },
         chatSignals: { flush: async () => order.push('chatSignals.flush') },
         configStore: { _stopInvalidationListener: () => order.push('configStore._stopInvalidationListener') },
-        studioAppDbStore: { closeAll: async () => order.push('studioAppDbStore.closeAll') },
-        webpageDbStore: { closeAll: async () => order.push('webpageDbStore.closeAll') },
     };
     return {
         order, deps,
@@ -400,9 +416,9 @@ function shutdownFakes({ drainThrows = false } = {}) {
 }
 
 test('graceful shutdown: drain automations first, stop pushers, flush, close Redis, blob engines, OTEL, exit 0 — once', async () => {
-    const f = shutdownFakes();
-    const proc = fakeProc();
     const log = quietLog();
+    const f = shutdownFakes({ log });
+    const proc = fakeProc();
     await withEnv({ AUTOMATION_DRAIN_TIMEOUT_MS: undefined }, async () => {
         lifecycle.installGracefulShutdown({ otel: f.otel, disconnectRedis: f.disconnectRedis, log, proc, deps: f.deps });
         assert.deepEqual(Object.keys(proc.handlers), ['SIGTERM', 'SIGINT']);
@@ -417,9 +433,9 @@ test('graceful shutdown: drain automations first, stop pushers, flush, close Red
 });
 
 test('graceful shutdown: AUTOMATION_DRAIN_TIMEOUT_MS bounds the drain, and a failed drain still shuts down', async () => {
-    const f = shutdownFakes({ drainThrows: true });
-    const proc = fakeProc();
     const log = quietLog();
+    const f = shutdownFakes({ drainThrows: true, log });
+    const proc = fakeProc();
     await withEnv({ AUTOMATION_DRAIN_TIMEOUT_MS: '5000' }, async () => {
         const shutdown = lifecycle.installGracefulShutdown({ otel: f.otel, disconnectRedis: f.disconnectRedis, log, proc, deps: f.deps });
         await shutdown('SIGINT');

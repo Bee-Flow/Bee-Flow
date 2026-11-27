@@ -6,15 +6,19 @@
  * in the order they always ran; see that file for the whole sequence.
  */
 
-const { isModuleAvailable } = require('../modules/catalog');
 const log = require('../telemetry/log');
+const { isModuleAvailable } = require('../modules/catalog');
+const loader = require('../modules/firstParty/loader');
+const { requireIfPresent } = require('./optionalRequire');
 
-/** Retention jobs, the compliance scheduler and the Azure group sync. */
+/**
+ * Retention jobs, the ports and the Azure group sync; then the module rows of this phase
+ * (the App Studio run log, the compliance scheduler).
+ */
 function startRetentionAndComplianceJobs() {
-    // Register and schedule AI Act + GDPR compliance checks (6-hour interval,
-    // multi-tenant). Also start the Art-5(1)(e) memory retention enforcer and
-    // the daily statutory-deadline notifier (72h incidents / 30d DSRs / DPIA
-    // expiries).
+    // The Art-5(1)(e) memory retention enforcer. (The AI Act + GDPR compliance
+    // checks and the statutory-deadline notifier that were started next to it
+    // are rows of the compliance module: firstParty/compliance.jobs.js.)
     require('../jobs/memoryRetentionEnforcer').start();
     // Memory search indexes: fills the tsvector and pgvector columns of rows
     // that predate them and re-embeds rows left on another embedding
@@ -34,15 +38,13 @@ function startRetentionAndComplianceJobs() {
     // Monitoring-ledger retention and the PII scan-ledger prune. NOT gated on
     // a module: chat and DLP fill those tables on every install, including
     // one without Automations, whose runner these passes do not ride.
-    // The run log of browser runs (App Studio /step): on against the real store from here on.
-    try {
-        require('../appStudio/runLog/clickRuns.mts').configureClickRuns();
-    } catch (err) {
-        log.warn('[Server] App Studio run log not enabled:', err.message);
-    }
     try {
         // A run on hold the retention pass ends withdraws the approval request it asked.
-        require('../jobs/platformRetention').start({ releaseStudioWait: (appId, kind, ref, reason) => require('../appStudio/approvalWaits.mts').releaseWait(appId, kind, ref, reason) });
+        // App Studio may be absent (an optional lookup): then there is no request to withdraw.
+        require('../jobs/platformRetention').start({ releaseStudioWait: (appId, kind, ref, reason) => {
+            const waits = requireIfPresent(() => require('../appStudio/approvalWaits.mts'));
+            return waits ? waits.releaseWait(appId, kind, ref, reason) : Promise.resolve(undefined);
+        } });
     } catch (err) {
         log.warn('[Server] Platform retention job load failed:', err.message);
     }
@@ -80,14 +82,9 @@ function startRetentionAndComplianceJobs() {
     } catch (err) {
         log.warn('[Server] Document version retention job load failed:', err.message);
     }
-    require('./ports').wirePorts({ compliance: isModuleAvailable('compliance') });
-    if (isModuleAvailable('compliance')) {
-        require('../compliance/checks');
-        require('../compliance/scheduler').start();
-        require('../jobs/complianceDeadlineNotifier').start();
-        // ISO evidence connectors — periodic external-system sweeps (advisory-locked).
-        require('../compliance/isoEvidenceCollector').start();
-    }
+    // The compliance half of the ports is wired only when the compliance module loaded
+    // (not by the catalog flag: core mode hides a module the catalog calls available).
+    require('./ports').wirePorts({ compliance: moduleLoaded('compliance') });
 
     // Azure AD group sync: periodic syncs per org (explicit lifecycle call; it
     // used to be a require() side effect of integrations/azureGroupSync.js).
@@ -96,13 +93,24 @@ function startRetentionAndComplianceJobs() {
     } catch (err) {
         log.warn('[Server] Azure group sync start failed:', err.message);
     }
+    // The compliance scheduler, the deadline notifier and the ISO evidence collector
+    // (firstParty/compliance.jobs.js), the App Studio run log (firstParty/apps.jobs.js).
+    loader.runStartupPhase('startRetentionAndComplianceJobs');
+}
+
+/**
+ * Whether a first-party module loaded (modules/firstParty/loader.js).
+ * @param {string} id
+ */
+function moduleLoaded(id) {
+    return loader.load().some((m) => m.id === id && m.state === 'loaded');
 }
 
 /**
  * The config cache's cross-replica invalidation listener: a Postgres connection
  * of its own that LISTENs. Started here and not when stores/configStore is
  * required, so a script or a generator that loads the store opens no connection.
- * @param {{ configStore?: { startInvalidationListener: () => unknown } }} [deps] test seam
+ * @param {{ configStore?: { startInvalidationListener: () => unknown }, loader?: PhaseRunner }} [deps] test seam
  */
 function startConfigInvalidationListener(deps = {}) {
     try {
@@ -110,34 +118,32 @@ function startConfigInvalidationListener(deps = {}) {
     } catch (err) {
         log.warn('[Server] Config invalidation listener start failed:', err.message);
     }
+    (deps.loader || loader).runStartupPhase('startConfigInvalidationListener');
 }
 
 /**
  * The schedulers that live inside a store or a runner module: the reminder
- * checker, the cowork tick (the one scheduler of cowork runs) with its retention
- * sweep, and the coverage prune of aiTaskRunner, its execution engine. Each is
+ * checker here, then the module rows of this phase (the cowork tick, the one
+ * scheduler of cowork runs, with its retention sweep, and the coverage prune of
+ * aiTaskRunner, its execution engine: firstParty/cowork.jobs.js). Each is
  * armed here and not when its module is required: a script, a generator or a test
  * that loads the app runs no job against the database it happens to point at.
  * A scheduler that is not started here does not run at all.
- * @param {{ reminderStore?: Startable, coworkRunner?: Startable, aiTaskRunner?: Startable }} [deps] test seam
+ * @param {{ reminderStore?: Startable, loader?: PhaseRunner }} [deps] test seam
  */
 function startModuleSchedulers(deps = {}) {
-    /** @type {Array<[string, () => unknown]>} */
-    const starts = [
-        ['Reminder checker', () => (deps.reminderStore || require('../stores/reminderStore')).start()],
-        ['Cowork runner', () => (deps.coworkRunner || require('../core/cowork/coworkRunner')).start()],
-        ['Cowork coverage prune', () => (deps.aiTaskRunner || require('../core/aiTaskRunner')).start()],
-    ];
-    for (const [name, start] of starts) {
-        try {
-            start();
-        } catch (err) {
-            log.warn(`[Server] ${name} start failed:`, /** @type {Error} */ (err).message);
-        }
+    try {
+        (deps.reminderStore || require('../stores/reminderStore')).start();
+    } catch (err) {
+        log.warn('[Server] Reminder checker start failed:', /** @type {Error} */ (err).message);
     }
+    (deps.loader || loader).runStartupPhase('startModuleSchedulers');
 }
 
-/** MCP, the automation runner, the project feeds and the OpenObserve pushes. */
+/**
+ * MCP, the project run feed and the OpenObserve pushes; then the module rows of this
+ * phase (the automation runner, the Nextcloud mirror sync, the AI participation job).
+ */
 function startRunnersAndFeeds() {
     // Initialize MCP server connections (non-blocking)
     try {
@@ -148,24 +154,6 @@ function startRunnersAndFeeds() {
     } catch (err) {
         log.warn('[Server] MCP manager load failed:', err.message);
     }
-    // Initialize Automation Runner — gated per-org by the 'automations' beta feature
-    if (isModuleAvailable('automation')) try {
-        const automationRunner = require('../core/automationRunner');
-        automationRunner.start().catch(err =>
-            log.warn('[Server] Automation runner start error:', err.message)
-        );
-    } catch (err) {
-        log.warn('[Server] Automation runner load failed:', err.message);
-    }
-    // Datatables that mirror a Nextcloud table: the scheduled refresh. The
-    // other triggers (push events, opening the rows, "Refresh now") run the
-    // same engine on demand; this is the safety net under them. Advisory-
-    // locked; each mirror is additionally claimed per row.
-    if (isModuleAvailable('automation')) try {
-        require('../jobs/datatableNcSync').start();
-    } catch (err) {
-        log.warn('[Server] Nextcloud mirror sync load failed:', err.message);
-    }
     // Automation runs → project feed. runEventBus is in-process only; re-emitting
     // through the project feed is what gives a run cross-replica delivery and
     // reconnect-by-cursor, which projectEventBus already solved. No-ops for every
@@ -174,16 +162,6 @@ function startRunnersAndFeeds() {
         require('../core/projectContent/projectFeed.runs').start();
     } catch (err) {
         log.warn('[Server] Project run feed bridge load failed:', err.message);
-    }
-    // The AI that joins team chats and comment threads by itself: every 5 s
-    // it claims the debounced watches that came due (FOR UPDATE SKIP LOCKED,
-    // so replicas share the work without an advisory lock), asks the fast
-    // relevance gate and answers or stays silent. A few at a time per replica,
-    // paused by its own circuit breaker when the gate keeps failing.
-    if (isModuleAvailable('projects')) try {
-        require('../projects/participation/aiParticipationJob').start();
-    } catch (err) {
-        log.warn('[Server] AI participation job load failed:', err.message);
     }
     // OpenObserve usage-push job — periodically pushes per-org/per-user token +
     // cost rollups to OpenObserve. Self-gated (no-op unless USAGE_PUSH_ENABLED),
@@ -201,40 +179,14 @@ function startRunnersAndFeeds() {
     } catch (err) {
         log.warn('[Server] Ops metrics push job load failed:', err.message);
     }
+    loader.runStartupPhase('startRunnersAndFeeds');
 }
 
-/** Support Studio, Nextcloud, project, learning, meeting-audio, App Studio and KB jobs. */
+/**
+ * The Nextcloud, telemetry and KB jobs; then the module rows of this phase (Support
+ * Studio, projects, sanctions, cowork, learning, meeting audio, App Studio).
+ */
 function startSupportAndSyncJobs() {
-    // Support Studio inbox sync — polls connected tenant mailboxes and turns
-    // inbound email into support tickets. Set SUPPORT_INBOX_SYNC_IN_API=false
-    // when a dedicated worker owns it. Support-owned, so it follows the module
-    // switch like the SLA enforcer below; the tick itself also re-checks the
-    // runtime module row.
-    if (isModuleAvailable('support')) try {
-        if (process.env.SUPPORT_INBOX_SYNC_IN_API !== 'false') {
-            require('../services/supportInboxSyncEngine').startSupportInboxSync();
-        }
-    } catch (err) {
-        log.warn('[Server] Support inbox sync engine load failed:', err.message);
-    }
-    // Support Studio historical-scan drain — runs on-demand "how fast did we
-    // answer in the past?" scans queued from the Insights view. Aggregate-only,
-    // off the sync tick. Set SUPPORT_SCAN_IN_API=false when a worker owns it.
-    if (isModuleAvailable('support')) try {
-        if (process.env.SUPPORT_SCAN_IN_API !== 'false') {
-            require('../services/supportInboxScanEngine').startSupportInboxScan();
-        }
-    } catch (err) {
-        log.warn('[Server] Support inbox scan engine load failed:', err.message);
-    }
-    // Customer Support SLA enforcer — policy-driven first-response/resolution
-    // breach detection on a 60s tick (replaces the old 15-min at-risk warner).
-    if (isModuleAvailable('support')) try {
-        require('../services/supportSlaEnforcer').start();
-        require('../services/supportIssueSync').start();
-    } catch (err) {
-        log.warn('[Server] Support SLA enforcer load failed:', err.message);
-    }
     // NC user/group sync backstop — covers gaps when real-time webhooks miss
     try {
         require('../services/ncSyncBackstop').start();
@@ -249,65 +201,8 @@ function startSupportAndSyncJobs() {
     } catch (err) {
         log.warn('[Server] NC onboarding reminder load failed:', err.message);
     }
-    // Project task reminders: a daily tick for open tasks due tomorrow, today or late.
-    try { require('../projects/taskDueNotifier').start(); } catch (err) { log.warn('[Server] Project task due notifier load failed:', err.message); }
-    if (isModuleAvailable('projects')) try { require('../projects/stages/deployRunnerJob').start(); } catch (err) { log.warn('[Server] Solution deploy runner load failed:', err.message); }
-    // The public sanctions lists (EU, UN, NL, OFAC, UK): daily, only while an organisation has the
-    // integration on (SANCTIONS_REFRESH_INTERVAL_HOURS, 0 = off). Advisory-locked across pods.
-    try { require('../jobs/sanctionsListRefresh.mts').start(); } catch (err) { log.warn('[Server] Sanctions list refresh load failed:', err.message); }
-    // Coworks that start after another one hear the runs that end (core/cowork/afterCowork.mts).
-    try { require('../core/cowork/afterCowork.mts').start(); } catch (err) { log.warn('[Server] Cowork after-cowork start failed:', err.message); }
-    // Every closed Cowork run gets a signed receipt (core/cowork/receipts/issueReceipts.mts).
-    try { require('../core/cowork/receipts/issueReceipts.mts').start(); } catch (err) { log.warn('[Server] Cowork receipts start failed:', err.message); }
-    // "It notices what you repeat" forgets, daily, notes over eight weeks old and every note of a person who is off or not allowed (core/cowork/habits/habitSweep.mts).
-    try { require('../core/cowork/habits/habitSweep.mts').start(); } catch (err) { log.warn('[Server] Cowork habit sweep start failed:', err.message); }
-    // A cowork with a goal is measured by its approved check after its runs (core/cowork/goals/goalMeasure.mts).
-    try { require('../core/cowork/goals/goalMeasure.mts').start(); } catch (err) { log.warn('[Server] Cowork goal measuring start failed:', err.message); }
-    // A plan that keeps failing, or a goal that stays under target, gets a repair proposed (never applied); the work is in usecases/.
-    try { require('../core/cowork/repairs/repairTriggers.mts').start((item, trigger) => require('../usecases/coworkProposals.mts').proposeRepair(item, trigger)); } catch (err) { log.warn('[Server] Cowork repairs start failed:', err.message); }
-    // A run that did not do its work because a step read a list that is not there gets that reference fixed by itself,
-    // when the fix reaches exactly what the plan reaches and a replay proves it (decision 0050); the work is in usecases/.
-    try { require('../core/cowork/repairs/autoResolve.mts').start((item, run, fact) => require('../usecases/coworkAutoResolve.mts').autoResolve(item, run, fact)); } catch (err) { log.warn('[Server] Cowork auto-fix start failed:', err.message); }
-    // Weekly: a steady AI step is offered as a fixed one when a replay proves it (core/cowork/cheaper/stableSteps.mts).
-    try { require('../core/cowork/cheaper/stableSteps.mts').start((item, step) => require('../usecases/coworkProposals.mts').offerFixedStep(item, step)); } catch (err) { log.warn('[Server] Cowork steady-step offers start failed:', err.message); }
-    // The daily Cowork e-mail of what waits for its owner (off until the owner switches it on); the list is composed in usecases/.
-    try { require('../jobs/coworkDailyMail.mts').start((userId) => require('../usecases/coworkNeedsYou.mts').needsYou(userId)); } catch (err) { log.warn('[Server] Cowork daily mail load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).
     try { require('../jobs/memoryTelemetry').start(); } catch (err) { log.warn('[Server] Memory telemetry load failed:', err.message); }
-    // Learning Center review nudge — daily tick that reminds lapsed learners
-    // (started, unfinished, quiet 7-60d) to do a short review. Max one nudge
-    // per user per 14d via configStore marker; advisory-locked across pods.
-    // Learning-owned, so it follows the module switch like its siblings.
-    if (isModuleAvailable('learning')) try {
-        require('../jobs/learningNudge').start();
-    } catch (err) {
-        log.warn('[Server] Learning nudge load failed:', err.message);
-    }
-    // Safety net for meeting audio: give any recording still on this pod's disk
-    // a durable object-storage copy. The request paths repair opportunistically;
-    // this catches notes nobody happens to open.
-    if (isModuleAvailable('meetingNotes')) try {
-        require('../jobs/savedAudioBackfill').start();
-    } catch (err) {
-        log.warn('[Server] Saved-audio backfill load failed:', err.message);
-    }
-    // App Studio connector → table sync. Refreshes the tables that studio apps
-    // fill from an external app on the owner's schedule, so viewers read local
-    // rows instead of hitting the upstream API on every screen paint.
-    // Advisory-locked; each sync is additionally claimed per (app, connector).
-    if (isModuleAvailable('apps')) try {
-        require('../jobs/studioAppConnectorSync').start();
-        require('../jobs/datasetIngest').start();
-        // Background actions: rows whose process died stop beating → interrupted.
-        require('../jobs/studioAppActionRuns').start();
-        // Server runs on hold: the ones whose wake time passed go on (or end).
-        require('../jobs/studioAppRunWake').start({ wake: () => require('../appStudio/backgroundRun.mts').wakeDueRuns() });
-        // Server triggers of published apps: the ones that are due fire, earlier fires are settled.
-        // The same pass delivers the changed records that wait for a record trigger (triggers/recordDrain.mts).
-        require('../jobs/studioAppTriggers').start({ pass: () => require('../appStudio/triggers/recordDrain.mts').triggerAndRecordPass() });
-    } catch (err) {
-        log.warn('[Server] Studio app connector sync load failed:', err.message);
-    }
     // Knowledge-base source refresh. Keeps a KB's sources up to date on their
     // own schedule, so what an agent quotes is what the source says today
     // rather than what it said the day someone added it. Advisory-locked
@@ -322,15 +217,7 @@ function startSupportAndSyncJobs() {
     } catch (err) {
         log.warn('[Server] KB source refresh load failed:', err.message);
     }
-
-    // Learning Center videos: install the pack this release pins into
-    // LEARN_MEDIA_DIR, ~15 s after boot and never blocking it. Off in tests and
-    // with LEARN_MEDIA_AUTO=off; a build without a pin skips quietly.
-    try {
-        require('../learning/learnMediaSync').startLearnMediaSync();
-    } catch (err) {
-        log.warn('[Server] Learn media sync load failed:', err.message);
-    }
+    loader.runStartupPhase('startSupportAndSyncJobs');
 }
 
 module.exports = {
@@ -339,3 +226,4 @@ module.exports = {
 };
 
 /** A module whose background work boot starts by name. @typedef {{ start: () => unknown }} Startable */
+/** The part of the first-party loader a phase calls. @typedef {{ runStartupPhase: (phase: import('../modules/firstParty/contract').StartupPhase) => void }} PhaseRunner */

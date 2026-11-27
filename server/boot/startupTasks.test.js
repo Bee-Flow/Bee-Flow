@@ -4,8 +4,9 @@
  * that owns it. The other side of that rule is that a start() nobody calls is a
  * job that silently never runs, so this file holds the wiring: the two phases
  * that start module-owned work are part of runStartupTasks(), and they call the
- * start of the config invalidation listener, the reminder checker, the cowork
- * runner and the coverage prune.
+ * start of the config invalidation listener and the reminder checker, then the
+ * job rows the modules contribute to the phase (the cowork runner and the
+ * coverage prune: firstParty/cowork.jobs.js).
  *
  * The modules themselves are covered next to their source
  * (stores/reminderStore.start.test.js, core/cowork/coworkRunner.start.test.js,
@@ -53,15 +54,20 @@ test('the phases that start module-owned background work are part of boot', () =
     assert.ok(STARTUP_PHASES.includes(startModuleSchedulers), 'the module schedulers are a boot phase');
 });
 
-test('the scheduler phase starts the reminder checker, the cowork runner and the coverage prune, once each', () => {
+/**
+ * A loader double whose runStartupPhase records the phase it was asked to run.
+ * @param {string[]} calls
+ */
+function phaseRunner(calls) {
+    return { runStartupPhase: (/** @type {string} */ phase) => { calls.push(`rows of ${phase}`); } };
+}
+
+test('the scheduler phase starts the reminder checker, then the module rows of its phase (the cowork runner and the coverage prune), once each', () => {
     /** @type {string[]} */
     const calls = [];
-    startModuleSchedulers({
-        reminderStore: startable(calls, 'reminderStore'),
-        coworkRunner: startable(calls, 'coworkRunner'),
-        aiTaskRunner: startable(calls, 'aiTaskRunner'),
-    });
-    assert.deepEqual(calls, ['reminderStore', 'coworkRunner', 'aiTaskRunner']);
+    startModuleSchedulers({ reminderStore: startable(calls, 'reminderStore'), loader: phaseRunner(calls) });
+    // The cowork tick and the coverage prune are rows of the cowork module (firstParty/cowork.jobs.js, held there).
+    assert.deepEqual(calls, ['reminderStore', 'rows of startModuleSchedulers']);
 });
 
 test('a scheduler that fails to start is reported by name and does not stop the ones after it', (t) => {
@@ -70,23 +76,26 @@ test('a scheduler that fails to start is reported by name and does not stop the 
     const warn = t.mock.method(log, 'warn', () => {});
     startModuleSchedulers({
         reminderStore: { start: () => { throw new Error('boom'); } },
-        coworkRunner: startable(calls, 'coworkRunner'),
-        aiTaskRunner: startable(calls, 'aiTaskRunner'),
+        loader: phaseRunner(calls),
     });
-    assert.deepEqual(calls, ['coworkRunner', 'aiTaskRunner']);
+    assert.deepEqual(calls, ['rows of startModuleSchedulers']);
     assert.equal(warn.mock.callCount(), 1);
     assert.deepEqual(warn.mock.calls[0].arguments, ['[Server] Reminder checker start failed:', 'boom']);
 });
 
 test('the listener phase starts the config invalidation listener and survives a start that throws', (t) => {
     let started = 0;
-    startConfigInvalidationListener({ configStore: { startInvalidationListener: () => { started += 1; } } });
+    /** @type {string[]} */
+    const rows = [];
+    startConfigInvalidationListener({ configStore: { startInvalidationListener: () => { started += 1; } }, loader: phaseRunner(rows) });
     assert.equal(started, 1);
 
     const warn = t.mock.method(log, 'warn', () => {});
     assert.doesNotThrow(() => startConfigInvalidationListener({
         configStore: { startInvalidationListener: () => { throw new Error('no pg'); } },
+        loader: phaseRunner(rows),
     }));
+    assert.deepEqual(rows, ['rows of startConfigInvalidationListener', 'rows of startConfigInvalidationListener']);
     assert.deepEqual(warn.mock.calls[0].arguments, ['[Server] Config invalidation listener start failed:', 'no pg']);
 });
 

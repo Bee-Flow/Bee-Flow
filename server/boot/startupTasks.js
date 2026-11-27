@@ -9,14 +9,19 @@
  *   runStartupTasks()   — the background work: sanity probes, warmups, one-shot
  *                         backfills and migrations, schedulers, runners and jobs.
  *
- * The webpage full-tier proxy mount sits BETWEEN the two and stays in index.js:
- * it needs the http.Server and the terminal error handler, both of which live
- * there.
+ * Each phase of runStartupTasks() starts its core work and then the job rows
+ * the first-party modules contribute to it (modules/firstParty/loader.js
+ * runStartupPhase, rows in firstParty/<id>.jobs.js).
+ *
+ * The after-listen wiring of the modules (the webpage full-tier proxy) sits
+ * BETWEEN the two, in boot/lifecycle.js: it needs the http.Server and the
+ * terminal error handler.
  */
 
 const fs = require('fs');
 const log = require('../telemetry/log');
 const { trackBootStep } = require('../utils/runtimeState.mts');
+const { requireIfPresent } = require('./optionalRequire');
 const { startBootProbes, startLicenseAndModuleRuntime, startLateWarmups } = require('./startupProbes');
 const { runOneShotTasks } = require('./startupOneShots');
 const { startDunningAndTrialSchedulers, startPlanCapDriftAudit, startSeatSync, startPaygDrain } = require('./startupBilling');
@@ -101,14 +106,16 @@ function runStartupChecks() {
     // Learning-certificate HMAC secret: bootstrap a configStore-persisted secret
     // for installs that never set LEARNING_CERT_SECRET, so certificate serials
     // and public verify links survive restarts instead of silently breaking.
-    const { ensureDurableSecret } = require('../auth/certificateToken');
-    ensureDurableSecret().catch(err => log.error('[CertificateToken] bootstrap failed:', err.message));
+    // A file of the learning module: an optional lookup, skipped when the module is absent.
+    const certificateToken = requireIfPresent(() => require('../auth/certificateToken'));
+    if (certificateToken) certificateToken.ensureDurableSecret().catch(err => log.error('[CertificateToken] bootstrap failed:', err.message));
 
     // Webpage preview-token HMAC secret: same pattern — without this, each
     // replica of a multi-pod deploy would mint preview tokens with its own
     // random secret, so a token issued by one pod gets 401'd by another.
-    const { ensureDurableSecret: ensureWebpagePreviewSecret } = require('../auth/webpagePreviewToken');
-    ensureWebpagePreviewSecret().catch(err => log.error('[WebpagePreviewToken] bootstrap failed:', err.message));
+    // A file of the webpages module: an optional lookup, skipped when the module is absent.
+    const webpagePreviewToken = requireIfPresent(() => require('../auth/webpagePreviewToken'));
+    if (webpagePreviewToken) webpagePreviewToken.ensureDurableSecret().catch(err => log.error('[WebpagePreviewToken] bootstrap failed:', err.message));
 
     // Public-share HMAC secret: the same pattern once more, and the one with the
     // widest blast radius — it signs magic links, unlock cookies, view/bridge

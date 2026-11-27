@@ -151,6 +151,6 @@ test('boot wires the compliance resolver into the port', () => {
     const ports = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'ports.js'), 'utf8');
     assert.ok(ports.includes("openChannel('boot/ports')"), 'boot/ports.js wirePorts must open the channel the compliance module wires the resolver on');
     const jobs = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'startupJobs.js'), 'utf8');
-    assert.ok(/require\('\.\/ports'\)\.wirePorts\(\{ compliance: isModuleAvailable\('compliance'\) \}\)/.test(jobs),
-        'boot/startupJobs.js must wire the ports with the compliance availability');
+    assert.ok(/require\('\.\/ports'\)\.wirePorts\(\{ compliance: moduleLoaded\('compliance'\) \}\)/.test(jobs),
+        'boot/startupJobs.js must wire the ports with whether the compliance module loaded');
 });

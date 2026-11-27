@@ -8,6 +8,7 @@
 
 const log = require('../telemetry/log');
 const { trackBootStep } = require('../utils/runtimeState.mts');
+const loader = require('../modules/firstParty/loader');
 
 /**
  * Start one of the migration ladders of bootMigrations.js after the current
@@ -36,27 +37,6 @@ function startLadder(step, run) {
 
 /** One-shot checks, backfills and data migrations, each non-blocking. */
 function runOneShotTasks() {
-    // Stripe configuration sanity check. If Stripe is enabled but the webhook
-    // signing secret is missing, every incoming webhook will be rejected with
-    // 400 — that's silent in production unless the admin actively watches
-    // webhook delivery logs. Surface it loudly at boot.
-    if ((process.env.DEPLOYMENT_MODE || 'cloud') !== 'self-hosted') {
-        (async () => {
-            try {
-                const stripeService = require('../services/stripeService');
-                const configStore = require('../stores/configStore');
-                if (await stripeService.isEnabled()) {
-                    const secret = await configStore.getSecret('stripe_webhook_secret');
-                    if (!secret) {
-                        log.error('[Stripe] WARNING: Stripe is enabled but stripe_webhook_secret is not configured — all incoming webhooks will be rejected with 400. Configure the signing secret in the Stripe admin UI.');
-                    }
-                }
-            } catch (e) {
-                log.warn('[Stripe] Startup config check failed:', e.message);
-            }
-        })();
-    }
-
     // Trial-history backfill — idempotent one-shot that copies existing
     // organizations.trial_used_at / users.trial_used_at into the durable
     // trial_history table. After this runs once, the unique index makes
@@ -108,15 +88,10 @@ function runOneShotTasks() {
     // same row; run in parallel, the second writer erased the first's keys).
     startLadder('Dutch translation catalogues', () => require('./bootMigrations').runNlTranslations());
 
-    // Resized AVIF/WebP copies of CMS images uploaded before they existed:
-    // at most 50 per boot, one at a time through the upload queue, a minute
-    // after boot so it never competes with start-up. Fail-safe.
-    setTimeout(() => {
-        const storageStore = require('../stores/storageStore');
-        if (!storageStore.isAvailable()) return;
-        require('../core/cms/assetVariantStore').backfillVariants(storageStore).catch(e =>
-            log.warn('[Server] image variant backfill error:', e.message));
-    }, 60 * 1000).unref();
+    // The module rows of this phase: the Stripe webhook-secret check
+    // (firstParty/billing_stripe.jobs.js) and the CMS image-variant backfill
+    // (firstParty/cms.jobs.js).
+    loader.runStartupPhase('runOneShotTasks');
 }
 
 module.exports = { runOneShotTasks, startLadder };
