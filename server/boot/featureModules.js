@@ -39,6 +39,8 @@ registerFeatureModules({
     'automation/toolRegistry': () => require('../automation/toolRegistry'),
     // agents
     'agents/memory/extractor': () => require('../agents/memory/extractor'),
+    // the chat's depth-tier resolver: core (the spreadsheet assistant), in projects/ beside its other callers
+    'projects/chatModel': () => require('../projects/chatModel'),
 });
 
 require('../modules/firstParty/registrationChannels').openChannel('boot/featureModules');

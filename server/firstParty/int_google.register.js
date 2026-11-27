@@ -48,6 +48,16 @@ function toolFamilies() {
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'integrations/gmailTools': () => require('../integrations/gmailTools'),
+        'integrations/calendarTools': () => require('../integrations/calendarTools'),
+        'integrations/driveTools': () => require('../integrations/driveTools'),
+        'integrations/docsTools': () => require('../integrations/docsTools'),
+        'integrations/sheetsTools': () => require('../integrations/sheetsTools'),
+        'integrations/slidesTools': () => require('../integrations/slidesTools'),
+        'integrations/contactsTools': () => require('../integrations/contactsTools'),
+        'integrations/keepTools': () => require('../integrations/keepTools'),
+        'integrations/googleGroupsTools': () => require('../integrations/googleGroupsTools'),
+        'integrations/mapsTools': () => require('../integrations/mapsTools'),
     }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', () => require('../integrations/coreToolsets').registerToolsets({

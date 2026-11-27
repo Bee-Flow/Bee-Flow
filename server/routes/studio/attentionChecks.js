@@ -48,8 +48,8 @@
  *   apps        → projects/completeness.js buildCompleteness({ apps }) — the
  *                 same canonicalize + validate + Finding conversion a Solution
  *                 runs, called with only the apps half.
- *   empty KBs   → projects/completeness.js emptyKnowledgeBaseFinding, the rule
- *                 itself, exported for this caller.
+ *   empty KBs   → core/findings/builderFindings.js emptyKnowledgeBaseFinding, the
+ *                 rule itself, which a Solution's completeness reports too.
  *   solutions   → the collectCompleteness verdict, COPIED (`blocked`,
  *                 `complete`), never recomputed.
  *   kb sources  → the `status` column kb_sources already maintains.
@@ -336,7 +336,7 @@ function evaluateAgentNoKb(data = {}) {
 /**
  * 3. A knowledge base something reads that holds no documents.
  *
- * The finding is projects/completeness.js's own, imported rather than copied.
+ * The finding is core/findings/builderFindings.js's, a Solution's own too: imported, not copied.
  * What differs is the "is it read" half: a Solution reads it off a graph edge,
  * an organisation off core/kb/kbUsage.js's scan, and the role filter above is
  * the same cut that module's KB_WRITE_EDGES makes.
@@ -365,7 +365,7 @@ function evaluateKbEmptyInUse(data = {}) {
             if (asArray(entry?.usagePartial).length > 0) miss('knowledge:usage');
             continue;
         }
-        pushFinding(findings, () => completeness().emptyKnowledgeBaseFinding({ id: kb.id, name: kb.name }), miss, 'knowledge:row');
+        pushFinding(findings, () => require('../../core/findings/builderFindings').emptyKnowledgeBaseFinding({ id: kb.id, name: kb.name }), miss, 'knowledge:row');
     }
     return { findings, gaps };
 }
@@ -620,7 +620,7 @@ const SOURCES = [
         evaluate: evaluateAgentNoKb,
     },
     {
-        key: 'kbEmptyInUse', needs: ['completeness'],
+        key: 'kbEmptyInUse',
         kind: 'kb',
         // routes/knowledgeBases/list.js is ungated at the mount — Knowledge base
         // is a Community feature, so this source exists for everyone.

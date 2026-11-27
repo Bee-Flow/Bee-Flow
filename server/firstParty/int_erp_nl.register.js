@@ -36,6 +36,11 @@ function register() {
         'routes/ai/config/firebirdTestRoute': () => require('../routes/ai/config/firebirdTestRoute'),
         'routes/ai/config/frappeCrmTestRoute': () => require('../routes/ai/config/frappeCrmTestRoute.mts'),
         'routes/ai/config/twobaTestRoute': () => require('../routes/ai/config/twobaTestRoute.mts'),
+        'integrations/afasTools': () => require('../integrations/afasTools'),
+        'integrations/vplanTools': () => require('../integrations/vplanTools'),
+        'integrations/firebirdTools': () => require('../integrations/firebirdTools'),
+        'integrations/frappeCrmTools': () => require('../integrations/frappeCrmTools.mts'),
+        'integrations/twobaTools': () => require('../integrations/twobaTools.mts'),
     }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', () => require('../integrations/coreToolsets').registerToolsets({

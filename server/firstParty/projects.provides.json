@@ -1,6 +1,5 @@
 {
   "featureModules": [
-    "projects/chatModel",
     "projects/documentFiling",
     "projects/completeness",
     "projects/summary",

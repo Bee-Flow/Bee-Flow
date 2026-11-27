@@ -3,7 +3,16 @@
     "stores/githubSyncStore",
     "integrations/n8nTools",
     "integrations/n8nHttp",
-    "usecases/ai/config/scalewayBillingFields"
+    "usecases/ai/config/scalewayBillingFields",
+    "integrations/firefliesTools",
+    "integrations/youtrackTools",
+    "integrations/signrequestTools",
+    "integrations/gammaTools",
+    "integrations/scalewayBillingTools",
+    "integrations/linkedinTools",
+    "integrations/withingsTools",
+    "integrations/githubTools",
+    "integrations/n8nWorkflowTools"
   ],
   "integrationClients": [
     "github",

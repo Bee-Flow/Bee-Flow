@@ -10,7 +10,7 @@
 
 const log = require('../../telemetry/log');
 const automationStore = require('../../stores/automationStore');
-const { TOOL_REGISTRY, loadTools } = require('../../automation/toolRegistry');
+const toolRegistry = require('../../automation/toolRegistry');
 const { isSideEffect, effectOf } = require('../../automation/sideEffectMap');
 const { getOutputSchema, producesList, iterableFieldsOf } = require('../../automation/outputSchemas');
 const { resolveIntegration } = require('../../core/integrations/integrationToolMap');
@@ -86,8 +86,8 @@ async function isWebpagesAvailable(/** @type {import('express').Request} */ req,
 
 /** The apps with their actions, and which of them this user can use. */
 function buildApps({ userToolNames, webpagesAvailable }) {
-    return TOOL_REGISTRY.map(entry => {
-        const tools = loadTools(entry);
+    return toolRegistry.TOOL_REGISTRY.map(entry => {
+        const tools = toolRegistry.loadTools(entry);
         const actions = tools.map(t => {
             const name = t?.function?.name;
             if (!name) return null;

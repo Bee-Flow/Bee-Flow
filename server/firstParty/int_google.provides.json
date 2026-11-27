@@ -1,5 +1,16 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "integrations/gmailTools",
+    "integrations/calendarTools",
+    "integrations/driveTools",
+    "integrations/docsTools",
+    "integrations/sheetsTools",
+    "integrations/slidesTools",
+    "integrations/contactsTools",
+    "integrations/keepTools",
+    "integrations/googleGroupsTools",
+    "integrations/mapsTools"
+  ],
   "integrationClients": [
     "google",
     "gmail"

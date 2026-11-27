@@ -1,5 +1,5 @@
 // @typecheck strict
-const { TOOL_REGISTRY } = require('../toolRegistry');
+const toolRegistry = require('../toolRegistry');
 
 const MAX_TITLE = 80;
 
@@ -55,18 +55,29 @@ const SYSTEM_PROMPT = [
     'Rules: write in English. Use only what the cards say. Never invent people, companies, addresses, links, amounts or numbers. Never compute new numbers from the card.',
 ].join('\n');
 
-/** @type {Map<string, string>} */
-const APP_LABELS = new Map([
-    ...TOOL_REGISTRY.map((e) => /** @type {[string, string]} */ ([e.app, e.label])),
+/** @type {Array<[string, string]>} */
+const EXTRA_APP_LABELS = [
     ['teams', 'Microsoft Teams'],
     ['gmeet', 'Google Meet'],
     ['meetings', 'Meeting notes'],
     ['beeflow', 'Bee Flow'],
     ['chat', 'Bee Flow chat'],
     ['documents', 'the knowledge base'],
-]);
+];
+
+/**
+ * The registry's label of every app that is here, then the extras. Read when asked: the
+ * registry lists a module's apps once that module has registered, after this file loads.
+ * @returns {Map<string, string>}
+ */
+function appLabels() {
+    return new Map([
+        ...toolRegistry.TOOL_REGISTRY.map((e) => /** @type {[string, string]} */ ([e.app, e.label])),
+        ...EXTRA_APP_LABELS,
+    ]);
+}
 
 // In the model's text "1,5" is a number; in the card's JSON a comma separates.
 const NUMBER_RE = /\d+(?:[.,]\d+)?/g;
 
-module.exports = { MAX_TITLE, MAX_WHY, MAX_PROMPT, MAX_CARDS, NAMING_OPTIONS, NAME_PATTERNS_TOOL, SYSTEM_PROMPT, APP_LABELS, NUMBER_RE };
+module.exports = { MAX_TITLE, MAX_WHY, MAX_PROMPT, MAX_CARDS, NAMING_OPTIONS, NAME_PATTERNS_TOOL, SYSTEM_PROMPT, appLabels, NUMBER_RE };

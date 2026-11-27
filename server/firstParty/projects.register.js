@@ -13,7 +13,6 @@ const { contribute } = require('../modules/firstParty/registrationChannels');
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // agents, projects
-        'projects/chatModel': () => require('../projects/chatModel'),
         // a filled-in document filed into a project from the chat (integrations/templateFillTools.mts)
         'projects/documentFiling': () => require('../projects/documentFiling.mts'),
         'projects/completeness': () => require('../projects/completeness'),

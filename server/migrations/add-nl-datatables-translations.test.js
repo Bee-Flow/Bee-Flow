@@ -12,15 +12,19 @@ const assert = require('node:assert');
 const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = require('./add-nl-datatables-translations');
 // The Nextcloud-mirror and spreadsheet-mirror halves of the section have
 // their own catalogues; the rule "every datatables.* key has Dutch" holds
-// over the UNION of the three.
-const NC = require('./add-nl-datatables-nextcloud-translations');
-const SS = require('./add-nl-datatables-spreadsheets-translations');
+// over the UNION of the three. They are the datatables module's: read from the
+// whole tree, as the fifth below (i18n/defaults/treeI18n.testkit.js).
+const {
+    'add-nl-datatables-nextcloud-translations': NC,
+    'add-nl-datatables-spreadsheets-translations': SS,
+    'add-nl-datatable-quota-translations': QU,
+} = require('../i18n/defaults/treeI18n.testkit').catalogues([
+    'add-nl-datatables-nextcloud-translations', 'add-nl-datatables-spreadsheets-translations', 'add-nl-datatable-quota-translations',
+]);
 // … and the form-answers half (`datatables.frm_*`) lives with the Forms
 // catalogue, which is the fourth member of the union.
 const FA = require('./add-nl-forms-answers-translations');
-// … and the storage-limit refusals (`datatables.quota_*`) have their own, the fifth.
-// (The datatables module's own catalogue: read from the whole tree, i18n/defaults/treeI18n.testkit.js.)
-const QU = require('../i18n/defaults/treeI18n.testkit').catalogue('add-nl-datatable-quota-translations');
+// … and the storage-limit refusals (`datatables.quota_*`) have their own, the fifth (QU above).
 // The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
 const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 

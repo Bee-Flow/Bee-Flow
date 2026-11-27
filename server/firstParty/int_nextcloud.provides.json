@@ -1,6 +1,20 @@
 {
   "featureModules": [
-    "integrations/nextcloudToolFamily"
+    "integrations/nextcloudToolFamily",
+    "integrations/nextcloudTools",
+    "integrations/nextcloudCalendarTools",
+    "integrations/nextcloudContactsTools",
+    "integrations/nextcloudDeckTools",
+    "integrations/nextcloudTalkTools",
+    "integrations/nextcloudTasksTools",
+    "integrations/nextcloudNotesTools",
+    "integrations/nextcloudMailTools",
+    "integrations/nextcloudActivityTools",
+    "integrations/nextcloudNotificationsTools",
+    "integrations/nextcloudTablesTools",
+    "integrations/nextcloudFormsTools",
+    "integrations/nextcloudTeamsTools",
+    "integrations/nextcloudStatusTools"
   ],
   "integrationClients": [
     "nextcloud",

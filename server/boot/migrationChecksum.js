@@ -33,13 +33,16 @@ function migrationFile(name) {
 
 /**
  * @param {string} name a file name under migrations/, without .js
+ * @param {string} [salt] what the checksum also covers for the run that asks (the Dutch catalogues:
+ *   the absent module namespaces, i18n/defaults/moduleNamespaces.js); '' leaves the checksum as it was
  * @returns {string} hex sha256
  */
-function checksumOf(name) {
+function checksumOf(name, salt = '') {
     const file = migrationFile(name);
     const hash = crypto.createHash('sha256').update(fs.readFileSync(file));
     const extra = Object.prototype.hasOwnProperty.call(CHECKSUM_EXTRA, name) ? CHECKSUM_EXTRA[name] : undefined;
     if (extra) hash.update(`\0${extra()}`);
+    if (salt) hash.update(`\0${salt}`);
     return hash.digest('hex');
 }
 

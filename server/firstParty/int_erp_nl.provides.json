@@ -4,6 +4,11 @@
     "integrations/nmbrsTools",
     "routes/ai/config/firebirdTestRoute",
     "routes/ai/config/frappeCrmTestRoute",
-    "routes/ai/config/twobaTestRoute"
+    "routes/ai/config/twobaTestRoute",
+    "integrations/afasTools",
+    "integrations/vplanTools",
+    "integrations/firebirdTools",
+    "integrations/frappeCrmTools",
+    "integrations/twobaTools"
   ]
 }

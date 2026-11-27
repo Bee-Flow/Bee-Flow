@@ -22,6 +22,7 @@ function register() {
         'integrations/webpageDbTools': () => require('../integrations/webpageDbTools'),
         'integrations/webpagePlanTool': () => require('../integrations/webpagePlanTool'),
         'core/kb/sources/webpage': () => require('../core/kb/sources/webpage'),
+        'integrations/webpageAutomationTools': () => require('../integrations/webpageAutomationTools'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

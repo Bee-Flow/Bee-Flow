@@ -20,7 +20,7 @@
 const automationStore = require('../stores/automationStore');
 const { validateDefinition } = require('./validate');
 const { getDeliverableEvents } = require('./deliverableEvents');
-const { TOOL_REGISTRY, loadTools } = require('./toolRegistry');
+const toolRegistry = require('./toolRegistry');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -31,9 +31,9 @@ async function buildToolCatalog({ userId, session, isAdmin = false }) {
         const permitted = await getUserPermittedApps({ userId, session, isAdmin: !!isAdmin });
         const availableTools = new Set();
         const toolRequiredParams = {};
-        for (const entry of TOOL_REGISTRY) {
+        for (const entry of toolRegistry.TOOL_REGISTRY) {
             const permittedApp = permitted.has(entry.app);
-            for (const t of loadTools(entry)) {
+            for (const t of toolRegistry.loadTools(entry)) {
                 const name = t?.function?.name;
                 if (!name) continue;
                 if (permittedApp) availableTools.add(name);

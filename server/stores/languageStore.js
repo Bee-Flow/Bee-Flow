@@ -174,15 +174,14 @@ async function setGUITranslations(locale, translations) {
  * the wound from add-nl-cowork-header, one layer higher. mutateConfig
  * serialises writers of this one key with a Postgres advisory lock.
  *
- * Existing values ALWAYS win (only missing keys are added),
- * so a workspace that curated its own wording keeps it — the same promise
- * that every catalogue already made, now also under concurrency.
+ * Existing values ALWAYS win (only missing keys are added), so a workspace that curated its own
+ * wording keeps it, also under concurrency. Keys of an absent module's namespace are left out.
  */
 async function addMissingGUITranslations(locale, translations) {
     let added = 0;
     await mutateGUITranslations(locale, (merged) => {
         added = 0; // de mutator kan opnieuw draaien — tel per poging
-        for (const [key, value] of Object.entries(translations)) {
+        for (const [key, value] of Object.entries(require('../i18n/defaults/moduleNamespaces').presentOnly(translations))) {
             if (!merged[key]) {
                 merged[key] = value;
                 added++;
@@ -197,11 +196,12 @@ async function addMissingGUITranslations(locale, translations) {
  * Generic atomic operation on one language blob, for the few catalogues that do
  * more than add-only-missing (removing retired keys, forcing through a deliberate
  * rewording). Same advisory lock as addMissingGUITranslations; the mutator gets its own copy,
- * may mutate it, and may run again — so no side effects in it.
+ * may mutate it, may run again (no side effects). An absent module's namespace stays as it is.
  * @type {(locale: string, mutatorFn: (current: Record<string, string>) => Record<string, string>) => Promise<unknown>}
  */
 async function mutateGUITranslations(locale, mutatorFn) {
-    return configStore.mutateConfig(`i18n_gui_${locale}`, (current) => mutatorFn({ ...(current || {}) }));
+    const { keepAbsentNamespaces } = require('../i18n/defaults/moduleNamespaces');
+    return configStore.mutateConfig(`i18n_gui_${locale}`, (current) => keepAbsentNamespaces(current || {}, mutatorFn({ ...(current || {}) })));
 }
 
 /**

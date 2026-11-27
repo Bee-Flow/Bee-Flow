@@ -103,3 +103,21 @@ test('every migration a composition contributes is recorded under that compositi
     }
     assert.deepEqual(contributed, Object.fromEntries(Object.entries(OWNERS.migrations).filter(([, id]) => seen.has(id))));
 });
+
+test('a salt goes into every checksum of the run; an empty one leaves the checksum as it was', async () => {
+    const { checksumOf } = require('./migrationChecksum');
+    const name = 'add-nl-approvals-translations';
+    const salt = 'absent-i18n-namespaces:automations';
+    assert.equal(checksumOf(name, ''), checksumOf(name));
+    assert.notEqual(checksumOf(name, salt), checksumOf(name));
+    /** @type {string[]} */
+    const recorded = [];
+    await runList([name], {
+        log: quiet,
+        salt,
+        load: () => ({ up: async () => {} }),
+        ledger: { read: async () => new Map([[name, { checksum: checksumOf(name), applied_at: 'earlier' }]]), record: async (n, sum) => { recorded.push(`${n}:${sum}`); } },
+    });
+    assert.deepEqual(recorded, [`${name}:${checksumOf(name, salt)}`],
+        'a catalogue recorded without the salt runs again once a module namespace is absent (and the other way round)');
+});

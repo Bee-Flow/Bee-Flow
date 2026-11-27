@@ -7,7 +7,7 @@
  * own patterns, and an installation without the module has no such fields.
  *
  * The order of the keys is the order they had in that route's body schema; the API reference
- * lists them in it.
+ * lists them in it. readStatus and readNmbrsForm are this module's part of the GET answer.
  */
 
 const { z, typeError } = require('../../../utils/zod');
@@ -59,4 +59,44 @@ const erpNlSettingsFields = {
     ...firebirdFields, ...frappeCrmFields, ...require('./twobaFields.mts').twobaFields,
 };
 
-module.exports = { erpNlSettingsFields };
+/** @typedef {(key: string) => Promise<unknown>} GetSecret */
+
+/**
+ * GET /ai/user-settings: whether each connection of this module is set up (never a secret), in the
+ * order the answer has always listed them. The secrets are read one by one, as that route read them.
+ * @param {GetSecret} getSecret
+ * @param {string} userId
+ */
+async function readStatus(getSecret, userId) {
+    const has = async (/** @type {string} */ field) => !!(await getSecret(`${field}_user_${userId}`));
+    return {
+        hasAfasConfig: (await has('afas_token')) && (await has('afas_member_number')),
+        hasNmbrsConfig: (await getSecret(`nmbrs_api_mode_user_${userId}`)) === 'rest'
+            ? await has('nmbrs_subscription_key')
+            : (await has('nmbrs_subdomain')) && (await has('nmbrs_token')),
+        // REST secrets are never returned, only whether they are set.
+        hasNmbrsSubscriptionKey: await has('nmbrs_subscription_key'),
+        hasNmbrsClient: (await has('nmbrs_client_id')) && (await has('nmbrs_client_secret')),
+        hasVplanConfig: (await has('vplan_api_key')) && (await has('vplan_api_env')),
+        hasFirebirdConfig: (await has('firebird_host')) && (await has('firebird_database'))
+            && (await has('firebird_user')) && (await has('firebird_password')),
+        hasFrappeCrmConfig: (await has('frappe_crm_url')) && (await has('frappe_crm_api_key')) && (await has('frappe_crm_api_secret')),
+        ...(await require('../../../core/integrations/twobaConfigured.mts').twobaStatus(getSecret, userId)),
+    };
+}
+
+/**
+ * GET /ai/user-settings: the non-secret NMBRS fields, so the settings form can pre-fill (the token is never returned).
+ * @param {GetSecret} getSecret
+ * @param {string} userId
+ */
+async function readNmbrsForm(getSecret, userId) {
+    return {
+        nmbrsApiMode: (await getSecret(`nmbrs_api_mode_user_${userId}`)) || 'soap',
+        nmbrsSubdomain: (await getSecret(`nmbrs_subdomain_user_${userId}`)) || '',
+        nmbrsEmail: (await getSecret(`nmbrs_email_user_${userId}`)) || '',
+        nmbrsEnv: (await getSecret(`nmbrs_env_user_${userId}`)) || 'production',
+    };
+}
+
+module.exports = { erpNlSettingsFields, readStatus, readNmbrsForm };
