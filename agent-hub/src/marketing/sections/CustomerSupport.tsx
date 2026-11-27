@@ -5,6 +5,7 @@ import SectionFrame from '../components/SectionFrame';
 import type { Convo, SupportThread, SupportMessage } from './CustomerSupport.types';
 import { logger } from '../../utils/logger';
 import { apiUrl } from '@/api/typedRequest';
+import { trackFormSuccess } from '../components/analyticsEvents';
 /**
  * Customer Support — a public, CMS-placeable support widget that mirrors the
  * in-app "Help & Support" experience for logged-out website visitors.
@@ -176,11 +177,9 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                 setErr(payload?.error || 'Could not submit. Please try again.');
                 return;
             }
-            if (payload.spam) {
-                // Silent success surface for the human path.
-                setSentDone({ threadUrl: null });
-                return;
-            }
+            // Spam gets the same silent success surface as the human path, but is not counted.
+            if (payload.spam) { setSentDone({ threadUrl: null }); return; }
+            trackFormSuccess('support', null);
             if (payload.threadId && payload.accessToken) {
                 setConvo({
                     threadId: payload.threadId,
@@ -399,7 +398,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                 {c.lead}
             </EditableText>
 
-            <form className="support-card" onSubmit={submit} noValidate>
+            <form className="support-card" name="support" onSubmit={submit} noValidate>
                 {/* Honeypot — visually hidden but reachable by naive bots.
                     Deliberately NO autocomplete value and no id/htmlFor pair:
                     it must never be offered to (or filled by) a browser's
