@@ -118,6 +118,25 @@ function testResponse(world: World, path: string, method: string, body: unknown)
     return null;
 }
 
+function runPage(world: World, url: string) {
+    const query = new URL(url, 'http://x').searchParams;
+    const offset = Number(query.get('offset') ?? '0');
+    if (world.failRuns?.(offset)) return jsonResponse({ error: 'Offline' }, 503);
+    const runs = world.runs ?? [RUN];
+    return jsonResponse({runs: runs.slice(offset, offset + Number(query.get('limit') ?? '25')), total: runs.length});
+}
+
+function readResponse(world: World, path: string, url: string, reads: ReturnType<typeof taskRead>, others: Record<string, unknown>) {
+    if (path === TASK && world.failItem?.()) return jsonResponse({ error: 'Offline' }, 503);
+    if (path === TASK + '/runs') return runPage(world, url);
+    if (path === TASK && world.item === null) return jsonResponse({ error: 'Forbidden' }, 403);
+    if (path.startsWith(TASK) && path.slice(TASK.length) in reads) return jsonResponse(reads[path.slice(TASK.length)]);
+    // The owner has Microsoft 365 connected: Outlook, OneDrive and the like are theirs to switch on.
+    if (path.includes('/ai/config/tiers-for-user')) return jsonResponse({ auto: {}, fast: { label: 'Fast', modelId: 'mail-model' } });
+    if (path.endsWith('/ai/user-settings')) return jsonResponse({ isMicrosoftUser: true });
+    return jsonResponse(others[path] ?? {});
+}
+
 /** Serve the world; answers with the calls made so far and a way to find one. */
 function serveTask(world: World = {}) {
     const reads = taskRead(world);
@@ -128,20 +147,7 @@ function serveTask(world: World = {}) {
         if (testReply) return testReply;
         if (method === 'PUT' && path === `${TASK}/plan/independence`) return jsonResponse({ ...INDEPENDENCE, chosen: (body as { level?: string }).level });
         if (method !== 'GET') return jsonResponse(method === 'DELETE' ? { success: true } : {});
-        if (path === TASK && world.failItem?.()) return jsonResponse({ error: 'Offline' }, 503);
-        if (path === TASK + '/runs') {
-            const query = new URL(url, 'http://x').searchParams;
-            const offset = Number(query.get('offset') ?? '0');
-            if (world.failRuns?.(offset)) return jsonResponse({ error: 'Offline' }, 503);
-            const runs = world.runs ?? [RUN];
-            return jsonResponse({runs: runs.slice(offset, offset + Number(query.get('limit') ?? '25')), total: runs.length});
-        }
-        if (path === TASK && world.item === null) return jsonResponse({ error: 'Forbidden' }, 403);
-        if (path.startsWith(TASK) && path.slice(TASK.length) in reads) return jsonResponse(reads[path.slice(TASK.length)]);
-        // The owner has Microsoft 365 connected: Outlook, OneDrive and the like are theirs to switch on.
-        if (path.includes('/ai/config/tiers-for-user')) return jsonResponse({ auto: {}, fast: { label: 'Fast', modelId: 'mail-model' } });
-        if (path.endsWith('/ai/user-settings')) return jsonResponse({ isMicrosoftUser: true });
-        return jsonResponse(others[path] ?? {});
+        return readResponse(world, path, url, reads, others);
     });
     const sent = (method: string, path: string): RecordedCall | undefined => calls.find((c) => c.method === method && pathOf(c.url) === path);
     const all = (method: string, path: string): RecordedCall[] => calls.filter((c) => c.method === method && pathOf(c.url) === path);
