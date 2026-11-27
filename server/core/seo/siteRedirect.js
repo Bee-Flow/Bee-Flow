@@ -63,7 +63,7 @@ function withAskedLocale(to, query, locales, { defaultLocale, pageLocales }) {
     if (!asked || !defaultLocale || !locales.includes(asked)) return null;
     const cut = [to.indexOf('?'), to.indexOf('#')].filter((i) => i !== -1);
     const at = cut.length ? Math.min(...cut) : to.length;
-    const parsed = parsePublicPath(to.slice(0, at), locales);
+    const parsed = parsePublicPath(to.slice(0, at), locales) || parseIntegrationPath(to.slice(0, at), locales);
     if (!parsed) return null;
     // A page that has no translation in that locale is served in the default one (the publicRender rule).
     const available = pageLocales ? pageLocales(parsed.slug) : null;
@@ -73,9 +73,32 @@ function withAskedLocale(to, query, locales, { defaultLocale, pageLocales }) {
     return { location: `${buildPublicPath(locale, parsed.slug, defaultLocale)}${to.slice(at)}`, query: rest, locale: asked };
 }
 
+const INTEGRATIONS_BASE = 'integrations';
+
+/**
+ * An integration page address (`/integrations/<id>`, `/<locale>/integrations/<id>`,
+ * the directory included) as its slug `integrations/<id>`, else null. These
+ * pages have their own router (routes/publicIntegrationsRender.js), so
+ * parsePublicPath does not know them.
+ * @param {string} path a site path without query or hash
+ * @param {string[]} locales
+ * @returns {{ slug: string } | null}
+ */
+function parseIntegrationPath(path, locales) {
+    let end = path.length;
+    while (end > 1 && path[end - 1] === '/') end--;
+    const parts = path.slice(0, end).split('/').slice(1);
+    if (parts.length === 3 && locales.includes(parts[0].toLowerCase())) parts.shift();
+    if (parts.length !== 2 || parts[0].toLowerCase() !== INTEGRATIONS_BASE) return null;
+    const id = parts[1].toLowerCase();
+    const valid = id.length > 0 && [...id].every((c) => (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c === '-');
+    return valid ? { slug: `${INTEGRATIONS_BASE}/${id}` } : null;
+}
+
 /**
  * @typedef {{ defaultLocale?: string, pageLocales?: (slug: string) => string[] | null }} SiteContext
- *   `pageLocales`: the locales a target page is published in, or null when unknown (no page of that slug)
+ *   `pageLocales`: the locales a target is published in (a page slug, `blog/<post>` or
+ *   `integrations/<id>`), or null when unknown (nothing at that slug)
  */
 
 module.exports = { resolveSiteRedirect };

@@ -70,6 +70,7 @@ Postgres instance.
 | `PUBLIC_SITE_URL` | falls back to `PUBLIC_BASE_URL` | Public origin of the marketing site: canonical/og URLs, sitemap, and the robots.txt gate. Unset on a public site means `Disallow: /` — it will not be indexed. Leave unset on staging. |
 | `INDEXNOW_KEY` | (none: off) | [IndexNow](https://www.indexnow.org) key for the live website (8 to 128 letters, digits or dashes). When set, the site serves it at `/<key>.txt` and every publish of the live site sends the addresses it added or changed (the sitemap before and after, compared) to `api.indexnow.org`, after the publish has answered. Only those public addresses are sent. Needs `PUBLIC_SITE_URL` (or `PUBLIC_BASE_URL`). |
 | `INDEXNOW_MAX_URLS` | `1000` | Most addresses one publish sends to IndexNow. `0` = the protocol's own limit of 10 000. |
+| `INDEXNOW_BEFORE_TIMEOUT_MS` | `2000` | How long a publish waits for the sitemap it compares against. When reading it takes longer, the publish goes ahead and nothing is sent to IndexNow for that publish. `0` = no limit. |
 
 ## Sessions and cookies
 

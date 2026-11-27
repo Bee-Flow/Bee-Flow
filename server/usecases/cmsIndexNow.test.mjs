@@ -112,3 +112,48 @@ test('IndexNow never fails or blocks a publish; a failed publish sends nothing',
     await new Promise((r) => setImmediate(r));
     assert.strictEqual(refused.calls.submits.length, 0);
 });
+
+test('a slow sitemap before the publish is given up after the time-out: the publish goes ahead, nothing is sent', async () => {
+    const slow = harness({ before: '', after: sitemap([[`${ORIGIN}/new`]]) });
+    slow.deps.sitemapXml = () => new Promise(() => {});
+    slow.deps.beforeTimeoutMs = 20;
+    const started = Date.now();
+    assert.deepStrictEqual(await publishWithIndexNow('pj_live', slow.publish, slow.deps), { publishedAt: 'now' });
+    assert.ok(Date.now() - started < 1000, 'the publish waited for the slow read');
+    await new Promise((r) => setImmediate(r));
+    assert.strictEqual(slow.calls.submits.length, 0);
+
+    // A read that fails after the time-out is not an unhandled rejection.
+    const late = harness({ before: '', after: '' });
+    late.deps.sitemapXml = () => new Promise((_, reject) => setTimeout(() => reject(new Error('late')), 40));
+    late.deps.beforeTimeoutMs = 5;
+    await publishWithIndexNow('pj_live', late.publish, late.deps);
+    await new Promise((r) => setTimeout(r, 60));
+});
+
+test('the time-out: 2 seconds by default, configurable, 0 = no limit', async () => {
+    const { beforeTimeoutMs, DEFAULT_BEFORE_TIMEOUT_MS } = await import('./cmsIndexNow.mts');
+    const old = process.env.INDEXNOW_BEFORE_TIMEOUT_MS;
+    try {
+        delete process.env.INDEXNOW_BEFORE_TIMEOUT_MS;
+        assert.strictEqual(beforeTimeoutMs(), DEFAULT_BEFORE_TIMEOUT_MS);
+        assert.strictEqual(DEFAULT_BEFORE_TIMEOUT_MS, 2000);
+        process.env.INDEXNOW_BEFORE_TIMEOUT_MS = '0';
+        assert.strictEqual(beforeTimeoutMs(), 0);
+        process.env.INDEXNOW_BEFORE_TIMEOUT_MS = '500';
+        assert.strictEqual(beforeTimeoutMs(), 500);
+    } finally {
+        if (old === undefined) delete process.env.INDEXNOW_BEFORE_TIMEOUT_MS; else process.env.INDEXNOW_BEFORE_TIMEOUT_MS = old;
+    }
+});
+
+test('the POST releases the response body: only its status is read', async () => {
+    let cancelled = 0;
+    const status = await submitUrls({ origin: ORIGIN, key: KEY, urls: [`${ORIGIN}/a`] },
+        async () => ({ status: 202, body: { cancel: async () => { cancelled++; } } }));
+    assert.strictEqual(status, 202);
+    assert.strictEqual(cancelled, 1);
+    // A body that refuses to cancel does not fail the ping.
+    assert.strictEqual(await submitUrls({ origin: ORIGIN, key: KEY, urls: [] },
+        async () => ({ status: 200, body: { cancel: async () => { throw new Error('locked'); } } })), 200);
+});

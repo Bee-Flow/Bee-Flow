@@ -46,6 +46,7 @@ async function get(app, path) {
     } finally { server.close(); }
 }
 
+/** @param {Record<string, unknown>} [snapshot] */
 function app(snapshot = { site: SITE }) {
     const a = express();
     a.use(createIntegrationsRouter({

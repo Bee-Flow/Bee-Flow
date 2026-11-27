@@ -36,8 +36,11 @@ export const PROTOCOL_MAX_URLS = 10_000;
 export const DEFAULT_MAX_URLS = 1000;
 const KEY_RE = /^[A-Za-z0-9-]{8,128}$/;
 
+/** How long a publish waits for the sitemap before it, by default; INDEXNOW_BEFORE_TIMEOUT_MS. */
+export const DEFAULT_BEFORE_TIMEOUT_MS = 2000;
+
 type Env = Record<string, string | undefined>;
-type FetchLike = (url: string, init: RequestInit) => Promise<{ status: number }>;
+type FetchLike = (url: string, init: RequestInit) => Promise<{ status: number, body?: { cancel?: () => Promise<void> } | null }>;
 
 /** The configured key, or null when IndexNow is off (unset or not a valid key). */
 export function indexNowKey(env: Env = process.env): string | null {
@@ -55,6 +58,15 @@ export function keyFilePath(env: Env = process.env): string | null {
 export function maxUrls(): number {
     const n = envInt('INDEXNOW_MAX_URLS', DEFAULT_MAX_URLS, { min: 0 });
     return n === 0 ? PROTOCOL_MAX_URLS : Math.min(n, PROTOCOL_MAX_URLS);
+}
+
+/**
+ * How long a publish waits for the sitemap it compares against:
+ * INDEXNOW_BEFORE_TIMEOUT_MS (default 2000), 0 = no limit. Past it the publish
+ * goes ahead and nothing is announced for it.
+ */
+export function beforeTimeoutMs(): number {
+    return envInt('INDEXNOW_BEFORE_TIMEOUT_MS', DEFAULT_BEFORE_TIMEOUT_MS, { min: 0 });
 }
 
 function unescapeXml(s: string): string {
@@ -107,6 +119,12 @@ export async function submitUrls(
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ host: new URL(origin).host, key, keyLocation: `${origin}/${key}.txt`, urlList: urls }),
     });
+    // Only the status matters; release the connection instead of leaving the body to the garbage collector.
+    try {
+        await res.body?.cancel?.();
+    } catch {
+        // an already consumed or closed body: nothing to release
+    }
     return res.status;
 }
 
@@ -117,6 +135,8 @@ export interface IndexNowDeps {
     /** The live sitemap of the site's CURRENT published snapshot, without fallback dates ('' when unpublished). */
     sitemapXml: (siteId: string, origin: string) => Promise<string>;
     submit: (args: { origin: string, key: string, urls: string[] }) => Promise<number>;
+    /** Overrides INDEXNOW_BEFORE_TIMEOUT_MS (tests). */
+    beforeTimeoutMs?: number;
 }
 
 function defaultDeps(): IndexNowDeps {
@@ -144,26 +164,63 @@ async function announce(siteId: string, beforeXml: string, key: string, origin: 
     else log.warn(`[IndexNow] the endpoint answered HTTP ${status} for ${urls.length} address(es)`);
 }
 
+const TIMED_OUT = Symbol('timed out');
+
+/** `work`, or TIMED_OUT once `ms` has passed (0 = no limit). `work` itself is never cancelled. */
+async function withinTime<T>(work: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+    if (ms <= 0) return work;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+        timer = setTimeout(() => resolve(TIMED_OUT), ms);
+    });
+    try {
+        return await Promise.race([work, timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/** The live sitemap before the publish, or null when there is nothing to compare (not live, slow, failed). */
+async function sitemapBefore(siteId: string, origin: string, deps: IndexNowDeps): Promise<string | null> {
+    const work = (async () => (await deps.getLiveSiteId() === siteId ? deps.sitemapXml(siteId, origin) : null))();
+    // A failure after the time-out must not surface as an unhandled rejection.
+    work.catch(() => undefined);
+    try {
+        const out = await withinTime(work, deps.beforeTimeoutMs ?? beforeTimeoutMs());
+        if (out !== TIMED_OUT) return out;
+        log.warn('[IndexNow] the sitemap before publishing took too long, nothing will be sent for this publish');
+    } catch (e) {
+        log.warn(`[IndexNow] could not read the sitemap before publishing, nothing will be sent: ${(e as Error).message}`);
+    }
+    return null;
+}
+
 /**
  * Run `publish` for `siteId`; when IndexNow is on and this is the live site,
  * announce what the publish added or changed afterwards, without waiting.
  * The publish result (or its error) is returned exactly as `publish` gave it.
+ * The sitemap before the publish is read under a time-out
+ * (INDEXNOW_BEFORE_TIMEOUT_MS), so IndexNow never holds up a publish for long.
  */
 export async function publishWithIndexNow<T>(siteId: string, publish: () => Promise<T>, deps: IndexNowDeps = defaultDeps()): Promise<T> {
     const key = indexNowKey(deps.env);
     const origin = key ? String(deps.origin() || '') : '';
-    let beforeXml: string | null = null;
-    if (key && origin) {
-        try {
-            if (await deps.getLiveSiteId() === siteId) beforeXml = await deps.sitemapXml(siteId, origin);
-        } catch (e) {
-            log.warn(`[IndexNow] could not read the sitemap before publishing, nothing will be sent: ${(e as Error).message}`);
-        }
-    }
+    const beforeXml = key && origin ? await sitemapBefore(siteId, origin, deps) : null;
     const result = await publish();
     if (beforeXml !== null && key) {
         announce(siteId, beforeXml, key, origin, deps)
             .catch((e: unknown) => log.warn(`[IndexNow] announcing the publish failed: ${(e as Error).message}`));
     }
     return result;
+}
+
+/**
+ * `store` with its publishSite going through publishWithIndexNow. Both publish
+ * paths (the admin publish route and the CMS MCP cms_publish) publish through
+ * this, so neither can skip the announcement.
+ */
+export function withIndexNow<S extends { publishSite: (siteId: string) => Promise<unknown> }>(
+    store: S, deps?: IndexNowDeps,
+): S {
+    return { ...store, publishSite: (siteId: string) => publishWithIndexNow(siteId, () => store.publishSite(siteId), deps) };
 }

@@ -56,3 +56,18 @@ test('?locale= is applied to a site target here, so the visitor gets one 301 ins
     const untranslated = { defaultLocale: 'en', pageLocales: (/** @type {string} */ slug) => (slug === 'new' ? ['en'] : null) };
     assert.deepEqual(hit('/old', 'locale=nl', untranslated), { status: 301, location: '/new', locale: 'nl' });
 });
+
+test('?locale= reaches a blog post and an integration page in one hop too, in the language that page has', () => {
+    const s = snap([R('/old-post', '/blog/new-post'), R('/old-int', '/integrations/gmail'), R('/old-dir', '/nl/integrations/directory/'), R('/deep', '/integrations/a/b')]);
+    /** @type {Record<string, string[]>} */
+    const has = { 'blog/new-post': ['en', 'nl'], 'integrations/gmail': ['en'], 'integrations/directory': ['en', 'nl'] };
+    const site = { defaultLocale: 'en', pageLocales: (/** @type {string} */ slug) => has[slug] || null };
+    /** @param {string} path @param {string} qs */
+    const hit = (path, qs) => resolveSiteRedirect(s, path, ['en', 'nl'], new URLSearchParams(qs), site);
+    assert.deepEqual(hit('/old-post', 'locale=nl'), { status: 301, location: '/nl/blog/new-post', locale: 'nl' });
+    // gmail has no Dutch page: straight to English, not via /nl/integrations/gmail.
+    assert.deepEqual(hit('/old-int', 'locale=nl&utm=1'), { status: 301, location: '/integrations/gmail?utm=1', locale: 'nl' });
+    assert.equal(hit('/old-dir', 'locale=en').location, '/integrations/directory');
+    assert.equal(hit('/old-dir', 'locale=nl').location, '/nl/integrations/directory');
+    assert.equal(hit('/deep', 'locale=nl').location, '/integrations/a/b?locale=nl', 'not an integration page address: left as it was');
+});

@@ -53,6 +53,7 @@ const { siteLocales, liveSitemapXml } = require('../usecases/liveSitemap.mts');
 const { localesForPage } = require('../i18n/pageLocales');
 const { LEGACY_SLUGS, GONE_SLUGS } = require('../core/seo/legacySlugs');
 const { resolveSiteRedirect } = require('../core/seo/siteRedirect');
+const { localesForTarget } = require('../core/seo/targetLocales');
 const { versionOf } = require('../core/seo/ogCard');
 const { jsonForScript } = require('../core/seo/html');
 const { sendNotFound } = require('../core/seo/notFound');
@@ -66,19 +67,6 @@ const router = express.Router();
 
 async function getLiveSiteId() {
     return (await configStore.getConfig('cms_live_site_id')) || null;
-}
-
-/**
- * The locales the published page at `slug` exists in ('' = the homepage), or null when no page has that slug.
- * @param {import('../stores/cms/shared').CmsDoc | null} snapshot
- * @param {string} slug
- * @param {string} defaultLocale
- * @param {string[]} locales
- * @returns {string[] | null}
- */
-function pageLocalesOf(snapshot, slug, defaultLocale, locales) {
-    const entry = (snapshot?.site?.pages || []).find(/** @param {import('../stores/cms/shared').PageIndexEntry} p */ (p) => (slug ? p.slug === slug : p.isHomepage));
-    return entry ? localesForPage(snapshot, entry.id, defaultLocale, locales) : null;
 }
 
 /**
@@ -314,7 +302,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
         const live = await cmsStore.getPublishedSnapshot(siteId);
         // Editor-managed redirects (renamed or merged pages), answered before this address is taken for a page, a 410 or the SPA.
         // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target was validated when saved (stores/cms/redirectRules.js): a site path, or an https URL on the site's allow-list; a ?locale= only changes its locale prefix
-        const managed = resolveSiteRedirect(live, req.path, locales, rawQuery(req), { defaultLocale, pageLocales: (/** @type {string} */ slug) => pageLocalesOf(live, slug, defaultLocale, locales) });
+        const managed = resolveSiteRedirect(live, req.path, locales, rawQuery(req), { defaultLocale, pageLocales: (/** @type {string} */ slug) => localesForTarget(live, slug, defaultLocale, locales) });
         if (managed?.locale) {
             // The ?locale= was applied in this one hop: remember the choice like localeRedirect does, never in a shared cache.
             const cookie = siteLocaleCookie(managed.locale, locales);
