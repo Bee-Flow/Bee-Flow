@@ -74,6 +74,12 @@ const LAYERS = {
     // entry: composition roots and start-up.
     'index.js': 'entry', 'auth/router.js': 'entry', boot: 'entry', 'boot-init.js': 'entry',
     migrations: 'entry',
+    // The compositions of the first-party modules (firstParty/<id>.js and its part files):
+    // which rows of the route table, the registries, the startup jobs and the store list a
+    // module adds. Wiring is their whole job, like index.js and boot/; each file belongs to
+    // its module and moves with it. modules/firstParty/loader.js finds them by listing the
+    // tree, never by a require.
+    firstParty: 'entry',
     // api: HTTP surface.
     routes: 'api', 'auth/routers': 'api',
     // application: the turn engines and helpers that combine features for a

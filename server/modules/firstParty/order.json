@@ -1,0 +1,9 @@
+{
+  "_comment": "The core's order index for what first-party modules contribute (modules/firstParty/loader.js): names only. The loader sorts each list of rows by position here; a key that is not listed sorts after the listed ones, by module id and then by row order. Append a key at the position its line has today when you move a row into a composition.",
+  "mounts": [],
+  "aiMounts": [],
+  "jobs": [],
+  "stores": [],
+  "migrations": [],
+  "nlTranslations": []
+}

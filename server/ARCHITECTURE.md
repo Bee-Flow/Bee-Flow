@@ -266,6 +266,37 @@ license server.
 
 ---
 
+## Composition — `firstParty/`
+
+The server is composed by hand in a few lists: the route table in `index.js` and
+`routes/ai.js`, the registries in `boot/` and `integrations/`, the startup jobs in
+`boot/startupJobs.js`, the shutdown in `boot/lifecycle.js`, the store list in
+`storeModules.js` and the migrations in `boot/bootMigrations.js`. The rows of those
+lists that belong to a first-party module move, one kind at a time, into that
+module's **composition**: `firstParty/<id>.js` (its id, `requires` and `uses`) plus
+one part file per kind, `firstParty/<id>.mounts.js`, `.register.js`, `.jobs.js` and
+`.stores.js`. The files belong to their module (`scripts/module-map.json`) and move
+with it to `modules/<id>/server/firstParty/` without changing their tree path.
+`layering.test.js` classifies `firstParty/` as an **entry**: wiring is its whole job.
+
+The core asks `modules/firstParty/loader.js` for those rows (the contract is
+`modules/firstParty/contract.js`). The loader finds the compositions by listing the
+tree, never by a require, so nothing in the core names a module's file. Every module
+it sees is in one of three states (`modules/firstParty/moduleState.js`): **absent**
+(no composition, hidden in core mode, or unavailable in this edition), **loaded**, or
+**failed** (its composition throws or breaks the contract, it requires a module that
+is absent or failed, or a mount or registration of it throws). A failed module
+contributes nothing more, and an optional lookup of a name it provides throws instead
+of answering "absent".
+
+The **order** of the rows stays the core's decision: `modules/firstParty/order.json`
+lists the keys and names of every list in today's order, and the loader sorts what
+the modules contribute by it (unlisted rows after the listed ones, by module id and
+row order). That is how `datatableStore` keeps coming after `automationStore`
+although automation requires datatables.
+
+---
+
 ## The rule is enforced, not just written down
 
 `layering.test.js` puts every top-level entry of `server/` in one layer —
