@@ -19,4 +19,9 @@ module.exports = withParts({
     id: 'int_google',
     requires: [],
     uses: ['automation', 'cowork', 'meetingNotes', 'int_microsoft'],
+    // The capabilities it offers (core/entitlements/capabilityRegistry.js ids); they leave the projection while it is absent.
+    capabilities: [
+        'gmail', 'google-calendar', 'google-drive', 'google-slides', 'google-sheets', 'google-docs',
+        'google-contacts', 'google-keep', 'google-groups', 'maps',
+    ],
 });

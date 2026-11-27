@@ -19,4 +19,6 @@ module.exports = withParts({
     id: 'sanctions',
     requires: [],
     uses: ['compliance'],
+    // The capabilities it offers (core/entitlements/capabilityRegistry.js ids); they leave the projection while it is absent.
+    capabilities: ['sanctions_screening', 'sanctions-lists'],
 });

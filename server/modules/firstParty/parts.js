@@ -84,7 +84,7 @@ function mergePart(out, id, part, exported) {
 
 /**
  * The composition `base` with the keys of every part file of its module that exists.
- * @param {{ id: string, requires?: string[], uses?: string[] }} base
+ * @param {{ id: string, requires?: string[], uses?: string[], capabilities?: string[] }} base
  * @param {PartDeps} [deps]
  * @returns {ModuleComposition}
  */

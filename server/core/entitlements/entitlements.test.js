@@ -111,6 +111,11 @@ function baseMocks() {
     planEnt.getOrgCaps = async () => ({ integrations: null, betaFeatures: null });
     configStore.getConfig = async () => null;
     mcpStore.listServers = async () => [];
+    // The precedence math is asked about with every module present, also when the suite runs
+    // with the modules hidden: which modules leave the projection is capabilityRegistry.modules.test.js's
+    // and capabilityProjection.characterisation.test.js's question, not this file's.
+    registry.refreshModuleCapabilityFilter = async () => {};
+    registry.setInactiveModuleCapabilityIds(new Set());
     if (typeof ent._resetSingleOrgCache === 'function') ent._resetSingleOrgCache(); // single-tenant cache leaks across cases otherwise
 }
 
