@@ -13,7 +13,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const {
     INCOGNITO_CODES, isIncognito, incognitoRefusal, assertIncognitoRequest,
-    applyIncognitoPolicy, isIncognitoWithheldTool, withholdIncognitoTools, incognitoDonePayload,
+    applyIncognitoPolicy, isIncognitoWithheldTool, withholdIncognitoTools, incognitoDonePayload, INCOGNITO_WITHHELD_TOOLS,
 } = require('./incognito.mts');
 
 /** @param {string} name */
@@ -83,7 +83,14 @@ test('the policy switches memory off whatever the client sent, and makes an agen
 });
 
 // That the withheld list is exactly the memory tools and the notebook tools (the notebooks module's
-// integrations/workspaceTools) is checked in incognito.notebooks.test.js.
+// integrations/workspaceTools) is checked in incognito.notebooks.test.js; the memory half is the core's.
+test('every memory tool is withheld', () => {
+    const { MEMORY_TOOLS } = require('../../integrations/memoryTools');
+    const withheld = [...INCOGNITO_WITHHELD_TOOLS];
+    for (const name of MEMORY_TOOLS.map((t) => t.function.name)) {
+        assert.ok(withheld.includes(name), `${name} is a memory tool: keep the withheld list in step`);
+    }
+});
 
 test('withholding drops those tools only on an incognito turn, and keeps everything else in order', () => {
     const tools = [tool('agent_search'), tool('memory_search'), tool('notebook_write'), tool('set_reminder'), tool('memory_remember'), { name: 'notebook_read' }];

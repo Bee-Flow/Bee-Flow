@@ -663,11 +663,11 @@ async function finalizeAccount({ userId, email, displayName, intent, placement, 
     // swallows its own errors so Stripe trouble never blocks a signup.
     const target = trialTarget(placement, userId);
     if (target) {
-        setImmediate(() => {
-            const trialService = require('../modules/firstParty/moduleData').lookupFeatureModule('services/trialService'); // module "billing_stripe": without it there is no trial to grant
+        setImmediate(() => { try { // module "billing_stripe": absent, no trial to grant; failed, reported here, never thrown
+            const trialService = require('../modules/firstParty/moduleData').lookupFeatureModule('services/trialService');
             if (target.organizationId) trialService?.maybeAutoGrantOrgTrial(target.organizationId);
             else trialService?.maybeAutoGrantConsumerTrial(/** @type {string} */ (target.userId)); // no organisation means a user
-        });
+        } catch (e) { log.warn('[Signup] trial grant skipped:', /** @type {Error} */ (e).message); } });
     }
 
     // Only accounts that are usable on creation get a welcome. Accounts pending

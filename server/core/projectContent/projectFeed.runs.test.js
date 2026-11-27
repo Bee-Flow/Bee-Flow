@@ -178,11 +178,20 @@ test('a prototype-chain key is not a run kind', async () => {
 test('without the automation module a run event finds no project and says nothing', async () => {
     reset();
     featureModules._clearFeatureModulesForTests('stores/automationStore');
+    // The absent branch answers quietly; a store that is missing but still called would throw a
+    // TypeError that _lookup's catch turns into the same empty answer, WITH a warning. So the
+    // warning log tells the two apart.
+    const log = require('../../telemetry/log');
+    const originalWarn = log.warn;
+    const warned = [];
+    log.warn = (...args) => { warned.push(args.join(' ')); };
     try {
         await _handle({ type: 'run.started', runId: 'r1', automationId: 'a1' });
         assert.strictEqual(emitted.length, 0);
         assert.strictEqual(lookups, 0);
+        assert.deepStrictEqual(warned, [], 'the absent branch ran, not the catch of a failed lookup');
     } finally {
+        log.warn = originalWarn;
         featureModules.registerFeatureModules({ 'stores/automationStore': () => storeStub });
     }
 });

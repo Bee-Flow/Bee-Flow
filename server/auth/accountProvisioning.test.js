@@ -440,6 +440,26 @@ describe('finalizeAccount', () => {
         assert.deepEqual(stubs.trialCalls, []);
     });
 
+    test('a billing module that failed to load is reported, not thrown from the setImmediate', async () => {
+        const featureModules = require('../core/featureModules');
+        const { ModuleFailedError } = require('../modules/firstParty/moduleState');
+        const log = require('../telemetry/log');
+        const original = { get: featureModules._featureModuleGetter('services/trialService'), warn: log.warn };
+        const warned = [];
+        featureModules.registerFeatureModules({ 'services/trialService': () => { throw new ModuleFailedError('billing_stripe', 'featureModules', 'services/trialService', 'boom'); } });
+        log.warn = (...args) => { warned.push(args.join(' ')); };
+        try {
+            await run({});
+            await new Promise(r => setImmediate(r));
+            assert.deepEqual(stubs.trialCalls, []);
+            assert.ok(warned.some(w => /trial grant skipped/.test(w) && /billing_stripe/.test(w)), 'the skipped grant is reported');
+        } finally {
+            log.warn = original.warn;
+            if (original.get) featureModules.registerFeatureModules({ 'services/trialService': original.get });
+            else featureModules._clearFeatureModulesForTests('services/trialService');
+        }
+    });
+
     test('an org founder gets an org-scoped shield key', async () => {
         await run({ newOrgName: 'Acme', email: 'f@acme.com' });
         assert.ok(stubs.setConfigCalls.some(c => c.key === 'org_privacy_shield_acme'));

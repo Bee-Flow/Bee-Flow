@@ -3,6 +3,7 @@
  * The automation module's half of nextcloudErrorClassifier.test.js: every code the classifier
  * gives carries an errorClass the run-facets dashboard knows (core/automationErrors), and the
  * automation runner passes the tool name, so a non-Files permission error is worded for its app.
+ * That every case carries a message and a remediation is the core's (nextcloudErrorClassifier.test.js).
  *
  * Run: cd server && node --test utils/nextcloudErrorClassifier.automation.test.js
  */
@@ -19,7 +20,6 @@ test('every code carries an errorClass the run-facets dashboard knows', () => {
     for (const [, text] of cases) {
         const c = classifyNextcloudError(text);
         assert.ok(ALL_CODES.includes(c.errorClass), `${c.code} → ${c.errorClass}`);
-        assert.ok(c.message && c.remediation);
     }
 });
 

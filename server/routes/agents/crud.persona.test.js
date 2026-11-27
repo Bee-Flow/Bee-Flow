@@ -524,18 +524,40 @@ test('a request that sends no persona is untouched by the rule', async () => {
     assert.strictEqual(opts.persona, undefined);
 });
 
-test('without the automation module a hand-off is neither checked nor dropped: the stored id stays, nothing is bound', async () => {
+/**
+ * Runs `fn` with the automation module absent (its store name cleared), then puts the double back.
+ * @param {() => Promise<void>} fn
+ */
+async function withoutAutomationModule(fn) {
     const featureModules = require('../../core/featureModules');
     const store = featureModules._featureModuleGetter('stores/automationStore');
     featureModules._clearFeatureModulesForTests('stores/automationStore');
     try {
+        await fn();
+    } finally {
+        featureModules.registerFeatureModules({ 'stores/automationStore': store });
+    }
+}
+
+test('without the automation module a hand-off is neither checked nor dropped: the stored id stays, nothing is bound', async () => {
+    await withoutAutomationModule(async () => {
         fx.automations['auto-1'] = CALLABLE();
-        const r = await resolvePersonaWrite(AGENT(), HANDOFF, { enabledIntegrations: [] }, { actorId: 'owner' });
+        const r = await resolvePersonaWrite(AGENT({ persona: HANDOFF }), HANDOFF, { enabledIntegrations: [] }, { actorId: 'owner' });
         assert.strictEqual(r.persona.unknown.automationId, 'auto-1');
         assert.deepStrictEqual(fx.bindCalls, []);
         assert.ok(!r.warnings.some(w => /auto-1/.test(w)), 'nothing was dropped, so nothing is reported as dropped');
         assert.ok(!/hand it over with/.test(r.systemPrompt), 'and the prompt promises no hand-off it cannot perform');
-    } finally {
-        featureModules.registerFeatureModules({ 'stores/automationStore': store });
-    }
+    });
+});
+
+test('without the automation module a NEW hand-off is not accepted: it is dropped with a warning, nothing is bound', async () => {
+    await withoutAutomationModule(async () => {
+        fx.automations['auto-1'] = CALLABLE();
+        const r = await resolvePersonaWrite(AGENT(), HANDOFF, { enabledIntegrations: [] }, { actorId: 'owner' });
+        assert.strictEqual(r.persona.unknown.automationId, null);
+        assert.deepStrictEqual(fx.bindCalls, []);
+        assert.ok(r.warnings.some(w => /auto-1/.test(w) && /automation module is not available/.test(w) && /dropped/.test(w)),
+            'the client is told that the selection was not kept, and why');
+        assert.ok(!/hand it over with/.test(r.systemPrompt));
+    });
 });

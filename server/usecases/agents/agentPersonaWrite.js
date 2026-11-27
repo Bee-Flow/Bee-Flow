@@ -111,6 +111,43 @@ async function ensureHandoffBinding(agent, automation, { actorId = null, session
 }
 
 /**
+ * The hand-off automation of a persona write, checked; drops an id that does not resolve (with a warning).
+ * @param {AgentRow} agent the stored agent row (a new agent has no persona yet)
+ * @param {{ unknown: { mode: string, automationId: (string|null) } }} persona the normalised persona; its automationId may be cleared
+ * @param {string[]} warnings collects what the client is told
+ * @param {HandoffOpts} opts who saves, and their session
+ */
+async function resolveHandoff(agent, persona, warnings, opts) {
+    if (persona.unknown.mode !== 'handoff' || !persona.unknown.automationId) return null;
+    const personaPrompt = require('../../core/agentRuntime/personaPrompt');
+    const storedUnknown = agent && agent.persona !== undefined && agent.persona !== null
+        ? personaPrompt.normalisePersona(agent.persona).persona.unknown
+        : null;
+    const newSelection = !(storedUnknown && storedUnknown.mode === 'handoff'
+        && storedUnknown.automationId === persona.unknown.automationId);
+    // Without the automation module a hand-off can be neither checked nor performed. A stored automation id
+    // stays as it is (nothing is dropped, its binding is untouched); a NEW selection is not accepted.
+    if (!optionalFeatureModule('stores/automationStore')) {
+        if (newSelection) {
+            warnings.push(`persona.unknown: automation ${persona.unknown.automationId} cannot be selected because the automation module is not available — dropped`);
+            persona.unknown.automationId = null;
+        }
+        return null;
+    }
+    const handoff = await verifyHandoffAutomation(agent, persona.unknown.automationId, {
+        actorId: opts.actorId || null, session: opts.session || null, newSelection,
+    });
+    if (!handoff) {
+        // Dropped, not kept-and-ignored: a stored id that resolves to
+        // nothing is a hand-off the editor keeps drawing and the runtime
+        // never performs.
+        warnings.push(`persona.unknown: automation ${persona.unknown.automationId} is not an active agent tool of this agent's owner that is linked to this agent (a new agent has to be saved first) — dropped`);
+        persona.unknown.automationId = null;
+    }
+    return handoff;
+}
+
+/**
  * Normalise an incoming persona, verify what it points at, and derive the two
  * things it is the source of: the system prompt and a small, additive set of
  * config keys.
@@ -160,27 +197,7 @@ async function resolvePersonaWrite(agent, rawPersona, config, opts = {}) {
         }
     }
 
-    let handoff = null;
-    // Without the automation module a hand-off can be neither checked nor performed: the stored automation id
-    // stays as it is (nothing is dropped, its binding is untouched) and the prompt carries no hand-off line.
-    const automationPresent = !!optionalFeatureModule('stores/automationStore');
-    if (automationPresent && persona.unknown.mode === 'handoff' && persona.unknown.automationId) {
-        const storedUnknown = agent && agent.persona !== undefined && agent.persona !== null
-            ? personaPrompt.normalisePersona(agent.persona).persona.unknown
-            : null;
-        const newSelection = !(storedUnknown && storedUnknown.mode === 'handoff'
-            && storedUnknown.automationId === persona.unknown.automationId);
-        handoff = await verifyHandoffAutomation(agent, persona.unknown.automationId, {
-            actorId: opts.actorId || null, session: opts.session || null, newSelection,
-        });
-        if (!handoff) {
-            // Dropped, not kept-and-ignored: a stored id that resolves to
-            // nothing is a hand-off the editor keeps drawing and the runtime
-            // never performs.
-            warnings.push(`persona.unknown: automation ${persona.unknown.automationId} is not an active agent tool of this agent's owner that is linked to this agent (a new agent has to be saved first) — dropped`);
-            persona.unknown.automationId = null;
-        }
-    }
+    const handoff = await resolveHandoff(agent, persona, warnings, opts);
 
     let systemPrompt = personaPrompt.renderedPromptFor(persona, { handoffLabel: handoff ? handoff.label : null });
 

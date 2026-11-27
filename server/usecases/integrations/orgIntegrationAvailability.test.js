@@ -5,7 +5,9 @@
  * on a real Postgres (PGlite): the organisation row and its Nextcloud binding,
  * the instance config and secrets, the Nextcloud scope document and the Azure
  * sync binding are all written and read for real; the GitHub sync config comes
- * from a stand-in under the name the module "int_saas" provides.
+ * from a stand-in under the name the module "int_saas" provides (the real store
+ * is held to the same answer in orgIntegrationAvailability.int_saas.test.js).
+ * Shared set-up: orgIntegrationAvailability.testkit.js.
  *
  * What is passed in: the auth config (the SSO providers, which the auth config
  * store keeps encrypted elsewhere), whether an image model exists, the module
@@ -15,62 +17,21 @@
  * Run: cd server && node --test usecases/integrations/orgIntegrationAvailability.test.js
  */
 
-const { test, before, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'avail-test-session-secret-0123456789abcdef';
-process.env.MASTER_ENCRYPTION_KEY = process.env.MASTER_ENCRYPTION_KEY || 'avail-test-master-key-0123456789abcdef0123456789';
+const { ORG_PLAIN, ORG_NC, ORG_NAME, AZURE_TENANT, PER_USER, snapOf, SSO_BOTH, deps, useAvailabilityWorld } = require('./orgIntegrationAvailability.testkit');
 
-const { usePglitePool } = require('../../testUtils/pglitePool');
-const { close: closePg } = usePglitePool();
-
-const ORG_PLAIN = 'org-avail-plain';
-const ORG_NC = 'org-avail-nc';
 const ORG_LEGACY = 'org-avail-legacy';
 const ORG_PLAN = 'org-avail-plan';
-const ORG_NAME = 'Availability Test Organisation';
 const NC_INSTANCE = 'nc-inst-avail-1';
-const AZURE_TENANT = '11111111-2222-4333-8444-555555555555';
 
-/** The per-user families: nothing to set up on the server, a key per person. */
-const PER_USER = ['fireflies', 'nmbrs', 'afas-profit', 'frappe-crm', 'firebird', 'vplan', 'signrequest', 'youtrack', 'gamma'];
-
-let userStore;
 let configStore;
 let availability;
 
-const ALL_CAPS = {
-    core: ['projects'],
-    // mcp_marketplace is a licence string, never a capability row: the real resolver never lists it.
-    beta: ['meeting_notes', 'learning_center', 'automations'],
-    integration: [
-        'gmail', 'google-calendar', 'google-drive', 'outlook', 'ms-calendar', 'github', 'n8n', 'maps', 'image-gen',
-        'linkedin', 'withings', 'transcription', ...PER_USER,
-    ],
-};
-const snapOf = (ceiling, orgAvailable = ceiling) => async () => ({ mode: 'cloud', ceiling, orgAvailable, orgEnabled: { core: [], beta: [], integration: [] } });
-
-const SSO_BOTH = { providers: { google: { clientId: 'g-id', clientSecret: 'g-secret' }, microsoft: { clientId: 'm-id', clientSecret: 'm-secret', tenantId: AZURE_TENANT } } };
-
-/** Everything configured and on; a test overrides what it is about. */
-function deps(over = {}) {
-    return {
-        loadAuthConfig: async () => SSO_BOTH,
-        imageGenerationAvailable: async () => true,
-        webSearchAvailable: async () => true,
-        isModuleActive: async () => true,
-        hasLicenseFeature: async () => true,
-        snapshot: snapOf(ALL_CAPS),
-        env: {},
-        ...over,
-    };
-}
-
-before(async () => {
-    userStore = require('../../stores/userStore');
-    configStore = require('../../stores/configStore');
-    await userStore.initDB();
-    for (const id of [ORG_PLAIN, ORG_NC, ORG_LEGACY, ORG_PLAN]) await userStore.createOrganization({ id, name: ORG_NAME, email: 'office@avail.test' }, { autoGrantTrial: false });
+useAvailabilityWorld([ORG_PLAIN, ORG_NC, ORG_LEGACY, ORG_PLAN], async (stores) => {
+    const { userStore } = stores;
+    configStore = stores.configStore;
     await userStore.updateOrganization(ORG_NC, { ncInstanceId: NC_INSTANCE, ncBaseUrl: 'https://cloud.avail.test', ncAdminUid: 'nc-admin' });
     await userStore.updateOrganization(ORG_LEGACY, { enabledIntegrations: ['gmail', 'github'] });
     await configStore.setSecret('google_maps_api_key', 'maps-value');
@@ -79,23 +40,6 @@ before(async () => {
     await userStore.setOrgSubscription(ORG_PLAN, { plan_id: plan.id, status: 'active' });
     await userStore.setOrgAvailableCapabilities(ORG_PLAN, ['gmail']);
     availability = require('./orgIntegrationAvailability.mts');
-}, { timeout: 120_000 });
-
-/**
- * createOrganization pre-generates each org's webhook signing key in a
- * setImmediate; let those writes land before the database closes.
- */
-async function settleOrgBackgroundWork(ids) {
-    for (let i = 0; i < 100; i++) {
-        const keys = await Promise.all(ids.map(id => configStore.getSecretFresh(`org_webhook_signing_key_${id}`)));
-        if (keys.every(Boolean)) return;
-        await new Promise(resolve => setImmediate(resolve));
-    }
-}
-
-after(async () => {
-    await settleOrgBackgroundWork([ORG_PLAIN, ORG_NC, ORG_LEGACY, ORG_PLAN]);
-    await closePg();
 });
 
 test('everything set up: every family is available except Nextcloud, which an unbound org lacks', async () => {
