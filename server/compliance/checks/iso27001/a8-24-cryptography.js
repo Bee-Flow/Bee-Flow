@@ -16,13 +16,14 @@
  */
 
 const fs = require('fs');
-const path = require('path');
+// Tree paths (moduleRoots.cjs): auth/ is the core's, and split over several roots.
+const { treePath } = require('../../../moduleRoots.cjs');
 // Cached boot-time verdict on OPAQUE_SERVER_SETUP; never loads the WASM.
 const { getServerSetupStatus } = require('../../../auth/opaqueSetup');
 
-const ENCRYPTION_PATH = path.join(__dirname, '..', '..', '..', 'auth', 'encryption.js');
+const ENCRYPTION_PATH = treePath('auth', 'encryption.js');
 // The constants and Argon2 profiles live behind the barrel, in the primitives module.
-const PRIMITIVES_PATH = path.join(__dirname, '..', '..', '..', 'auth', 'encryptionPrimitives.js');
+const PRIMITIVES_PATH = treePath('auth', 'encryptionPrimitives.js');
 
 // Everything the rest of the product calls; the check fails if any disappears.
 const REQUIRED_EXPORTS = [

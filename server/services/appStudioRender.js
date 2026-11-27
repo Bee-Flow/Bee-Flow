@@ -43,7 +43,7 @@ const renderView = require('./appStudioRenderView.mts');
 const { makeFileFulfil } = require('./appStudioRenderFiles.mts');
 const { STILL_CSS, shoot, waitForFonts } = require('./appStudioRenderShot.mts');
 
-const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
+const RUNTIME_DIR = require('../moduleRoots.cjs').treePath('vendor', 'app-runtime'); // staged beside the core: a tree path
 const BUNDLE_JS = 'app-runtime.mjs';
 const BUNDLE_CSS = 'app-runtime.css';
 

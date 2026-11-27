@@ -19,12 +19,14 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { treePath } = require('../../moduleRoots.cjs');
 
 const FILES = Object.freeze({
     heading: 'Fraunces-Variable.woff2',
     body: 'Inter-Variable.woff2',
 });
-const FONT_DIR = path.join(__dirname, '..', '..', 'assets', 'fonts');
+// A tree path (moduleRoots.cjs): the fonts are the core's, wherever this file lives.
+const FONT_DIR = treePath('assets', 'fonts');
 
 /** @typedef {{ layout: (text: string) => { glyphs: any[], positions: any[], advanceWidth: number }, unitsPerEm: number }} Face */
 

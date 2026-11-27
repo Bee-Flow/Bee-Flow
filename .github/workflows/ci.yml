@@ -167,6 +167,10 @@ jobs:
               # and what those files require in turn
               - '{server,modules/*/server}/appStudio/{appDesignSpec,componentSpecs,mailboxTableTemplates}.js'
               - '{server,modules/*/server}/appStudio/componentSpecs/**'
+              # required by componentSpecs/registryDir.js (registry directories read over every root), and what it requires
+              - '{server,modules/*/server}/utils/treeDir.js'
+              - '{server,modules/*/server}/moduleRoots.cjs'
+              - '{server,modules/*/server}/modules/roots/{rootSet,resolveHooks,treeCheck}.cjs'
               # required by appDesignSpec.js (the custom stylesheet cleaner, design tokens, font roles, the app shell)
               - '{server,modules/*/server}/appStudio/appCss.mts'
               - '{server,modules/*/server}/appStudio/{designTokens,navShell}.mts'

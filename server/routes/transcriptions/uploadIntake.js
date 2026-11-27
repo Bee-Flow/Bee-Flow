@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const log = require('../../telemetry/log');
+const { dataPath } = require('../../moduleRoots.cjs');
 const { HttpError } = require('../../core/http/errors');
 const configStore = require('../../stores/configStore');
 const meetingFiling = require('../../projects/meetingFiling');
@@ -98,7 +99,7 @@ async function resolveUploadProvider(req) {
  * @returns {Promise<{ savedAudioPath: string, audioStorageKey: string|null }>}
  */
 async function persistUploadAudio(file, userId, fileName) {
-    const audioDir = path.resolve(__dirname, '../../data/uploads/saved-recordings');
+    const audioDir = dataPath('uploads', 'saved-recordings');
     if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir, { recursive: true });
     const savedExt = path.extname(file.originalname || '.webm') || '.webm';
     // Same hazard as ingestRecordingCore's copy, same directory: two uploads

@@ -35,20 +35,20 @@
 /** @typedef {{ orgId?: string, secret?: Record<string, any> | null, settings?: Record<string, any> | null, safeFetch?: SafeFetch }} CollectArgs */
 /** A collector that reaches the network: the collector job always hands its guarded fetch. @typedef {CollectArgs & { safeFetch: SafeFetch }} FetchingCollectArgs */
 
-const fs = require('fs');
-const path = require('path');
 const log = require('../../telemetry/log');
+const { dirEntries } = require('../../utils/treeDir');
 
 const _connectors = new Map();
 
-for (const file of fs.readdirSync(__dirname)) {
+// Over every root of the tree (utils/treeDir.js), in name order: a connector may sit in another module.
+for (const { name: file, abs } of dirEntries(__dirname)) {
     if (!file.endsWith('.js') || file === 'index.js') continue;
     // Tests live next to their source, and this loader runs at boot: requiring
     // a test file would run it inside the live process, including the stubs it
     // installs (compliance/checks/index.js skips them for the same reason).
     if (/\.(test|spec)\.js$/.test(file)) continue;
     try {
-        const mod = require(path.join(__dirname, file));
+        const mod = require(abs);
         if (!mod?.id || typeof mod.collect !== 'function') {
             log.warn(`[IsoConnectors] ${file} missing id/collect — skipped`);
             continue;

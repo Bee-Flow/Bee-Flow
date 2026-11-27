@@ -16,8 +16,11 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const { treePath } = require('../../moduleRoots.cjs');
 
-const DATA_DIR = path.join(__dirname, 'data');
+// A tree path (moduleRoots.cjs): scripts/build-gene-catalog.js (core) writes the files beside the core,
+// and they are found there wherever this file lives.
+const DATA_DIR = treePath('core', 'datasets', 'data');
 const BUILDS = ['GRCh37', 'GRCh38'];
 
 const catalogs = new Map(); // build -> Map<SYMBOL, {chrom, start, end}>

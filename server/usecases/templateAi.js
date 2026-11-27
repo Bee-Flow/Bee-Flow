@@ -1,6 +1,7 @@
 // @typecheck strict
 const fs = require('fs');
 const log = require('../telemetry/log');
+const { dataPath } = require('../moduleRoots.cjs');
 const mammoth = require('mammoth');
 const templateStore = require('../stores/templateStore');
 const storageStore = require('../stores/storageStore');
@@ -42,7 +43,7 @@ async function extractDocxText(buffer) {
  */
 function localTemplateFile(storageKey) {
     const nodePath = require('path');
-    const root = nodePath.resolve(__dirname, '..', 'data', 'templates');
+    const root = dataPath('templates'); // run-time data, beside the core (moduleRoots.cjs)
     const file = nodePath.resolve(String(storageKey).slice('local:'.length));
     if (!file.startsWith(root + nodePath.sep)) throw badRequest('invalid_storage_key', 'Template file is outside template storage');
     return file;

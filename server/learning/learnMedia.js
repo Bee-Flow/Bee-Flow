@@ -28,8 +28,10 @@
 
 const path = require('node:path');
 const express = require('express');
+const { dataPath } = require('../moduleRoots.cjs');
 
-const DEFAULT_DIR = path.join(__dirname, '..', 'data', 'learn-media');
+// Run-time data, beside the core wherever this file lives (moduleRoots.cjs).
+const DEFAULT_DIR = dataPath('learn-media');
 
 const TYPES = Object.freeze({
     '.mp4': 'video/mp4',

@@ -21,12 +21,13 @@
  */
 
 const fs = require('fs');
-const path = require('path');
+const { treePath } = require('../moduleRoots.cjs');
 const log = require('../telemetry/log');
 // GitHub and YouTrack are integrations/' (a feature), reached through the client registry.
 const { integrationClient } = require('../core/integrations/integrationClients');
 
-const TEST_GENERATOR_PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'test-generator-prompt.md');
+// A tree path (moduleRoots.cjs): the prompt is the core's, wherever this service lives.
+const TEST_GENERATOR_PROMPT_PATH = treePath('prompts', 'test-generator-prompt.md');
 const DEFAULT_MAX_TOKENS = 8000;
 
 function _loadPrompt() {

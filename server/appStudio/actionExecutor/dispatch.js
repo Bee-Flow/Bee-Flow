@@ -8,6 +8,7 @@
 'use strict';
 
 const path = require('node:path');
+const { treeFileAt } = require('../../utils/treeDir');
 const { DATA_MUTATING_STEP_KINDS } = require('../componentSpecs');
 const { stepMetaOf } = require('../componentSpecs/stepRegistry');
 const { findTable, buildServerScope, resolveBinding, writeViewer } = require('./shared');
@@ -35,7 +36,8 @@ const STEP_GUARD = './stepGuard.mts';
 /**
  * The executor of a step kind of the registry (componentSpecs/steps/<kind>.js with
  * `handler: 'file'`): `runStep` of actionExecutor/steps/<kind>.mts. Null for every other
- * kind. The kind is a file name the registry checked at load, never request text.
+ * kind. The kind is a file name the registry checked at load, never request text. The file is
+ * looked up over every root of the tree (utils/treeDir.js), like the registry entry was.
  *
  * @param {string} kind
  * @param {(kind: string) => { side?: string, handler?: string } | null} [metaOf]
@@ -45,7 +47,7 @@ const STEP_GUARD = './stepGuard.mts';
 function fileStepHandler(kind, metaOf = stepMetaOf, dir = path.join(__dirname, 'steps')) {
     const meta = metaOf(kind);
     if (!meta || meta.side !== 'server' || meta.handler !== 'file') return null;
-    const mod = require(path.join(dir, `${kind}.mts`));
+    const mod = require(treeFileAt(path.join(dir, `${kind}.mts`)));
     if (typeof mod.runStep !== 'function') throw new Error(`Step module ${kind}.mts does not export runStep`);
     return mod.runStep;
 }

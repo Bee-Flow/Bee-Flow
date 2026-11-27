@@ -20,18 +20,19 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { Readable } from 'node:stream';
 import { createRequire } from 'node:module';
 import { ASSET_LIMITS, isAssetId } from '../appStudio/appAssets.mts';
 
-const { fallback } = createRequire(import.meta.url)('../utils/bestEffort.js') as { fallback: <T>(label: string, err: unknown, value?: T) => T };
+const nodeRequire = createRequire(import.meta.url);
+const { fallback } = nodeRequire('../utils/bestEffort.js') as { fallback: <T>(label: string, err: unknown, value?: T) => T };
+const { treePath, repoPath } = nodeRequire('../moduleRoots.cjs') as typeof import('../moduleRoots.cjs');
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-
+// The staged runtime's fonts (a tree path) and the web app's (beside server/): moduleRoots.cjs,
+// so both are found wherever this file lives.
 export const FONT_DIRS = Object.freeze([
-    path.join(HERE, '..', 'vendor', 'app-runtime', 'fonts'),
-    path.join(HERE, '..', '..', 'agent-hub', 'public', 'fonts'),
+    treePath('vendor', 'app-runtime', 'fonts'),
+    repoPath('agent-hub', 'public', 'fonts'),
 ]);
 export const SCREENSHOT_ASSET_PREFIX = 'api/public-app/screenshot/assets/';
 const FONT_PREFIX = 'fonts/';

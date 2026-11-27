@@ -305,3 +305,8 @@ test('concurrent repairs of one recording upload it once', async () => {
     assert.strictEqual(fx.uploadCalls.length, 1);
     assert.strictEqual([a, b, c].filter(Boolean).length, 1);
 });
+
+test('saved recordings stay in the data directory beside the core, wherever this module lives', () => {
+    const { coreRoot } = require('../../moduleRoots.cjs');
+    assert.strictEqual(SAVED_DIR, path.join(coreRoot, 'data', 'uploads', 'saved-recordings'));
+});

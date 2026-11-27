@@ -12,7 +12,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { runCodeIsolated, childEnv } = require('./codeSandboxProcess');
+const { runCodeIsolated, childEnv, childExecArgv } = require('./codeSandboxProcess');
 const { isAvailable } = require('./codeSandbox');
 
 const skip = !isAvailable() && 'isolated-vm is not installed here';
@@ -67,4 +67,12 @@ test('scripts share nothing: what one leaves on its global, the next does not se
 test('the child process starts with no secret in its environment', () => {
     const env = childEnv({ PATH: '/usr/bin', NODE_ENV: 'production', DATABASE_URL: 'postgres://u:p@db/x', MASTER_ENCRYPTION_KEY: 'k', ANTHROPIC_API_KEY: 'a', SESSION_SECRET: 's' });
     assert.deepStrictEqual(env, { PATH: '/usr/bin', NODE_ENV: 'production' });
+});
+
+test('the child keeps the module resolver, by an absolute path, and only its own heap limit besides', () => {
+    const argv = childExecArgv();
+    const at = argv.indexOf('--require');
+    assert.ok(at >= 0, 'the child is started with --require <moduleRoots.cjs>');
+    assert.strictEqual(argv[at + 1], require.resolve('../moduleRoots.cjs'));
+    assert.deepStrictEqual(argv.filter((a, i) => i !== at && i !== at + 1), ['--max-old-space-size=128']);
 });

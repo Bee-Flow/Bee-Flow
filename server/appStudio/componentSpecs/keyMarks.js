@@ -38,8 +38,8 @@
 
 'use strict';
 
-const fs = require('node:fs');
 const path = require('node:path');
+const { dirEntries } = require('../../utils/treeDir');
 const { requireSince } = require('./registryDir');
 const { bindingMarkProblems, queryShapeProblems } = require('./queryMarks');
 
@@ -139,23 +139,15 @@ function keyMarkProblems(family, key, mark) {
 }
 
 /**
- * The `.js` files of one family directory, sorted, as [key, file].
+ * The `.js` files of one family directory, sorted, as [key, file]. Directories of the tree are
+ * read over every root (utils/treeDir.js).
  * @param {string} dir
  * @returns {Array<[string, string]>}
  */
 function familyFiles(dir) {
-    /** @type {string[]} */
-    let entries;
-    try {
-        entries = fs.readdirSync(dir);
-    } catch (e) {
-        if (/** @type {NodeJS.ErrnoException} */ (e).code === 'ENOENT' || /** @type {NodeJS.ErrnoException} */ (e).code === 'ENOTDIR') return [];
-        throw e;
-    }
-    return entries
-        .filter((entry) => entry.endsWith('.js') && !entry.endsWith('.test.js'))
-        .sort()
-        .map((entry) => [entry.slice(0, -'.js'.length), path.join(dir, entry)]);
+    return dirEntries(dir)
+        .filter(({ name }) => name.endsWith('.js') && !name.endsWith('.test.js'))
+        .map(({ name, abs }) => [name.slice(0, -'.js'.length), abs]);
 }
 
 /**
@@ -168,13 +160,7 @@ function familyFiles(dir) {
 function loadKeyMarks(dir = KEYS_DIR) {
     const out = /** @type {KeyMarks} */ (Object.create(null));
     for (const family of Object.keys(KEY_MARK_FAMILIES)) out[/** @type {KeyMarkFamily} */ (family)] = Object.create(null);
-    /** @type {string[]} */
-    let families = [];
-    try {
-        families = fs.readdirSync(dir).filter((name) => !name.includes('.')).sort();
-    } catch (e) {
-        if (/** @type {NodeJS.ErrnoException} */ (e).code !== 'ENOENT') throw e;
-    }
+    const families = dirEntries(dir).map(({ name }) => name).filter((name) => !name.includes('.'));
     for (const family of families) {
         if (!Object.hasOwn(KEY_MARK_FAMILIES, family)) throw new Error(`Key marks: keys/${family}/ is not a family (${Object.keys(KEY_MARK_FAMILIES).join(', ')})`);
         for (const [key, file] of familyFiles(path.join(dir, family))) {

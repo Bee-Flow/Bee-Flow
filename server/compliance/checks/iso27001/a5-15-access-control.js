@@ -14,10 +14,10 @@
  */
 
 const fs = require('fs');
-const path = require('path');
+// Tree paths (moduleRoots.cjs): auth/ and config/ are the core's, and auth/ is split over several roots.
+const { treePath } = require('../../../moduleRoots.cjs');
 
-const AUTH_DIR = path.join(__dirname, '..', '..', '..', 'auth');
-const ORG_ROLES_PATH = path.join(__dirname, '..', '..', '..', 'config', 'orgRoles.json');
+const ORG_ROLES_PATH = treePath('config', 'orgRoles.json');
 
 module.exports = {
     id: 'ISO27001-A.5.15-access-control',
@@ -35,7 +35,7 @@ module.exports = {
     async evaluate() {
         let registry;
         try {
-            registry = require(path.join(AUTH_DIR, 'accessRegistry'));
+            registry = require(treePath('auth', 'accessRegistry.js'));
         } catch (e) {
             return {
                 status: 'fail',
@@ -70,7 +70,7 @@ module.exports = {
             return !Array.isArray(permissions) || permissions.length === 0;
         });
 
-        const driftTestPresent = fs.existsSync(path.join(AUTH_DIR, 'accessRegistry.drift.test.js'));
+        const driftTestPresent = fs.existsSync(treePath('auth', 'accessRegistry.drift.test.js'));
 
         /** @type {Record<string, unknown>} */
         const evidence = {
