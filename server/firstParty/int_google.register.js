@@ -46,6 +46,9 @@ function toolFamilies() {
 }
 
 function register() {
+    contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
+        // what the core asks of this module by name (optionalFeatureModule): one getter per line
+    }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', () => require('../integrations/coreToolsets').registerToolsets({
         GMAIL_TOOLS: require('../integrations/gmailTools').GMAIL_TOOLS,

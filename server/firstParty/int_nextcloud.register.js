@@ -75,6 +75,9 @@ function registerPorts() {
 }
 
 function register() {
+    contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
+        // what the core asks of this module by name (optionalFeatureModule): one getter per line
+    }));
     contribute('integrations/toolFamilies', registerToolFamily);
     contribute('integrations/coreToolsets', registerToolsets);
     contribute('integrations/integrationClients', registerClients);

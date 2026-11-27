@@ -1,4 +1,5 @@
 {
+  "featureModules": [],
   "runnerPorts": [
     "heldDefinitions",
     "approvalDeciders"

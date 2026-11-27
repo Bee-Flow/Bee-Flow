@@ -11,6 +11,9 @@
 const { contribute } = require('../modules/firstParty/registrationChannels');
 
 function register() {
+    contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
+        // what the core asks of this module by name (optionalFeatureModule): one getter per line
+    }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies([
         // sanctions: local screening, the executor re-checks the licence.
         { name: 'sanctions', order: 475, isTool: (n) => require('../integrations/sanctionsTools.mts').isSanctionsTool(n), execute: (n, a, ctx) => require('../integrations/sanctionsTools.mts').executeSanctionsTool(n, a, { userId: ctx.userId, orgId: ctx.orgId }) },
