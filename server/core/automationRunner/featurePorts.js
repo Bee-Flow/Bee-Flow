@@ -80,10 +80,18 @@ function hasRunnerPort(name) {
     return ports.has(name);
 }
 
+/**
+ * Every registered port name, in registration order (boot/composition.registries.characterisation.test.js).
+ * @returns {string[]}
+ */
+function runnerPortNames() {
+    return [...ports.keys()];
+}
+
 /** Test seam: drop one port, or all of them. */
 function _clearRunnerPortsForTests(name) {
     if (name) ports.delete(name);
     else ports.clear();
 }
 
-module.exports = { registerRunnerPorts, runnerPort, optionalRunnerPort, hasRunnerPort, _clearRunnerPortsForTests };
+module.exports = { registerRunnerPorts, runnerPort, optionalRunnerPort, hasRunnerPort, runnerPortNames, _clearRunnerPortsForTests };

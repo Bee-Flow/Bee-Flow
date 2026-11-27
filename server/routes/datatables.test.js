@@ -47,7 +47,8 @@ const ENTRY = fs.readFileSync(path.join(DIR, 'index.js'), 'utf8');
 const MODULES = ['index.js', ...[...ENTRY.matchAll(/^ \* {3}((?:\.\.\/)*[\w/]+\.js)\b/gm)].map(m => m[1])];
 const RAW = MODULES.map(f => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n');
 const SRC = RAW.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
-const INDEX = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+// index.js and every module's composition file (testUtils/compositionText.js).
+const INDEX = require('../testUtils/compositionText').compositionText();
 
 test("index.js's folder map names every module, and this file reads them all", () => {
     // The fail-open this guards: a module added to the folder and left out of

@@ -110,7 +110,8 @@ function servedAuthPaths() {
     // Nextcloud webhook, sync and connector-health routers there too. Missing
     // them would report their paths as ghosts, so the sweep would be trained
     // away rather than fixed.
-    const server = fs.readFileSync(path.join(REPO, 'server/index.js'), 'utf8');
+    // compositionText(): index.js and every module's composition file.
+    const server = require('../testUtils/compositionText').compositionText();
     for (const m of server.matchAll(/app\.use\(\s*'\/auth'\s*,\s*require\('\.\/([\w./-]+)'\)/g)) {
         const file = path.join(REPO, 'server', m[1].replace(/\.js$/, '') + '.js');
         if (fs.existsSync(file)) declaredIn(file, '');

@@ -10,9 +10,12 @@
  * success regardless. From now on a new store with a CREATE TABLE that is not in STORE_MODULES is a
  * RED TEST with a hint, not a silently missing table on the next fresh installation.
  *
- * Static and DB-free on purpose: registration is a textual fact (is the name in the list), and the
- * behavioural side — does the ladder really run, is it idempotent — is proven by
- * migrateDb.integration.test.js against real Postgres.
+ * DB-free on purpose: registration is read from the merged list that `npm run db:migrate` iterates,
+ * storeModules.js collectStoreModules() (STORE_MODULES plus the stores of the catalog modules), the
+ * function and not the text of storeModules.js, so a store whose entry moves into a module's
+ * composition file still counts. Nothing in the list is required here; the behavioural side (does
+ * the ladder really run, is it idempotent) is proven by migrateDb.integration.test.js against real
+ * Postgres.
  *
  * Run: cd server && node --test --test-force-exit migrateDb.registration.test.js
  */
@@ -21,6 +24,16 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const { collectStoreModules } = require('./storeModules');
+
+/** The tree paths of the stores db:migrate initialises: `./stores/x` -> `stores/x.js`, an extension kept. */
+function registeredStoreFiles() {
+    const quiet = /** @type {Console} */ (/** @type {unknown} */ ({ error() {} }));
+    return collectStoreModules(quiet).map((s) => {
+        const rel = s.file.replace(/^\.\//, '');
+        return /\.m?[jt]s$/.test(rel) ? rel : `${rel}.js`;
+    });
+}
 
 /**
  * Deliberate exceptions, each with the reason. An entry here is a claim that a
@@ -133,10 +146,7 @@ function ddlOwners(/** @type {string} */ root) {
 }
 
 test('elke DDL-eigenaar onder stores/ staat in STORE_MODULES of is met reden vrijgesteld', () => {
-    const src = fs.readFileSync(path.join(__dirname, 'storeModules.js'), 'utf8');
-    const registered = new Set(
-        [...src.matchAll(/file:\s*'\.\/(stores\/[^']+)'/g)].map((m) => `${m[1]}.js`),
-    );
+    const registered = new Set(registeredStoreFiles());
     assert.ok(registered.size >= 70, `verdacht kleine ladder (${registered.size}) — is STORE_MODULES herschreven?`);
 
     const missing = ddlOwners(path.join(__dirname, 'stores'))
@@ -155,13 +165,12 @@ test('elke vrijstelling wijst nog naar een bestaand bestand', () => {
 });
 
 test('elke geregistreerde store bestaat en exporteert een awaitbare initDB', () => {
-    // Static (no require — that would load the whole fleet): the file
+    // No require of the stores (that would load the whole fleet): the file
     // exists, and it names initDB in its exports or defines it via
     // makeStoreInit. The real await guarantee is supplied by the integration test.
-    const src = fs.readFileSync(path.join(__dirname, 'storeModules.js'), 'utf8');
-    const files = [...src.matchAll(/file:\s*'\.\/(stores\/[^']+)'/g)].map((m) => (/\.m?[jt]s$/.test(m[1]) ? m[1] : `${m[1]}.js`));
-    for (const f of files) {
-        const p = path.join(__dirname, f);
+    const { treePath } = require('./moduleRoots.cjs');
+    for (const f of registeredStoreFiles()) {
+        const p = treePath(f); // wherever its owner's root keeps it
         assert.ok(fs.existsSync(p), `STORE_MODULES wijst naar een verdwenen bestand: ${f}`);
         // Genuinely textual, met opzet — zie de bestandskop: 70+ stores hier
         // echt vereisen zou de hele fleet laden; de echte await-garantie komt

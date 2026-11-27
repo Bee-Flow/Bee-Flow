@@ -53,8 +53,10 @@ test('it is registered in STORE_MODULES', () => {
     // that reads this registry actually runs. An unregistered store's DDL
     // only runs on first feature use — the post-mortems for blueprintStore
     // and coworkStore are written into that file.
-    const registry = fs.readFileSync(path.join(__dirname, '..', 'storeModules.js'), 'utf8');
-    assert.match(registry, /'datatableStore'/);
+    // The merged list (collectStoreModules), so a registration that moves into a
+    // module's composition file still counts.
+    const names = require('../storeModules').collectStoreModules(/** @type {Console} */ (/** @type {unknown} */ ({ error() {} }))).map((s) => s.name);
+    assert.ok(names.includes('datatableStore'), 'datatableStore is not in the store ladder');
 });
 
 test('the SCOPE is NOT NULL — tenancy is structural, not conventional', () => {

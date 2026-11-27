@@ -98,7 +98,7 @@ test('every App Studio write and publish route requires manage_apps', () => {
 });
 
 test('the internal app API requires an app role, with a separate permission for the AI builder', () => {
-    const src = read('index.js');
+    const src = require('../testUtils/compositionText').compositionText();
     const base = src.indexOf("app.use('/api/studio-apps', requireAnyPermission('use_apps', 'manage_apps'))");
     const builder = src.indexOf("app.use('/api/studio-apps/builder',");
     assert.ok(base >= 0 && base < builder);

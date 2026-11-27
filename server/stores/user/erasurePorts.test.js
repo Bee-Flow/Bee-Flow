@@ -1,7 +1,7 @@
 // @typecheck strict
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const { registerErasurePorts, erasurePort, resetErasurePortsForTests } = require('./erasurePorts');
+const { registerErasurePorts, erasurePort, erasurePortNames, resetErasurePortsForTests } = require('./erasurePorts');
 
 beforeEach(() => resetErasurePortsForTests());
 
@@ -15,4 +15,11 @@ test('registered ports are returned; registering one keeps the other unregistere
     registerErasurePorts({ notebooks });
     assert.strictEqual(erasurePort('notebooks'), notebooks);
     assert.throws(() => erasurePort('projects'), /not registered/);
+});
+
+test('erasurePortNames lists what is registered, in registration order', () => {
+    assert.deepStrictEqual(erasurePortNames(), []);
+    registerErasurePorts({ projects: { makeTeardown: () => null } });
+    registerErasurePorts({ notebooks: { deleteAllForUser: async () => ({}) } });
+    assert.deepStrictEqual(erasurePortNames(), ['projects', 'notebooks']);
 });

@@ -15,9 +15,10 @@
  *    that startupTasks still calls the shared runner, because a list that
  *    nothing invokes is exactly the bug the ladder existed to end.
  *
- * Reads both files as SOURCE — the list is data, and booting the real thing
- * would start every scheduler in the process. runList() itself is behaviour
- * and is exercised for real (against Postgres) in migrateDb.integration.test.js.
+ * Reads startupOneShots.js and migrateDb.js as SOURCE: booting the real thing
+ * would start every scheduler in the process. The runner's sequence is run
+ * through its load / ledger seam, and for real (against Postgres) in
+ * migrateDb.integration.test.js.
  *
  * Run: node --test --test-force-exit boot/nlTranslations.test.js
  */
@@ -27,10 +28,9 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const LADDER = fs.readFileSync(path.join(__dirname, 'bootMigrations.js'), 'utf8');
 // runStartupTasks() calls its one-shot phase from startupOneShots.js.
 const STARTUP = fs.readFileSync(path.join(__dirname, 'startupOneShots.js'), 'utf8');
-const { NL_TRANSLATIONS, LOOSE_MIGRATIONS } = require('./bootMigrations');
+const { NL_TRANSLATIONS, LOOSE_MIGRATIONS, runNlTranslations } = require('./bootMigrations');
 
 test('the list is found and non-trivial', () => {
     assert.ok(Array.isArray(NL_TRANSLATIONS) && NL_TRANSLATIONS.length >= 10,
@@ -62,25 +62,36 @@ test('no catalogue silently falls out of the boot list', () => {
     assert.deepEqual(dropped, [], `no longer run at boot: ${dropped.join(', ')}`);
 });
 
-test('they are awaited in one loop, not fired as parallel setImmediates', () => {
+test('they are awaited in one loop, not fired as parallel setImmediates', async () => {
     // The original fix. If someone "simplifies" runList back to one
     // setImmediate per migration, the clobbering returns and nothing else
     // would catch it.
     //
-    // Genuinely textual, and deliberately not converted: runList's real
-    // sequential behaviour (await, one at a time, ledger-recorded) is already
-    // exercised for real against Postgres in migrateDb.integration.test.js —
-    // that suite runs the actual ladder and checks the resulting schema, which
-    // is strictly stronger evidence than a unit test could give without
-    // reimplementing that same integration harness. What THIS test guards
-    // that the integration suite cannot is the regression itself: someone
-    // reintroducing a per-migration `setImmediate` in startupOneShots.js — one
-    // phase of runStartupTasks(), which fires every other boot scheduler, so
-    // calling it for real here (even with bootMigrations stubbed) would mean
-    // stubbing the rest of boot too, for a check the integration suite already
-    // makes redundant for runList's own correctness.
-    assert.match(LADDER, /for \(const name of names\)/, 'the sequential loop is gone');
-    assert.match(LADDER, /await require\(/, 'the migrations are no longer awaited');
+    // The runner itself, through its load / ledger seam: every catalogue is
+    // still running when it yields, so two at once would show as more than one
+    // active. (migrateDb.integration.test.js runs the real ladder against Postgres.)
+    let active = 0;
+    let most = 0;
+    /** @type {string[]} */
+    const ran = [];
+    await runNlTranslations({
+        log: { warn() {}, log() {} },
+        ledger: { read: async () => new Map(), record: async () => {} },
+        load: (name) => ({
+            up: async () => {
+                active += 1;
+                most = Math.max(most, active);
+                await new Promise((resolve) => setImmediate(resolve));
+                ran.push(name);
+                active -= 1;
+            },
+        }),
+    });
+    assert.equal(most, 1, 'two catalogues ran at the same time');
+    assert.deepEqual(ran, NL_TRANSLATIONS, 'the catalogues ran out of order, or not all of them');
+    // What the runner cannot show: a per-migration setImmediate back in
+    // startupOneShots.js (one phase of runStartupTasks(), which fires every other
+    // boot scheduler), so that file is read as text.
     for (const name of NL_TRANSLATIONS) {
         const perMigration = new RegExp(
             `setImmediate\\(\\(\\) => \\{\\s*require\\('\\.\\./migrations/${name}'\\)`,

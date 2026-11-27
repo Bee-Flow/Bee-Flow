@@ -115,7 +115,8 @@ test('de ingetrokken router is weg en is nergens opnieuw gemount', () => {
     // Genuinely textual: index.js calls app.listen() unconditionally at
     // module scope (see compliance/dataPortability/exportRegistry.test.js
     // for the same constraint), so it is never require()'d in a test.
-    const index = fs.readFileSync(path.join(SERVER, 'index.js'), 'utf8');
+    // compositionText(): index.js and every module's composition file.
+    const index = require('../testUtils/compositionText').compositionText();
     assert.ok(!MOUNT_RE.test(index),
         'server/index.js mount de ingetrokken kennis-router opnieuw — /agents/:id/knowledge hoort niet te bestaan');
 

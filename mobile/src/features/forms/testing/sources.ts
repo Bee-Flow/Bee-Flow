@@ -16,6 +16,32 @@ export const webPath = (rel: string): string => path.join(REPO, 'agent-hub/src',
 export const readServer = (rel: string): string => fs.readFileSync(serverPath(rel), 'utf8');
 export const readWeb = (rel: string): string => fs.readFileSync(webPath(rel), 'utf8');
 
+/**
+ * server/index.js followed by every first-party composition file (`firstParty/<id>.js` of
+ * server/ and of each modules/<id>/server/, joined by name, in name order): the twin of
+ * server/testUtils/compositionText.js. A needle that looks for a mount or a registration
+ * (`"app.use('/api/datatables'"`) reads this, so it is still found after the line moves out
+ * of index.js into a module's composition file. Today that text is index.js alone.
+ */
+export function compositionText(): string {
+    const roots = [path.join(REPO, 'server')];
+    const modulesDir = path.join(REPO, 'modules');
+    if (fs.existsSync(modulesDir)) {
+        for (const id of fs.readdirSync(modulesDir).sort()) roots.push(path.join(modulesDir, id, 'server'));
+    }
+    const files = new Map<string, string>();
+    for (const root of roots) {
+        const dir = path.join(root, 'firstParty');
+        if (!fs.existsSync(dir)) continue;
+        for (const name of fs.readdirSync(dir)) {
+            if (!/\.(?:c?js|mts)$/.test(name) || /\.(?:test|testkit)\./.test(name) || files.has(name)) continue;
+            files.set(name, path.join(dir, name));
+        }
+    }
+    const ordered = [...files.keys()].sort().map((name) => files.get(name) as string);
+    return [serverPath('index.js'), ...ordered].map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+}
+
 export function requireServer<T>(rel: string): T {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require(serverPath(rel)) as T;

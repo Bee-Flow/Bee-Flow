@@ -83,10 +83,18 @@ function hasIntegrationClient(name) {
     return getters.has(name);
 }
 
+/**
+ * Every registered client name, in registration order (boot/composition.registries.characterisation.test.js).
+ * @returns {string[]}
+ */
+function integrationClientNames() {
+    return [...getters.keys()];
+}
+
 /** Test seam: drop one client, or all of them. */
 function _clearIntegrationClientsForTests(name) {
     if (name) getters.delete(name);
     else getters.clear();
 }
 
-module.exports = { registerIntegrationClients, integrationClient, optionalIntegrationClient, hasIntegrationClient, _clearIntegrationClientsForTests };
+module.exports = { registerIntegrationClients, integrationClient, optionalIntegrationClient, hasIntegrationClient, integrationClientNames, _clearIntegrationClientsForTests };
