@@ -20,7 +20,6 @@
  *   publicValue  (value, surface) => what a public page gets, optional (public: true only).
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -52,6 +51,7 @@ export const BASE_DEFINITION_KEYS: readonly string[] = Object.freeze([
 
 const KEYS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'definitionKeys');
 const requireEntry = createRequire(import.meta.url);
+const { dirEntries } = requireEntry('../utils/treeDir.js') as typeof import('../utils/treeDir.js');
 
 /** Throws on a malformed entry: a broken registry file must fail the boot, not drop a key in silence. */
 export function checkEntry(entry: unknown, fileKey: string | null = null): DefinitionKeyEntry {
@@ -68,19 +68,11 @@ export function checkEntry(entry: unknown, fileKey: string | null = null): Defin
     return e as DefinitionKeyEntry;
 }
 
-/** Every `<key>.js` in `dir`, sorted by file name. A missing directory is an empty registry. */
+/** Every `<key>.js` in `dir` (over every root of the tree, utils/treeDir.js), sorted by file name. A missing directory is an empty registry. */
 export function loadDefinitionKeys(dir: string = KEYS_DIR): DefinitionKeyEntry[] {
-    let names: string[];
-    try {
-        names = fs.readdirSync(dir);
-    } catch (e) {
-        if ((e as NodeJS.ErrnoException).code === 'ENOENT') return [];
-        throw e;
-    }
-    return names
-        .filter((n) => n.endsWith('.js') && !n.endsWith('.test.js'))
-        .sort()
-        .map((n) => checkEntry(requireEntry(path.join(dir, n)), n.slice(0, -'.js'.length)));
+    return dirEntries(dir)
+        .filter(({ name }) => name.endsWith('.js') && !name.endsWith('.test.js'))
+        .map(({ name, abs }) => checkEntry(requireEntry(abs), name.slice(0, -'.js'.length)));
 }
 
 let entries: DefinitionKeyEntry[] | null = null;

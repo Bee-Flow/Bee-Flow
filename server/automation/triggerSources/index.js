@@ -11,7 +11,8 @@
  *
  * Three discovery channels, all additive:
  *   1. ./declared/*.js                — first-party providers (readdir at load)
- *   2. ../../mcpServers/<id>/events.js — bundled MCP servers. CommonJS beside
+ *   2. mcpServers/<id>/events.js      — bundled MCP servers (a tree path: found
+ *      in whichever root holds mcpServers/, moduleRoots.cjs). CommonJS beside
  *      the ESM index.mjs, the same split mcpServers/README.md already
  *      prescribes for tuya.js: requiring index.mjs would start a JSON-RPC
  *      server on stdout.
@@ -33,6 +34,8 @@ const path = require('path');
 const { validateTriggerSource, KNOWN_SOURCE_KINDS } = require('./validate');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { dirEntries, isDirectory } = require('../../utils/treeDir');
+const { listTreeDir } = require('../../moduleRoots.cjs');
 
 const _global = new Map();   // id → declaration (static, bundled, global push)
 const _byOrg = new Map();    // orgId → Map<id, declaration>
@@ -80,13 +83,10 @@ function takeDeclarations(mod) {
  * @param {string} originPrefix
  */
 function loadFromDir(dir, originPrefix) {
-    /** @type {string[]} */
-    let names = [];
-    try { names = fs.readdirSync(dir); } catch { return; }
-    for (const name of names.sort()) {                       // deterministic order
+    for (const { name, abs } of dirEntries(dir)) {           // deterministic order: by name, over every root
         if (!name.endsWith('.js') || name.includes('.test.')) continue;
         try {
-            for (const decl of takeDeclarations(require(path.join(dir, name)))) {
+            for (const decl of takeDeclarations(require(abs))) {
                 registerTriggerSource(decl, { origin: `${originPrefix}/${name}` });
             }
         } catch (e) {
@@ -96,13 +96,11 @@ function loadFromDir(dir, originPrefix) {
 }
 
 function loadBundledMcpManifests() {
-    const root = path.join(__dirname, '..', '..', 'mcpServers');
-    /** @type {fs.Dirent<string>[]} */
-    let entries = [];
-    try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { return; }
+    // mcpServers/ is a directory of the tree (core today): read over every root, wherever this file lives.
+    const entries = listTreeDir('mcpServers');
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-        if (!entry.isDirectory()) continue;
-        const file = path.join(root, entry.name, 'events.js');
+        if (!isDirectory(entry.abs)) continue;
+        const file = path.join(entry.abs, 'events.js');
         if (!fs.existsSync(file)) continue;                  // opt-in: most servers emit nothing
         try {
             for (const decl of takeDeclarations(require(file))) {

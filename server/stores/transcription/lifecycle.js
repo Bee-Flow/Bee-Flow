@@ -10,12 +10,14 @@ const fs = require('fs');
 const path = require('path');
 const { run, getOne, withTransaction } = require('../../db');
 const log = require('../../telemetry/log');
+const { dataPath } = require('../../moduleRoots.cjs');
 const { HttpError } = require('../../shared/httpErrors');
 const { initDB } = require('./schema');
 
-// Saved audio lives under server/data/uploads (audio/ + saved-recordings/).
+// Saved audio lives under server/data/uploads (audio/ + saved-recordings/): run-time
+// data, beside the core wherever this file lives (moduleRoots.cjs dataPath).
 // Deletion only ever unlinks files inside this root — never arbitrary paths.
-const UPLOADS_ROOT = path.resolve(__dirname, '../../data/uploads');
+const UPLOADS_ROOT = dataPath('uploads');
 
 /**
  * How long a note may sit in 'processing' without a sign of life before the

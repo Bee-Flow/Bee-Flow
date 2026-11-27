@@ -22,6 +22,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const acorn = require('acorn');
+const { walkTreeFiles } = require('../utils/treeDir');
 
 const SERVER = path.resolve(__dirname, '..');
 
@@ -154,25 +155,18 @@ function extraKeysOf(opts) {
 }
 
 /**
- * Every call site under server/ (non-test .js/.cjs files), sorted by key.
+ * Every call site in the server tree (non-test .js/.cjs files, over every root), sorted by key.
  * @param {{ server?: string }} [opts]
  */
 function scanLoginPaths({ server = SERVER } = {}) {
-    /** @type {string[]} */
-    const files = [];
-    (function list(/** @type {string} */ dir) {
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (e.name === 'node_modules' || e.name === 'coverage') continue;
-            const p = path.join(dir, e.name);
-            if (e.isDirectory()) list(p);
-            else if (/\.(?:js|cjs)$/.test(e.name) && !/\.test\./.test(e.name)) files.push(p);
-        }
-    })(server);
+    const files = walkTreeFiles(server, {
+        skipDir: (name) => name === 'node_modules' || name === 'coverage',
+        keepFile: (name) => /\.(?:js|cjs)$/.test(name) && !/\.test\./.test(name),
+    });
     const sites = [];
-    for (const f of files) {
-        const text = fs.readFileSync(f, 'utf8');
+    for (const { rel, abs } of files) {
+        const text = fs.readFileSync(abs, 'utf8');
         if (!text.includes('establishSession(') && !text.includes('isAuthenticated: true')) continue;
-        const rel = path.relative(server, f).split(path.sep).join('/');
         if (rel === 'auth/establishSession.js') continue; // the definition
         sites.push(...callSitesIn(text, rel));
     }

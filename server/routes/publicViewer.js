@@ -67,7 +67,7 @@ const router = express.Router();
 const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const crypto = require('crypto');
 const fs = require('fs');
-const path = require('path');
+const { treePath } = require('../moduleRoots.cjs');
 
 const publicShareStore = require('../stores/webpagePublicShareStore');
 const webpageSnapshot = require('../services/webpageSnapshot');
@@ -423,8 +423,8 @@ function composeNotFound({ nonce }) {
 // recipients see a consistent Bee Flow mark. Loaded once at module init and
 // served with an immutable cache header so the rate limiter below never
 // sees repeat fetches from the same browser. Registered BEFORE viewLimiter
-// so the static asset never consumes a share-viewer rate budget.
-const BRAND_ICON_PATH = path.resolve(__dirname, '../assets/brand/bee-icon.svg');
+// so the static asset never consumes a share-viewer rate budget. A tree path (moduleRoots.cjs).
+const BRAND_ICON_PATH = treePath('assets', 'brand', 'bee-icon.svg');
 const BRAND_ICON_BUF = fs.readFileSync(BRAND_ICON_PATH);
 const BRAND_ICON_ETAG = '"' + crypto.createHash('sha256').update(BRAND_ICON_BUF).digest('base64').slice(0, 27) + '"';
 

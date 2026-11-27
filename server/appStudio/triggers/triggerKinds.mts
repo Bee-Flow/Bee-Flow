@@ -29,7 +29,6 @@
  * (triggerFire.mts), who the run is (unattendedIdentity.mts) and what it may do (unattendedPolicy.mts).
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -57,6 +56,7 @@ export type TriggerKind = {
 
 const KINDS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'kinds');
 const nodeRequire = createRequire(import.meta.url);
+const { dirEntries } = nodeRequire('../../utils/treeDir.js') as typeof import('../../utils/treeDir.js');
 const NAME_OK = 'abcdefghijklmnopqrstuvwxyz0123456789_';
 
 /** A kind name: lower case letters, digits and underscores, starting with a letter, at most 40. */
@@ -88,19 +88,11 @@ export function checkKind(entry: unknown, fileName: string | null = null): Trigg
 /** The fields every trigger has, whatever its kind. */
 export const ENVELOPE_FIELDS: readonly string[] = Object.freeze(['id', 'kind', 'actionId', 'enabled']);
 
-/** Every `<kind>.mts` in `dir`, sorted by file name. */
+/** Every `<kind>.mts` in `dir` (over every root of the tree, utils/treeDir.js), sorted by file name. */
 export function loadTriggerKinds(dir: string = KINDS_DIR): TriggerKind[] {
-    let names: string[];
-    try {
-        names = fs.readdirSync(dir);
-    } catch (e) {
-        if ((e as NodeJS.ErrnoException).code === 'ENOENT') return [];
-        throw e;
-    }
-    return names
-        .filter((n) => n.endsWith('.mts') && !n.endsWith('.test.mts'))
-        .sort()
-        .map((n) => checkKind((nodeRequire(path.join(dir, n)) as { default?: unknown }).default, n.slice(0, -'.mts'.length)));
+    return dirEntries(dir)
+        .filter(({ name }) => name.endsWith('.mts') && !name.endsWith('.test.mts'))
+        .map(({ name, abs }) => checkKind((nodeRequire(abs) as { default?: unknown }).default, name.slice(0, -'.mts'.length)));
 }
 
 let entries: TriggerKind[] | null = null;

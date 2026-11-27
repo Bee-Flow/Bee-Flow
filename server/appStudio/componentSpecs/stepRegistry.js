@@ -26,8 +26,8 @@
 
 'use strict';
 
-const fs = require('node:fs');
 const path = require('node:path');
+const { dirEntries } = require('../../utils/treeDir');
 const { BASE_STEP_META, POLICY_FORMS } = require('./stepMeta');
 
 /** @typedef {import('./stepMeta').StepMeta} StepMeta */
@@ -124,17 +124,18 @@ function slotProblems(entry, name) {
 }
 
 /**
- * The registry kinds in `dir`, sorted by file name. Throws on the first file
- * that is not a complete entry.
+ * The registry kinds in `dir`, sorted by file name (a directory of the tree is
+ * read over every root, utils/treeDir.js). Throws on the first file that is not
+ * a complete entry.
  *
  * @param {string} [dir]
  * @returns {StepKindEntry[]}
  */
 function loadStepKindFiles(dir = STEPS_DIR) {
-    const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.js') && !f.endsWith('.test.js')).sort() : [];
-    return names.map((file) => {
+    const files = dirEntries(dir).filter(({ name }) => name.endsWith('.js') && !name.endsWith('.test.js'));
+    return files.map(({ name: file, abs }) => {
         const name = file.slice(0, -3);
-        const entry = require(path.join(dir, file));
+        const entry = require(abs);
         const problems = stepKindProblems(entry, name);
         if (problems.length) throw new Error(`Step registry: ${problems.join('; ')}`);
         return /** @type {StepKindEntry} */ (entry);

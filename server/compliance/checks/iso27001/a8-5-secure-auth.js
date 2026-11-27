@@ -24,14 +24,13 @@
  */
 
 const fs = require('fs');
-const path = require('path');
+// Tree paths (moduleRoots.cjs): auth/ is the core's, and split over several roots.
+const { treePath } = require('../../../moduleRoots.cjs');
 const configStore = require('../../../stores/configStore');
 const { configuredSsoProviders } = require('../../lib/ssoProviders');
 // Cached boot-time verdict on OPAQUE_SERVER_SETUP; never loads the WASM.
 const { getServerSetupStatus } = require('../../../auth/opaqueSetup');
 const { fallback } = require('../../../utils/bestEffort');
-
-const AUTH_DIR = path.join(__dirname, '..', '..', '..', 'auth');
 
 /**
  * @param {string} file
@@ -39,7 +38,7 @@ const AUTH_DIR = path.join(__dirname, '..', '..', '..', 'auth');
  */
 function _sourceHas(file, patterns) {
     try {
-        const src = fs.readFileSync(path.join(AUTH_DIR, file), 'utf-8');
+        const src = fs.readFileSync(treePath('auth', file), 'utf-8');
         return patterns.every(p => src.includes(p));
     } catch {
         return null; // source not readable — unverifiable, not proven absent
@@ -64,7 +63,7 @@ module.exports = {
         /** @type {string | null} */
         let encryptionError = null;
         try {
-            encryption = require(path.join(AUTH_DIR, 'encryption'));
+            encryption = require(treePath('auth', 'encryption.js'));
         } catch (e) {
             encryptionError = /** @type {Error} */ (e).message;
         }
@@ -79,7 +78,7 @@ module.exports = {
 
         let minPasswordLength = null;
         try {
-            minPasswordLength = require(path.join(AUTH_DIR, 'passwordPolicy')).MIN_PASSWORD_LENGTH;
+            minPasswordLength = require(treePath('auth', 'passwordPolicy.js')).MIN_PASSWORD_LENGTH;
         } catch (err) { fallback('compliance/checks/iso27001/a8-5-secure-auth:evaluate', err); /* policy module missing — reported below */ }
 
         // One predicate with NIS2 Art. 21(2)(j): lib/ssoProviders.js.

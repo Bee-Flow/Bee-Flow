@@ -26,11 +26,12 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { repoPath } = require('../../moduleRoots.cjs');
 
 const BUILD_SHA_PROPERTY = 'beeflow:build_sha';
 const DEFAULT_IMAGE_PATH = '/app/sbom/cyclonedx.json';
-// server/compliance/lib → repo root is four levels up.
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+// The directory that holds server/ (moduleRoots.cjs), wherever this file lives.
+const REPO_ROOT = repoPath();
 // Anything larger is not an SBOM we want to hold in memory on every sweep.
 const MAX_BYTES = 64 * 1024 * 1024;
 

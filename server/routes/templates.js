@@ -18,6 +18,8 @@ const express = require('express');
 const fs = require('fs');
 const { sendStream } = require('../core/http/sendStream');
 const log = require('../telemetry/log');
+// Template files written at run time are data, beside the core wherever this route lives.
+const { dataPath } = require('../moduleRoots.cjs');
 const { localTemplateFile, extractDocxText, extractParameters, generateTemplateContext, autoCreateTemplateKB, autoParameterizeTemplate } = require('../usecases/templateAi');
 const router = express.Router();
 const { requireBetaFeature } = require('../core/entitlements/betaFeatures');
@@ -151,7 +153,7 @@ router.post('/upload', requireAuth, templateAiLimiter, upload.single('file'), va
         // Fallback: store on local disk
         const path = require('path');
         if (!isAllowedUserId(userId)) return res.status(400).json({ error: 'Templates are not available for this account' });
-        const dir = path.join(__dirname, '..', 'data', 'templates', userId);
+        const dir = path.join(dataPath('templates'), userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         const localPath = path.join(dir, storageName);
         await fs.promises.writeFile(localPath, buffer);
@@ -351,7 +353,7 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
         // Fallback: store locally
         const path = require('path');
         if (!isAllowedUserId(userId)) return res.status(400).json({ error: 'Templates are not available for this account' });
-        const dir = path.join(__dirname, '..', 'data', 'templates_filled', userId);
+        const dir = path.join(dataPath('templates_filled'), userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         // safeFileName leaves no separator or leading dot to climb out of dir.
         // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
@@ -373,7 +375,7 @@ router.get('/download-filled/:filename', requireAuth, (req, res) => {
     // The user id is the username the account was created with, so it is not
     // safe as a folder name by itself: an id shaped like `../../x` climbed out
     // of templates_filled. One plain segment, and the result must stay inside.
-    const baseDir = path.join(__dirname, '..', 'data', 'templates_filled');
+    const baseDir = dataPath('templates_filled');
     const filePath = path.join(baseDir, userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- filename reduced to its basename, userId checked as one plain segment and the result confined to baseDir below
     if (!isAllowedUserId(userId) || path.dirname(filePath) !== path.join(baseDir, userId) || !filePath.startsWith(baseDir + path.sep)) {
         return res.status(404).json({ error: 'File not found' });

@@ -14,10 +14,12 @@
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { deflateSync, crc32 } from 'node:zlib';
 
-const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../appStudio/templates/pictures');
+// A tree path (server/moduleRoots.cjs): the pictures sit beside the template, in whichever root holds it.
+const { treePath } = createRequire(import.meta.url)('../moduleRoots.cjs') as typeof import('../moduleRoots.cjs');
+const OUT = treePath('appStudio', 'templates', 'pictures');
 const W = 320;
 const H = 240;
 

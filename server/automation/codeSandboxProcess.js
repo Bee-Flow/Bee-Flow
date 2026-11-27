@@ -16,6 +16,11 @@
  *     than CHILD_WAIT_MS fails its step with a plain "busy" message rather than piling up processes without end.
  *
  * Two walls, then: the V8 isolate inside the child, and the child process around it.
+ *
+ * The child keeps the module resolver (moduleRoots.cjs, `--require` in its execArgv): it requires files of the tree
+ * (../utils/ssrfGuard by way of ./codeSandbox) that may sit in another root than this one, and the scrubbed
+ * environment drops the NODE_OPTIONS that carries the resolver in the API process. The resolver only changes how
+ * the child's own requires are found; the script inside the isolate never sees a require at all.
  */
 
 'use strict';
@@ -26,6 +31,8 @@ const { envInt } = require('../utils/envNumber.mts');
 const { createSlots, MAX_PER_KEY } = require('./codeSandboxSlots');
 
 const CHILD = path.join(__dirname, 'codeSandboxChild.js');
+/** The resolver, in the core root wherever this file lives; an absolute path, so the child finds it without NODE_OPTIONS. */
+const RESOLVER = path.join(require('../moduleRoots.cjs').coreRoot, 'moduleRoots.cjs');
 const CHILD_HEAP_MB = 128;
 const MARGIN_MS = 3000;
 const MAX_WALL_MS = 30_000;
@@ -53,6 +60,11 @@ function childEnv(env = process.env) {
         if (typeof value === 'string') out[key] = value;
     }
     return out;
+}
+
+/** The child's Node options: its own heap limit, and the resolver. */
+function childExecArgv() {
+    return [`--max-old-space-size=${CHILD_HEAP_MB}`, '--require', RESOLVER];
 }
 
 /**
@@ -84,7 +96,7 @@ function runInChild({ code, inputs = {}, limits = {}, mode = 'live' }, forkChild
     return new Promise((resolve, reject) => {
         const child = forkChild(CHILD, [], {
             env: childEnv(),
-            execArgv: [`--max-old-space-size=${CHILD_HEAP_MB}`],
+            execArgv: childExecArgv(),
             stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
             serialization: 'advanced',
         });
@@ -107,4 +119,4 @@ function runInChild({ code, inputs = {}, limits = {}, mode = 'live' }, forkChild
     });
 }
 
-module.exports = { runCodeIsolated, createChildSlots, childEnv, CHILD_HEAP_MB, MAX_CHILDREN };
+module.exports = { runCodeIsolated, createChildSlots, childEnv, childExecArgv, CHILD_HEAP_MB, MAX_CHILDREN };

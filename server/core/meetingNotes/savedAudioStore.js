@@ -22,6 +22,7 @@ const os = require('os');
 const path = require('path');
 const { pipeline: streamPipeline } = require('stream/promises');
 const log = require('../../telemetry/log');
+const { dataPath } = require('../../moduleRoots.cjs');
 const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 /** @type {Record<string, string>} */
@@ -34,8 +35,8 @@ const MIME_BY_EXT = {
     '.ogv': 'video/ogg', '.mkv': 'video/x-matroska',
 };
 
-/** The one place that knows where saved recordings live on this pod. */
-const SAVED_RECORDINGS_DIR = path.resolve(__dirname, '../../data/uploads/saved-recordings');
+/** The one place that knows where saved recordings live on this pod (run-time data, beside the core: moduleRoots.cjs). */
+const SAVED_RECORDINGS_DIR = dataPath('uploads', 'saved-recordings');
 
 /**
  * Where an incoming recording sits while it is processed: the multer upload,

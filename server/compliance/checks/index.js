@@ -12,6 +12,7 @@ const path = require('path');
 const registry = require('../registry');
 const frameworks = require('../frameworks');
 const log = require('../../telemetry/log');
+const { dirEntries } = require('../../utils/treeDir');
 
 // Every directory the loader looks at, in framework order. Exported so the
 // registry contract test walks exactly the same list.
@@ -24,9 +25,11 @@ const _loadedDirs = [];
  * @param {string} dir
  */
 function _loadDir(dir) {
+    // Over every root of the tree (utils/treeDir.js): a framework's checks may sit in another module.
     const abs = path.join(__dirname, dir);
-    if (!fs.existsSync(abs)) return false;
-    for (const file of fs.readdirSync(abs)) {
+    const entries = dirEntries(abs);
+    if (!entries.length && !fs.existsSync(abs)) return false;
+    for (const { name: file, abs: checkFile } of entries) {
         if (!file.endsWith('.js')) continue;
         // Tests live NEXT TO their source in this repo, so the checks directories
         // hold *.test.js files too — and this loader runs at BOOT. Requiring a
@@ -39,7 +42,7 @@ function _loadDir(dir) {
         // caught and logged; the poisoning was not.
         if (/\.(test|spec)\.js$/.test(file)) continue;
         try {
-            const check = require(path.join(abs, file));
+            const check = require(checkFile);
             registry.register(check);
         } catch (e) {
             log.error(`[ComplianceChecks] Failed to load ${dir}/${file}:`, /** @type {Error} */ (e).message);

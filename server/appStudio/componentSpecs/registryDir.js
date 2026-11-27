@@ -13,31 +13,23 @@
 
 'use strict';
 
-const fs = require('node:fs');
-const path = require('node:path');
+const { dirEntries } = require('../../utils/treeDir');
 
 const ITEM_NAME = /^[a-z][a-z0-9_]*$/;
 
 /**
- * The registry files of `dir` as `{ name, file }`, sorted by name.
+ * The registry files of `dir` as `{ name, file }`, sorted by name. A directory of the source tree
+ * is read over every root (utils/treeDir.js), so an item may live in another module's root.
  * @param {string} dir
  * @returns {Array<{ name: string, file: string }>}
  */
 function listRegistryFiles(dir) {
-    /** @type {string[]} */
-    let entries;
-    try {
-        entries = fs.readdirSync(dir);
-    } catch (e) {
-        if (/** @type {NodeJS.ErrnoException} */ (e).code === 'ENOENT') return [];
-        throw e;
-    }
     const out = [];
-    for (const entry of entries.slice().sort()) {
+    for (const { name: entry, abs } of dirEntries(dir)) {
         if (!entry.endsWith('.js') || entry.endsWith('.test.js')) continue;
         const name = entry.slice(0, -'.js'.length);
-        if (!ITEM_NAME.test(name)) throw new Error(`${path.join(dir, entry)}: a registry file is named <lower_snake_case>.js`);
-        out.push({ name, file: path.join(dir, entry) });
+        if (!ITEM_NAME.test(name)) throw new Error(`${abs}: a registry file is named <lower_snake_case>.js`);
+        out.push({ name, file: abs });
     }
     return out;
 }

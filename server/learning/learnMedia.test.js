@@ -155,3 +155,8 @@ test('LEARN_MEDIA_DIR overrides the default directory', () => {
     assert.strictEqual(learnMediaDir({ LEARN_MEDIA_DIR: '/srv/media' }), path.resolve('/srv/media'));
     assert.ok(DEFAULT_DIR.endsWith(path.join('server', 'data', 'learn-media')));
 });
+
+test('the default media directory stays in the data directory beside the core, wherever this module lives', () => {
+    const { coreRoot } = require('../moduleRoots.cjs');
+    assert.strictEqual(DEFAULT_DIR, path.join(coreRoot, 'data', 'learn-media'));
+});
