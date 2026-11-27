@@ -17,6 +17,10 @@
 const path = require('path');
 const { preloadStubs } = require('./stubRequire');
 
+// The keys are tree paths: preloadStubs resolves each absolute path, and the resolver (installed
+// here too, for a bare `node --test`) finds it in whichever root holds it after a module moved.
+require('../moduleRoots.cjs');
+
 const SERVER = path.join(__dirname, '..');
 
 /**

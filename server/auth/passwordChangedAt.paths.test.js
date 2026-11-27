@@ -31,9 +31,8 @@ process.env.NODE_ENV = 'test';
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const fs = require('node:fs');
-const path = require('node:path');
+const { treeJsFiles } = require('../testUtils/serverTree');
 
-const SERVER_ROOT = path.join(__dirname, '..');
 const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', 'vendor', 'uploads', 'data', 'logs']);
 
 /** The three store functions that consult isNewCredential. */
@@ -133,21 +132,8 @@ const MAY_SET_THE_DATE = new Set([
     OPAQUE_ROUTES,            // the documented exception: its credential is not a hash
 ]);
 
-function walk(dir, out = []) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-            if (SKIP_DIRS.has(entry.name)) continue;
-            walk(path.join(dir, entry.name), out);
-        } else if (entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.test.js')) {
-            out.push(path.join(dir, entry.name));
-        }
-    }
-    return out;
-}
-
-const sources = new Map(
-    walk(SERVER_ROOT).map(f => [path.relative(SERVER_ROOT, f).split(path.sep).join('/'), fs.readFileSync(f, 'utf8')]),
-);
+/** Tree path -> source, over every root of the tree (server/ and each modules/<id>/server). */
+const sources = new Map(treeJsFiles({ skipDirs: [...SKIP_DIRS] }).map((f) => [f.treePath, fs.readFileSync(f.abs, 'utf8')]));
 
 function countOf(src, re) {
     return (src.match(re) || []).length;

@@ -23,9 +23,8 @@ process.env.NODE_ENV = 'test';
 const assert = require('assert');
 const { test } = require('node:test');
 const fs = require('node:fs');
-const path = require('node:path');
+const { treeJsFiles } = require('../../testUtils/serverTree');
 
-const SERVER_ROOT = path.join(__dirname, '..', '..');
 const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', 'vendor', 'uploads', 'data', 'logs']);
 
 /**
@@ -41,25 +40,13 @@ const DELIBERATELY_KEPT = {
         + 'not a side effect of removing an org row.',
 };
 
-/** Every .js file under server/, minus vendored and generated trees. */
-function walk(dir, out = []) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-            if (SKIP_DIRS.has(entry.name)) continue;
-            walk(path.join(dir, entry.name), out);
-        } else if (entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.test.js')) {
-            out.push(path.join(dir, entry.name));
-        }
-    }
-    return out;
-}
-
 function declaredPrefixes() {
-    const found = new Map();   // prefix → declaring file, relative
-    for (const file of walk(SERVER_ROOT)) {
-        const src = fs.readFileSync(file, 'utf8');
+    const found = new Map();   // prefix → declaring file, by tree path
+    // Every .js file of every root (server/ and each modules/<id>/server), minus vendored and generated trees.
+    for (const file of treeJsFiles({ skipDirs: [...SKIP_DIRS] })) {
+        const src = fs.readFileSync(file.abs, 'utf8');
         for (const m of src.matchAll(/CONFIG_KEY_PREFIX\s*=\s*'([^']+)'/g)) {
-            if (!found.has(m[1])) found.set(m[1], path.relative(SERVER_ROOT, file));
+            if (!found.has(m[1])) found.set(m[1], file.treePath);
         }
     }
     return found;

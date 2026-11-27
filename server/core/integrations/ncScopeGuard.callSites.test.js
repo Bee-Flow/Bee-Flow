@@ -25,9 +25,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
-const path = require('path');
+const { treeJsFiles, treeFile } = require('../../testUtils/serverTree');
 
-const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 const CALL_RE = /executeNextcloud[A-Za-z]*Tool\s*\(/;
 const SKIP_DIRS = new Set(['node_modules', '.git', 'data', 'coverage', 'dist', 'uploads']);
 
@@ -74,20 +73,10 @@ function lineOf(src, index) {
     return src.slice(0, index).split('\n').length;
 }
 
-function walk(dir, out = []) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue;
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) walk(full, out);
-        else if (entry.isFile() && entry.name.endsWith('.js')) out.push(full);
-    }
-    return out;
-}
-
 test('every caller of a Nextcloud executor goes through the scope guard', () => {
     const offenders = [];
-    for (const file of walk(SERVER_ROOT)) {
-        const rel = path.relative(SERVER_ROOT, file).split(path.sep).join('/');
+    // Every root of the tree (server/ and each modules/<id>/server), by tree path.
+    for (const { treePath: rel, abs: file } of treeJsFiles({ skipDirs: [...SKIP_DIRS], tests: true, dotNames: false })) {
         // The executor modules define these functions; tests call them freely.
         if (rel.startsWith('integrations/nextcloud')) continue;
         if (rel.includes('.test.js') || rel.startsWith('scripts/')) continue;
@@ -110,8 +99,8 @@ test('the exempt list stays honest — each entry still calls an executor', () =
     // An exemption for a file that no longer calls an executor is dead weight
     // that would silently cover a future call site.
     for (const [rel, why] of EXEMPT) {
-        const full = path.join(SERVER_ROOT, rel);
-        assert.ok(fs.existsSync(full), `exempt file no longer exists: ${rel}`);
+        const full = treeFile(rel);
+        assert.ok(full, `exempt file no longer exists in any root: ${rel}`);
         assert.ok(CALL_RE.test(fs.readFileSync(full, 'utf8')),
             `${rel} is exempt ("${why}") but no longer calls a Nextcloud executor — drop the exemption`);
     }

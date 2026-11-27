@@ -58,6 +58,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const { roots } = require('./moduleRoots.cjs');
+const { walkServerTree, requestPlaces, treePathOf } = require('./testUtils/serverTree');
 
 const ROOT = __dirname;
 const BUDGET_FILE = path.join(ROOT, '.layering-ratchet.json');
@@ -131,25 +133,37 @@ function unitOf(rel) {
 const CODE = /\.(c|m)?js$|\.mts$/;
 const TEST_CODE = /\.test\.(c|m)?js$|\.test\.mts$|\.testkit\.js$/;
 
-function walk(dir, out = []) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (e.name.startsWith('.') || IGNORED.has(e.name)) continue;
-        const full = path.join(dir, e.name);
-        if (e.isDirectory()) {
-            if (dir === ROOT && LAYERS[e.name] === 'data') continue;
-            walk(full, out);
-        } else if (CODE.test(e.name) && !TEST_CODE.test(e.name)) out.push(full);
-    }
-    return out;
+/**
+ * The code files of every root of the tree (server/ and each modules/<id>/server). A file's
+ * unit is the first segment of its TREE path, so a file that moved to a module keeps its layer.
+ */
+function walk() {
+    return walkServerTree({
+        skipDirs: [...IGNORED],
+        controlFiles: true,
+        filter: (rel, e) => {
+            if (e.name.startsWith('.')) return false;
+            if (e.isDirectory()) return rel.includes('/') || LAYERS[e.name] !== 'data';
+            return CODE.test(e.name) && !TEST_CODE.test(e.name);
+        },
+    });
 }
 
-/** The file a relative require lands on, as Node would pick it (enough of it). */
-function resolveTarget(abs) {
-    for (const c of [abs, abs + '.js', abs + '.cjs', abs + '.mts', abs + '.json',
-        path.join(abs, 'index.js'), path.join(abs, 'index.cjs'), path.join(abs, 'index.mts')]) {
-        try { if (fs.statSync(c).isFile()) return c; } catch { /* next candidate */ }
+/**
+ * The file a relative require lands on, as Node would pick it (enough of it), in whichever
+ * root holds it; the core root's place when none does.
+ * @param {string} fromTreePath
+ * @param {string} spec
+ */
+function resolveTarget(fromTreePath, spec) {
+    const places = requestPlaces(fromTreePath, spec);
+    for (const abs of places) {
+        for (const c of [abs, abs + '.js', abs + '.cjs', abs + '.mts', abs + '.json',
+            path.join(abs, 'index.js'), path.join(abs, 'index.cjs'), path.join(abs, 'index.mts')]) {
+            try { if (fs.statSync(c).isFile()) return c; } catch { /* next candidate */ }
+        }
     }
-    return abs;
+    return places[0];
 }
 
 // `require('./y')`, and the require of a TypeScript file (.mts): `nodeRequire('./y')`, the name
@@ -163,7 +177,6 @@ const REQUIRE = /(?:require|nodeRequire|createRequire\(import\.meta\.url\))\(\s*
 const STATIC_IMPORT = /^[ \t]*(import|export)\b(?![ \t]+type\b)(?:[^;'"]*?\bfrom)?[ \t\n]*['"](\.[^'"]+)['"]/gm;
 const DYNAMIC_IMPORT = /\bawait[ \t]+import\(\s*['"](\.[^'"]+)['"]\s*\)/g;
 const COMMENT_LINE = /^\s*(\/\/|\*|\/\*)/;
-const posix = (p) => p.split(path.sep).join('/');
 
 /**
  * Every relative specifier a file loads at run time, with its line: { spec, line }.
@@ -186,11 +199,10 @@ function loadsOf(text) {
 /** Every relative require or import between two different units: { from, to, at, target }. */
 function edges() {
     const out = [];
-    for (const file of walk(ROOT)) {
-        const rel = posix(path.relative(ROOT, file));
+    for (const { treePath: rel, abs } of walk()) {
         const from = unitOf(rel);
-        for (const { spec, line } of loadsOf(fs.readFileSync(file, 'utf8'))) {
-            const target = posix(path.relative(ROOT, resolveTarget(path.resolve(path.dirname(file), spec))));
+        for (const { spec, line } of loadsOf(fs.readFileSync(abs, 'utf8'))) {
+            const target = treePathOf(resolveTarget(rel, spec));
             if (target.startsWith('..')) continue;
             const to = unitOf(target);
             if (to !== from) out.push({ from, to, at: `${rel}:${line}`, target });
@@ -283,12 +295,14 @@ test('synthetic: requires and imports are edges, type-only imports and comments 
     ].join('\n')), []);
 });
 
-test('every top-level entry of server/ is classified into a layer', () => {
+test('every top-level entry of the tree (server/ and every module root) is classified into a layer', () => {
     const missing = [];
-    for (const e of fs.readdirSync(ROOT, { withFileTypes: true })) {
-        if (e.name.startsWith('.') || IGNORED.has(e.name)) continue;
-        if (!e.isDirectory() && (!CODE.test(e.name) || TEST_CODE.test(e.name))) continue;
-        if (!LAYERS[e.name]) missing.push(e.name);
+    for (const root of roots()) {
+        for (const e of fs.readdirSync(root.dir, { withFileTypes: true })) {
+            if (e.name.startsWith('.') || IGNORED.has(e.name)) continue;
+            if (!e.isDirectory() && (!CODE.test(e.name) || TEST_CODE.test(e.name))) continue;
+            if (!LAYERS[e.name] && !missing.includes(e.name)) missing.push(e.name);
+        }
     }
     assert.deepStrictEqual(missing, [],
         'add each to LAYERS in server/layering.test.js (and to server/ARCHITECTURE.md):\n  ' + missing.join('\n  '));

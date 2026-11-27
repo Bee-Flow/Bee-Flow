@@ -44,10 +44,9 @@
 
 const path = require('node:path');
 
+require('../moduleRoots.cjs'); // the resolver, also under a bare node --test: a moved tree path resolves in its module root
 const SERVER_DIR = path.join(__dirname, '..');
-/**
- * @param {string} rel
- */
+/** @param {string} rel tree path (the resolved file may lie in a module root) */
 const resolveInServer = (rel) => require.resolve(path.join(SERVER_DIR, rel));
 
 /** A deep, structured copy — the route mutates the arrays it hands around. */

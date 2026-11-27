@@ -23,8 +23,8 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const { walkServerTree, requestPlaces } = require('./testUtils/serverTree');
 
-const ROOT = __dirname;
 const SRC_RE = /\.(js|jsx|mjs|cjs)$/;
 const SKIP_DIR = new Set(['node_modules', 'migrations', 'assets', 'prompts']);
 
@@ -114,6 +114,7 @@ const ALLOWED_PER_FILE = new Map([
     ['i18n/defaults/en.discovery.test.js', fixtureTree(['./i18n/defaults/en/index.js'])],
     ['i18n/defaults/nl/index.test.js', fixtureTree(['./i18n/defaults/nl/index.js'])],
     ['scripts/run-tests.test.mjs', fixtureTree(['./alpha/helper.cjs'])],
+    ['testUtils/serverTree.test.js', fixtureTree(['../lib/moved', '../feat/b'])],
 ]);
 
 function stripComments(src) {
@@ -125,23 +126,23 @@ function stripComments(src) {
         .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 }
 
-function listFiles(dir, out = []) {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (e.name.startsWith('.')) continue;
-        const full = path.join(dir, e.name);
-        if (e.isDirectory()) {
-            if (SKIP_DIR.has(e.name)) continue;
-            listFiles(full, out);
-        } else if (SRC_RE.test(e.name)) {
-            out.push(full);
-        }
-    }
-    return out;
+/** The source files of every root of the tree (server/ and each modules/<id>/server). */
+function listFiles() {
+    return walkServerTree({
+        skipDirs: [...SKIP_DIR],
+        controlFiles: true,
+        filter: (_rel, e) => !e.name.startsWith('.') && (e.isDirectory() || SRC_RE.test(e.name)),
+    });
 }
 
 const EXTS = ['', '.js', '.jsx', '.mjs', '.cjs', '.json', '.node'];
-function resolves(fromFile, spec) {
-    const base = path.resolve(path.dirname(fromFile), spec);
+/** Does the request resolve in some root (the resolver looks up a tree path in every root)? */
+function resolves(fromTreePath, spec) {
+    return requestPlaces(fromTreePath, spec).some(resolvesAt);
+}
+
+/** @param {string} base the absolute place a request points at, before extensions */
+function resolvesAt(base) {
     for (const ext of EXTS) {
         try { if (fs.statSync(base + ext).isFile()) return true; } catch (_) { }
     }
@@ -173,16 +174,15 @@ const PATTERNS = [
 // the real module loads, and the test dies somewhere unrelated), but catching
 // that needs a different check than this one.
 
-test('every relative require/import in server/ resolves to a real file', () => {
-    const files = listFiles(ROOT);
+test('every relative require/import in the server tree (every root) resolves to a real file', () => {
+    const files = listFiles();
     assert.ok(files.length > 500, `expected to scan the server tree, saw ${files.length} files`);
 
     const broken = [];
     const usedExemptions = new Set();
-    for (const file of files) {
-        const rel = path.relative(ROOT, file).replace(/\\/g, '/');
+    for (const { treePath: rel, abs } of files) {
         const perFile = ALLOWED_PER_FILE.get(rel);
-        const src = stripComments(fs.readFileSync(file, 'utf8'));
+        const src = stripComments(fs.readFileSync(abs, 'utf8'));
         const seen = new Set();
         for (const re of PATTERNS) {
             re.lastIndex = 0;
@@ -195,7 +195,7 @@ test('every relative require/import in server/ resolves to a real file', () => {
                 if (spec.includes('?')) continue;           // ?raw / ?url loader suffixes
                 if (seen.has(spec)) continue;
                 seen.add(spec);
-                if (!resolves(file, spec)) {
+                if (!resolves(rel, spec)) {
                     broken.push(`${rel}  ->  ${spec}`);
                 }
             }

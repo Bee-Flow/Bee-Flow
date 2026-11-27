@@ -20,9 +20,10 @@
  * Cache: server/node_modules/.cache/pglite-template (PGLITE_TEMPLATE_DIR
  * overrides). One file per kind, named by a key:
  *   empty   = pglite version
- *   ladder  = pglite version + sha256 of every non-test file of server/ (the
- *             DDL of every store, the data migrations, the catalogues): any
- *             edit to the server rebuilds it, a stale template is never read.
+ *   ladder  = pglite version + sha256 of every non-test file of the tree, all
+ *             roots (the DDL of every store, the data migrations, the
+ *             catalogues): any edit to the server or a module rebuilds it, a
+ *             stale template is never read. Core mode has a key of its own.
  * The file is `sha256(payload) + payload` and is checked on every read, so a
  * truncated or hand-edited file is dropped and rebuilt, not used.
  *
@@ -48,6 +49,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { PGlite } = require('@electric-sql/pglite');
+const { walkServerTree } = require('./serverTree');
 
 const SERVER = path.join(__dirname, '..');
 /** Bump when the file layout below changes. */
@@ -71,27 +73,30 @@ function pgliteVersion() {
 }
 const cacheDir = () => process.env.PGLITE_TEMPLATE_DIR || path.join(SERVER, 'node_modules', '.cache', 'pglite-template');
 
-/** sha256 over the path and content of every non-test file under server/. */
+/**
+ * sha256 over the tree path and content of every non-test source file of the tree, every
+ * root (server/ and each modules/<id>/server) in walkServerTree's order: core first, then
+ * the modules by id. With only the core root this is the walk of server/ it always was, so
+ * the key of an existing template does not change; a schema edit in a module root rebuilds it.
+ */
 function sourceHash() {
     const h = crypto.createHash('sha256');
-    /** @param {string} dir */
-    const walk = (dir) => {
-        const entries = fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1));
-        for (const e of entries) {
-            const p = path.join(dir, e.name);
-            if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) walk(p); continue; }
-            if (!e.isFile() || !SOURCE_FILE.test(e.name) || /\.test\./.test(e.name)) continue;
-            h.update(path.relative(SERVER, p)).update('\0').update(fs.readFileSync(p));
-        }
-    };
-    walk(SERVER);
+    const files = walkServerTree({
+        skipDirs: [...SKIP_DIRS],
+        controlFiles: true,
+        filter: (_rel, e) => e.isDirectory() || (e.isFile() && SOURCE_FILE.test(e.name) && !/\.test\./.test(e.name)),
+    });
+    for (const f of files) h.update(f.treePath).update('\0').update(fs.readFileSync(f.abs));
     return h.digest('hex');
 }
+
+/** Core mode (BEEFLOW_HIDE_MODULES) runs a shorter ladder: its template gets a key of its own. */
+const hiddenModulesKey = () => (process.env.BEEFLOW_HIDE_MODULES ? `|hide=${process.env.BEEFLOW_HIDE_MODULES}` : '');
 
 /** @param {'empty' | 'ladder'} kind */
 function templateFile(kind) {
     const key = crypto.createHash('sha256')
-        .update(`${FORMAT}|${kind}|${pgliteVersion()}|${kind === 'ladder' ? sourceHash() : ''}`)
+        .update(`${FORMAT}|${kind}|${pgliteVersion()}|${kind === 'ladder' ? sourceHash() + hiddenModulesKey() : ''}`)
         .digest('hex').slice(0, 20);
     return path.join(cacheDir(), `${kind}-${key}.tgz`);
 }

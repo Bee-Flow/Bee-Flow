@@ -10,14 +10,20 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('node:path');
-const fs = require('node:fs');
+const { roots } = require('../../../moduleRoots.cjs');
+const { treeFile } = require('../../../testUtils/serverTree');
 
 const { scanSearchCallSites } = require('./searchCallSites.scan.mts');
 const { CHANNELS } = require('../../../stores/kb/queryLog/vocab.mts');
 const inventory = require('./searchCallSites.inventory.json');
 
-const SERVER_ROOT = path.resolve(__dirname, '../../..');
+/**
+ * The call sites of every root of the tree (server/ and each modules/<id>/server), as tree
+ * paths: a caller that moved to a module is still in the inventory under the same file.
+ */
+function scanTree() {
+    return [...new Set(roots().flatMap((root) => scanSearchCallSites(root.dir)))].sort();
+}
 // Package 2 (the channel hooks) flips this to true: every entry with a channel must then be hooked.
 const REQUIRE_HOOKED = true;
 
@@ -26,12 +32,12 @@ const isNotLogged = (c) => typeof c === 'string' && c.startsWith('not-logged:');
 
 test('every call site of a knowledge search function is in the inventory', () => {
     const listed = new Set(inventory.entries.map(keyOf));
-    const missing = scanSearchCallSites(SERVER_ROOT).filter((k) => !listed.has(k));
+    const missing = scanTree().filter((k) => !listed.has(k));
     assert.deepEqual(missing, [], `unlisted search call sites (add them to searchCallSites.inventory.json): ${missing.join(', ')}`);
 });
 
 test('no inventory entry is stale', () => {
-    const live = new Set(scanSearchCallSites(SERVER_ROOT));
+    const live = new Set(scanTree());
     const stale = inventory.entries.map(keyOf).filter((k) => !live.has(k));
     assert.deepEqual(stale, [], `stale inventory entries (the call is gone): ${stale.join(', ')}`);
 });
@@ -42,7 +48,7 @@ test('entries are unique, point at real files and use the closed channel vocabul
         const k = keyOf(e);
         assert.ok(!seen.has(k), `duplicate entry ${k}`);
         seen.add(k);
-        assert.ok(fs.existsSync(path.join(SERVER_ROOT, e.file)), `${e.file} does not exist`);
+        assert.ok(treeFile(e.file), `${e.file} does not exist in any root`);
         if (isNotLogged(e.channel)) {
             assert.ok(e.channel.length > 'not-logged:'.length + 8, `${k}: a not-logged entry needs a reason`);
         } else {

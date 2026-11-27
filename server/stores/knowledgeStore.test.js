@@ -22,7 +22,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const SERVER = path.join(__dirname, '..');
+const { walkServerTree, treeFile } = require('../testUtils/serverTree');
 const STUB = path.join(__dirname, 'knowledgeStore.js');
 
 /** The seven CRUD names that disappeared with the router and may not come back. */
@@ -52,21 +52,12 @@ const RETIRED_METHODS = [
  */
 const MOUNT_RE = /require\(\s*['"][^'"]*routes\/knowledge['"]\s*\)/;
 
-/** Alle runtime-bronnen onder server/ (recursief; node_modules en tests uitgesloten). */
+/** Every runtime source of every root of the tree (server/ and each modules/<id>/server), by tree path; tests left out. */
 function runtimeSources() {
-    const out = [];
-    const walk = (dir) => {
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (e.name === 'node_modules' || e.name === '.git') continue;
-            const p = path.join(dir, e.name);
-            if (e.isDirectory()) { walk(p); continue; }
-            if (!/\.(js|mjs|cjs)$/.test(e.name)) continue;
-            if (/\.test\.(js|mjs|cjs)$/.test(e.name)) continue;
-            out.push({ rel: path.relative(SERVER, p).replace(/\\/g, '/'), src: fs.readFileSync(p, 'utf8') });
-        }
-    };
-    walk(SERVER);
-    return out;
+    return walkServerTree({
+        controlFiles: true,
+        filter: (_rel, e) => e.isDirectory() || (/\.(js|mjs|cjs)$/.test(e.name) && !/\.test\.(js|mjs|cjs)$/.test(e.name)),
+    }).map((f) => ({ rel: f.treePath, src: fs.readFileSync(f.abs, 'utf8') }));
 }
 
 test('de stub exporteert een awaitbare initDB en geen enkele CRUD-methode meer', async () => {
@@ -109,7 +100,7 @@ test('er bestaat geen pad meer waarlangs een item van agent A via een andere age
 });
 
 test('de ingetrokken router is weg en is nergens opnieuw gemount', () => {
-    assert.ok(!fs.existsSync(path.join(SERVER, 'routes', 'knowledge.js')),
+    assert.ok(treeFile('routes/knowledge.js') === null,
         'routes/knowledge.js is ingetrokken (Track Z, Z5) — de Studio-KB\'s leven op /api/kb');
 
     // Genuinely textual: index.js calls app.listen() unconditionally at
