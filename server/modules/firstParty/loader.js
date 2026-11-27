@@ -12,12 +12,13 @@
  *
  * STATES (modules/firstParty/moduleState.js): a module without a composition, or one the
  * catalog marks unavailable (modules/catalog.js isModuleAvailable; an id the catalog does not
- * know is available), is ABSENT. A composition that throws while it loads, that breaks the
- * contract (loaderRules.js), whose row keys clash with an earlier module's, that sits on a
- * requires cycle, or that requires a module that is absent or failed, is FAILED and
- * contributes nothing; the others carry on. The rest is LOADED. The names a composition
- * provides are declared (declareProvides) before any of its code beyond the composition runs,
- * so an optional lookup of a failed module's name throws instead of answering "absent"; a module's
+ * know is available), is ABSENT, and so is a module that requires one the catalog marks
+ * unavailable (an edition without automation has no cowork either). A composition that throws
+ * while it loads, that breaks the contract (loaderRules.js), whose row keys clash with an earlier
+ * module's, that sits on a requires cycle, or that requires a module that failed or has no
+ * composition, is FAILED and contributes nothing; the others carry on. The rest is LOADED. The
+ * names a composition provides are declared (declareProvides) before any of its code beyond the
+ * composition runs, so an optional lookup of a failed module's name throws, never "absent"; a module's
  * firstParty/<id>.provides.json is declared before its composition is even required (a `provides`
  * in the composition must then say the same), so a composition that throws on load fails visibly.
  * Later, a mount row, register() or afterListen() that throws marks its module failed (and
@@ -40,7 +41,7 @@
 const ORDER = require('./order.json');
 const moduleState = require('./moduleState');
 const {
-    SLOTS, STARTUP_PHASE_NAMES, providesFilesOf, compositionProblem, readProvidesFile, sameProvides, duplicateKeys, requiresOrder, orderRows,
+    SLOTS, STARTUP_PHASE_NAMES, providesFilesOf, compositionProblem, readProvidesFile, sameProvides, duplicateKeys, requiresOrder, requiresVerdict, orderRows,
     startJob, runBounded, messageOf,
 } = require('./loaderRules');
 
@@ -168,14 +169,10 @@ function settle(d, entries) {
     for (const id of cyclic) fail(d.log, /** @type {Entry} */ (entries.get(id)), `it is on a requires cycle (${cyclic.join(', ')})`);
     for (const id of order) {
         const entry = /** @type {Entry} */ (entries.get(id));
-        const missing = (entry.comp?.requires || []).find((r) => entries.get(r)?.state !== 'loaded');
-        if (missing === undefined) {
-            entry.state = 'loaded';
-            entry.started = true;
-            moduleState.setModuleState(id, 'loaded');
-        } else {
-            fail(d.log, entry, `it requires "${missing}", which ${entries.get(missing)?.state === 'failed' ? 'failed' : 'is absent'}`);
-        }
+        const verdict = requiresVerdict(entry.comp?.requires || [], (r) => entries.get(r)?.state);
+        if (verdict.state === 'failed') fail(d.log, entry, verdict.detail);
+        else Object.assign(entry, verdict, { started: verdict.state === 'loaded' });
+        if (verdict.state === 'loaded') moduleState.setModuleState(id, 'loaded');
     }
     return order;
 }

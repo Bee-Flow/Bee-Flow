@@ -207,6 +207,22 @@ function duplicateKeys(comps) {
 }
 
 /**
+ * What its requires make of a module: loaded when each of them is; absent when one is not
+ * available in this edition (the loader keeps an 'absent' entry for those only); failed when
+ * one failed or has no composition at all.
+ * @param {readonly string[]} requires
+ * @param {(id: string) => string | undefined} stateOf
+ * @returns {{ state: 'loaded' } | { state: 'absent' | 'failed', detail: string }}
+ */
+function requiresVerdict(requires, stateOf) {
+    const missing = requires.find((r) => stateOf(r) !== 'loaded');
+    if (missing === undefined) return { state: 'loaded' };
+    const blocker = stateOf(missing);
+    if (blocker === 'absent') return { state: 'absent', detail: `it requires "${missing}", which is not available in this edition` };
+    return { state: 'failed', detail: `it requires "${missing}", which ${blocker === 'failed' ? 'failed' : 'is absent'}` };
+}
+
+/**
  * The ids in requires order (a module after everything it requires; ties by id), and the ids
  * that sit on a requires cycle. A require of an id that is not in the list is ignored here.
  * @param {Map<string, string[]>} requiresOf id -> requires
@@ -286,6 +302,6 @@ async function runBounded(log, what, fn, timeoutMs) {
 }
 
 module.exports = {
-    SLOTS, STARTUP_PHASE_NAMES, PROVIDES_FILE, providesFilesOf, compositionProblem, readProvidesFile, sameProvides, duplicateKeys, requiresOrder, orderRows,
+    SLOTS, STARTUP_PHASE_NAMES, PROVIDES_FILE, providesFilesOf, compositionProblem, readProvidesFile, sameProvides, duplicateKeys, requiresOrder, requiresVerdict, orderRows,
     startJob, runBounded, messageOf,
 };

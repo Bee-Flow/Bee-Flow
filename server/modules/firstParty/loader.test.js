@@ -109,24 +109,28 @@ describe('load: discovery and states', () => {
         assert.strictEqual(deps.log.calls.filter(([level]) => level === 'error').length, 3);
     });
 
-    test('requires on an absent or a failed module fails, transitively', () => {
+    test('requires on a failed or missing module fails, transitively; on one this edition leaves out, it is absent too', () => {
         loader.load(depsFor({
             a: { id: 'a', requires: ['gone'] },
             b: { id: 'b', requires: ['a'] },
             c: () => { throw new Error('x'); },
             d: { id: 'd', requires: ['c'] },
-            e: { id: 'e', requires: ['u'] },
+            e: { id: 'e', requires: ['u'], provides: { featureModules: ['e/thing'] } },
+            f: { id: 'f', requires: ['e'] },
             u: { id: 'u' },
         }, { unavailable: ['u'] }));
-        assert.deepStrictEqual(states(), { a: 'failed', b: 'failed', c: 'failed', d: 'failed', e: 'failed', u: 'absent' });
+        assert.deepStrictEqual(states(), { a: 'failed', b: 'failed', c: 'failed', d: 'failed', e: 'absent', f: 'absent', u: 'absent' });
         assert.deepStrictEqual(details(), {
             a: 'it requires "gone", which is absent',
             b: 'it requires "a", which failed',
             c: 'its composition threw while loading: x',
             d: 'it requires "c", which failed',
-            e: 'it requires "u", which is absent',
+            e: 'it requires "u", which is not available in this edition',
+            f: 'it requires "e", which is not available in this edition',
             u: 'not available in this edition',
         });
+        assert.strictEqual(moduleState.moduleStateOf('e'), 'absent');
+        assert.doesNotThrow(() => moduleState.assertProviderNotFailed('featureModules', 'e/thing'), 'an absent module\'s name answers absent');
     });
 
     test('a requires cycle fails every module on it', () => {
