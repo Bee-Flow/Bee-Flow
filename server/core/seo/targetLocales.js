@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The locales a public address of the live site is published in, by its slug:
@@ -29,7 +29,8 @@ function localesForTarget(snapshot, slug, defaultLocale, locales) {
     }
     if (slug.startsWith(`${BLOG_BASE}/`)) {
         const postSlug = slug.slice(BLOG_BASE.length + 1);
-        const found = Object.entries(snapshot?.posts || {}).find(([, p]) => !!p && typeof p === 'object' && p.slug === postSlug);
+        const posts = /** @type {Record<string, { slug?: string } | null>} */ (snapshot?.posts || {});
+        const found = Object.entries(posts).find(([, p]) => !!p && typeof p === 'object' && p.slug === postSlug);
         if (!found) return null;
         const { localesForPost } = require('../../stores/cms/blogEffective');
         return localesForPost(snapshot.postLocaleOverrides || {}, found[0], defaultLocale, locales);
