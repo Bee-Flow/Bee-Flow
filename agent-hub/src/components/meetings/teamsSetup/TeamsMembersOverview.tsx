@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { useTeamsOrgOverview } from '@/api/queries/teamsSetup';
+import { CHIP_SUCCESS } from '@/components/shared/adminUi';
 import DiagnosticsChecklist from './DiagnosticsChecklist';
 import { failureText, skipText } from './checkText';
 import type { TeamsMemberRow } from './types';
@@ -28,6 +29,32 @@ const CONNECTION_INK: Record<TeamsMemberRow['microsoft'], string> = {
     revoked: 'text-[var(--error-ink)]',
     none: 'text-[var(--text-muted)]',
 };
+
+/**
+ * Whether Bee Flow can make Teams meeting notes for this member now: Meeting Notes access,
+ * and a way to reach their meetings (an own connection with the Teams permissions, or
+ * organisation-wide import covering them).
+ */
+function isReady(row: TeamsMemberRow): boolean {
+    return row.meetingNotesAccess && (row.teamsReady || row.appImportCovered);
+}
+
+/** The first thing that stands between this member and their notes, in the order to fix it. */
+function notReadyText(t: TranslateFn, row: TeamsMemberRow): string {
+    if (!row.meetingNotesAccess) return t('teams_setup.members.ready_needs_access');
+    switch (row.microsoft) {
+        case 'none': return t('teams_setup.members.ready_not_connected');
+        case 'needs_reauth': return t('teams_setup.members.ready_expired');
+        case 'revoked': return t('teams_setup.members.ready_revoked');
+        default: return t('teams_setup.members.ready_missing_permissions');
+    }
+}
+
+function ReadyCell({ row }: { row: TeamsMemberRow }) {
+    const { t } = useTranslation();
+    if (isReady(row)) return <span className={CHIP_SUCCESS}>{t('teams_setup.members.ready_yes')}</span>;
+    return <span className="text-[var(--warning-ink)]">{notReadyText(t, row)}</span>;
+}
 
 /**
  * The automatic-import cell for a member without a recorded skip. The poller only looks at a
@@ -58,6 +85,7 @@ function MemberRow({ row, orgAutoImport }: { row: TeamsMemberRow; orgAutoImport:
                     {row.appImportCovered && <span className={COVERED_BADGE}>{t('teams_setup.members.app_import_covered')}</span>}
                 </span>
             </td>
+            <td className={TD} data-cell="ready"><ReadyCell row={row} /></td>
             <td className={`${TD} ${CONNECTION_INK[row.microsoft] ?? CONNECTION_INK.none}`}>{connectionText(t, row.microsoft)}</td>
             <td className={TD}>
                 {connected && (row.missingPermissions.length > 0
@@ -83,7 +111,8 @@ function MemberRow({ row, orgAutoImport }: { row: TeamsMemberRow; orgAutoImport:
 }
 
 /**
- * For the organisation admin: per member whether Microsoft 365 is connected, which Teams
+ * For the organisation admin: per member whether they can get notes now and, if not, what
+ * is missing first; then whether Microsoft 365 is connected, which Teams
  * permissions are missing, whether automatic import runs or was skipped and why, and the
  * failed imports in the chosen window (GET /api/teams-setup/org/overview). Built from what
  * Bee Flow stored; nothing is asked of Microsoft and no meeting is shown. The org checks
@@ -99,8 +128,8 @@ export default function TeamsMembersOverview() {
         <section className="flex flex-col gap-3" aria-labelledby="teams-members-title" data-testid="teams-members-overview">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <h4 id="teams-members-title" className="text-[13px] font-semibold text-[var(--text-primary)]">{t('teams_setup.members.title')}</h4>
-                    <p className="text-[12px] text-[var(--text-muted)]">{t('teams_setup.members.intro')}</p>
+                    <h4 id="teams-members-title" className="text-[13px] font-semibold text-[var(--text-primary)]">{t('teams_setup.members.ready_title')}</h4>
+                    <p className="text-[12px] text-[var(--text-muted)]">{t('teams_setup.members.ready_intro')}</p>
                 </div>
                 <select
                     value={days} onChange={(e) => setDays(Number(e.target.value))}
@@ -126,6 +155,11 @@ export default function TeamsMembersOverview() {
             {data && (
                 <>
                     {data.checks.length > 0 && <DiagnosticsChecklist checks={data.checks} />}
+                    {!data.truncated && data.members.length > 0 && (
+                        <p className="text-[13px] font-medium text-[var(--text-primary)]" data-testid="teams-members-ready">
+                            {t('teams_setup.members.ready_summary', { ready: data.members.filter(isReady).length, members: data.members.length })}
+                        </p>
+                    )}
                     <p className="text-[12px] text-[var(--text-secondary)]" data-testid="teams-members-totals">
                         {t('teams_setup.members.totals', {
                             connected: data.totals.connected, members: data.totals.members, missing: data.totals.missingPermissions,
@@ -139,10 +173,11 @@ export default function TeamsMembersOverview() {
                         <p className="text-[12px] text-[var(--text-muted)]">{t('teams_setup.members.empty')}</p>
                     ) : (
                         <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-                            <table className="w-full min-w-[640px] divide-y divide-[var(--border-subtle)]">
+                            <table className="w-full min-w-[760px] divide-y divide-[var(--border-subtle)]">
                                 <thead>
                                     <tr>
                                         <th scope="col" className={TH}>{t('teams_setup.members.col_member')}</th>
+                                        <th scope="col" className={TH}>{t('teams_setup.members.col_ready')}</th>
                                         <th scope="col" className={TH}>{t('teams_setup.members.col_connection')}</th>
                                         <th scope="col" className={TH}>{t('teams_setup.members.col_permissions')}</th>
                                         <th scope="col" className={TH}>{t('teams_setup.members.col_auto_import')}</th>

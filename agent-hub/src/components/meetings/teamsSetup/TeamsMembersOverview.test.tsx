@@ -75,6 +75,40 @@ describe('TeamsMembersOverview', () => {
         expect(within(three).getByText('Not signed in with Microsoft')).toBeTruthy();
     });
 
+    it('says per member whether they can get notes now, and otherwise what is missing first', async () => {
+        fetchMock.mockResolvedValue(answer(overview({
+            members: [
+                member({ userId: 'ready' }),
+                member({ userId: 'covered', microsoft: 'none', teamsReady: false, appImportCovered: true }),
+                member({ userId: 'no-access', meetingNotesAccess: false }),
+                member({ userId: 'not-connected', microsoft: 'none', teamsReady: false }),
+                member({ userId: 'expired', microsoft: 'needs_reauth', teamsReady: false }),
+                member({ userId: 'revoked', microsoft: 'revoked', teamsReady: false }),
+                member({ userId: 'missing', teamsReady: false, missingPermissions: ['OnlineMeetingRecording.Read.All'] }),
+            ],
+        })));
+        renderWithClient(<TeamsMembersOverview />);
+        await vi.waitFor(() => expect(rowOf('ready')).toBeTruthy());
+        const ready = (userId: string) => rowOf(userId).querySelector('td[data-cell="ready"]')?.textContent;
+        expect(ready('ready')).toBe('Ready');
+        expect(ready('covered')).toBe('Ready');
+        // Access comes first: without it a connection changes nothing.
+        expect(ready('no-access')).toBe('Needs Meeting Notes access');
+        expect(ready('not-connected')).toBe('Has not connected Microsoft 365');
+        expect(ready('expired')).toBe('Must reconnect Microsoft 365');
+        expect(ready('revoked')).toBe('Must connect Microsoft 365 again');
+        expect(ready('missing')).toBe('Connected, but Teams permissions are missing');
+        expect(screen.getByTestId('teams-members-ready').textContent).toBe('2 of 7 members can get Teams meeting notes now.');
+        expect(screen.getByRole('heading', { name: 'Who is ready' })).toBeTruthy();
+    });
+
+    it('leaves the ready count out when the list was cut short', async () => {
+        fetchMock.mockResolvedValue(answer(overview({ truncated: true })));
+        renderWithClient(<TeamsMembersOverview />);
+        await screen.findByText('Member One');
+        expect(screen.queryByTestId('teams-members-ready')).toBeNull();
+    });
+
     it('marks a member covered by organisation-wide import, whose import then runs without a connection', async () => {
         fetchMock.mockResolvedValue(answer(overview({
             settings: { autoImport: true, autoRecordConfig: null },
@@ -111,7 +145,7 @@ describe('TeamsMembersOverview', () => {
         await screen.findByText('Member Four');
         for (const id of ['u1', 'u4']) {
             const cells = rowOf(id).querySelectorAll('td');
-            expect(cells[3].textContent).toBe(text);
+            expect(cells[4].textContent).toBe(text);
         }
     });
 

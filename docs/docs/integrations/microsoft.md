@@ -108,6 +108,9 @@ Microsoft's own Copilot meeting summaries are never used.
 
 ### Requirements
 
+Everything one member needs, in Bee Flow and in Microsoft 365 (plan, access, Teams licence,
+OneDrive), is listed under [What each member needs](./teams-meeting-notes.md#what-each-member-needs).
+
 | Requirement | Detail |
 |---|---|
 | You organise the meeting | Under delegated permissions, Microsoft Graph gives recordings and transcripts to the **organiser** only. Meetings someone else organises show **Organizer only**. With [organisation-wide import](./teams-meeting-notes.md#option-b-organisation-wide) the meetings of covered members are imported with an app token instead; the organiser rule stays. |

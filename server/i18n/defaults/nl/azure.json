@@ -2,8 +2,7 @@
   "translations": {
     "azure.sync_auto_every": "Automatisch synchroniseren elke {hours} uur",
     "azure.sync_settings_autosave": "Wijzigingen gaan direct in.",
-    "azure.m365_teams_setup_title": "Teams-vergadernotities instellen",
-    "azure.m365_teams_setup_desc": "Toestemming van de beheerder voor de Teams-rechten, een test van je eigen verbinding, import voor de hele organisatie en welke leden klaar zijn. De instellingen voor vergadernotities zelf staan op de pagina Vergadernotities."
+    "azure.m365_teams_setup_title": "Teams-vergadernotities instellen"
   },
   "sameAsEnglish": []
 }

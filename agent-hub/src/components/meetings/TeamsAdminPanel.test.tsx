@@ -69,15 +69,21 @@ describe('TeamsAdminPanel', () => {
         expect(container.innerHTML).toBe('');
     });
 
-    it('names the admin consent the Teams permissions need, and who grants it', () => {
-        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} />);
-        expect(screen.getByText(/An Entra administrator must grant admin consent for OnlineMeetingRecording\.Read\.All and OnlineMeetingTranscript\.Read\.All/)).toBeTruthy();
+    it('says in plain words what the settings are about, and leaves Microsoft\'s terms to the setup', () => {
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} showSetup={false} />);
+        expect(screen.getByText(/What Bee Flow does with the recorded Teams meetings that members organise\./)).toBeTruthy();
+        expect(screen.queryByText(/OnlineMeetingRecording\.Read\.All/)).toBeNull();
         expect(state.orgIds).toContain('orgA');
     });
 
-    it('mounts the setup guide, the consent link, the connection test and the members overview', async () => {
+    it('mounts what a member needs, the setup guide, the consent link, the connection test and the members overview', async () => {
         renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} />);
+        expect(within(screen.getByTestId('teams-requirements')).getByRole('heading', { name: 'What a member needs' })).toBeTruthy();
         expect(screen.getByTestId('teams-setup-guide')).toBeTruthy();
+        // Each way's own action sits inside its card.
+        expect(within(screen.getByTestId('teams-setup-option-a')).getByTestId('teams-consent-link')).toBeTruthy();
+        expect(within(screen.getByTestId('teams-setup-option-b')).getByTestId('teams-app-import')).toBeTruthy();
+        expect(screen.getByRole('heading', { name: 'Check that it works' })).toBeTruthy();
         expect(within(screen.getByTestId('teams-consent-link')).getByRole('button', { name: 'Make the link' })).toBeTruthy();
         expect(within(screen.getByTestId('teams-connection-test')).getByRole('button', { name: 'Test my connection' })).toBeTruthy();
         expect(await within(screen.getByTestId('teams-members-overview')).findByText('Member One')).toBeTruthy();
@@ -94,7 +100,7 @@ describe('TeamsAdminPanel', () => {
         expect(state.orgIds).toContain('orgB');
         expect(screen.getByRole('combobox', { name: 'Default language' })).toBeTruthy();
         expect(screen.getByTestId('admin-home-org-only')).toBeTruthy();
-        for (const id of ['teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview']) {
+        for (const id of ['teams-requirements', 'teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview']) {
             expect(screen.queryByTestId(id)).toBeNull();
         }
         // Nothing about the session organisation is fetched under the other organisation's name.
@@ -110,7 +116,7 @@ describe('TeamsAdminPanel', () => {
     it('leaves the setup parts to the Microsoft 365 page when told to (the admin dashboard)', () => {
         renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} orgId="orgA" showSetup={false} />);
         expect(screen.getByRole('combobox', { name: 'Default language' })).toBeTruthy();
-        for (const id of ['teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview', 'admin-home-org-only']) {
+        for (const id of ['teams-requirements', 'teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview', 'admin-home-org-only']) {
             expect(screen.queryByTestId(id)).toBeNull();
         }
         expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/teams-setup'))).toBe(false);
