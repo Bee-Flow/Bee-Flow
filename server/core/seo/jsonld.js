@@ -12,37 +12,28 @@
  * disagrees with the visible page is a manual-action risk, not a ranking win.
  */
 
-/** The company behind the site, as the footer's accountability line states it. */
-const ORG_ADDRESS = Object.freeze({
-    '@type': 'PostalAddress',
-    streetAddress: 'Bovenkerkerweg 6 unit 1.12',
-    postalCode: '1185 XE',
-    addressLocality: 'Amstelveen',
-    addressCountry: 'NL',
-});
-const ORG_EMAIL = 'info@beeflow.nl';
-/** The organisation's own profiles, used next to the footer's social links. */
-const DEFAULT_SAME_AS = Object.freeze([
-    'https://github.com/Bee-Flow/Bee-Flow',
-    'https://apps.nextcloud.com/apps/bee_flow',
-]);
+const { organizationFields } = require('./siteFacts.mts');
+
 /** The licence the footer links to (Sustainable Use License). */
 const LICENSE_URL = 'https://github.com/Bee-Flow/Bee-Flow/blob/main/LICENSE.md';
 
 /**
- * Organization — site-wide identity. Emitted on every page.
- * @param {{ siteName: string, origin: string, logoUrl?: string, sameAs?: string[] }} params
+ * Organization — site-wide identity. Emitted on every page. Every fact beyond
+ * the name comes from the site settings (core/seo/siteFacts.mts): the legal name
+ * from the copyright line, address, registration and VAT number from the
+ * footer's accountability block, the profiles from the footer socials and the
+ * header nav. A fact the site does not state is left out.
+ * @param {{ siteName: string, origin: string, logoUrl?: string, sameAs?: string[],
+ *   facts?: import('./siteFacts.mts').SiteFacts | null }} params
  */
-function organization({ siteName, origin, logoUrl, sameAs = [] }) {
-    /** @type {{ '@type': string, '@id': string, name: string, url: string, logo?: string, email: string,
-     *   address: typeof ORG_ADDRESS, sameAs?: string[] }} */
+function organization({ siteName, origin, logoUrl, sameAs = [], facts = null }) {
+    /** @type {Record<string, unknown>} */
     const node = {
         '@type': 'Organization',
         '@id': `${origin}/#organization`,
         name: siteName,
         url: `${origin}/`,
-        email: ORG_EMAIL,
-        address: ORG_ADDRESS,
+        ...(facts ? organizationFields(facts) : {}),
     };
     if (logoUrl) node.logo = logoUrl;
     const links = [...new Set(sameAs.filter(Boolean))];
@@ -171,17 +162,18 @@ function breadcrumbs({ origin, localePrefix, slug, title }) {
  *
  * @param {{ origin: string, siteName: string, url: string, title: string, description?: string, locale: string,
  *   locales?: string[], slug: string, localePrefix?: string, logoUrl?: string, sameAs?: string[],
+ *   facts?: import('./siteFacts.mts').SiteFacts | null,
  *   blocks?: import('../../stores/cms/shared').CmsBlock[], isProductPage?: boolean, extraNodes?: unknown[],
  *   breadcrumbTrail?: Array<{ name: string, path: string }> }} ctx
  */
 function buildJsonLd(ctx) {
     const { origin, siteName, url, title, description, locale, locales, slug, localePrefix,
-        logoUrl, sameAs, blocks, isProductPage, extraNodes, breadcrumbTrail } = ctx;
+        logoUrl, sameAs, facts, blocks, isProductPage, extraNodes, breadcrumbTrail } = ctx;
     const siteLocales = Array.isArray(locales) && locales.length > 1 ? locales : locale;
 
     /** @type {Array<Record<string, any>>} */
     const graph = [
-        organization({ siteName, origin, logoUrl, sameAs: sameAs ?? [...DEFAULT_SAME_AS] }),
+        organization({ siteName, origin, logoUrl, sameAs: sameAs ?? facts?.profiles ?? [], facts }),
         webSite({ siteName, origin, inLanguage: siteLocales }),
         webPage({ url, title, description, locale, origin }),
     ];
@@ -209,5 +201,5 @@ function buildJsonLd(ctx) {
 
 module.exports = {
     buildJsonLd, faqPage, organization, softwareApplication, breadcrumbs, webSite,
-    DEFAULT_SAME_AS, LICENSE_URL,
+    LICENSE_URL,
 };

@@ -165,6 +165,7 @@ function renderDetailPage({ item, related = [], catalog, ...site }) {
         title: prose ? prose.title : heading,
         description: prose ? prose.description : `${item.description}. Connect ${item.title} to ${site.siteName}, self-hosted and gated per user, organisation and group.`,
         alternates: prose ? shell.alternateLinks(site.origin, locales, def, l => shell.detailPath(item.id, l, def)) : [],
+        locales,
         jsonLd: [{
             '@context': 'https://schema.org',
             '@type': 'WebPage',

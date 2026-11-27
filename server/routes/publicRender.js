@@ -443,7 +443,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
         const head = buildHead({
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
             page: eff.page, design: eff.design || {}, siteName, shareImageVersion: versionOf(snapshot && snapshot.publishedAt),
-            extraLinks: headLinks, footer: eff.footer,
+            extraLinks: headLinks, footer: eff.footer, header: eff.header,
         });
 
         /* The same payload GET /api/cms/site would return, inlined.

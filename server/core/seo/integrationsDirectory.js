@@ -149,6 +149,7 @@ function renderDirectoryPage({ items, q = '', category = '', ...site }) {
         description: fill(ui.directoryDescription, { count: items.length }),
         path: action, body, noindex: filtered,
         alternates: shell.alternateLinks(site.origin, locales, def, l => directoryPath(l, def)),
+        locales,
         jsonLd: [{
             '@context': 'https://schema.org',
             '@type': 'CollectionPage',

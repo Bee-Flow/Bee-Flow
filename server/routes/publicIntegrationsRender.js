@@ -22,6 +22,8 @@ const { hasPageIn } = require('../core/seo/integrationContent/model.mts');
 const { localesForPage } = require('../i18n/pageLocales');
 const { getShell } = require('../core/seo/shell');
 const { sendNotFound } = require('../core/seo/notFound');
+const { siteFacts } = require('../core/seo/siteFacts.mts');
+const { absolute } = require('../core/seo/head');
 const log = require('../telemetry/log');
 
 // /<locale>/integrations/<id or "directory">. A route regex rather than
@@ -32,7 +34,8 @@ const NAV_SLUGS = ['integrations', 'deployment', 'plans'];
 /**
  * The parts of the published snapshot these pages read.
  * @typedef {NonNullable<Parameters<typeof localesForPage>[0]> & { posts?: Record<string, unknown>,
- *   site?: { name?: string, header?: { logoText?: string }, pages?: Array<{ id: string, slug?: string }> } }} PublishedSnapshot
+ *   site?: { name?: string, header?: { logoText?: string }, footer?: unknown, design?: { logo?: string },
+ *     pages?: Array<{ id: string, slug?: string }> } }} PublishedSnapshot
  */
 
 /** @type {import('../core/seo/integrationContent/model.mts').Catalog | null} */
@@ -103,9 +106,12 @@ function createIntegrationsRouter({
         if (!snapshot) return null;
         const { defaultLocale, locales } = await siteLocales();
         if (asked !== null && (asked === defaultLocale || !locales.includes(asked))) return null;
-        const siteName = snapshot.site?.header?.logoText || snapshot.site?.name || 'Bee Flow';
+        const siteName = String(snapshot.site?.header?.logoText || snapshot.site?.name || 'Bee Flow');
+        const origin = resolveOrigin(req);
         return {
-            origin: resolveOrigin(req), siteName: String(siteName), items: dir.listGalleryItems(),
+            origin, siteName, items: dir.listGalleryItems(),
+            facts: { ...siteFacts(snapshot.site), name: siteName },
+            logoUrl: absolute(origin, snapshot.site?.design?.logo || ''),
             nav: navFor(snapshot, defaultLocale, locales), defaultLocale, locales, locale: asked || defaultLocale,
         };
     }

@@ -57,6 +57,41 @@ test('a translated page lists its other-language address after its own', () => {
     assert.ok(section(txt, 'Pages').includes(`- [Pricing](${ORIGIN}/pricing): Plans.`));
 });
 
+/** Any amount of money in the text: a currency sign or code next to a number. */
+const PRICE = /[€$£]\s?\d|\d\s?(?:€|EUR|USD|GBP)\b|\b(?:EUR|USD|GBP)\s?\d/;
+
+test('a facts block from the site settings follows the summary, and no price reaches the file', () => {
+    const facts = {
+        name: 'Acme', legalName: 'Acme B.V.', description: 'Acme is a workspace for firms.',
+        email: 'info@acme.test', address: 'Main street 1, 1000 AA Town, Netherlands',
+        registration: 'KvK 12345678', vat: null, profiles: ['https://github.com/acme/acme'],
+    };
+    const pages = [
+        ...PAGES,
+        { slug: 'plans', title: 'Plans', seo: { metaDescription: 'Free forever; paid licences from €6 per user per month.' } },
+        { slug: 'kosten', title: 'Costs', seo: { metaDescription: 'A fixed price agreed before building starts.' } },
+    ];
+    const txt = buildLlmsTxt(pages, { origin: ORIGIN, siteName: 'Acme', summary: 'Starts at 6 EUR a month.', facts });
+    assert.deepEqual(section(txt, 'Facts'), [
+        '- Name: Acme',
+        '- What it is: Acme is a workspace for firms.',
+        '- Legal entity: Acme B.V., KvK 12345678',
+        '- Registered address: Main street 1, 1000 AA Town, Netherlands',
+        '- Contact: info@acme.test',
+        '- Profile: https://github.com/acme/acme',
+    ]);
+    assert.ok(txt.indexOf('## Facts') < txt.indexOf('## Pages'));
+    // The page stays listed; only its priced description is dropped.
+    assert.ok(section(txt, 'Pages').includes(`- [Plans](${ORIGIN}/plans)`));
+    assert.ok(section(txt, 'Pages').includes(`- [Costs](${ORIGIN}/kosten): A fixed price agreed before building starts.`));
+    assert.doesNotMatch(txt, PRICE);
+});
+
+test('a site that states nothing but its name gets no facts block', () => {
+    const facts = { name: 'Acme', legalName: null, description: null, email: null, address: null, registration: null, vat: null, profiles: [] };
+    assert.deepEqual(section(buildLlmsTxt(PAGES, { origin: ORIGIN, facts }), 'Facts'), []);
+});
+
 test('Guides leave out a post marked noIndex and stop at LLMS_GUIDES', () => {
     const posts = Array.from({ length: 20 }, (_, i) => ({ id: `p${i}`, slug: `post-${i}`, title: `Post ${i}` }));
     const guides = llmsGuides(posts, {

@@ -14,6 +14,7 @@
 
 const { esc } = require('./html');
 const { buildPublicPath, BLOG_BASE } = require('./publicPath');
+const { llmsFactLines, statesPrice } = require('./siteFacts.mts');
 
 // Homepage first, then the pages a buyer moves through, then the rest.
 // Sitemap priority is a weak signal at best, but ordering costs nothing.
@@ -234,17 +235,25 @@ function llmsGuides(posts, { origin, defaultLocale, storedPosts = {} }) {
  * (documentation, source, Nextcloud App Store). The text stays English; a page
  * translated into another language lists that address after its own.
  *
+ * A Facts block (core/seo/siteFacts.mts: name, what it is, legal entity,
+ * address, contact, profiles) comes first, from the site settings. No price is
+ * written here: a description or summary that states an amount of money is
+ * left out (the page itself stays listed), because the pricing page is where a
+ * price is kept current and a copy here goes stale unseen.
+ *
  * @param {import('../../stores/cms/shared').CmsDoc[]} pages   a page may carry `locales` (the languages it is published in)
  * @param {{ origin: string, siteName?: string, summary?: string, defaultLocale?: string,
- *   guides?: Array<{ title: string, url: string }>, links?: ReadonlyArray<{ title: string, url: string }> }} opts
- *   `guides`: the newest published posts, absolute URLs; `links`: replaces LLMS_LINKS
+ *   guides?: Array<{ title: string, url: string }>, links?: ReadonlyArray<{ title: string, url: string }>,
+ *   facts?: import('./siteFacts.mts').SiteFacts | null }} opts
+ *   `guides`: the newest published posts, absolute URLs; `links`: replaces LLMS_LINKS; `facts`: the site's facts
  */
-function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defaultLocale = 'en', guides = [], links = LLMS_LINKS }) {
+function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defaultLocale = 'en', guides = [], links = LLMS_LINKS, facts = null }) {
     const indexable = (pages || []).filter(p => !p?.seo?.noIndex && !p?.isNotFound);
     const line = (/** @type {import('../../stores/cms/shared').CmsDoc} */ p) => {
         const slug = p.isHomepage ? '' : String(p.slug || '');
         const title = String(p.title || slug || 'Home').trim();
-        const desc = String(p?.seo?.metaDescription || '').trim();
+        const written = String(p?.seo?.metaDescription || '').trim();
+        const desc = statesPrice(written) ? '' : written;
         const others = (Array.isArray(p.locales) ? p.locales : []).filter((/** @type {string} */ l) => l !== defaultLocale)
             .map((/** @type {string} */ l) => ` (${l}: ${origin}${buildPublicPath(l, slug, defaultLocale)})`).join('');
         return `- [${title}](${origin}/${slug})${desc ? `: ${desc}` : ''}${others}`;
@@ -256,11 +265,12 @@ function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defa
     const link = (/** @type {{ title: string, url: string }} */ l) => `- [${String(l.title).trim()}](${l.url})`;
 
     const out = [`# ${siteName}`, ''];
-    if (summary) out.push(summary, '');
+    if (summary && !statesPrice(summary)) out.push(summary, '');
     const main = indexable.filter(p => !isComparison(p));
     const comparisons = indexable.filter(isComparison);
     /** @type {Array<[string, string[]]>} */
     const sections = [
+        ['Facts', facts ? llmsFactLines(facts) : []],
         ['Pages', main.map(line)],
         ['Comparisons', comparisons.map(line)],
         ['Guides', (guides || []).filter(g => g && g.title && g.url).map(link)],

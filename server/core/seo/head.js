@@ -16,7 +16,8 @@
  */
 
 const { esc, meta, clamp, clampTitle, jsonForScript, ogLocale } = require('./html');
-const { buildJsonLd, DEFAULT_SAME_AS } = require('./jsonld');
+const { buildJsonLd } = require('./jsonld');
+const { siteFacts, footerProfiles } = require('./siteFacts.mts');
 const { buildPublicPath } = require('./publicPath');
 const { buildFontsHead } = require('./fonts');
 
@@ -30,25 +31,6 @@ const DESC_MAX = 155;
 
 // Pages that describe the product itself get SoftwareApplication.
 const PRODUCT_SLUGS = new Set(['', 'platform', 'sovereignty']);
-
-/**
- * The external profiles among the footer's social links (absolute http(s) URLs only).
- * @param {unknown} footer the site footer (`socials: [{ platform, link: { href } }]`)
- * @returns {string[]}
- */
-function footerProfiles(footer) {
-    const socials = footer && typeof footer === 'object' ? /** @type {{ socials?: unknown }} */ (footer).socials : null;
-    if (!Array.isArray(socials)) return [];
-    /** @type {string[]} */
-    const out = [];
-    for (const s of socials) {
-        if (!s || typeof s !== 'object' || s.enabled === false) continue;
-        const href = typeof s.link?.href === 'string' ? s.link.href : (typeof s.href === 'string' ? s.href : '');
-        const lower = href.toLowerCase();
-        if (lower.startsWith('https://') || lower.startsWith('http://')) out.push(href);
-    }
-    return out;
-}
 
 /**
  * @param {string} origin
@@ -97,7 +79,7 @@ function shareImage(ctx, page, design) {
  *   page: CmsDoc, design: CmsDoc, siteName: string, ogType?: string,
  *   article?: { publishedTime: string, modifiedTime: string, author: string, tags?: string[] },
  *   extraJsonLd?: any[], breadcrumbTrail?: Array<{ name: string, path: string }>, extraLinks?: string[],
- *   shareImageVersion?: string, shareCardSlug?: string, footer?: unknown, robots?: string }} ctx
+ *   shareImageVersion?: string, shareCardSlug?: string, footer?: unknown, header?: unknown, robots?: string }} ctx
  *   `origin`: e.g. https://beeflow.nl (no trailing slash); `slug`: '' for the homepage; `locale`: the
  *   locale being served; `locales`: every locale the site publishes; `page`: the resolved CMS page;
  *   `design`: site design (favicon, logo); `ogType`: 'website' (default) or 'article' (blog post);
@@ -105,8 +87,9 @@ function shareImage(ctx, page, design) {
  *   `breadcrumbTrail`: replaces the Home › page crumbs; `extraLinks`: pre-built <link> tags (the blog's
  *   RSS alternate); `shareImageVersion`: publish-time token: pages without an og:image get the
  *   generated card (/api/cms/og/…); `shareCardSlug`: the page whose generated card stands in when this
- *   URL has none of its own (the blog uses the homepage's); `footer`: the site footer, whose social links
- *   become the Organization's sameAs; `robots`: replaces the default robots value (a tag-filtered blog
+ *   URL has none of its own (the blog uses the homepage's); `footer` / `header`: the site chrome, whose
+ *   social links, profile links, copyright line and accountability block become the Organization
+ *   (core/seo/siteFacts.mts); `robots`: replaces the default robots value (a tag-filtered blog
  *   list is `noindex, follow`), unless the page itself is noIndex
  * @returns {string} tags to splice into <head>
  */
@@ -190,11 +173,13 @@ function buildHead(ctx) {
     const fontsHead = buildFontsHead(design.fonts);
     if (fontsHead) out.push(fontsHead);
 
+    const facts = { ...siteFacts({ header: ctx.header, footer: ctx.footer }), name: siteName };
     const jsonLd = buildJsonLd({
         origin, siteName, url, title, description, locale, locales, slug,
         localePrefix: locale && locale !== defaultLocale ? `/${locale}` : '',
         logoUrl: absolute(origin, design.logo || ''),
-        sameAs: [...footerProfiles(ctx.footer), ...DEFAULT_SAME_AS],
+        sameAs: facts.profiles,
+        facts,
         blocks: page.blocks || [],
         isProductPage: PRODUCT_SLUGS.has(slug),
         extraNodes: ctx.extraJsonLd,

@@ -180,7 +180,7 @@ function buildPostHead({ origin, eff, locale, defaultLocale, locales, siteName }
     return buildHead({
         origin, slug: eff.page.slug, locale, defaultLocale, locales,
         page: { ...eff.page, seo: { ...eff.page.seo, ogImage: ownImage, metaTitle: title, metaDescription: description } },
-        design: eff.design || {}, siteName, ...cardArgs(card), footer: eff.footer,
+        design: eff.design || {}, siteName, ...cardArgs(card), footer: eff.footer, header: eff.header,
         ogType: 'article',
         article: {
             publishedTime: p.publishedAt || '',
@@ -223,7 +223,7 @@ function buildIndexHead({ origin, eff, locale, defaultLocale, locales, siteName 
     return buildHead({
         origin, slug: BLOG_BASE, locale, defaultLocale, locales,
         page: { ...eff.page, seo: { ...seo, metaTitle: seo.metaTitle || withSiteName(eff.page.title, siteName) } },
-        design: eff.design || {}, siteName, ...cardArgs(card), footer: eff.footer,
+        design: eff.design || {}, siteName, ...cardArgs(card), footer: eff.footer, header: eff.header,
         // A tag-filtered list repeats posts the index already lists: the crawler
         // follows its links to the posts but does not index the list itself.
         ...(blog.tag ? { robots: 'noindex, follow' } : {}),
