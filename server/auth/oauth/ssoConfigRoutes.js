@@ -383,7 +383,10 @@ router.post('/providers/:provider/test', requireSuperAdmin, requireSsoProvider, 
 
     } else if (provider === 'microsoft') {
         // A real client-credentials token request (routes/teamsProviderTest.mts): same answer shape plus the check report.
-        const { status, body } = await require('../../routes/teamsProviderTest.mts').answerMicrosoftProviderTest(req, config);
+        // The test belongs to the module "meetingNotes" (its Teams setup checks); without it there is no test to run.
+        const providerTest = require('../../core/featureModules').optionalFeatureModule('routes/teamsProviderTest');
+        if (!providerTest) throw new HttpError(409, 'module_absent', 'The Microsoft app registration test needs the meeting notes module, which is not installed here.');
+        const { status, body } = await providerTest.answerMicrosoftProviderTest(req, config);
         res.status(status).json(body);
 
     } else {

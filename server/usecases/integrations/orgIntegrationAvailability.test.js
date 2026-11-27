@@ -3,8 +3,9 @@
  * The integration availability of one organisation
  * (usecases/integrations/orgIntegrationAvailability.mts), over the real stores
  * on a real Postgres (PGlite): the organisation row and its Nextcloud binding,
- * the instance config and secrets, the Nextcloud scope document, the GitHub
- * sync config and the Azure sync binding are all written and read for real.
+ * the instance config and secrets, the Nextcloud scope document and the Azure
+ * sync binding are all written and read for real; the GitHub sync config comes
+ * from a stand-in under the name the module "int_saas" provides.
  *
  * What is passed in: the auth config (the SSO providers, which the auth config
  * store keeps encrypted elsewhere), whether an image model exists, the module
@@ -257,18 +258,42 @@ test('withServerConfigured adds a flag per integration row of a matrix payload',
 });
 
 test('GitHub sync and the Microsoft directory are read for the chosen organisation', async () => {
-    const before = await availability.resolveOrgIntegrationAvailability(ORG_PLAIN, {}, deps());
-    assert.equal(before.github.syncConfigured, false);
-    assert.equal(before.microsoft.directoryConnected, false);
+    // The GitHub sync config is asked of the module "int_saas" by name: a stand-in store under that
+    // name, so this holds with the module present or absent.
+    const featureModules = require('../../core/featureModules');
+    const realGetter = featureModules._featureModuleGetter('stores/githubSyncStore');
+    /** @type {Map<string, { repoOwner: string, repoName: string }>} */
+    const synced = new Map();
+    featureModules.registerFeatureModules({ 'stores/githubSyncStore': () => /** @type {any} */ ({ getOrgSyncConfig: async (/** @type {string} */ id) => synced.get(id) || null }) });
+    try {
+        const before = await availability.resolveOrgIntegrationAvailability(ORG_PLAIN, {}, deps());
+        assert.equal(before.github.syncConfigured, false);
+        assert.equal(before.microsoft.directoryConnected, false);
 
-    await require('../../stores/githubSyncStore').setOrgSyncConfig(ORG_PLAIN, { repoOwner: 'owner', repoName: 'repo' });
-    await configStore.setConfig('azure_group_sync_binding', { syncOrganizationId: ORG_PLAIN, syncTenantId: AZURE_TENANT });
-    const av = await availability.resolveOrgIntegrationAvailability(ORG_PLAIN, {}, deps());
-    assert.equal(av.github.syncConfigured, true);
-    assert.equal(av.microsoft.directoryConnected, true);
-    const other = await availability.resolveOrgIntegrationAvailability(ORG_NC, {}, deps());
-    assert.equal(other.github.syncConfigured, false);
-    assert.equal(other.microsoft.directoryConnected, false, 'the directory is bound to another organisation');
+        synced.set(ORG_PLAIN, { repoOwner: 'owner', repoName: 'repo' });
+        await configStore.setConfig('azure_group_sync_binding', { syncOrganizationId: ORG_PLAIN, syncTenantId: AZURE_TENANT });
+        const av = await availability.resolveOrgIntegrationAvailability(ORG_PLAIN, {}, deps());
+        assert.equal(av.github.syncConfigured, true);
+        assert.equal(av.microsoft.directoryConnected, true);
+        const other = await availability.resolveOrgIntegrationAvailability(ORG_NC, {}, deps());
+        assert.equal(other.github.syncConfigured, false);
+        assert.equal(other.microsoft.directoryConnected, false, 'the directory is bound to another organisation');
+    } finally {
+        if (realGetter) featureModules.registerFeatureModules({ 'stores/githubSyncStore': realGetter });
+        else featureModules._clearFeatureModulesForTests('stores/githubSyncStore');
+    }
+});
+
+test('without the module "int_saas" GitHub sync reads as not configured', async () => {
+    const featureModules = require('../../core/featureModules');
+    const realGetter = featureModules._featureModuleGetter('stores/githubSyncStore');
+    featureModules._clearFeatureModulesForTests('stores/githubSyncStore');
+    try {
+        const av = await availability.resolveOrgIntegrationAvailability(ORG_PLAIN, {}, deps());
+        assert.equal(av.github.syncConfigured, false);
+    } finally {
+        if (realGetter) featureModules.registerFeatureModules({ 'stores/githubSyncStore': realGetter });
+    }
 });
 
 test('an organisation that does not exist is a 404', async () => {

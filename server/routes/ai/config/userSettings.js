@@ -50,8 +50,7 @@ const { firebirdFields } = require('../../../usecases/ai/config/firebirdFields')
 const { frappeCrmFields } = require('../../../usecases/ai/config/frappeCrmFields.mts');
 const { SECRETS } = require('../../../stores/user/userSecretKeys.mts');
 const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
-const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
-const { readServerProgress } = require('../../../learning/certificates');
+const { optionalFeatureModule } = require('../../../core/featureModules'); // the Learning Center: module "learning"
 const { requireAuth } = require('../../../auth/permissions');
 const { orgScope } = require('../../../auth/orgScope');
 const { memoryEnabledKey, memorySensitiveOptInKey, isMemoryEnabledForUser, getOrgMemorySettings, ORG_DEFAULTS } = require('../../../core/memory/memoryPolicy');
@@ -293,7 +292,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // readServerProgress so the legacy intro-tour flag is lazily migrated into a
     // real getting-started entry (same view the achievements endpoints use).
     let learningProgress = {};
-    try { learningProgress = await readServerProgress(userId); } catch (err) { fallback('routes/ai/config/userSettings:anon#8', err); /* empty on failure */ }
+    try { const certificates = optionalFeatureModule('learning/certificates'); if (certificates) learningProgress = await certificates.readServerProgress(userId); } catch (err) { fallback('routes/ai/config/userSettings:anon#8', err); /* empty on failure, and without the module */ }
 
     // Learning path (v2): the role/goal the learner picked on the Learning
     // Center home ('everyday' | 'builder' | 'admin' | 'skipped'). A preference,
@@ -382,10 +381,12 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
 
     // The last refusal, and it too runs before anything is written: the
     // Learning Center blob is size-checked by its own sanitizer.
-    /** @type {ReturnType<typeof sanitizeLearningProgress> | null} */
+    /** @type {ReturnType<typeof import('../../../learning/progressValidation').sanitizeLearningProgress> | null} */
     let learning = null;
+    const progress = optionalFeatureModule('learning/progressValidation');
     if (learningProgressReset !== true && learningProgress) {
-        learning = sanitizeLearningProgress(learningProgress);
+        if (!progress) throw new HttpError(409, 'module_absent', 'Learning progress needs the Learning Center module, which is not installed here.');
+        learning = progress.sanitizeLearningProgress(learningProgress);
         if (learning.error === 'too_large') {
             return res.status(400).json({ error: 'Learning progress payload too large.' });
         }
@@ -451,7 +452,7 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
             const existing = (await configStore.getConfig(`learning_progress_user_${userId}`)) || {};
             await configStore.setConfig(
                 `learning_progress_user_${userId}`,
-                mergeLearningProgress(existing, map),
+                /** @type {NonNullable<typeof progress>} */ (progress).mergeLearningProgress(existing, map),
             );
         }
     }

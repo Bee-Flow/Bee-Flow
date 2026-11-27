@@ -5,6 +5,7 @@
     "appStudio/portabilityReport",
     "appStudio/automationUsageSync",
     "appStudio/triggers/deploySync",
+    "appStudio/mailboxIdentity",
     "appStudio/approvalWaits",
     "appStudio/mcpBuilder",
     "stores/studioAppStore",

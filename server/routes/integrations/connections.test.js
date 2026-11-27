@@ -66,9 +66,11 @@ mock('../../auth/oauthRoutes', {
 });
 // /required falls back to the LEGACY integration layer before demanding a
 // connection (most Google/Microsoft credentials live there, not in the new
-// registry) — mocked so these tests stay hermetic.
-mock('../../appStudio/mailboxIdentity', {
-    viewerHasIntegration: async () => state.legacyIntegration,
+// registry) — a stand-in so these tests stay hermetic. The route asks the
+// module "apps" for it by name, so the stand-in is registered under that name
+// and the tests hold with the module present or absent.
+require('../../core/featureModules').registerFeatureModules({
+    'appStudio/mailboxIdentity': () => /** @type {any} */ ({ viewerHasIntegration: async () => state.legacyIntegration }),
 });
 mock('../../stores/integrationConnectionStore', {
     resolveOrgId,

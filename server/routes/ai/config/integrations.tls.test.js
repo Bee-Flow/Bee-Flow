@@ -44,7 +44,8 @@ test('no n8n caller configures TLS itself', () => {
 test('every n8n caller fetches through n8nHttp', () => {
     for (const rel of CALLERS) {
         const src = read(rel);
-        assert.match(src, /require\('(\.\/|\.\.\/\.\.\/\.\.\/integrations\/)n8nHttp'\)/, `${rel} does not require n8nHttp`);
+        // A require of it, or (routes/ai/config/integrations.js) the lookup of the module "int_saas"'s n8nHttp by name.
+        assert.match(src, /require\('(\.\/|\.\.\/\.\.\/\.\.\/integrations\/)n8nHttp'\)|\('integrations\/n8nHttp'\)/, `${rel} does not require n8nHttp`);
         assert.ok(!/\bfetch\(/.test(src.replace(/n8nFetch\(/g, '')), `${rel} calls fetch() directly`);
     }
 });

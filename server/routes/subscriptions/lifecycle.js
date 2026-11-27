@@ -10,6 +10,7 @@ const express = require('express');
 const userStore = require('../../stores/userStore');
 const { isNcOrg } = require('../../auth/ncAudience');
 const { getAdminId } = require('./shared');
+const { billingModule } = require('../../usecases/subscriptions/billingModule');
 const { storedAfterStripe } = require('../../usecases/subscriptions/storedWrites');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
@@ -82,7 +83,7 @@ function stripePaymentErrorStatus(err) {
  * @param {string} adminId
  */
 async function performOrgPlanChange(orgId, planId, adminId) {
-    const stripeService = require('../../services/stripeService');
+    const stripeService = billingModule('services/stripeService');
     const sub = await userStore.getOrgSubscription(orgId);
     if (!sub) { const e = new Error('No subscription found'); e.status = 404; throw e; }
     if (!sub.stripe_subscription_id) { const e = new Error('Subscription is not Stripe-managed'); e.status = 404; throw e; }
@@ -180,8 +181,7 @@ async function performOrgPlanChange(orgId, planId, adminId) {
     return userStore.getOrgSubscription(orgId);
 }
 
-// Upgrade OR downgrade — the route name stays /upgrade for back-compat but
-// the handler picks the right behaviour from the price delta.
+// Upgrade OR downgrade — the route name stays /upgrade for back-compat but the handler picks the right behaviour from the price delta.
 router.post('/orgs/:orgId/upgrade', validate({ body: PlanChangeBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     try {
         const { planId } = req.body;
@@ -200,7 +200,7 @@ router.post('/orgs/:orgId/upgrade', validate({ body: PlanChangeBody }), async (/
 // the new recurring total and the date it takes effect (no charge now).
 router.post('/orgs/:orgId/preview-change', validate({ body: PlanChangeBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     try {
-        const stripeService = require('../../services/stripeService');
+        const stripeService = billingModule('services/stripeService');
         const { planId } = req.body;
         const orgId = req.params.orgId;
         const sub = await userStore.getOrgSubscription(orgId);
@@ -240,7 +240,7 @@ router.post('/orgs/:orgId/preview-change', validate({ body: PlanChangeBody }), a
 // Undo a scheduled (end-of-period) downgrade — releases the Stripe schedule
 // and clears the local pending bookkeeping so the org stays on its plan.
 router.post('/orgs/:orgId/cancel-downgrade', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
-    const stripeService = require('../../services/stripeService');
+    const stripeService = billingModule('services/stripeService');
     const orgId = req.params.orgId;
     const sub = await userStore.getOrgSubscription(orgId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
@@ -255,7 +255,7 @@ router.post('/orgs/:orgId/cancel-downgrade', validate({ body: NoBody }), async (
 });
 
 router.post('/orgs/:orgId/cancel', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
-    const stripeService = require('../../services/stripeService');
+    const stripeService = billingModule('services/stripeService');
     const orgId = req.params.orgId;
     const sub = await userStore.getOrgSubscription(orgId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
@@ -283,7 +283,7 @@ router.post('/orgs/:orgId/cancel', validate({ body: NoBody }), async (/** @type 
 });
 
 router.post('/orgs/:orgId/reactivate', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
-    const stripeService = require('../../services/stripeService');
+    const stripeService = billingModule('services/stripeService');
     const orgId = req.params.orgId;
     const sub = await userStore.getOrgSubscription(orgId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
@@ -309,7 +309,7 @@ router.post('/orgs/:orgId/reactivate', validate({ body: NoBody }), async (/** @t
  * @param {string} actorId
  */
 async function performConsumerUpgrade(userId, planId, actorId) {
-    const stripeService = require('../../services/stripeService');
+    const stripeService = billingModule('services/stripeService');
     const sub = await userStore.getConsumerSubscription(userId);
     if (!sub) { const e = new Error('No subscription found'); e.status = 404; throw e; }
     if (!sub.stripe_subscription_id) { const e = new Error('Subscription is not Stripe-managed'); e.status = 404; throw e; }
@@ -379,7 +379,7 @@ router.post('/consumer/:userId/upgrade', validate({ body: PlanChangeBody }), asy
 });
 
 router.post('/consumer/:userId/cancel', validate({ body: NoBody }), async (/** @type {import('express').Request<{ userId: string }>} */ req, res) => {
-    const stripeService = require('../../services/stripeService');
+    const stripeService = billingModule('services/stripeService');
     const userId = req.params.userId;
     const sub = await userStore.getConsumerSubscription(userId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
@@ -400,7 +400,7 @@ router.post('/consumer/:userId/cancel', validate({ body: NoBody }), async (/** @
 });
 
 router.post('/consumer/:userId/reactivate', validate({ body: NoBody }), async (/** @type {import('express').Request<{ userId: string }>} */ req, res) => {
-    const stripeService = require('../../services/stripeService');
+    const stripeService = billingModule('services/stripeService');
     const userId = req.params.userId;
     const sub = await userStore.getConsumerSubscription(userId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });

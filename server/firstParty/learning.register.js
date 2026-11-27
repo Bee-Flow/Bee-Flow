@@ -15,6 +15,8 @@ function register() {
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
         'learning/requireTraining': () => require('../learning/requireTraining'),
         'auth/certificateToken': () => require('../auth/certificateToken'),
+        'learning/certificates': () => require('../learning/certificates'),
+        'learning/progressValidation': () => require('../learning/progressValidation'),
     }));
 }
 

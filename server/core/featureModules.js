@@ -150,6 +150,17 @@ const { assertProviderNotFailed } = require('../modules/firstParty/moduleState')
  *   'stores/dpiaStore': typeof import('../stores/dpiaStore'),
  *   'compliance/kbQueryLogEvidence': typeof import('../compliance/kbQueryLogEvidence'),
  *   'integrations/n8nTools': typeof import('../integrations/n8nTools'),
+ *   'services/stripeService': typeof import('../services/stripeService'),
+ *   'services/trialService': typeof import('../services/trialService'),
+ *   'routes/teamsProviderTest': typeof import('../routes/teamsProviderTest.mts'),
+ *   'core/customIntegrations/featureFlag': typeof import('../core/customIntegrations/featureFlag'),
+ *   'stores/orgCustomIntegrationStore': typeof import('../stores/orgCustomIntegrationStore'),
+ *   'learning/certificates': typeof import('../learning/certificates'),
+ *   'learning/progressValidation': typeof import('../learning/progressValidation'),
+ *   'integrations/n8nTools': typeof import('../integrations/n8nTools'),
+ *   'integrations/n8nHttp': typeof import('../integrations/n8nHttp'),
+ *   'appStudio/mailboxIdentity': typeof import('../appStudio/mailboxIdentity'),
+ *   'stores/githubSyncStore': typeof import('../stores/githubSyncStore'),
  * }} FeatureModuleMap
  */
 

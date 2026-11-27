@@ -283,6 +283,7 @@
         "i18n/defaults/nl/studio_app*.json",
         "migrations/studio-app-*",
         "firstParty/apps{,.*}.{js,json}",
+        "auth/permissionsOrgGates.orgChoice.apps.test.js",
         "core/documents/documentDiscovery.apps.test.js",
         "core/integrations/outlookMailbox.apps.test.js",
         "core/kb/queryLog/channels.apps.pg.test.js",
@@ -625,6 +626,7 @@
         "i18n/defaults/en/teams_setup.js",
         "utils/summaryTemplates.js",
         "firstParty/meetingNotes{,.*}.{js,json}",
+        "auth/oauth/ssoConfigRoutes.microsoftTest.test.js",
         "core/kb/sources/meetingTag.meetingNotes.test.js",
         "routes/studio/search.meetingNotes.test.js",
         "routes/studio/counts.meetingNotes.test.js",
@@ -712,7 +714,8 @@
         "i18n/defaults/en/training.js",
         "migrations/learning-routine-ids-2026-10{,.*}.js",
         "migrations/data/learning-routine-id-map.json",
-        "firstParty/learning{,.*}.{js,json}"
+        "firstParty/learning{,.*}.{js,json}",
+        "auth/permissionsOrgGates.orgChoice.learning.test.js"
       ],
       "agent-hub": [
         "src/components/onboarding/LessonPlayerHost.tsx",
@@ -759,6 +762,7 @@
         "routes/nextcloudTaskProcessing.js",
         "usecases/nextcloudTaskProcessingUsage.js",
         "firstParty/int_nextcloud{,.*}.{js,json}",
+        "auth/sessionShapes.contract.test.js",
         "core/tools/toolDispatcher.ncScope.test.js",
         "core/integrations/integrationTools.ncBinding.test.js",
         "core/integrations/integrationTools.ncCapabilities.test.js"
@@ -857,7 +861,10 @@
         "usecases/ai/config/twobaFields.mts",
         "i18n/defaults/en/twoba.js",
         "i18n/defaults/nl/twoba.json",
-        "firstParty/int_erp_nl{,.*}.{js,json}"
+        "firstParty/int_erp_nl{,.*}.{js,json}",
+        "routes/ai/config/integrations.firebirdTest.test.js",
+        "routes/ai/config/integrations.frappeCrmTest.test.js",
+        "routes/ai/config/integrations.twobaTest.test.js"
       ],
       "agent-hub": [
         "src/pages/settings/{Firebird,FrappeCrm,Nmbrs,Twoba,Vplan}Integration*",
@@ -892,6 +899,7 @@
         "services/testGenerator.js",
         "stores/githubSyncStore.js",
         "firstParty/int_saas{,.*}.{js,json}",
+        "auth/permissionsOrgGates.orgChoice.int_saas.test.js",
         "core/integrations/integrationTools.n8nGrants.test.js",
         "core/integrations/integrationTools.extraApps.test.js",
         "core/integrations/integrationTools.coworkApps.test.js"
@@ -921,7 +929,9 @@
         "stores/lib/customIntegrationSource.js",
         "stores/ddl/org-custom-integrations-2026-06.js",
         "i18n/defaults/en/mcp_library.js",
-        "firstParty/custom_integrations{,.*}.{js,json}"
+        "firstParty/custom_integrations{,.*}.{js,json}",
+        "auth/permissionsOrgGates.orgChoice.custom_integrations.test.js",
+        "core/entitlements/capabilityRegistry.customIntegrations.test.js"
       ],
       "agent-hub": [
         "src/i18n/en/mcp_library.generated.mjs"
@@ -1053,6 +1063,10 @@
       "shared/appDefinition/schemaEnvelope.mjs",
       "stores/voiceprintStore.js",
       "stores/kbSourcesMeetingArm.js",
+      "stores/lib/customIntegrationSource.js",
+      "routes/ai/config/n8nOrg.mts",
+      "usecases/ai/config/n8nKeyPairing.mts",
+      "integrations/mcpRegistryClient.js",
       "core/dataEngine/dataModel/vocabulary.js",
       "core/dataEngine/dataModel/connectorVocabulary.js",
       "shared/appDefinition/schemaVersion.mjs",

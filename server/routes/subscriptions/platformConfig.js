@@ -8,6 +8,7 @@
 const express = require('express');
 const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
+const { billingModule } = require('../../usecases/subscriptions/billingModule');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -97,14 +98,14 @@ router.get('/registries', async (req, res) => {
 
 // GET /api/subscriptions/trial-config — read which plans are offered as trial
 router.get('/trial-config', async (req, res) => {
-    const trialService = require('../../services/trialService');
+    const trialService = billingModule('services/trialService'); // absent module "billing_stripe": 409 module_absent
     res.json(await trialService.getTrialConfig());
 });
 
 // PUT /api/subscriptions/trial-config — pick the default trial plans (org + consumer)
 router.put('/trial-config', validate({ body: TrialConfigBody }), async (req, res) => {
+    const trialService = billingModule('services/trialService'); // before the try: absent is a 409, not a 400
     try {
-        const trialService = require('../../services/trialService');
         const payload = req.body;
 
         // Validate referenced plans exist, are trial-ready, and are the right type

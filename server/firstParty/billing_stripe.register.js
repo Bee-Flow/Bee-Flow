@@ -14,6 +14,8 @@ function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
         'workers/paygDrain': () => require('../workers/paygDrain'),
+        'services/stripeService': () => require('../services/stripeService'),
+        'services/trialService': () => require('../services/trialService'),
     }));
     contribute('boot/lateBoundPorts', () => {
         require('../stores/user/billingPorts')

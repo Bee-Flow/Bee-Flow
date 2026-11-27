@@ -65,10 +65,10 @@ const MOCKS = {
     },
     '../../auth/permissions': { requireActiveOrgForMutations: () => pass, requireAuth: pass },
     '../../utils/perUserRateLimit': { perUserRateLimit: () => pass },
-    // Lazily required inside GET /required. Without a stub it pulls the real
-    // store layer in and every run opens a database connection it cannot use.
-    '../../appStudio/mailboxIdentity': { viewerHasIntegration: async () => false },
 };
+// Looked up by name inside GET /required (module "apps"). Without a stand-in it
+// pulls the real store layer in and every run opens a database connection it cannot use.
+require('../../core/featureModules').registerFeatureModules({ 'appStudio/mailboxIdentity': () => /** @type {any} */ ({ viewerHasIntegration: async () => false }) });
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {

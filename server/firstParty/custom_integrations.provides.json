@@ -1,6 +1,7 @@
 {
   "featureModules": [
     "integrations/customIntegrationRunner",
+    "core/customIntegrations/featureFlag",
     "core/customIntegrations/mcpLibrary/gate",
     "stores/orgCustomIntegrationStore"
   ],

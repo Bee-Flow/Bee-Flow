@@ -1,5 +1,7 @@
 {
   "featureModules": [
-    "workers/paygDrain"
+    "workers/paygDrain",
+    "services/stripeService",
+    "services/trialService"
   ]
 }

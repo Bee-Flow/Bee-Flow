@@ -43,7 +43,10 @@ const { api } = h.routeUnderTest(test, '/ai', () => require('./instanceConfig'),
 /** @type {unknown[][]} */
 let effects = [];
 const configStore = require('../../../stores/configStore');
-const stripeService = require('../../../services/stripeService');
+// The Stripe Tax backfill is asked of the module "billing_stripe" by name: a stand-in under that name, so the
+// golden holds with the module present or absent.
+const featureModules = require('../../../core/featureModules');
+const realStripeGetter = featureModules._featureModuleGetter('services/stripeService');
 const embeddingMigration = require('../../../core/kb/embeddingMigration');
 const swaps = require('../../../testUtils/swaps').makeSwaps();
 /**
@@ -76,9 +79,13 @@ for (const name of /** @type {const} */ (['setConfig', 'setSecret', 'deleteConfi
         return real.apply(configStore, args);
     });
 }
-swaps.swap(stripeService, 'enableAutomaticTaxForExistingSubscriptions', async () => { effects.push(['stripe tax backfill']); return { updated: 2, skipped: 1 }; });
+featureModules.registerFeatureModules({ 'services/stripeService': () => /** @type {any} */ ({ enableAutomaticTaxForExistingSubscriptions: async () => { effects.push(['stripe tax backfill']); return { updated: 2, skipped: 1 }; } }) });
 swaps.swap(embeddingMigration, 'ensureKbEmbeddingsCurrent', (/** @type {unknown} */ o) => { effects.push(['re-embed', o]); });
-test.after(() => swaps.restore());
+test.after(() => {
+    swaps.restore();
+    if (realStripeGetter) featureModules.registerFeatureModules({ 'services/stripeService': realStripeGetter });
+    else featureModules._clearFeatureModulesForTests('services/stripeService');
+});
 
 const TEXT_SETTINGS = [
     'url', 'model', 'apiKey', 'mistralApiKey', 'openaiApiKey', 'claudeApiKey', 'googleApiKey', 'eugptApiKey', 'ionosApiKey',

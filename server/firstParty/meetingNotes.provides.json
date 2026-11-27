@@ -2,7 +2,8 @@
   "featureModules": [
     "stores/transcriptionStore",
     "stores/transcriptCrypto",
-    "routes/transcriptions/shared"
+    "routes/transcriptions/shared",
+    "routes/teamsProviderTest"
   ],
   "runnerPorts": [
     "meetingImports"

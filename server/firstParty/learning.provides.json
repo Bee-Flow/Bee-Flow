@@ -1,6 +1,8 @@
 {
   "featureModules": [
     "learning/requireTraining",
-    "auth/certificateToken"
+    "auth/certificateToken",
+    "learning/certificates",
+    "learning/progressValidation"
   ]
 }

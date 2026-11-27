@@ -47,6 +47,7 @@ function register() {
         // chat turn, tasks, custom integrations, KB
         'integrations/customIntegrationRunner': () => require('../integrations/customIntegrationRunner'),
         'core/customIntegrations/mcpLibrary/gate': () => require('../core/customIntegrations/mcpLibrary/gate'),
+        'core/customIntegrations/featureFlag': () => require('../core/customIntegrations/featureFlag'),
         'stores/orgCustomIntegrationStore': () => require('../stores/orgCustomIntegrationStore'),
     }));
     contribute('integrations/toolFamilies', () => {

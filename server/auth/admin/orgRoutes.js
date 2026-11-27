@@ -538,13 +538,13 @@ router.put('/organizations/:id', requireOrgAdmin('id'), imageLimitsColumnBody('i
         }
         // Keep the org's Stripe Customer (and thus Checkout + Billing Portal)
         // in sync with the billing address/phone/name just saved. Cloud-only,
-        // fire-and-forget, non-fatal: no-op when the org has no Stripe customer.
+        // fire-and-forget, non-fatal: no-op when the org has no Stripe customer or no module "billing_stripe".
         if ((process.env.DEPLOYMENT_MODE || 'cloud') === 'cloud') {
             const billingTouched = ['address', 'billingLine2', 'billingPostalCode', 'billingCity', 'billingCountry', 'phone', 'name', 'email']
                 .some(f => orgUpdates[f] !== undefined);
             if (billingTouched) {
                 setImmediate(() => {
-                    require('../../services/stripeService').pushOrgBillingToStripe(id).catch((e) => bestEffort('orgRoutes:push-billing', e));
+                    require('../../core/featureModules').optionalFeatureModule('services/stripeService')?.pushOrgBillingToStripe(id).catch((e) => bestEffort('orgRoutes:push-billing', e));
                 });
             }
         }

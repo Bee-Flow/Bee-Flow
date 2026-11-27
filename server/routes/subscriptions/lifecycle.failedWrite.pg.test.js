@@ -4,8 +4,8 @@
  * Stripe call that succeeded. When the database refuses that write the route
  * answers an error that asks for a retry (never success), writes no audit row,
  * and the retry, with the database back, ends in the state a first success
- * would have left. Real routers and real stores on PGlite; Stripe is the
- * stripeService object with its calls recorded.
+ * would have left. Real routers and real stores on PGlite; Stripe is a
+ * stand-in for the stripeService, with its calls recorded.
  *
  * Run: cd server && node --test routes/subscriptions/lifecycle.failedWrite.pg.test.js
  */
@@ -23,7 +23,13 @@ const h = require('../../testUtils/routeHarness');
 
 const { pg, close, failWrites } = guardedPglitePool();
 const userStore = require('../../stores/userStore');
-const stripeService = require('../../services/stripeService');
+// The routes ask the module "billing_stripe" for the Stripe service by name: the stand-in is registered
+// under that name, so these tests hold with the module present or absent.
+const featureModules = require('../../core/featureModules');
+const realStripeGetter = featureModules._featureModuleGetter('services/stripeService');
+/** @type {Record<string, any>} */
+const stripeService = {};
+featureModules.registerFeatureModules({ 'services/stripeService': () => /** @type {any} */ (stripeService) });
 const planEntitlements = require('../../core/entitlements/planEntitlements');
 const { swap, restore } = makeSwaps();
 
@@ -55,7 +61,12 @@ before(async () => {
 
     api = h.serve('/', [require('./lifecycle'), require('./plans')]);
 });
-after(async () => { restore(); await api.close(); await close(); });
+after(async () => {
+    restore();
+    if (realStripeGetter) featureModules.registerFeatureModules({ 'services/stripeService': realStripeGetter });
+    else featureModules._clearFeatureModulesForTests('services/stripeService');
+    await api.close(); await close();
+});
 
 const auditActions = async () => (await pg.query('SELECT action FROM subscription_audit_log ORDER BY action')).rows.map((r) => r.action);
 const orgSub = () => userStore.getOrgSubscription('org1');

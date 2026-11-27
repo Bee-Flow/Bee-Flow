@@ -26,6 +26,7 @@ function register() {
         'stores/studioAppData/runPolicy': () => require('../stores/studioAppData/runPolicy.mts'),
         'appStudio/approvalWaits': () => require('../appStudio/approvalWaits.mts'),
         'appStudio/mcpBuilder': () => require('../appStudio/mcpBuilder'),
+        'appStudio/mailboxIdentity': () => require('../appStudio/mailboxIdentity'),
     }));
 }
 

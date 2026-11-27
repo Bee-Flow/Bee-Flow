@@ -336,16 +336,16 @@ async function resolveActiveFeaturesContext(req) {
     // enabled. Self-hosted keeps the org-admin's saved active subset.
     const betaGoverned = betaGovernedBySubscription();
 
-    // Custom integrations (AI Integration Builder) — surface the org's ACTIVE
+    // Custom integrations (AI Integration Builder, module "custom_integrations": absent, none) — the org's ACTIVE
     // custom integrations additively so the panel can render them alongside
     // the catalog. Fail-soft to []; hidden entirely while the dark-ship kill
     // switch is off (the same flag gates every other layer of the feature).
     /** @type {{ id: string, name: string, description: string, category: string }[]} */
     let customIntegrations = [];
     try {
-        const { isCustomIntegrationsEnabled } = require('../../core/customIntegrations/featureFlag');
-        if (await isCustomIntegrationsEnabled()) {
-            const rows = /** @type {Array<{ id: string, name: string, description?: string | null }>} */ (await require('../../stores/orgCustomIntegrationStore').listActiveForOrg(orgId)); // rows read from the table, never null
+        const flag = require('../../core/featureModules').optionalFeatureModule('core/customIntegrations/featureFlag');
+        if (flag && await flag.isCustomIntegrationsEnabled()) {
+            const rows = /** @type {Array<{ id: string, name: string, description?: string | null }>} */ (await require('../../core/featureModules').optionalFeatureModule('stores/orgCustomIntegrationStore')?.listActiveForOrg(orgId) || []); // rows read from the table, never null
             customIntegrations = rows.map(r => ({
                 id: `custom:${r.id}`,
                 name: r.name,
