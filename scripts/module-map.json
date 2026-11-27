@@ -1,5 +1,5 @@
 {
-  "_comment": "The ownership map: which first-party module owns which file, as globs over TREE PATHS (paths relative to the package root: server/ for the core, modules/<id>/<moduleDir>/ for a module). Rules and CLI in scripts/module-map.mjs: `core` exceptions win over module globs; a `!glob` takes files out of that module's own globs; a file may match ONE module only; a file that matches nothing is core; a colocated test, testkit, golden, fixture or .d.ts follows its source unless a glob names it. Check with `node scripts/module-map.mjs --check`.",
+  "_comment": "The ownership map: which first-party module owns which file, as globs over TREE PATHS (paths relative to the package root: server/ or agent-hub/ for the core, modules/<id>/<moduleDir>/ for a module; web client tree paths start with src/). Rules and CLI in scripts/module-map.mjs: `core` exceptions win over module globs; a `!glob` takes files out of that module's own globs; a file may match ONE module only; a file that matches nothing is core; a colocated test, testkit, golden, fixture or .d.ts follows its source unless a glob names it, and in the web client so do x.types.ts, x.helpers.ts, x.constants.ts and x(.module).css. The web client's i18n chunks src/i18n/en/<ns>.generated.mjs have the owner of the server namespace of the same name. Check with `node scripts/module-map.mjs --check`; measure with `--summary --pkg agent-hub`.",
   "packages": {
     "server": {
       "coreDir": "server",
@@ -7,7 +7,14 @@
     },
     "agent-hub": {
       "coreDir": "agent-hub",
-      "moduleDir": "frontend"
+      "moduleDir": "frontend",
+      "imports": {
+        "style": "vite",
+        "alias": {
+          "@/": "src/",
+          "@shared/": "src/shared/"
+        }
+      }
     }
   },
   "modules": {
@@ -44,7 +51,10 @@
         "jobs/datatable*",
         "i18n/defaults/en/datatables.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/admin/Studio/Datatables/**",
+        "src/i18n/en/datatables.generated.mjs"
+      ]
     },
     "automation": {
       "name": "Automations and approvals",
@@ -108,7 +118,48 @@
         "i18n/defaults/en/flatten_node.js",
         "i18n/defaults/en/http_query.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/automation/**",
+        "src/components/admin/Studio/AutomationsStudio/**",
+        "src/components/admin/Studio/Executions/**",
+        "src/components/admin/Studio/Runs/**",
+        "src/components/admin/Studio/Forms/**",
+        "src/components/admin/Studio/Approvals/**",
+        "src/components/forms/**",
+        "src/pages/forms/**",
+        "src/pages/PublicFormPage*",
+        "src/pages/PublicFormNotices.tsx",
+        "src/pages/publicFormSession.ts",
+        "src/pages/useFormResultActions.ts",
+        "src/api/queries/automation/**",
+        "src/api/queries/automationBuilderReads.ts",
+        "src/api/queries/automationForms.ts",
+        "src/api/queries/runFullOutput.ts",
+        "src/api/queries/orgAutomationImageAi.ts",
+        "src/api/dryRun.ts",
+        "src/api/formStyleAssist*",
+        "src/api/formTestLink.ts",
+        "src/api/windmillImport.ts",
+        "src/hooks/automationBuilder/**",
+        "src/hooks/useAutomationApi*",
+        "src/hooks/useAutomationBuilderStream*",
+        "src/hooks/useFlowletAgentStream.ts",
+        "src/hooks/useUpstreamVariables.ts",
+        "src/api/queries/builderLookups.ts",
+        "src/api/queries/builderSessionSnapshot.ts",
+        "src/components/shell/sidebar/useApprovalsNav.ts",
+        "src/components/admin/org/OrgAutomationImageAiEditor*",
+        "src/utils/formRecents*",
+        "src/test/automationDesignerHarness.tsx",
+        "src/test/automationDesignerStubs.tsx",
+        "src/test/builderRunsFixtures.ts",
+        "src/test/builderRunsHarness.ts",
+        "src/test/formRunServer.ts",
+        "src/test/runLogCalls.ts",
+        "src/test/runTransport.ts",
+        "src/demo/fixtures/automations*",
+        "src/i18n/en/{ai_step_checks,approvals,automationAgentBindings,automation_approval_expiry,automation_editor,automation_image_ai,automation_import,automation_run_checks,automation_tables,automation_testing,automation_webhook_log,automation_write_table,automations,code_step,flatten_node,forms,http_query}.generated.mjs"
+      ]
     },
     "cowork": {
       "name": "Cowork",
@@ -140,7 +191,18 @@
         "i18n/defaults/en/cowork*.js",
         "i18n/defaults/nl/cowork*.json"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/cowork/**",
+        "src/api/cowork*",
+        "src/api/queries/cowork*",
+        "src/hooks/useCoworkPlanMaker.ts",
+        "src/hooks/useChatEngine/sse/handlers/cowork.ts",
+        "src/components/admin/security/guardrails/orgShield/parts/CoworkPolicyPanel*",
+        "src/components/admin/security/guardrails/orgShield/parts/CoworkShieldToggle.tsx",
+        "src/components/shell/sidebar/useActiveCoworkCount.ts",
+        "src/api/queries/shellSidebar.ts",
+        "src/i18n/en/{cowork,cowork_desks,cowork_detail,cowork_goals,cowork_habits,cowork_home,cowork_mobile,cowork_needs,cowork_overview,cowork_pages,cowork_panels,cowork_plan,cowork_policy,cowork_proposals,cowork_receipts,cowork_replay,cowork_resolver,cowork_review,cowork_shield,cowork_task,cowork_teamwork,cowork_templates,cowork_trail,cowork_wiring}.generated.mjs"
+      ]
     },
     "apps": {
       "name": "App Studio",
@@ -190,7 +252,29 @@
         "i18n/defaults/en/studio_app*.js",
         "i18n/defaults/nl/studio_app*.json"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/admin/Studio/AppStudio/**",
+        "src/pages/apps/**",
+        "src/shared/appDefinition/**",
+        "src/shared/blockTemplate/**",
+        "src/hooks/appBuilderStream/**",
+        "src/hooks/useAppBuilderStream.ts",
+        "src/api/queries/apps.ts",
+        "src/api/queries/studioApp*",
+        "src/api/queries/publishedStudioApps.ts",
+        "src/api/actionHttp.ts",
+        "src/api/connectorHttp.ts",
+        "src/api/dataBatchClient*",
+        "src/api/studioAssetsApi.ts",
+        "src/api/studioFilesApi.ts",
+        "src/api/turn.ts",
+        "src/appRuntimeHeadless*",
+        "src/appRuntimeScreenshot*",
+        "src/test/app*.ts",
+        "src/test/app*.tsx",
+        "src/demo/fixtures/appStudio*",
+        "src/i18n/en/{app_studio,apps,studio_app_documents,studio_apps_aggregates,studio_apps_aichecks,studio_apps_assets,studio_apps_backdrop,studio_apps_bi,studio_apps_block,studio_apps_box,studio_apps_computed,studio_apps_connectorpost,studio_apps_css,studio_apps_dataread,studio_apps_dataset_params,studio_apps_device,studio_apps_di,studio_apps_dk,studio_apps_durable,studio_apps_dynamic_text,studio_apps_edit,studio_apps_expand,studio_apps_fieldtypes,studio_apps_filtertree,studio_apps_flow_control,studio_apps_flow_parallel,studio_apps_format,studio_apps_h2,studio_apps_h4,studio_apps_h5,studio_apps_hover,studio_apps_insp,studio_apps_layout,studio_apps_lk15,studio_apps_lk16,studio_apps_lk17,studio_apps_lk18,studio_apps_lk20,studio_apps_lk21a,studio_apps_lk22,studio_apps_more_options,studio_apps_paging,studio_apps_panels,studio_apps_plan_design,studio_apps_public,studio_apps_react_block,studio_apps_rowrules,studio_apps_runs,studio_apps_runtime,studio_apps_schedule,studio_apps_schema,studio_apps_sections,studio_apps_server_scope,studio_apps_step_code,studio_apps_step_document,studio_apps_step_fields,studio_apps_step_http,studio_apps_step_sanctions,studio_apps_surfaces,studio_apps_tab,studio_apps_tables,studio_apps_templates_builtin,studio_apps_text,studio_apps_tools,studio_apps_triggers,studio_apps_ui_steps,studio_apps_validate,studio_apps_validation,studio_apps_variables,studio_apps_w3a,studio_apps_w3d}.generated.mjs"
+      ]
     },
     "playbooks": {
       "name": "Playbooks",
@@ -209,7 +293,10 @@
         "stores/playbookStore.js",
         "i18n/defaults/en/playbooks.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/admin/Studio/Playbooks/**",
+        "src/i18n/en/playbooks.generated.mjs"
+      ]
     },
     "compliance": {
       "name": "Compliance",
@@ -252,7 +339,17 @@
         "i18n/defaults/en/dsr_public.js",
         "utils/compliancePdf.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/admin/compliance/**",
+        "src/api/complianceApi*",
+        "src/api/queries/complianceCore.ts",
+        "src/api/queries/complianceReads.ts",
+        "src/pages/DsrRequestPage*",
+        "src/pages/settings/PolicyAcknowledgements.tsx",
+        "src/demo/ComplianceDemo*",
+        "src/demo/fixtures/compliance*",
+        "src/i18n/en/{compliance,compliance_layout,dsr_public}.generated.mjs"
+      ]
     },
     "sanctions": {
       "name": "Sanctions screening",
@@ -269,7 +366,11 @@
         "i18n/defaults/en/sanctions.js",
         "i18n/defaults/nl/sanctions.json"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/integrations/IntegrationsAdminPanel/SanctionsListsSection*",
+        "src/api/queries/sanctionsLists.ts",
+        "src/i18n/en/sanctions.generated.mjs"
+      ]
     },
     "cms": {
       "name": "Website (CMS)",
@@ -305,7 +406,16 @@
         "shared/cmsReact/**",
         "i18n/defaults/en/cms_*.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/marketing/**",
+        "src/components/admin/product-website/**",
+        "src/shared/cmsReact/**",
+        "src/api/queries/cms*",
+        "src/api/queries/publicSite.ts",
+        "src/hooks/useCmsBuilderStream*",
+        "src/utils/cmsPublicRouting*",
+        "src/i18n/en/{cms_blog,cms_redirects,cms_share,cms_site}.generated.mjs"
+      ]
     },
     "webpages": {
       "name": "Web pages",
@@ -342,7 +452,21 @@
         "shared/webpage/**",
         "i18n/defaults/en/webpages.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/webpages/**",
+        "src/pages/webpages/**",
+        "src/pages/WebpagesPage*",
+        "src/shared/webpage/**",
+        "src/api/webpage*",
+        "src/api/queries/webpage*",
+        "src/api/queries/previewToken.ts",
+        "src/hooks/useChatEngine/sse/handlers/webpage.ts",
+        "src/utils/buildWebpagePreview.ts",
+        "src/utils/composeWebpageDocument*",
+        "src/utils/computeWebpageDiff.ts",
+        "src/utils/downloadWebpageZip.ts",
+        "src/i18n/en/webpages.generated.mjs"
+      ]
     },
     "notebooks": {
       "name": "Notebooks",
@@ -368,7 +492,18 @@
         "i18n/defaults/en/notebooks.js",
         "i18n/defaults/nl/notebooks.json"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/pages/documents/notebook/**",
+        "src/pages/documents/notebookRef*",
+        "src/components/chat/WorkspaceNotebook*",
+        "src/api/notebookApi.ts",
+        "src/api/workspaceNotebook.ts",
+        "src/api/queries/notebook*",
+        "src/api/queries/chatNotebookCreate.ts",
+        "src/hooks/useChatEngine/sse/handlers/notebook*",
+        "src/demo/fixtures/notebooks*",
+        "src/i18n/en/notebooks.generated.mjs"
+      ]
     },
     "templates": {
       "name": "Word templates",
@@ -387,7 +522,12 @@
         "stores/templateStore.js",
         "i18n/defaults/en/templates.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/pages/templates/**",
+        "src/pages/TemplatesPage*",
+        "src/api/templatesApi.ts",
+        "src/i18n/en/templates.generated.mjs"
+      ]
     },
     "meetingNotes": {
       "name": "Meeting notes",
@@ -435,7 +575,28 @@
         "i18n/defaults/en/teams_setup.js",
         "utils/summaryTemplates.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/pages/meeting-notes/**",
+        "src/components/meetings/**",
+        "src/components/meeting-picker/**",
+        "src/components/global/MeetingCommandPalette.tsx",
+        "src/components/integrations/IntegrationsAdminPanel/Transcription*",
+        "src/components/integrations/IntegrationsAdminPanel/transcriptionEngines.ts",
+        "src/components/integrations/IntegrationsAdminPanel/useTranscriptionSettings.ts",
+        "src/components/integrations/IntegrationsAdminPanel/{AzureSpeech,Pyannote,Scaleway,Voxtral,Whisperx}Card.tsx",
+        "src/pages/settings/{MeetingNotes,GoogleMeetNotes,OrgMeetingNotes,TeamsMeetingNotes,SummaryTemplates,Voiceprint}Section*",
+        "src/pages/settings/VoiceprintEnrollModal.tsx",
+        "src/pages/settings/voiceprintPassages.ts",
+        "src/api/transcription*",
+        "src/api/queries/meeting*",
+        "src/api/queries/teams*",
+        "src/api/queries/upcomingMeetings.ts",
+        "src/api/queries/settingsOptionalRead.ts",
+        "src/config/meetingNotesConfig.ts",
+        "src/utils/meetingImportJob*",
+        "src/demo/fixtures/meetingNotes*",
+        "src/i18n/en/{meeting_notes,meetings,teams_setup,voiceprint}.generated.mjs"
+      ]
     },
     "support": {
       "name": "Support desk",
@@ -461,7 +622,17 @@
         "services/outboundChatNotifier.js",
         "i18n/defaults/en/support.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/support/**",
+        "src/components/admin/Studio/SupportStudio/**",
+        "src/api/supportInboxApi.ts",
+        "src/api/queries/studioSupport.ts",
+        "src/api/queries/supportInbox.ts",
+        "src/api/queries/supportPanels.ts",
+        "src/pages/settings/HelpSupportSection*",
+        "src/demo/fixtures/support.ts",
+        "src/i18n/en/support.generated.mjs"
+      ]
     },
     "learning": {
       "name": "Learning center",
@@ -480,7 +651,36 @@
         "i18n/defaults/en/learn.js",
         "i18n/defaults/en/training.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/onboarding/LessonPlayerHost.tsx",
+        "src/components/onboarding/actionChecks*",
+        "src/components/onboarding/catalogLockstep.test.ts",
+        "src/components/onboarding/courses.ts",
+        "src/components/onboarding/generated/**",
+        "src/components/onboarding/generatedLessons.test.tsx",
+        "src/components/onboarding/learnMedia*",
+        "src/components/onboarding/learningPaths*",
+        "src/components/onboarding/learningProgress.ts",
+        "src/components/onboarding/lessonGates.test.js",
+        "src/components/onboarding/lessons.ts",
+        "src/components/onboarding/player/**",
+        "src/components/onboarding/reviewEngine*",
+        "src/components/onboarding/stepTypes.ts",
+        "src/components/onboarding/surfaceGates.ts",
+        "src/pages/settings/LearningCenterSection*",
+        "src/pages/settings/learning/**",
+        "src/pages/settings/OrgAcademyPanel.tsx",
+        "src/api/achievements.ts",
+        "src/api/catalogClient.ts",
+        "src/api/exerciseCoach.ts",
+        "src/api/learningPath.ts",
+        "src/api/practiceClient.ts",
+        "src/api/queries/learningCenter.ts",
+        "src/api/queries/learningReads.ts",
+        "src/api/queries/trainingGates.ts",
+        "src/hooks/useTrainingGates.ts",
+        "src/i18n/en/{learn,training}.generated.mjs"
+      ]
     },
     "int_nextcloud": {
       "name": "Nextcloud tools",
@@ -526,7 +726,15 @@
         "routes/integrations/contacts.js",
         "routes/integrations/keep.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/chat/GmailPicker.tsx",
+        "src/components/chat/GoogleDrivePicker.tsx",
+        "src/components/chat/GoogleWorkspacePickerModal.tsx",
+        "src/components/chat/MessageItem/{Calendar,Contacts,Keep}DraftCard.tsx",
+        "src/components/integrations/IntegrationsAdminPanel/GoogleMapsRow*",
+        "src/hooks/useGoogleWorkspacePicker*",
+        "src/lib/googleOAuthPopup*"
+      ]
     },
     "int_microsoft": {
       "name": "Microsoft 365 tools",
@@ -547,7 +755,11 @@
         "routes/integrations/outlook.js",
         "routes/integrations/mailSchemaParts.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/pages/settings/Microsoft365Integration*",
+        "src/api/microsoftOAuthPopup.ts",
+        "src/api/queries/microsoft365.ts"
+      ]
     },
     "int_erp_nl": {
       "name": "Dutch ERP and payroll tools",
@@ -573,7 +785,10 @@
         "i18n/defaults/en/twoba.js",
         "i18n/defaults/nl/twoba.json"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/pages/settings/{Firebird,FrappeCrm,Nmbrs,Twoba,Vplan}Integration*",
+        "src/i18n/en/twoba.generated.mjs"
+      ]
     },
     "int_saas": {
       "name": "SaaS tools",
@@ -603,7 +818,16 @@
         "services/testGenerator.js",
         "stores/githubSyncStore.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/integrations/github/**",
+        "src/api/githubSyncApi.ts",
+        "src/pages/settings/N8nSection*",
+        "src/pages/settings/n8n/**",
+        "src/pages/settings/ScalewayBillingIntegration*",
+        "src/components/chat/GammaPreviewPanel*",
+        "src/components/chat/MessageItem/LinkedInDraftCard.tsx",
+        "src/hooks/useChatEngine/sse/gammaPreview*"
+      ]
     },
     "custom_integrations": {
       "name": "Custom integrations",
@@ -620,7 +844,9 @@
         "stores/ddl/org-custom-integrations-2026-06.js",
         "i18n/defaults/en/mcp_library.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/i18n/en/mcp_library.generated.mjs"
+      ]
     },
     "mcp_server": {
       "name": "Bee Flow MCP server",
@@ -666,7 +892,36 @@
         "i18n/defaults/nl/project_*.json",
         "routes/solutionStages.js"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/projects/**",
+        "src/components/admin/Studio/Solutions/**",
+        "src/AgentHub/ProjectsView*",
+        "src/AgentHub/useProjectChatStart*",
+        "src/api/queries/project*",
+        "src/api/queries/solutionDeployments.ts",
+        "src/api/queries/stageReads.ts",
+        "src/api/queries/studioRemote.ts",
+        "src/api/queries/comments.ts",
+        "src/components/comments/**",
+        "src/api/queries/orgCollab.ts",
+        "src/api/queries/aiParticipation.ts",
+        "src/api/queries/useSetMemberColor.ts",
+        "src/api/queries/useTeamChatMessages.ts",
+        "src/api/stagesApi.ts",
+        "src/api/documentFilingApi*",
+        "src/hooks/useProjectStream*",
+        "src/hooks/useProjectsAvailable*",
+        "src/components/chat/ProjectContextPill*",
+        "src/components/shell/sidebar/ProjectsSection*",
+        "src/components/documents/fill/SaveToProject.tsx",
+        "src/components/documents/fill/projectFillModel*",
+        "src/components/admin/org/OrgCollabEditor*",
+        "src/components/admin/org/OrgAiParticipationEditor*",
+        "src/pages/settings/AiParticipationSection*",
+        "src/authedApp/projectNavigation*",
+        "src/utils/projectRoutes*",
+        "src/i18n/en/{project_activity,project_chat,project_collab,project_content,project_counts,project_home,project_members,project_participation,project_tasks,projects}.generated.mjs"
+      ]
     },
     "billing_stripe": {
       "name": "Stripe billing",
@@ -682,7 +937,11 @@
         "routes/billing.js",
         "usecases/stripe/**"
       ],
-      "agent-hub": []
+      "agent-hub": [
+        "src/components/admin/subscriptions/stripe/**",
+        "src/components/admin/subscriptions/promos/**",
+        "src/components/billing/Invoice*"
+      ]
     }
   },
   "core": {
@@ -708,6 +967,9 @@
       "shared/appDefinition/schemaEnvelope.mjs",
       "stores/voiceprintStore.js",
       "stores/kbSourcesMeetingArm.js"
+    ],
+    "agent-hub": [
+      "src/components/projects/workspace/chat/ime.ts"
     ]
   }
 }

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * The ownership map: which first-party module owns which file of the server (scripts/module-map.json).
+ * The ownership map: which first-party module owns which file of the server and of the web
+ * client (scripts/module-map.json; packages `server` and `agent-hub`).
  *
- * Every file has a TREE PATH, its path relative to its root: `server/` for the core, and
- * `modules/<id>/<moduleDir>/` for a module (see server/moduleRoots.cjs). A file keeps its tree
- * path when it moves, so the map is written over tree paths and stays valid across moves.
+ * Every file has a TREE PATH, its path relative to its root: `server/` or `agent-hub/` for the
+ * core, and `modules/<id>/<moduleDir>/` for a module (`server`, `frontend`; see
+ * server/moduleRoots.cjs). A file keeps its tree path when it moves, so the map is written over
+ * tree paths and stays valid across moves. Web client tree paths start with `src/`.
  *
  * Format rules (scripts/module-map.json):
  *   - `modules.<id>.<package>` is a list of globs over tree paths (`*` within a segment, `**`
@@ -19,63 +21,56 @@
  *     x.<what>.golden.json, x.<what>.fixture.js and x.d.ts next to x.js / x.mts / x.cjs (or next
  *     to a directory x/ with an index file) belong to the owner of x, unless a glob names the
  *     colocated file itself (matches it and not x). The longest existing stem wins:
- *     a.b.test.js follows a.b.js when that exists, else a.js.
+ *     a.b.test.js follows a.b.js when that exists, else a.js. In the web client the same goes
+ *     for .ts/.tsx/.jsx tests, testkits and fixtures next to x.tsx / x.ts / x.jsx, and for the
+ *     split-off parts of one source: x.types.ts, x.helpers.ts(x), x.constants.ts, x.css and
+ *     x.module.css follow x (they carry its name, so they serve it; a part another owner needs
+ *     is named by a glob). Those parts are code, not tests: they count as files and have edges.
  *   - Non-code files (prompts, json, assets, i18n namespace files) are owned like code.
  *   - A file that already sits in `modules/<id>/` is owned by <id>; --check fails when the
  *     globs say otherwise.
  *   - `requires` (hard, no cycle) and `uses` (soft) name other module ids.
+ *   - `packages.<pkg>.imports` says how the scanner resolves that package's specifiers
+ *     (`{ "style": "vite", "alias": { "@/": "src/" } }` for the web client; default: like Node).
  *
  * Loaded with require() by server/modules/roots/rootSet.cjs in core mode
  * (`loadModuleMap().ownerOf('server', treePath)`): node:* only, no top-level await, synchronous.
  *
  *   node scripts/module-map.mjs --check           every file one owner, every glob used, ids and requires sound
+ *                                                 (all packages)
  *   node scripts/module-map.mjs --owner <path>    who owns this file (a tree path, or server/<path>)
  *   node scripts/module-map.mjs --list <id|core>  the files of a module, or of the core
  *   node scripts/module-map.mjs --edges [--from core|<id>] [--to core|<id>] [--json] [--tests]
- *   node scripts/module-map.mjs --summary [--tests]  per module: files, tests, core->module edges,
- *                                                    module->core files, module->module edges
+ *   node scripts/module-map.mjs --summary [--tests]  per module: files, tests, core->module edges
+ *                                                    (all, static, lazy), module->core files,
+ *                                                    module->module edges
+ *   --pkg agent-hub (or --package) picks the web client for --owner, --list, --edges and
+ *   --summary; the default is server.
  * Edges come from scripts/module-map-edges.mjs (run-time only, type-only references excluded);
- * test files are left out unless --tests.
+ * test files are left out unless --tests. In the web client a lazy edge is a chunk boundary
+ * (`import()`, a non-eager `import.meta.glob`); every other edge is static.
  */
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { importEdges } from './module-map-edges.mjs';
+import { globToRegExp, importEdges } from './module-map-edges.mjs';
 import { isEntryPoint } from './entry-point.mjs';
 
-export { importEdges, scanSource } from './module-map-edges.mjs';
+export { globToRegExp, importEdges, scanSource } from './module-map-edges.mjs';
 
 const DEFAULT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const COLOCATED = [/^(.+)\.test\.[cm]?[jt]s$/, /^(.+)\.testkit\.[cm]?[jt]s$/, /^(.+)\.golden\.json$/, /^(.+)\.fixture\.[cm]?[jt]s$/, /^(.+)\.d\.[cm]?ts$/];
-const SOURCE_EXT = ['.js', '.mts', '.cjs', '.mjs', '.cts', '.ts', '.json'];
-
-/**
- * A glob over tree paths as a regular expression.
- * @param {string} glob
- */
-export function globToRegExp(glob) {
-    let re = '';
-    let depth = 0;
-    for (let i = 0; i < glob.length; i++) {
-        const c = glob[i];
-        if (c === '*' && glob[i + 1] === '*') {
-            const slash = glob[i + 2] === '/';
-            re += slash ? '(?:.*/)?' : '.*';
-            i += slash ? 2 : 1;
-        } else if (c === '*') re += '[^/]*';
-        else if (c === '?') re += '[^/]';
-        else if (c === '{') { re += '(?:'; depth++; }
-        else if (c === '}' && depth > 0) { re += ')'; depth--; }
-        else if (c === ',' && depth > 0) re += '|';
-        else re += c.replace(/[.+^$()|[\]\\]/g, '\\$&');
-    }
-    return new RegExp(`^${re}$`);
-}
+const COLOCATED = [/^(.+)\.test\.[cm]?[jt]sx?$/, /^(.+)\.testkit\.[cm]?[jt]sx?$/, /^(.+)\.golden\.json$/, /^(.+)\.fixture\.[cm]?[jt]sx?$/, /^(.+)\.d\.[cm]?ts$/];
+/** Split-off parts of one source in the web client: they follow it, but they are not tests. */
+const FOLLOWERS = [/^(.+)\.(?:types|helpers|constants)\.tsx?$/, /^(.+)\.(?:module\.)?css$/];
+const SOURCE_EXT = ['.js', '.mts', '.cjs', '.mjs', '.cts', '.ts', '.json', '.tsx', '.jsx'];
 
 /** Is a tree path a colocated test, fixture, golden or declaration file? */
 export const isColocated = (treePath) => COLOCATED.some((re) => re.test(path.posix.basename(treePath)));
+
+/** Does a tree path follow the owner of another file (a colocated file or a split-off part)? */
+const follows = (treePath) => isColocated(treePath) || FOLLOWERS.some((re) => re.test(path.posix.basename(treePath)));
 
 /**
  * The possible sources of a colocated file, the longest stem first, the same extension first.
@@ -84,10 +79,10 @@ export const isColocated = (treePath) => COLOCATED.some((re) => re.test(path.pos
 function sourceCandidates(treePath) {
     const dir = path.posix.dirname(treePath);
     const base = path.posix.basename(treePath);
-    const re = COLOCATED.find((r) => r.test(base));
+    const re = [...COLOCATED, ...FOLLOWERS].find((r) => r.test(base));
     if (!re) return [];
     const parts = /** @type {RegExpMatchArray} */ (base.match(re))[1].split('.');
-    const own = (base.match(/\.[cm]?[jt]s$/) || [''])[0].replace(/^\.d/, '');
+    const own = (base.match(/\.[cm]?[jt]sx?$/) || [''])[0].replace(/^\.d/, '');
     const exts = [...new Set([own, ...SOURCE_EXT])].filter(Boolean);
     const out = [];
     for (let n = parts.length; n >= 1; n--) {
@@ -133,7 +128,7 @@ export function compileMap(raw, exists) {
     }
     /** @returns {{ owner: string | null, conflict: string[] | null }} */
     function resolve(pkg, p) {
-        if (!isColocated(p)) return direct(pkg, p);
+        if (!follows(p)) return direct(pkg, p);
         const source = sourceCandidates(p).find((c) => c !== p && exists(pkg, c));
         if (!source) return direct(pkg, p);
         const sourceGlobs = new Set(matching(pkg, source).map(key));
@@ -222,7 +217,7 @@ export function loadModuleMap(repoRoot = DEFAULT_ROOT) {
             const files = this.files(pkg);
             const ownerByPath = new Map(files.map((f) => [f.treePath, f.owner]));
             const scanned = tests ? files : files.filter((f) => !isColocated(f.treePath));
-            return importEdges(scanned).filter((e) => ownerByPath.has(e.to)).map((e) => ({ ...e, fromOwner: ownerByPath.get(e.from) ?? null, toOwner: ownerByPath.get(e.to) ?? null }));
+            return importEdges(scanned, raw.packages[pkg].imports).filter((e) => ownerByPath.has(e.to)).map((e) => ({ ...e, fromOwner: ownerByPath.get(e.from) ?? null, toOwner: ownerByPath.get(e.to) ?? null }));
         },
     };
 }
@@ -298,6 +293,7 @@ export function summarize(map, pkg, opts = {}) {
             files: own.length,
             tests: own.filter((f) => isColocated(f.treePath)).length,
             coreIn: id === 'core' ? 0 : edges.filter((e) => e.fromOwner === null && e.toOwner === id).length,
+            coreInLazy: id === 'core' ? 0 : edges.filter((e) => e.fromOwner === null && e.toOwner === id && e.lazy).length,
             coreFiles: id === 'core' ? 0 : new Set(out.filter((e) => e.toOwner === null).map((e) => e.to)).size,
             declared: out.filter((e) => e.toOwner !== null && deps.has(e.toOwner)).length,
             undeclared: id === 'core' ? 0 : out.filter((e) => e.toOwner !== null && !deps.has(e.toOwner)).length,
@@ -312,21 +308,27 @@ function arg(argv, name) {
 }
 
 function printSummary(rows) {
-    const head = ['module', 'files', 'tests', 'core->mod', 'mod->core files', 'mod->mod declared', 'undeclared'];
-    const lines = [head, ...rows.map((r) => [r.id, r.files, r.tests, r.coreIn, r.coreFiles, r.declared, r.undeclared].map(String))];
+    const head = ['module', 'files', 'tests', 'core->mod', 'static', 'lazy', 'mod->core files', 'mod->mod declared', 'undeclared'];
+    const lines = [head, ...rows.map((r) => [r.id, r.files, r.tests, r.coreIn, r.coreIn - r.coreInLazy, r.coreInLazy, r.coreFiles, r.declared, r.undeclared].map(String))];
     const width = head.map((_, c) => Math.max(...lines.map((l) => l[c].length)));
     for (const l of lines) console.log(l.map((v, c) => (c === 0 ? v.padEnd(width[c]) : v.padStart(width[c]))).join('  '));
-    console.log(`total core->module edges: ${rows.reduce((s, r) => s + r.coreIn, 0)}`);
+    const lazy = rows.reduce((s, r) => s + r.coreInLazy, 0);
+    console.log(`total core->module edges: ${rows.reduce((s, r) => s + r.coreIn, 0)} (static ${rows.reduce((s, r) => s + r.coreIn, 0) - lazy}, lazy ${lazy})`);
 }
 
 function main(argv) {
     const map = loadModuleMap();
-    const pkg = arg(argv, '--package') || 'server';
+    const pkg = arg(argv, '--pkg') || arg(argv, '--package') || 'server';
+    if (!map.raw.packages[pkg]) {
+        console.error(`module-map: unknown package "${pkg}" (known: ${Object.keys(map.raw.packages).join(', ')})`);
+        return 2;
+    }
     const tests = argv.includes('--tests');
     if (argv.includes('--check')) {
         const problems = checkMap(map);
         for (const p of problems) console.error(p);
-        console.log(problems.length ? `module-map: ${problems.length} problem(s)` : `module-map: ok (${map.files(pkg).length} ${pkg} files, ${map.modules().length} modules)`);
+        const counts = Object.keys(map.raw.packages).map((p) => `${map.files(p).length} ${p} files`).join(', ');
+        console.log(problems.length ? `module-map: ${problems.length} problem(s)` : `module-map: ok (${counts}, ${map.modules().length} modules)`);
         return problems.length ? 1 : 0;
     }
     const owner = arg(argv, '--owner');
@@ -353,7 +355,7 @@ function main(argv) {
         printSummary(summarize(map, pkg, { tests }));
         return 0;
     }
-    console.error('usage: node scripts/module-map.mjs --check | --owner <path> | --list <id|core> | --edges [--from x] [--to y] [--json] | --summary');
+    console.error('usage: node scripts/module-map.mjs --check | --owner <path> | --list <id|core> | --edges [--from x] [--to y] [--json] | --summary  [--pkg server|agent-hub]');
     return 2;
 }
 

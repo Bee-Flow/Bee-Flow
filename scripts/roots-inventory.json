@@ -934,14 +934,19 @@
       "what": "the four rules on temp-dir fixtures with a modules/<id>/server root, and the committed budget against the real tree"
     },
     {
+      "file": "scripts/module-map-edges.mjs",
+      "status": "root-aware",
+      "what": "the import scanner of the ownership map: resolves over the tree paths its caller lists (every root); names agent-hub only to read that package's aliases from module-map.json"
+    },
+    {
       "file": "scripts/module-map.json",
       "status": "root-aware",
-      "what": "the ownership map: globs over tree paths, valid in server/ and in modules/<id>/server/"
+      "what": "the ownership map: globs over tree paths, valid in server/, agent-hub/ and in modules/<id>/{server,frontend}/"
     },
     {
       "file": "scripts/module-map.mjs",
       "status": "root-aware",
-      "what": "reads the ownership map over the tracked files of server/ and of the module roots"
+      "what": "reads the ownership map over the tracked files of server/, agent-hub/ and of the module roots"
     },
     {
       "file": "scripts/module-map.test.mjs",
