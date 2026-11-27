@@ -1,0 +1,76 @@
+stores/adoption/kinds.js  (16)
+    webpage_public_shares: 65, 184
+    automations: 98, 116
+    automation_runs: 106, 121
+    automation_form_pages: 116
+    studio_apps: 130
+    studio_app_action_runs: 135
+    datatables: 144
+    webpages: 178
+    webpage_public_share_views: 184
+    transcriptions: 209
+    playbooks: 223
+    cowork_schedules: 248
+    cowork_runs: 252
+core/kb/kbUsage.js  (7)
+    automations: 85
+    studio_apps: 95
+    webpages: 104
+    word_templates: 125
+    support_inboxes: 138, 141, 300
+stores/agent/agentUsage.js  (7)
+    ai_tasks: 86
+    cowork_schedules: 95
+    support_inboxes: 106
+    automations: 118
+    studio_apps: 132
+    webpages: 150, 156
+stores/user/organizations.js  (7)
+    datatable_models: 439, 453
+    automation_datatable_usage: 447
+    datatable_grants: 448
+    datatables: 449, 450
+    automation_folders: 492
+projects/accountContentErasure.js  (5)
+    transcriptions: 40, 54
+    webpages: 91, 95
+    studio_apps: 108
+scripts/research/reseed-fixture-account.js  (4)
+    automations: 192, 200
+    automation_runs: 217, 227
+stores/skill/usage.js  (4)
+    automations: 86, 95, 211, 217
+routes/studio/counts.js  (3)
+    automations: 161
+    transcriptions: 343, 360
+stores/encryptionBackfill.js  (3)
+    transcriptions: 436, 444, 502
+stores/metricsStore.js  (3)
+    automation_runs: 50, 122
+    compliance_settings: 181
+migrations/routine-to-automation-2026-10.js  (2)
+    cowork_schedules: 102
+    playbooks: 161
+routes/studio/search.js  (2)
+    automations: 220
+    transcriptions: 355
+scripts/datatable-orphan-scan.mjs  (2)
+    datatable_models: 35, 45
+stores/agent/agentCrud.js  (2)
+    automation_agent_bindings: 368, 370
+stores/lib/pgAppEngine.js  (2)
+    studio_apps: 130, 153
+stores/user/usersDeleteSteps.js  (2)
+    datatable_models: 345, 352
+migrations/kb-sources-backfill.js  (1)
+    automations: 186
+stores/chatSignalStore.js  (1)
+    compliance_settings: 306
+stores/lib/pgAppEnginePartsTx.js  (1)
+    studio_apps: 54
+stores/lib/sheetCrypto.js  (1)
+    datatables: 131
+stores/user/contentErasure.js  (1)
+    support_threads: 144
+
+21 core files, 76 references
