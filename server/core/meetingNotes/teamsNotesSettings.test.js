@@ -69,11 +69,26 @@ test('resolve: org wins per field, null hands the field back to the user', async
     docs.org_teams_notes_o1 = { autoImport: true, autoRecordConfig: null, language: null, lookbackHours: 500 };
     docs.user_teams_notes_u1 = { autoImport: false, autoRecordConfig: true, language: 'en' };
     assert.deepStrictEqual(await s.resolveTeamsNotesSettings({ orgId: 'o1', userId: 'u1' }), {
-        autoImport: true, autoRecordConfig: true, language: 'en', lookbackHours: 168,
+        autoImport: true, autoRecordConfig: true, language: 'en', lookbackHours: 168, source: 'recording',
     });
     assert.deepStrictEqual(await s.resolveTeamsNotesSettings({ userId: 'nobody' }), {
-        autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24,
+        autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24, source: 'recording',
     });
+});
+
+test('source: the choice of the organisation wins, "no opinion" follows the member, anything else is the recording', async () => {
+    docs.org_teams_notes_o5 = { source: 'transcript' };
+    docs.user_teams_notes_u5 = { source: 'recording' };
+    assert.strictEqual((await s.resolveTeamsNotesSettings({ orgId: 'o5', userId: 'u5' })).source, 'transcript');
+    docs.org_teams_notes_o5 = { source: null };
+    docs.user_teams_notes_u5 = { source: 'transcript' };
+    assert.strictEqual((await s.resolveTeamsNotesSettings({ orgId: 'o5', userId: 'u5' })).source, 'transcript');
+    docs.user_teams_notes_u5 = { source: 'something else' };
+    assert.strictEqual((await s.resolveTeamsNotesSettings({ orgId: 'o5', userId: 'u5' })).source, 'recording');
+    assert.strictEqual((await s.saveOrgSettings('o5', { source: 'transcript' }, 'admin')).source, 'transcript');
+    assert.strictEqual((await s.saveOrgSettings('o5', { autoImport: true }, 'admin')).source, null, 'left out by the org panel: handed back to the members');
+    assert.strictEqual((await s.saveUserSettings('u5', { source: 'bogus' })).source, 'recording');
+    assert.strictEqual((await s.getOrgSettings('never-saved')).source, null);
 });
 
 test('save keeps an explicit null and coerces the rest', async () => {
@@ -92,7 +107,7 @@ test('REGRESSION: saving the org panel only to switch auto-record on keeps membe
         [null, null, null, null], 'an unset org field is "no opinion", not the default');
     await s.saveOrgSettings('o7', { ...JSON.parse(JSON.stringify(loaded)), autoRecordConfig: true }, 'admin');
     const eff = await s.resolveTeamsNotesSettings({ orgId: 'o7', userId: 'u7' });
-    assert.deepStrictEqual(eff, { autoImport: true, autoRecordConfig: true, language: 'en', lookbackHours: 72 });
+    assert.deepStrictEqual(eff, { autoImport: true, autoRecordConfig: true, language: 'en', lookbackHours: 72, source: 'recording' });
 });
 
 test('a partial org body stores no opinion for the fields it leaves out', async () => {

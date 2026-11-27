@@ -13,7 +13,7 @@ import {
 import { errorMessage, messageOf } from '../../utils/caughtError';
 import TeamsConnectionTest from '@/components/meetings/teamsSetup/TeamsConnectionTest';
 
-const DEFAULT_CFG: TeamsNotesSettings = { autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 };
+const DEFAULT_CFG: TeamsNotesSettings = { source: 'recording', autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 };
 
 /** The organisation imports this person's Teams meetings itself (organisation-wide import). */
 function OrgImportNotice() {
@@ -142,6 +142,18 @@ export default function TeamsMeetingNotesSection() {
                                 disabled={busy || !connection.hasMeetingWriteScope}
                                 ariaLabel={t('settings.teams_notes_auto_record', 'Also switch on Teams recording for meetings I organise')}
                             />
+                        </Row>
+                        <Row title={t('teams_setup.source.label')} desc={t('teams_setup.source.hint')}>
+                            <select
+                                value={cfg.source === 'transcript' ? 'transcript' : 'recording'}
+                                onChange={(e) => setCfg((c) => ({ ...c, source: e.target.value === 'transcript' ? 'transcript' : 'recording' }))}
+                                disabled={busy}
+                                aria-label={t('teams_setup.source.label')}
+                                className="w-56 px-3 py-1.5 rounded-lg border outline-none text-[13px] bg-[var(--bg-primary)] border-[var(--border-default)] text-[var(--text-primary)]"
+                            >
+                                <option value="recording">{t('teams_setup.source.recording')}</option>
+                                <option value="transcript">{t('teams_setup.source.transcript')}</option>
+                            </select>
                         </Row>
                         <Row
                             title={t('settings.teams_notes_language', 'Default language')}

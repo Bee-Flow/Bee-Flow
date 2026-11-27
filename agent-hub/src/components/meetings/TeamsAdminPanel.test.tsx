@@ -64,20 +64,51 @@ describe('TeamsAdminPanel', () => {
         vi.stubGlobal('fetch', fetchMock);
     });
 
+    it('lets the organisation choose where the text comes from, and saves the choice', async () => {
+        const user = userEvent.setup();
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} showSetup={false} />);
+        const source = screen.getByRole('combobox', { name: 'Where the text comes from' }) as HTMLSelectElement;
+        expect(within(source).getByRole('option', { name: 'Each member decides' })).toBeTruthy();
+        expect(within(source).getByRole('option', { name: 'Bee Flow transcribes the recording' })).toBeTruthy();
+        // What the Teams transcript costs and needs is said the moment it is chosen, not before.
+        expect(screen.queryByTestId('teams-source-transcript-note')).toBeNull();
+        await user.selectOptions(source, 'The Teams transcript');
+        expect(screen.getByTestId('teams-source-transcript-note').textContent).toMatch(/no transcription cost, but the note has no audio/);
+        await user.click(orgSave());
+        expect(state.save.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ source: 'transcript', autoRecordConfig: true }));
+    });
+
+    it('an organisation that never chose a source hands it to the members', async () => {
+        state.query = { isLoading: false, data: NEVER_SAVED };
+        const user = userEvent.setup();
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} showSetup={false} />);
+        expect((screen.getByRole('combobox', { name: 'Where the text comes from' }) as HTMLSelectElement).selectedOptions[0].textContent).toBe('Each member decides');
+        await user.click(orgSave());
+        expect(state.save.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ source: null }));
+    });
+
     it('renders nothing without an organisation', () => {
         const { container } = renderWithClient(<TeamsAdminPanel user={{ organizationId: null }} />);
         expect(container.innerHTML).toBe('');
     });
 
-    it('names the admin consent the Teams permissions need, and who grants it', () => {
-        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} />);
-        expect(screen.getByText(/An Entra administrator must grant admin consent for OnlineMeetingRecording\.Read\.All and OnlineMeetingTranscript\.Read\.All/)).toBeTruthy();
+    it('says in plain words what the settings are about, and leaves Microsoft\'s terms to the setup', () => {
+        renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} showSetup={false} />);
+        expect(screen.getByText(/What Bee Flow does with the recorded Teams meetings that members organise, and where the text of a note comes from\./)).toBeTruthy();
+        expect(screen.queryByText(/OnlineMeetingRecording\.Read\.All/)).toBeNull();
         expect(state.orgIds).toContain('orgA');
     });
 
-    it('mounts the setup guide, the consent link, the connection test and the members overview', async () => {
+    it('mounts what a member needs, the setup guide, the consent link, the connection test and the members overview', async () => {
         renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} />);
+        expect(within(screen.getByTestId('teams-how-it-works')).getByText(/Microsoft does not do the transcription/)).toBeTruthy();
+        expect(screen.getByTestId('teams-transcript-setup')).toBeTruthy();
+        expect(within(screen.getByTestId('teams-requirements')).getByRole('heading', { name: 'What a member needs' })).toBeTruthy();
         expect(screen.getByTestId('teams-setup-guide')).toBeTruthy();
+        // Each way's own action sits inside its card.
+        expect(within(screen.getByTestId('teams-setup-option-a')).getByTestId('teams-consent-link')).toBeTruthy();
+        expect(within(screen.getByTestId('teams-setup-option-b')).getByTestId('teams-app-import')).toBeTruthy();
+        expect(screen.getByRole('heading', { name: 'Check that it works' })).toBeTruthy();
         expect(within(screen.getByTestId('teams-consent-link')).getByRole('button', { name: 'Make the link' })).toBeTruthy();
         expect(within(screen.getByTestId('teams-connection-test')).getByRole('button', { name: 'Test my connection' })).toBeTruthy();
         expect(await within(screen.getByTestId('teams-members-overview')).findByText('Member One')).toBeTruthy();
@@ -94,7 +125,7 @@ describe('TeamsAdminPanel', () => {
         expect(state.orgIds).toContain('orgB');
         expect(screen.getByRole('combobox', { name: 'Default language' })).toBeTruthy();
         expect(screen.getByTestId('admin-home-org-only')).toBeTruthy();
-        for (const id of ['teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview']) {
+        for (const id of ['teams-how-it-works', 'teams-transcript-setup', 'teams-requirements', 'teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview']) {
             expect(screen.queryByTestId(id)).toBeNull();
         }
         // Nothing about the session organisation is fetched under the other organisation's name.
@@ -110,7 +141,7 @@ describe('TeamsAdminPanel', () => {
     it('leaves the setup parts to the Microsoft 365 page when told to (the admin dashboard)', () => {
         renderWithClient(<TeamsAdminPanel user={{ organizationId: 'orgA' }} orgId="orgA" showSetup={false} />);
         expect(screen.getByRole('combobox', { name: 'Default language' })).toBeTruthy();
-        for (const id of ['teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview', 'admin-home-org-only']) {
+        for (const id of ['teams-how-it-works', 'teams-transcript-setup', 'teams-requirements', 'teams-setup-guide', 'teams-consent-link', 'teams-connection-test', 'teams-app-import', 'teams-members-overview', 'admin-home-org-only']) {
             expect(screen.queryByTestId(id)).toBeNull();
         }
         expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/teams-setup'))).toBe(false);

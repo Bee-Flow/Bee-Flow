@@ -17,7 +17,12 @@ export interface TeamsConnection {
     needsReauth: boolean;
 }
 
+/** Where the text of a note comes from: Bee Flow transcribes the recording, or the transcript Teams made. */
+type TeamsTextSource = 'recording' | 'transcript';
+
 export interface TeamsNotesSettings {
+    /** The other source is the way back when the chosen one is missing. Absent from an older server: the recording. */
+    source?: TeamsTextSource | null;
     autoImport: boolean | null;
     autoRecordConfig: boolean | null;
     language: string | null;

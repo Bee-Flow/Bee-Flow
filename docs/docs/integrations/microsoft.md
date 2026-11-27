@@ -102,11 +102,14 @@ The Teams meetings you **organise** become Meeting Notes: transcript, summary an
 1. **Outlook calendar** (`/me/calendarView`): upcoming and recently ended events with a Teams link appear in **Meeting Notes → Upcoming**, next to Nextcloud Talk and Google Meet.
 2. **onlineMeetings**: after the meeting, Bee Flow looks the meeting up by its join link (`/me/onlineMeetings?$filter=JoinWebUrl eq '…'`) and lists its recordings.
 3. **Recording download**: the MP4 is streamed to disk, the audio track is extracted and the video deleted at once. The audio goes through your configured transcription engine, diarisation and speaker naming (calendar attendees anchor the names), exactly like an upload.
-4. **Transcript fallback**: a meeting that was transcribed but not recorded is imported from its Teams transcript (WebVTT) with the speakers' Teams names. Such a note has no audio.
+4. **Teams transcript**: a meeting that was transcribed but not recorded is imported from its Teams transcript (WebVTT) with the speakers' Teams names. Such a note has no audio. An organisation or member can also make the Teams transcript the source for every meeting, so Bee Flow does no transcription: see [Who turns speech into text](./teams-meeting-notes.md#who-turns-speech-into-text).
 
 Microsoft's own Copilot meeting summaries are never used.
 
 ### Requirements
+
+Everything one member needs, in Bee Flow and in Microsoft 365 (plan, access, Teams licence,
+OneDrive), is listed under [What each member needs](./teams-meeting-notes.md#what-each-member-needs).
 
 | Requirement | Detail |
 |---|---|

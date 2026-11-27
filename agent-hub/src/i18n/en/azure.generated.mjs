@@ -139,7 +139,6 @@ export default {
     "azure.group_sync_platform_managed": "The directory connection itself is managed by the platform administrator.",
     "azure.group_sync_not_connected": "The platform administrator has not connected a directory to this organisation yet, so there is nothing to sync.",
     "azure.m365_teams_setup_title": "Teams meeting notes setup",
-    "azure.m365_teams_setup_desc": "Admin consent for the Teams permissions, a test of your own connection, organisation-wide import and which members are ready. The meeting-notes settings themselves are on the Meeting notes page.",
     "azure.cs_title": "Azure AI Content Safety",
     "azure.cs_section_desc": "Moderate AI outputs using Azure Content Safety to detect harmful content across categories.",
     "azure.content_safety_title": "Azure AI Content Safety",

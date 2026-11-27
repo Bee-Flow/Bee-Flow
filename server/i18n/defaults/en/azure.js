@@ -154,7 +154,6 @@ module.exports = {
     'azure.group_sync_not_connected': 'The platform administrator has not connected a directory to this organisation yet, so there is nothing to sync.',
     // Admin > Connections > Microsoft 365 (Microsoft365Panel): the Teams meeting-notes setup of the own organisation
     'azure.m365_teams_setup_title': 'Teams meeting notes setup',
-    'azure.m365_teams_setup_desc': 'Admin consent for the Teams permissions, a test of your own connection, organisation-wide import and which members are ready. The meeting-notes settings themselves are on the Meeting notes page.',
 
     // Azure → Content Safety Section
     'azure.cs_title': 'Azure AI Content Safety',

@@ -11,8 +11,10 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
 
-const { NL_TRANSLATIONS, SAME_AS_ENGLISH, applyNl } = require('./add-nl-teams-setup-2026-11-translations');
+const { NL_TRANSLATIONS, SAME_AS_ENGLISH, DATA_SHA256, applyNl } = require('./add-nl-teams-setup-2026-11-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 const { NL_TRANSLATIONS: BOOT_LIST } = require('../boot/bootMigrations');
 
@@ -47,6 +49,14 @@ test('no other add-nl catalogue seeds a teams_setup key: one key, one owner', ()
         for (const k of Object.keys(table)) if (k.startsWith('teams_setup.')) clashes.push(`${f}: ${k}`);
     }
     assert.deepStrictEqual(clashes, []);
+});
+
+test('the pinned data hash matches the data file, so a data change re-runs the migration', () => {
+    const actual = crypto.createHash('sha256')
+        .update(fs.readFileSync(path.join(__dirname, 'data', 'teams-setup-2026-11-nl.json')))
+        .digest('hex');
+    assert.strictEqual(DATA_SHA256, actual,
+        'data/teams-setup-2026-11-nl.json changed: set DATA_SHA256 in add-nl-teams-setup-2026-11-translations.js to ' + actual);
 });
 
 test('it runs at boot', () => {

@@ -173,7 +173,7 @@ describe('TeamsAppImportPanel', () => {
         // they switch it on themselves.
         serve({ state: appState({ settings: { enabled: true } }), autoImport: null });
         const { unmount } = renderWithClient(<TeamsAppImportPanel />);
-        expect(await screen.findByText(/Automatic import is not switched on for everyone\. Covered members who did not connect get nothing imported unless they switch it on in their own settings/)).toBeTruthy();
+        expect(await screen.findByText(/Automatic import is not switched on for everyone\. Covered members who did not connect get nothing imported unless they switch it on in their own settings\. Switch it on for everyone in the Microsoft Teams settings of Meeting notes\./)).toBeTruthy();
         unmount();
         serve({ state: appState({ settings: { enabled: true } }), autoImport: true });
         renderWithClient(<TeamsAppImportPanel />);

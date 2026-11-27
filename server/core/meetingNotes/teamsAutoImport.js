@@ -60,6 +60,8 @@ const { deps: d, init } = lazyDeps({
     listTranscripts: () => require('./teamsArtifacts').listTranscripts,
     pickArtifactForSlot: () => require('./teamsArtifacts').pickArtifactForSlot,
     artifactsForSlot: () => require('./teamsArtifacts').artifactsForSlot,
+    /** chooseArtifact and transcriptUnusable: which artifact becomes the note */
+    artifactChoice: () => require('./teamsArtifactChoice.mts'),
     graphUserBase: () => require('./teamsArtifacts').graphUserBase,
     ingestTeamsMeeting: () => require('./ingestTeamsRecording').ingestTeamsMeeting,
     appImport: () => require('./teamsAppImport/appToken.mts'),
@@ -203,40 +205,20 @@ async function fetchEventAttendees(session, job) {
 }
 
 /**
- * The artifact to ingest for this occurrence: its recording, else (when the
- * transcript scope was granted) its transcript, else null. Transcript access
- * switched off by the tenant counts as "no transcript", not as a failure.
- * `extraRecordings` counts the OTHER artifacts of the same occurrence (a
- * recording stopped and restarted makes one per part), so the note can say it
- * covers only one of them.
- * @returns {Promise<{ kind: 'recording'|'transcript', id: string, extraRecordings?: number }|null>}
+ * The artifact to ingest for this occurrence, by the chosen text source
+ * (teamsArtifactChoice.mts): the recording or the Teams transcript, with the
+ * other one as the way back; null when there is none yet.
+ * @param {unknown} session
  * @param {string} meetingId
+ * @param {{ meetingStart?: string | Date | null, meetingEnd?: string | Date | null }} job
+ * @param {{ transcriptAllowed: boolean, source?: 'recording' | 'transcript', wait?: boolean }} opts
+ * @returns {Promise<import('./teamsArtifactChoice.mts').ChosenArtifact | null>}
  */
-async function findArtifact(session, meetingId, job, { transcriptAllowed }) {
-    const slot = { meetingStart: job.meetingStart, meetingEnd: job.meetingEnd };
-    const recordings = await d.listRecordings(session, meetingId);
-    const recording = d.pickArtifactForSlot(recordings, slot);
-    if (recording?.id) return withExtras({ kind: 'recording', id: recording.id }, recordings, slot);
-    if (!transcriptAllowed) return null;
-    try {
-        const transcripts = await d.listTranscripts(session, meetingId);
-        const transcript = d.pickArtifactForSlot(transcripts, slot);
-        if (transcript?.id) return withExtras({ kind: 'transcript', id: transcript.id }, transcripts, slot);
-    } catch (err) {
-        if (err?.code !== 'transcript_access_disabled') throw err;
-    }
-    return null;
-}
-
-/**
- * The picked artifact, plus how many others of `items` fall in this occurrence's window.
- * @param {{ kind: 'recording' | 'transcript', id: string }} artifact
- * @param {any[]} items
- * @param {{ meetingStart?: string | null, meetingEnd?: string | null }} slot
- */
-function withExtras(artifact, items, slot) {
-    const extra = d.artifactsForSlot(items, slot).filter((/** @type {{ id?: string }} */ a) => a?.id && a.id !== artifact.id).length;
-    return extra > 0 ? { ...artifact, extraRecordings: extra } : artifact;
+function findArtifact(session, meetingId, job, { transcriptAllowed, source = 'recording', wait = true }) {
+    return d.artifactChoice.chooseArtifact(d, {
+        session, meetingId, source, transcriptAllowed, wait,
+        slot: { meetingStart: job.meetingStart, meetingEnd: job.meetingEnd },
+    });
 }
 
 // Always throws: classified codes freeze the job; anything else retries up to
@@ -268,7 +250,7 @@ async function processJobInline({ job, session, settings = null, language = null
     const effective = settings || await d.resolveTeamsNotesSettings({ orgId: job.orgId, userId: job.userId });
 
     let meetingId = job.onlineMeetingId;
-    /** @type {{ kind: 'recording' | 'transcript'; id: string; extraRecordings?: number } | null} */
+    /** @type {import('./teamsArtifactChoice.mts').ChosenArtifact | null} */
     let artifact;
     try {
         if (!meetingId) {
@@ -280,7 +262,7 @@ async function processJobInline({ job, session, settings = null, language = null
             meetingId = meeting.id;
             await d.teamsImportStore.updateJob(job.id, { onlineMeetingId: meetingId });
         }
-        artifact = await findArtifact(session, meetingId, job, { transcriptAllowed });
+        artifact = await findArtifact(session, meetingId, job, { transcriptAllowed, source: effective.source, wait: !manual });
     } catch (err) {
         // The Graph client signals a session it could not use (no token, a
         // refresh Microsoft refused) with a bare NOT_CONNECTED: that is a
@@ -315,6 +297,35 @@ async function processJobInline({ job, session, settings = null, language = null
     }
 
     const attendees = await fetchEventAttendees(session, job);
+    const found = artifact;
+    /** @param {import('./teamsArtifactChoice.mts').ChosenArtifact} chosen */
+    const ingest = (chosen) => d.ingestTeamsMeeting({
+        userId: job.userId,
+        session,
+        orgId: job.orgId,
+        meetingId,
+        artifact: chosen,
+        title: job.title,
+        meetingStart: job.meetingStart,
+        language: language || job.requestedLanguage || effective.language,
+        contextTerms: contextTerms || job.contextTerms || '',
+        attendees,
+        accessCtx,
+    });
+    // A Teams transcript that cannot be used (access or speaker names switched
+    // off in the tenant, or no speech in it) is answered with the recording
+    // when the meeting has one: the note comes, from the other source.
+    const ingestWithWayBack = async () => {
+        try {
+            return await ingest(found);
+        } catch (err) {
+            if (found.kind !== 'transcript' || !d.artifactChoice.transcriptUnusable(err)) throw err;
+            const recording = await findArtifact(session, meetingId, job, { transcriptAllowed: false, source: 'recording' });
+            if (!recording) throw err;
+            log.warn(`[TeamsAutoImport] job ${job.id}: the Teams transcript cannot be used (${err.code}), using the recording`);
+            return ingest(recording);
+        }
+    };
 
     let saved;
     try {
@@ -323,19 +334,7 @@ async function processJobInline({ job, session, settings = null, language = null
         // another replica starts the same meeting again mid-ingest.
         saved = await kit.withLeaseHeartbeat({
             store: d.teamsImportStore, jobId: job.id, leaseMinutes: INGEST_LEASE_MINUTES, label: 'TeamsAutoImport',
-            work: () => d.ingestTeamsMeeting({
-                userId: job.userId,
-                session,
-                orgId: job.orgId,
-                meetingId,
-                artifact,
-                title: job.title,
-                meetingStart: job.meetingStart,
-                language: language || job.requestedLanguage || effective.language,
-                contextTerms: contextTerms || job.contextTerms || '',
-                attendees,
-                accessCtx,
-            }),
+            work: ingestWithWayBack,
         });
     } catch (err) {
         return failIngest(job, err, { manual: manual || await requestedDuringRun(d.teamsImportStore, job) });

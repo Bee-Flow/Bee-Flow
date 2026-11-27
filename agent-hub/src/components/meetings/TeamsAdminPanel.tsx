@@ -21,15 +21,14 @@ import { ALERT_ERROR } from '@/components/shared/adminUi';
  * setting; a field on "Each member decides" is sent as null, the only way to
  * hand it back (the server coerces a field left out of the body).
  *
- * What the admin needs to know is said here, not discovered later: the app
- * registration needs admin consent for the Teams permissions, and only the
- * organizer of a meeting can import it. The setup cards (guide, consent link,
- * connection test, organisation-wide import, members overview:
- * teamsSetup/TeamsSetupCards) follow below unless `showSetup` is false: the
- * admin dashboard draws them on its Microsoft 365 row instead.
+ * These are the choices about what happens with the meetings. What a member
+ * needs, the two ways Bee Flow can reach the meetings, the test and who is
+ * ready are the setup cards (teamsSetup/TeamsSetupCards): they follow below
+ * unless `showSetup` is false, because the admin dashboard draws them on its
+ * Microsoft 365 row instead.
  */
-const INHERITABLE = ['autoImport', 'autoRecordConfig', 'language', 'lookbackHours'] as const;
-const DEFAULT_CFG: TeamsNotesSettings = { autoImport: null, autoRecordConfig: null, language: null, lookbackHours: null };
+const INHERITABLE = ['source', 'autoImport', 'autoRecordConfig', 'language', 'lookbackHours'] as const;
+const DEFAULT_CFG: TeamsNotesSettings = { source: null, autoImport: null, autoRecordConfig: null, language: null, lookbackHours: null };
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -73,11 +72,26 @@ export default function TeamsAdminPanel({ user, orgId: orgIdProp, showSetup = tr
         <div className="flex flex-col gap-6">
             <SettingsGroup
                 title={t('meetings.admin_sources.teams_title', 'Microsoft Teams')}
-                description={t('teams_setup.ui.admin_intro')}
+                description={t('teams_setup.ui.settings_intro')}
             >
                 <InheritHint />
                 <LoadingState loading={query.isLoading} error={query.isError ? true : null} errorFallback={() => <OrgSettingsLoadError />}>
                     <SettingsList>
+                        <SettingRow
+                            label={t('teams_setup.source.label')}
+                            hint={t('teams_setup.source.hint')}
+                            expanded={cfg.source === 'transcript' ? <p className="m-0 text-xs text-[var(--text-secondary)]" data-testid="teams-source-transcript-note">{t('teams_setup.source.transcript_note')}</p> : undefined}
+                        >
+                            <InheritSelect
+                                ariaLabel={t('teams_setup.source.label')}
+                                value={cfg.source ?? null} disabled={busy}
+                                onChange={(v) => setCfg((c) => ({ ...c, source: v === 'transcript' || v === 'recording' ? v : null }))}
+                                options={[
+                                    { value: 'recording', label: t('teams_setup.source.recording') },
+                                    { value: 'transcript', label: t('teams_setup.source.transcript') },
+                                ]}
+                            />
+                        </SettingRow>
                         <SettingRow
                             label={t('settings.teams_admin_auto_import', 'Auto-import recorded Teams meetings')}
                             hint={t('settings.teams_admin_auto_import_desc', 'When a Teams meeting a member organised has a recording, create a Meeting Note automatically. Meetings organised by someone outside Bee Flow are not imported.')}

@@ -1577,6 +1577,7 @@ No request schema.
 | `autoRecordConfig` | boolean or null |  |  |
 | `language` | string or null |  |  |
 | `lookbackHours` | number or null |  |  |
+| `source` | one of `"recording"`, `"transcript"` or null |  |  |
 | `updatedAt` | string or null |  |  |
 | `updatedBy` | string or null |  |  |
 
@@ -1598,6 +1599,7 @@ No request schema.
 | `autoRecordConfig` | boolean or null |  |  |
 | `language` | string or null |  |  |
 | `lookbackHours` | number or null |  |  |
+| `source` | one of `"recording"`, `"transcript"` or null |  |  |
 | `updatedAt` | string or null |  |  |
 | `updatedBy` | string or null |  |  |
 

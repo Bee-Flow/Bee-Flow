@@ -4,8 +4,9 @@
 //   Identities and directory  the platform admin's: pending identity links and
 //                           which organisation the directory syncs into
 //                           (security/MicrosoftIdentityPanel; server-wide routes)
-//   Teams meeting notes setup  admin consent, connection test, organisation-wide
-//                           import and the members overview, for the viewer's
+//   Teams meeting notes setup  what a member needs, the two ways to reach the
+//                           meetings (approval link, organisation-wide import),
+//                           a connection test and who is ready, for the viewer's
 //                           own organisation only (the routes take none), when
 //                           the organisation has Meeting Notes and Microsoft
 // The instance-wide Azure services (OpenAI, chat tiers, document processing,
@@ -78,7 +79,7 @@ export default function Microsoft365Panel({ user, orgId: orgIdProp }: Microsoft3
             {teamsSetup && (
                 <SettingsGroup
                     title={t('azure.m365_teams_setup_title', 'Teams meeting notes setup')}
-                    description={t('azure.m365_teams_setup_desc', 'Admin consent for the Teams permissions, a test of your own connection, organisation-wide import and which members are ready. The meeting-notes settings themselves are on the Meeting notes page.')}
+                    description={t('teams_setup.ui.setup_group_desc')}
                 >
                     <TeamsSetupCards homeOrg={homeOrg} />
                 </SettingsGroup>

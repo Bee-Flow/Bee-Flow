@@ -11,27 +11,118 @@ transcription and summary pipeline. No bot joins the call. How the import works 
 is described on the [Microsoft 365 page](./microsoft.md#microsoft-teams-meeting-notes); this page is
 about getting there and about the tests that tell you what is still missing.
 
-Meeting Notes needs a licence that includes the `meeting_notes` feature (see
-[Licensing](../licensing/tiers.md)), and the Meeting Notes module switched on.
+## Who turns speech into text
+
+Bee Flow or Teams: you choose. The setup page says the same under **How a meeting becomes a note,
+and who turns speech into text**, and marks the source your organisation uses.
+
+1. **Teams records the meeting.** Someone presses record in Teams, or Bee Flow sets the meeting to
+   record automatically when that setting is on. When transcription is allowed in Teams, Teams
+   makes a transcript along with the recording. No bot joins the call.
+2. **The text is made in one of two ways**, set under **Where the text comes from** (Admin
+   dashboard, AI & agents, Meeting notes, Microsoft Teams; members have the same setting under
+   Settings, Preferences, and the organisation's choice wins):
+
+   | | Bee Flow transcribes the recording (default) | The Teams transcript |
+   |---|---|---|
+   | Who makes the text | Bee Flow, with the transcription service chosen under Admin dashboard, Platform services, Transcription | Microsoft Teams, during the meeting |
+   | Transcription cost in Bee Flow | Yes | None |
+   | Speakers | Bee Flow's own speaker recognition, anchored on the calendar attendees | The names Teams knows |
+   | Audio in the note | Yes | No |
+   | Needs in Teams | Recording allowed | Transcription allowed, plus the two transcript switches ([Using the Teams transcript](#using-the-teams-transcript)) |
+
+3. **Bee Flow writes the note.** The summary and the action items come from your own AI models.
+   Microsoft Copilot is not used.
+
+The other source is the way back, so a note still comes:
+
+- With the recording as the source, a meeting that was transcribed but not recorded is imported
+  from its Teams transcript.
+- With the Teams transcript as the source, a meeting without a transcript is imported from its
+  recording. Teams publishes a transcript shortly after the meeting, so a recording first waits
+  for it: until `TEAMS_TRANSCRIPT_WAIT_MINUTES` after the meeting ended (default 30). An import a
+  member starts by hand does not wait. A transcript that cannot be used (transcript access or
+  speaker names switched off, or no speech in it) is answered with the recording too.
+
+### Using the Teams transcript
+
+The simplest route to run: nobody starts anything by hand, and Bee Flow does no transcription.
+
+1. Choose **The Teams transcript** under **Where the text comes from**.
+2. Have your Teams administrator run these once, in Teams PowerShell (the setup page has them ready
+   to copy under **Using the Teams transcript: what to switch on**):
+
+   ```powershell
+   Set-CsTeamsMeetingPolicy -Identity Global -AllowTranscription $true
+   Set-CsTeamsMeetingConfiguration -Identity Global -EnableGraphTranscriptAccess $true -EnableAttributedTranscripts $true
+   ```
+
+3. Make sure `OnlineMeetingTranscript.Read.All` is on the app registration and approved
+   ([Grant admin consent](#3-grant-admin-consent)); members who connected before that reconnect
+   Microsoft 365 once.
+4. Switch on automatic import, and **Switch on Teams recording** when members should not have to
+   press record: Teams then records and transcribes by itself.
+5. Record a short test meeting and run **Test my connection**. With the Teams transcript as the
+   source, the transcript checks fail instead of warn, so the test says plainly what is missing.
+
+## What each member needs
+
+A member gets Teams meeting notes when all of this is true. The setup page shows the same list
+under **What a member needs**, and **Who is ready** says per member what is still missing.
+
+**In Bee Flow**
+
+| Needed | Detail |
+|---|---|
+| A plan with Meeting Notes | The licence must include the `meeting_notes` feature (see [Licensing](../licensing/tiers.md)), and the Meeting Notes module must be switched on. |
+| Meeting Notes access | Every member has it, unless the organisation admin limited Meeting Notes to certain groups under Admin dashboard, Access. Then the member must be in one of those groups. |
+| No admin role | Any member with that access can use it. Only setting it up needs an organisation admin. |
+
+**In Microsoft 365**
+
+| Needed | Detail |
+|---|---|
+| A work or school account with a Teams licence | Personal Microsoft accounts do not work: Teams meeting recordings need work or school accounts. |
+| The member organised the meeting | Bee Flow imports a meeting only for its organiser, not for the people invited. |
+| The meeting was recorded | The Teams meeting policy must let the member record (`AllowCloudRecording`). Without a recording Bee Flow can use the Teams transcript, when the [Teams settings](#4-teams-settings) allow that. |
+| Room in OneDrive | Teams saves the recording in the organiser's OneDrive ([recording storage](https://learn.microsoft.com/en-us/microsoftteams/tmr-meeting-recording-change)). |
+
+Not needed: Teams Premium or Microsoft 365 Copilot. Since 25 August 2025 Microsoft no longer
+charges for the Teams APIs that Bee Flow uses
+([metered APIs](https://learn.microsoft.com/en-us/graph/metered-api-list)), so the app registration
+needs no billing set-up.
+
+**A way for Bee Flow to reach the meetings.** Either the member connects their own Microsoft 365
+account, or the organisation connects for everyone. Those are the two ways below.
 
 ## Two supported ways
 
-| | A. Per organiser (delegated) | B. Organisation-wide (application) |
+The setup page calls them **Members connect their own account** and **Organisation-wide import:
+nobody has to connect**. This page also uses the short names option A and option B, as the test
+results do.
+
+| | A. Members connect their own account (delegated permissions) | B. Organisation-wide import (application permissions) |
 |---|---|---|
 | What is imported | The meetings each connected organiser organises | The meetings of the members an organisation admin covers, without each of them connecting |
 | Token | The organiser's own Microsoft 365 connection | An app token of the Bee Flow app registration, for one Microsoft tenant |
 | Microsoft side | Delegated permissions, admin consent for the recording and transcript permissions | Application permissions with admin consent, plus a Teams application access policy |
 | Default | The way Bee Flow works out of the box | Off; an organisation admin switches it on |
 
-Both can run side by side. A member with a usable connection of their own is always imported with
-that connection (option A); the app token is used only for covered members without one.
+Start with option A. Add option B when members should not have to do anything themselves. Both can
+run side by side: a member with a usable connection of their own is always imported with that
+connection (option A); the app token is used only for covered members without one.
+
+Each way has its own card on the setup page, with where it stands now (how many members connected;
+organisation-wide import on, off or not available yet), what members and administrators have to
+do, the setup steps folded away under **Setup steps, and who does each one**, and its own action:
+the approval link for Microsoft under option A, the switch and the test under option B.
 
 ## Who does what
 
 | Role | Where | Does |
 |---|---|---|
 | Bee Flow platform administrator | Admin, Security, SSO, Microsoft | Enters the app registration (client ID, secret, tenant), tests it, and for option B links the organisation to its Microsoft tenant |
-| Organisation admin in Bee Flow | Admin dashboard, Connections, Microsoft 365, in the **Microsoft Teams Meeting Notes** block | Reads the setup guide, makes the admin consent link, sees which members are ready, sets automatic import for everyone, and switches option B on |
+| Organisation admin in Bee Flow | Admin dashboard, Connections, Microsoft 365, under **Teams meeting notes setup**; the settings under Admin dashboard, AI & agents, Meeting notes | Reads what a member needs, makes the approval (admin consent) link, tests, sees which members are ready, switches option B on, and sets automatic import for everyone |
 | Microsoft Entra administrator | Microsoft Entra admin center | Adds the permissions to the app registration and grants admin consent |
 | Microsoft Teams administrator | Teams admin center or Teams PowerShell | Allows recording and transcription, the transcript API switches and, for option B, the application access policy |
 | Each organiser | Settings, Connections; Settings, Preferences; Meeting Notes, Upcoming | Connects Microsoft 365 (option A), tests the connection, picks which meetings to import |
@@ -48,7 +139,8 @@ administrator the part below that the tests point to.
 
 You need two values. The **Application (client) ID** of the Bee Flow app registration: the platform
 administrator has it, and it is the `client_id=` part of the admin consent link. The **admin
-consent link** itself: make it with **Make the link** in the Microsoft Teams Meeting Notes block.
+consent link** itself: make it with **Make the link** under **Approval link for Microsoft (admin
+consent)**, in the card **Members connect their own account**.
 
 **To your Microsoft Entra administrator, for option A.** They need one of these roles: Cloud
 Application Administrator, Application Administrator, AI Administrator or Privileged Role
@@ -153,7 +245,8 @@ Two ways:
 - In the Entra admin center, under **API permissions** of the app registration (or **Enterprise
   apps**, **Permissions**), select **Grant admin consent**.
 - In Bee Flow, an organisation admin opens **Admin dashboard, Connections, Microsoft 365** and, in
-  the Microsoft Teams Meeting Notes block, makes the **admin consent link**. They open it themselves when they hold one of the roles above,
+  the card **Members connect their own account**, makes the **approval link for Microsoft** (the
+  admin consent link). They open it themselves when they hold one of the roles above,
   or copy it and send it to someone who does. The link uses Microsoft's
   [admin consent endpoint](https://learn.microsoft.com/en-us/entra/identity-platform/v2-admin-consent)
   with `/.default`, so Microsoft asks to approve every permission on the app registration. Its
@@ -215,7 +308,8 @@ Both API switches can also be set with
    connection** runs the member checks below. The section shows once Microsoft 365 is connected.
    Organisation admins have the same test in Admin dashboard, Connections, Microsoft 365.
 3. Automatic import is off by default. Members switch it on under Settings, Preferences;
-   organisation admins can set it for everyone under Admin dashboard, Connections, Microsoft 365.
+   organisation admins can set it for everyone under Admin dashboard, AI & agents, Meeting notes,
+   in the Microsoft Teams settings.
    With it off, only the meetings a member imports by hand or marks for recording in the Upcoming
    tab are imported.
 
@@ -287,9 +381,9 @@ one, option B is not available.
 
 ### 4. Switch it on
 
-In **Admin dashboard, Connections, Microsoft 365**, under Microsoft Teams Meeting Notes, the
-**Organisation-wide import** block shows whether option B can be switched on and, when it cannot,
-why and who fixes it. There the organisation admin switches it on and chooses who it covers: all
+In **Admin dashboard, Connections, Microsoft 365**, under Teams meeting notes setup, the card
+**Organisation-wide import: nobody has to connect** shows whether option B can be switched on and,
+when it cannot, why and who fixes it. There the organisation admin switches it on and chooses who it covers: all
 members with Meeting Notes, or selected members (ticked in a list of the organisation's members).
 Bee Flow asks for confirmation before switching it on, and switching it on or off is recorded in
 the audit log. The block also counts how many members are covered and why the others are not.
@@ -320,8 +414,8 @@ A covered member sees in Settings, Preferences that their organisation imports t
 they organise, and that they do not need to connect Microsoft 365 for that. The Teams meeting notes
 section then shows also without an own connection, without the reconnect prompt, and with their
 personal settings (automatic import, language). **Test my connection** tests the member's own
-connection, so it shows only once they have one. The member overview marks covered members. Its
-automatic import column says **Runs** only when automatic import is switched on for the whole
+connection, so it shows only once they have one. **Who is ready** marks covered members as ready.
+Its automatic import column says **Runs** only when automatic import is switched on for the whole
 organisation, **Off** when the organisation switched it off, and otherwise that it depends on the
 member's own setting (which is off until the member switches it on).
 
@@ -351,8 +445,8 @@ registrations) from the platform test.
 |---|---|---|
 | App registration | Admin, Security, SSO, Microsoft, test button | Platform administrator |
 | Member connection | Settings, Preferences, **Test my connection** (also in Admin dashboard, Connections, Microsoft 365) | Every member with Meeting Notes |
-| Organisation checks and member overview | Admin dashboard, Connections, Microsoft 365, Microsoft Teams Meeting Notes | Organisation admin |
-| Organisation-wide import | Admin dashboard, Connections, Microsoft 365, Organisation-wide import, **Test organisation-wide import** | Organisation admin |
+| Organisation checks and who is ready | Admin dashboard, Connections, Microsoft 365, Teams meeting notes setup, **Who is ready** | Organisation admin |
+| Organisation-wide import | Admin dashboard, Connections, Microsoft 365, the organisation-wide import card, **Test organisation-wide import** | Organisation admin |
 
 Each check shows a status (passed, failed, needs attention, skipped, could not be tested), a
 sentence, what to do and who can do it. A check whose prerequisite did not pass is **skipped**;
@@ -371,9 +465,19 @@ What the tests never do:
   attendees or another person's e-mail address. The tenant and client ID appear only in the
   platform and organisation reports.
 
-The member overview is built only from what Bee Flow has stored (connection status and granted
-permissions, failed import codes, the last automatic-import skip reason). It asks Microsoft
-nothing and shows no meetings.
+**Who is ready** is built only from what Bee Flow has stored (Meeting Notes access, connection
+status and granted permissions, failed import codes, the last automatic-import skip reason). It
+asks Microsoft nothing and shows no meetings. Its **Ready** column says **Ready** for a member with
+Meeting Notes access and either an own connection with the Teams permissions or coverage by
+organisation-wide import. Otherwise it names the first thing to fix:
+
+| Ready column | What to do |
+|---|---|
+| Needs Meeting Notes access | Give the member access under Admin dashboard, Access |
+| Has not connected Microsoft 365 | The member connects under Settings, Connections, or the organisation covers them with option B |
+| Must reconnect Microsoft 365 | The connection expired: the member reconnects |
+| Must connect Microsoft 365 again | The connection was revoked: the member connects again |
+| Connected, but Teams permissions are missing | Grant admin consent, then the member reconnects (the column next to it names the permissions) |
 
 ## Troubleshooting
 
@@ -437,6 +541,7 @@ usual one.
 | `no_meeting_to_probe` | No meeting to test with, so the meeting checks could not run | The member | As `no_teams_meetings` |
 | `calendar_forbidden` | Microsoft refused access to the calendar | Entra administrator | Check that `Calendars.ReadWrite` (option B: the application permission `Calendars.Read`) is on the registration and consented, and that no Exchange policy excludes the mailbox |
 | `recording_not_allowed` | Recording is switched off for this meeting | Teams administrator | Allow cloud recording in the organiser's meeting policy (`AllowCloudRecording`) |
+| `transcription_not_allowed` | Only with the Teams transcript as the source: transcription is switched off for this meeting | Teams administrator | Allow transcription in the organiser's meeting policy (`AllowTranscription`) |
 | `meeting_not_available` | Microsoft has no online meeting for this calendar entry | The member | Schedule meetings as Teams meetings from Outlook or Teams; expired meetings cannot be read |
 | `graph_forbidden` | Microsoft refused access: a permission, licence or Teams policy blocks it | Teams administrator | Check the account's Teams licence and the recording and transcription policies |
 | `transcript_api_disabled` | Transcript API access is off in the tenant | Teams administrator | Switch on [Transcript API access](#4-teams-settings); recordings keep working |
@@ -490,7 +595,7 @@ overview show it.
 
 ### Import errors
 
-What a failed import itself reports, in the Upcoming tab, the import list and the member overview.
+What a failed import itself reports, in the Upcoming tab, the import list and **Who is ready**.
 
 | Code | Meaning | What to do |
 |---|---|---|
@@ -537,9 +642,10 @@ timeout). See [Environment variables](../self-hosting/env.md#teams-meeting-notes
 |---|---|---|
 | `TEAMS_DIAGNOSTICS_MIN_INTERVAL_SECONDS` | `10` | Seconds between two runs of the same test by one person (app registration test, member test, organisation-wide import test; each has its own interval) |
 | `TEAMS_DIAGNOSTICS_PROBE_TIMEOUT_MS` | `15000` | How long one Microsoft request of a test may take |
-| `TEAMS_DIAGNOSTICS_MAX_MEMBERS` | `2000` | Members shown in the member overview |
+| `TEAMS_DIAGNOSTICS_MAX_MEMBERS` | `2000` | Members shown in **Who is ready** |
 | `TEAMS_APP_IMPORT_MAX_SELECTED_USERS` | `5000` | Members an organisation admin may select for option B |
 | `TEAMS_APP_IMPORT` | `1` | `0` switches organisation-wide import off for the whole server |
+| `TEAMS_TRANSCRIPT_WAIT_MINUTES` | `30` | With the Teams transcript as the source: minutes after the meeting that a recording waits for its transcript before Bee Flow transcribes the recording itself. `0` = do not wait |
 
 ## Privacy
 
@@ -548,7 +654,7 @@ timeout). See [Environment variables](../self-hosting/env.md#teams-meeting-notes
   [Microsoft 365 page](./microsoft.md#before-you-roll-it-out)).
 - The tests only read, and they never change a meeting. What they read of a meeting is used to
   decide pass or fail and then dropped; it does not appear in a report or a log.
-- The member overview uses stored state only and contains no e-mail addresses, meeting titles or
+- **Who is ready** uses stored state only and contains no e-mail addresses, meeting titles or
   attendees.
 - With option B, the app token stays in the server's memory. It is never stored, logged or sent to
   a browser, and it is used only for members who pass every coverage rule for that token's tenant.
