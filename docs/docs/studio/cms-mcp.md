@@ -244,11 +244,21 @@ The model never sees file contents. The flow is:
    the same afterwards, and `cms_list_assets` shows everything uploaded.
 
 What is accepted: JPEG, PNG, GIF, WebP, APNG, SVG (sanitised on the server), MP4 and
-WebM, and WebVTT captions. Images up to 25 MB, MP4/WebM up to 500 MB, captions up
-to 1 MB. The URL works **once**, for 15 minutes, for exactly that content type and
+WebM, WebVTT captions, and documents to download: PDF, Word (`.docx`), Excel (`.xlsx`)
+and PowerPoint (`.pptx`). Images up to 25 MB, MP4/WebM up to 500 MB, captions up
+to 1 MB, documents up to `CMS_DOCUMENT_MAX_MB` (25 MB by default, see
+[Environment variables](../self-hosting/env.md)). The URL works **once**, for 15 minutes, for exactly that content type and
 at most that size; it is bound to the user, organisation and site that asked. The
 file is streamed to disk, never held whole in memory, and the organisation's IP
 allow-list is checked again when it arrives.
+
+A document is checked on its bytes, not on its name: a PDF must start like a PDF, and
+an Office file must be a real Office package of the type it was sent as. Macro-enabled
+Office files (`.docm`, `.xlsm`, a package with a VBA project) and the old binary
+formats (`.doc`, `.xls`, `.ppt`) are refused. A document is always served as a download
+(`Content-Disposition: attachment`, with `X-Content-Type-Options: nosniff`), never shown
+inside the page; put its URL behind a button or a text link. Only images, video and
+captions are served inline.
 
 The standard frontend image already proxies `/mcp` and lets `PUT /mcp/cms/upload/`
 through with a body of up to 512 MB, unbuffered. If you run your own reverse proxy or

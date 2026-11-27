@@ -36,7 +36,8 @@ const path = require('path');
 
 const log = require('../../telemetry/log');
 const { bodyDeadlineMs, storeDeadlineMs } = require('./uploadTickets');
-const { CLIP_MIME_WHITELIST, VTT_CONTENT_TYPE } = require('../../core/cms/uploadPolicy');
+const { CLIP_MIME_WHITELIST, VTT_CONTENT_TYPE, DOCUMENT_MIME_WHITELIST, DOCUMENT_EXT_BY_TYPE } = require('../../core/cms/uploadPolicy');
+const { looksLikeDocument } = require('../../core/cms/documentSniff.mts');
 
 /**
  * The file extension an asset of this type gets; the client's own extension is not trusted.
@@ -52,7 +53,27 @@ const EXT_BY_TYPE = Object.freeze({
     'video/mp4': '.mp4',
     'video/webm': '.webm',
     'text/vtt': '.vtt',
+    ...DOCUMENT_EXT_BY_TYPE,
 });
+
+const NOT_A_DOCUMENT = 'This file is not a valid PDF, Word, Excel or PowerPoint file of the type it was sent as (macro-enabled Office files are not accepted).';
+
+/**
+ * Is the received file at `filePath` the document its type says? Reads only what the check needs.
+ * @param {string} filePath @param {number} size @param {string} type
+ */
+async function isDocumentFile(filePath, size, type) {
+    const fh = await fs.promises.open(filePath, 'r');
+    try {
+        return await looksLikeDocument(type, size, async (position, length) => {
+            const buf = Buffer.alloc(Math.max(0, Math.min(length, size - position)));
+            const { bytesRead } = await fh.read(buf, 0, buf.length, position);
+            return buf.subarray(0, bytesRead);
+        });
+    } finally {
+        await fh.close();
+    }
+}
 
 const INVALID_TICKET = 'This upload URL is not valid. It may have expired or been used already; call cms_request_upload for a new one.';
 
@@ -293,6 +314,13 @@ function createUploadReceiver(deps) {
                     const message = 'This file is not a valid MP4 or WebM video.';
                     await deps.tickets.finish(id, { state: 'failed', error: message });
                     return { status: 400, body: { error: message } };
+                }
+                await withDeadline((signal) => deps.streamIntoStorage(filePath, size, key, type, signal), storeMs, () => new StoreTimeoutError('storage timed out'));
+            } else if (DOCUMENT_MIME_WHITELIST.has(type)) {
+                // Documents are checked on their bytes and streamed (their cap is configurable, so never buffered whole).
+                if (!(await isDocumentFile(filePath, size, type))) {
+                    await deps.tickets.finish(id, { state: 'failed', error: NOT_A_DOCUMENT });
+                    return { status: 400, body: { error: NOT_A_DOCUMENT } };
                 }
                 await withDeadline((signal) => deps.streamIntoStorage(filePath, size, key, type, signal), storeMs, () => new StoreTimeoutError('storage timed out'));
             } else {

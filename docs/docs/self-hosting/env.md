@@ -136,6 +136,7 @@ Optional; empty means the default.
 | `SUPPORT_THREAD_RETENTION_DAYS` | `0` (keep) | Days a ticket in the company support inbox from someone who is not a customer (the website contact form: no organisation, no signed-in account) is kept after its last message. A daily job deletes older ones with their messages, attachment details and audit rows, and logs only how many. Tickets opened in the app and the mailbox inboxes of the Support studio are never touched. `0` keeps them for good. See [Support inbox: retention](../admin/index.md#support-inbox-retention). |
 | `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`. Self-hosted allows them already. Link-local and cloud-metadata addresses are always refused. |
 | `FIREBIRD_ALLOWED_HOSTS` | empty (any) | Comma-separated host names a Firebird connection may use. |
+| `CMS_DOCUMENT_MAX_MB` | `25` | Largest document (PDF, `.docx`, `.xlsx`, `.pptx`) the website CMS accepts for download through an upload URL of the CMS MCP server, in MB. `0` = no limit. The admin uploader in the browser stays at 25 MB for every file. |
 | `OFFICE_PACKAGE_MAX_ENTRIES` | `10000` | Files inside one office package (.docx) before a parser opens it. `0` = unlimited. |
 | `OFFICE_PACKAGE_MAX_INFLATED_BYTES` | `268435456` (256 MB) | All parts of one office package together, unpacked. `0` = unlimited. |
 | `OFFICE_PACKAGE_MAX_PART_BYTES` | `67108864` (64 MB) | One part of an office package, unpacked. `0` = unlimited. |

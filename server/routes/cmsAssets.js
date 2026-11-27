@@ -15,7 +15,8 @@ const { HttpError } = require('../core/http/errors');
 const storageStore = require('../stores/storageStore');
 const { sanitizeSvg } = require('../utils/svgSanitizer');
 const cmsMedia = require('./cmsMedia');
-const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES } = require('../core/cms/uploadPolicy');
+const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES, DOCUMENT_MIME_WHITELIST, DOCUMENT_EXT_BY_TYPE, maxBytesFor } = require('../core/cms/uploadPolicy');
+const { looksLikeDocument, bufferReader } = require('../core/cms/documentSniff.mts');
 const { parseRangeHeader } = require('../core/http/httpRange');
 const { parseVariantWidth, pickFormat, isResizable, renderVariant, MAX_SOURCE_BYTES } = require('../core/cms/assetVariants');
 const { variantKey, scheduleVariants } = require('../core/cms/assetVariantStore');
@@ -84,14 +85,31 @@ function uploadFile(req, res, next) {
 }
 
 /**
+ * Why an uploaded document cannot be stored (too large for CMS_DOCUMENT_MAX_MB, or bytes that
+ * are not the declared type), or null when it is fine or not a document at all.
+ * @param {{ mimetype: string, buffer: Buffer }} file
+ * @returns {Promise<string | null>}
+ */
+async function documentProblem(file) {
+    if (!DOCUMENT_MIME_WHITELIST.has(file.mimetype)) return null;
+    const cap = /** @type {number} */ (maxBytesFor(file.mimetype));
+    if (file.buffer.length > cap) return `File too large (max ${Math.round(cap / 1048576)} MB)`;
+    const ok = await looksLikeDocument(file.mimetype, file.buffer.length, bufferReader(file.buffer));
+    return ok ? null : 'This file is not a valid PDF, Word, Excel or PowerPoint file of the type it was sent as (macro-enabled Office files are not accepted).';
+}
+
+/**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
 async function handleUpload(req, res) {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage unavailable');
+    const docError = await documentProblem(req.file);
+    if (docError) return res.status(400).json({ error: docError });
 
-    const ext = path.extname(req.file.originalname || '').toLowerCase() || '';
+    // A document's extension comes from its checked type, never from the name it was sent with.
+    const ext = DOCUMENT_EXT_BY_TYPE[req.file.mimetype] || path.extname(req.file.originalname || '').toLowerCase() || '';
     const safeBase = (req.file.originalname || 'upload')
         .replace(/[^a-zA-Z0-9._-]/g, '_')
         .replace(/\.[^.]+$/, '');
@@ -178,6 +196,63 @@ function isScriptableMime(mime) {
     if (typeof mime !== 'string') return false;
     const lower = mime.toLowerCase();
     return SCRIPTABLE_MIME_PREFIXES.some(p => lower.startsWith(p));
+}
+
+/** @param {unknown} mime */
+function isInlineMime(mime) {
+    const lower = typeof mime === 'string' ? mime.toLowerCase() : '';
+    return lower.startsWith('image/') || lower.startsWith('video/');
+}
+
+/** @param {string} c one character */
+const isNameChar = (c) => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c === '.' || c === '_' || c === '-';
+
+/**
+ * The file name a download is saved as: the last segment of the key without the upload's
+ * `<ms>-<random>-` prefix, in the characters the uploaders keep ([A-Za-z0-9._-]).
+ * Plain string operations: the key comes from the request path.
+ * @param {string} key
+ */
+function downloadName(key) {
+    let name = key.slice(key.lastIndexOf('/') + 1);
+    const parts = name.split('-');
+    const stamp = parts[0];
+    if (parts.length > 2 && stamp.length === 13 && [...stamp].every((c) => c >= '0' && c <= '9') && parts[1].length > 0) {
+        name = parts.slice(2).join('-');
+    }
+    const safe = [...name].map((c) => (isNameChar(c) ? c : '_')).join('');
+    return safe || 'download';
+}
+
+/**
+ * Content-Type and its safety headers for a stored asset.
+ *
+ * Defense in depth: if the stored Content-Type would execute in the browser when served
+ * inline (SVG, HTML, XML), force the browser to download it, UNLESS it is a sanitized SVG,
+ * which is served inline with a strict CSP that blocks scripts and external fetches even if
+ * the sanitizer ever misses something. Legacy SVGs without the `sanitized` flag still
+ * force-download. Of the rest, only images, video and captions are shown inline; everything
+ * else (a PDF, an Office file, any stored type this list does not know) is a download.
+ * Every answer carries nosniff.
+ * @param {import('express').Response} res
+ * @param {string} key @param {string} contentType @param {boolean} sanitized @param {boolean} isVtt
+ */
+function setTypeHeaders(res, key, contentType, sanitized, isVtt) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (isScriptableMime(contentType)) {
+        if (sanitized && contentType.toLowerCase().startsWith('image/svg')) {
+            res.setHeader('Content-Type', 'image/svg+xml');
+            res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'");
+        } else {
+            res.setHeader('Content-Type', 'application/octet-stream');
+            res.setHeader('Content-Disposition', 'attachment');
+        }
+        return;
+    }
+    res.setHeader('Content-Type', contentType || 'application/octet-stream');
+    if (!isVtt && !isInlineMime(contentType)) {
+        res.setHeader('Content-Disposition', `attachment; filename="${downloadName(key)}"`);
+    }
 }
 
 /**
@@ -279,29 +354,7 @@ async function serveAsset(req, res) {
         const isVtt = key.toLowerCase().endsWith('.vtt');
         const contentType = isVtt ? 'text/vtt; charset=utf-8' : storedType;
         const sanitized = metadata && (metadata.sanitized === '1' || metadata.Sanitized === '1');
-
-        // Defense in depth: if the stored Content-Type would execute in
-        // the browser when served inline (SVG, HTML, XML), force the
-        // browser to download it — UNLESS it's a sanitized SVG, in which
-        // case we serve it inline with a strict CSP that blocks scripts
-        // and external network fetches even if the sanitizer ever
-        // misses something. Legacy SVGs without the `sanitized` flag
-        // still force-download.
-        if (isScriptableMime(contentType)) {
-            if (sanitized && /^image\/svg/i.test(contentType)) {
-                res.setHeader('Content-Type', 'image/svg+xml');
-                res.setHeader('Content-Security-Policy',
-                    "default-src 'none'; style-src 'unsafe-inline'");
-                res.setHeader('X-Content-Type-Options', 'nosniff');
-            } else {
-                res.setHeader('Content-Type', 'application/octet-stream');
-                res.setHeader('Content-Disposition', 'attachment');
-                res.setHeader('X-Content-Type-Options', 'nosniff');
-            }
-        } else {
-            res.setHeader('Content-Type', contentType);
-            if (isVtt) res.setHeader('X-Content-Type-Options', 'nosniff');
-        }
+        setTypeHeaders(res, key, contentType, !!sanitized, isVtt);
         if (range) {
             res.status(206);
             res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${total}`);
