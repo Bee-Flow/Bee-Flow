@@ -19,8 +19,9 @@
  *     filter is ANDed onto it (without the brackets the AND would bind to the
  *     last OR branch and the first two branches would return the whole table).
  *
- * The three raw-SQL kinds (automations, agents, meeting notes) run on a real
- * Postgres: the boot ladder's schema on PGlite, handed in as the db dependency.
+ * The raw-SQL kind of the core (agents) runs on a real Postgres: the boot ladder's schema on
+ * PGlite, handed in as the db dependency. The automations and meeting-notes kinds are their
+ * modules' (search.automation.test.js, search.meetingNotes.test.js).
  *
  * Run: node --test routes/studio/search.test.js
  */
@@ -29,77 +30,12 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const {
-    createSearchRouter, KIND_KEYS, MAX_PER_KIND, MIN_QUERY_LENGTH, MAX_QUERY_LENGTH, escapeLike, nameOf,
+    createSearchRouter, KIND_KEYS, MAX_PER_KIND, MIN_QUERY_LENGTH, escapeLike, nameOf,
 } = require('./search');
 const { studioApp, studioServer } = require('./studioServer.testkit');
-const { ladderPglite } = require('../../testUtils/pgliteTemplate');
-const { insertRow } = require('../../testUtils/pgliteSeed');
-
-// ── A fully-open, fully-populated fake dependency set ───────────────────────
-function makeDeps(overrides = {}) {
-    const calls = { sql: [] };
-    const bump = (name) => { calls[name] = (calls[name] || 0) + 1; };
-    const deps = {
-        _calls: calls,
-        modules: { isModuleActive: async () => true },
-        license: { featureAllowedForRequest: async () => ({ allowed: true, resolution: {} }) },
-        entitlements: { hasCapability: async () => true },
-        permissions: { hasPermission: async () => true },
-        auth: {
-            resolveUserOrgIds: async () => new Set(['orgA']),
-            resolveUserGroups: async () => ['g1'],
-        },
-        audience: { resolveAudienceContext: async () => ({ userId: 'u1', orgIds: new Set(['orgA']), userGroups: ['g1'] }) },
-        datatableAccess: {
-            resolveDatatablePrincipal: async () => ({ userId: 'u1', orgId: 'orgA' }),
-            datatableScopesFor: () => [{ kind: 'user', id: 'u1' }, { kind: 'org', id: 'orgA' }],
-            // 'nogrant' is a table whose NAME matches but on which this
-            // principal holds nothing.
-            gradeForPrincipal: (t) => (t.id === 'nogrant' ? null : 'reader'),
-        },
-        automationCore: {
-            getAll: async (sql, params) => {
-                bump('automations');
-                calls.sql.push({ sql, params });
-                return [{ id: 'a1', title: 'Invoice reminder' }];
-            },
-        },
-        datatableStore: {
-            listDatatablesForScope: async (scope) => (scope.kind === 'user'
-                ? [{ id: 't1', name: 'Invoices' }]
-                : [{ id: 'nogrant', name: 'Invoices (finance)' }, { id: 't2', name: 'Suppliers' }]),
-            listGrantsForTables: async (ids) => { bump('grants'); calls.grantIds = ids; return new Map(ids.map((id) => [id, []])); },
-        },
-        studioAppStore: { getAccessibleStudioApps: async () => [{ id: 'app1', name: 'Invoice portal' }, { id: 'app2', name: 'Holiday planner' }] },
-        webpageStore: { getAccessibleWebpages: async () => [{ id: 'w1', name: 'Invoice help' }, { id: 'w2', name: 'About us' }] },
-        skillStore: { getAvailableSkills: async () => [{ id: 's1', name: 'Invoice parsing' }, { id: 's2', name: 'Translate' }] },
-        userStore: { getUser: async () => ({ id: 'u1', organizationId: 'orgA' }) },
-        kbStore: {
-            listKBs: async () => [{ id: 'kb1', name: 'Invoice archive' }, { id: 'kbx', name: 'Invoice secrets' }, { id: 'kb2', name: 'Handbook' }],
-            // The group filter removes a base whose name matches — the check
-            // that org scoping alone is not the visibility answer.
-            filterByGroupAccess: (kbs) => kbs.filter((kb) => kb.id !== 'kbx'),
-        },
-        kbShared: {
-            resolveAdminOrgIds: async () => new Set(),
-            resolveEnabledSystemSlugs: async () => [],
-            listFilterFromQuery: () => ({ sourceKind: 'manual' }),
-            resolveUserGroups: async () => ['g1'],
-        },
-        transcriptionsShared: { resolveAccessContext: async () => ({ orgIds: ['orgA'], userGroupIds: ['g1'], isSuperAdmin: false }) },
-        db: {
-            getAll: async (sql, params) => {
-                calls.sql.push({ sql, params });
-                if (/FROM agents/.test(sql)) { bump('agents'); return [{ id: 'ag1', name: 'Invoice bot' }]; }
-                bump('meetingNotes');
-                return [{ id: 'm1', title: 'Invoice call', file_name: 'call.m4a' }];
-            },
-        },
-        projectStore: { listUserProjects: async () => [{ id: 'pr1', name: 'Invoice rollout' }, { id: 'pr2', name: 'Onboarding' }] },
-        configStore: { getConfig: async () => null },
-    };
-    return Object.assign(deps, overrides);
-}
+// The fake dependency set and the PGlite fixture, shared with the module halves of this file
+// (search.automation.test.js, search.meetingNotes.test.js).
+const { makeDeps, sqlFixture } = require('./search.testkit');
 
 // ── Server harness ──────────────────────────────────────────────────────────
 let deps;
@@ -290,44 +226,12 @@ test('a missing q parameter is the same cheap path, not a crash', async () => {
 // The boot ladder's schema on PGlite (testUtils/pgliteTemplate.js), handed in
 // as `db` and `automationCore`; the statements are recorded so "no query" is a fact.
 
-const pg = ladderPglite();
-test.after(() => pg.close());
-const sqlSeen = [];
-const realGetAll = async (sql, params) => { sqlSeen.push(sql); return (await pg.query(sql, params)).rows; };
-const realDeps = (over = {}) => makeDeps({ db: { getAll: realGetAll }, automationCore: { getAll: realGetAll }, ...over });
-async function resetTables() {
-    await pg.exec('TRUNCATE automations, agents, transcriptions CASCADE');
-    sqlSeen.length = 0;
-}
-let seq = 0;
-const automation = (title, over = {}) => insertRow(pg, 'automations', { id: `au${++seq}`, user_id: 'u1', title, definition_json: {}, ...over });
-const transcription = (title, over = {}) => insertRow(pg, 'transcriptions', { id: `t${++seq}`, user_id: 'u9', title, shared_with: [], is_published: false, shared_groups: [], ...over });
-const agentRow = (name, over = {}) => insertRow(pg, 'agents', { id: `ag${++seq}`, name, owner_id: 'u1', ...over });
-const ids = (rows) => rows.map((r) => r.id).sort();
+const { sqlSeen, realDeps, resetTables, agentRow, ids } = sqlFixture(test, ['agents']);
 
-test('LIKE wildcards in the query are escaped, so "100%" searches for "100%"', async () => {
+test('LIKE wildcards in the query are escaped: the escape itself', () => {
     assert.strictEqual(escapeLike('100%'), '100\\%');
     assert.strictEqual(escapeLike('a_b'), 'a\\_b');
     assert.strictEqual(escapeLike('c:\\x'), 'c:\\\\x');
-    await resetTables();
-    const hit = await automation('Done 100% of it');
-    await automation('Done 1000 times');
-    await automation('A_B plan');
-    const theirs = await automation('100% theirs', { user_id: 'u2' });
-    await listen(mount(realDeps()));
-    const body = await (await get('100%')).json();
-    assert.deepStrictEqual(ids(body.results.automations), [hit.id], 'the % is a character, and another user\'s automation is not searched');
-    assert.ok(theirs);
-    assert.deepStrictEqual((await (await get('a_b')).json()).results.automations.map((r) => r.name), ['A_B plan']);
-});
-
-test('an over-long query is truncated rather than sent on', async () => {
-    await resetTables();
-    const exact = await automation('x'.repeat(MAX_QUERY_LENGTH));
-    await listen(mount(realDeps()));
-    const body = await (await get('x'.repeat(MAX_QUERY_LENGTH + 50))).json();
-    assert.strictEqual(body.query.length, MAX_QUERY_LENGTH);
-    assert.deepStrictEqual(ids(body.results.automations), [exact.id], 'the truncated query is what was searched');
 });
 
 test('results are capped per kind, prefix matches first', async () => {
@@ -337,36 +241,6 @@ test('results are capped per kind, prefix matches first', async () => {
     const body = await (await get('invoice')).json();
     assert.strictEqual(body.results.skills.length, MAX_PER_KIND);
     assert.strictEqual(body.results.skills[0].id, 'first', 'a name that STARTS with the query ranks first');
-});
-
-test('the transcriptions visibility predicate is bracketed before the name filter is ANDed on', async () => {
-    // The visibility clauses are ORed INSIDE brackets. Without them the
-    // trailing AND binds to the last branch only and the first branches return
-    // every row the caller may see, whatever its name.
-    await resetTables();
-    const own = await transcription('Invoice call', { user_id: 'u1' });
-    await transcription('Weekly sync', { user_id: 'u1' });
-    const shared = await transcription('Invoice review', { shared_with: ['u1'] });
-    await transcription('Other review', { shared_with: ['u1'] });
-    const org = await transcription('Invoice org', { is_published: true, organization_id: 'orgA', shared_groups: ['g1'] });
-    await transcription('Invoice other group', { is_published: true, organization_id: 'orgA', shared_groups: ['g2'] });
-    await transcription('Invoice other org', { is_published: true, organization_id: 'orgB' });
-    const byFile = await transcription('', { user_id: 'u1', file_name: 'invoice-call.m4a' });
-    await listen(mount(realDeps()));
-    const body = await (await get('invoice')).json();
-    assert.deepStrictEqual(ids(body.results.meetingNotes), ids([own, shared, org, byFile]));
-});
-
-test('a super admin searches every transcription by name', async () => {
-    await resetTables();
-    const a = await transcription('Invoice A', { organization_id: 'orgA' });
-    const b = await transcription('Invoice B', { organization_id: 'orgZ' });
-    await transcription('Unrelated');
-    await listen(mount(realDeps({
-        transcriptionsShared: { resolveAccessContext: async () => ({ orgIds: [], userGroupIds: [], isSuperAdmin: true }) },
-    })));
-    const body = await (await get('invoice')).json();
-    assert.deepStrictEqual(ids(body.results.meetingNotes), ids([a, b]));
 });
 
 test('the agents search is narrowed to the caller\'s orgs, without system or swarm agents', async () => {

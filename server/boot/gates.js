@@ -14,7 +14,7 @@
  * request through (no course can be required when the Learning Center is not there).
  */
 
-const { optionalModuleFile } = require('./optionalModuleFile');
+const { optionalFeatureModule } = require('../core/featureModules');
 
 /** @typedef {import('../modules/firstParty/contract').Gates} Gates */
 /** @typedef {import('express').RequestHandler} RequestHandler */
@@ -27,7 +27,7 @@ const noTrainingRequired = (_req, _res, next) => next();
  * @returns {(area: string) => RequestHandler}
  */
 function requireTrainingOrPassThrough() {
-    const learning = optionalModuleFile(() => require('../learning/requireTraining'));
+    const learning = optionalFeatureModule('learning/requireTraining');
     return learning ? learning.requireTraining : () => noTrainingRequired;
 }
 

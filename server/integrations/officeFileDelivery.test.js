@@ -45,9 +45,10 @@ const ncScopeGuard = {
 
 installResolveStub({
     '../stores/storageStore': storage,
-    './msGraphClient': msGraph,
     '../core/integrations/ncScopeGuard': ncScopeGuard,
 });
+// Graph is the msGraph integration client (module int_microsoft), looked up by name.
+require('../core/integrations/integrationClients').registerIntegrationClients({ msGraph: () => msGraph });
 
 const { executeOfficeFileTool, buildAndDeliver, destinationPath, officeFileToolDefinitions } = require('./officeFileDelivery');
 

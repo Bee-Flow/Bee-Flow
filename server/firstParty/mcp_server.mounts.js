@@ -16,9 +16,9 @@
 
 /**
  * Is the builder toolset switched on? False when the module that owns it is absent.
- * @param {() => { isEnabled: () => boolean }} load requires the toolset's mcpBuilder
+ * @param {'appStudio/mcpBuilder' | 'automation/mcpBuilder' | 'cms/mcp/index'} name the toolset's builder, by name
  */
-const switchedOn = (load) => require('../boot/optionalModuleFile').optionalModuleFile(load)?.isEnabled() === true;
+const switchedOn = (name) => require('../core/featureModules').optionalFeatureModule(name)?.isEnabled() === true;
 
 /** @type {MountRow[]} */
 const mounts = [
@@ -27,18 +27,18 @@ const mounts = [
     // template module in a new image. FULLY GATED: without STUDIO_MCP_ENABLED=1 the
     // path does not exist and the module is never loaded. Mounted BEFORE /mcp so
     // the more specific path wins regardless of Express match order.
-    { key: 'mcp_server:/mcp/studio', slot: 'main', path: '/mcp/studio', when: () => switchedOn(() => require('../appStudio/mcpBuilder')), handlers: () => [require('../routes/mcpStudio')], onMount: (log) => log.info('[Server] App Studio MCP endpoint mounted at /mcp/studio (STUDIO_MCP_ENABLED=1).') },
+    { key: 'mcp_server:/mcp/studio', slot: 'main', path: '/mcp/studio', when: () => switchedOn('appStudio/mcpBuilder'), handlers: () => [require('../routes/mcpStudio')], onMount: (log) => log.info('[Server] App Studio MCP endpoint mounted at /mcp/studio (STUDIO_MCP_ENABLED=1).') },
     // Automations over MCP — the same story for the automation builder, so an automation
     // can be authored against a live instance instead of driven turn by turn
     // through the chat builder. Same gating shape as the Studio endpoint above:
     // without AUTOMATION_MCP_ENABLED=1 the path does not exist and the module is
     // never loaded. Also mounted BEFORE /mcp so the more specific path wins.
-    { key: 'mcp_server:/mcp/automations', slot: 'main', path: '/mcp/automations', when: () => switchedOn(() => require('../automation/mcpBuilder')), handlers: () => [require('../routes/mcpAutomations')], onMount: (log) => log.info('[Server] Automations MCP endpoint mounted at /mcp/automations (AUTOMATION_MCP_ENABLED=1).') },
+    { key: 'mcp_server:/mcp/automations', slot: 'main', path: '/mcp/automations', when: () => switchedOn('automation/mcpBuilder'), handlers: () => [require('../routes/mcpAutomations')], onMount: (log) => log.info('[Server] Automations MCP endpoint mounted at /mcp/automations (AUTOMATION_MCP_ENABLED=1).') },
     // The product website (CMS) over MCP — edit pages, header/footer, translations,
     // upload local media, screenshot and (with the cms.publish scope) publish from an
     // external coding agent. Same gating shape: without CMS_MCP_ENABLED=1 the path
     // does not exist and the module is never loaded. Also mounted BEFORE /mcp.
-    { key: 'mcp_server:/mcp/cms', slot: 'main', path: '/mcp/cms', when: () => switchedOn(() => require('../cms/mcp')), handlers: () => [require('../routes/mcpCms')], onMount: (log) => log.info('[Server] CMS MCP endpoint mounted at /mcp/cms (CMS_MCP_ENABLED=1).') },
+    { key: 'mcp_server:/mcp/cms', slot: 'main', path: '/mcp/cms', when: () => switchedOn('cms/mcp/index'), handlers: () => [require('../routes/mcpCms')], onMount: (log) => log.info('[Server] CMS MCP endpoint mounted at /mcp/cms (CMS_MCP_ENABLED=1).') },
     // Bee Flow AS an MCP server. Deliberately NOT under /api: MCP clients are
     // configured with a bare URL, and the endpoint authenticates with its own
     // Bearer token rather than a session cookie (see routes/mcpServer.js).

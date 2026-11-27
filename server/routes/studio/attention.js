@@ -102,9 +102,9 @@ const { z } = require('../../utils/zod');
 
 const { validate } = require('../../core/http/validate');
 
-const { makeLazyDeps, userIdOf, orgIdOf } = require('./shared');
+const { makeLazyDeps, moduleDep, lacksModule, userIdOf, orgIdOf } = require('./shared');
 const { SOURCES, SOURCE_KEYS, MAX_ROWS_PER_SOURCE } = require('./attentionChecks');
-const { deepLinkFor } = require('../../projects/completeness');
+const { optionalFeatureModule } = require('../../core/featureModules');
 const { bySeverity } = require('../../core/findings/finding');
 const log = require('../../telemetry/log');
 
@@ -128,8 +128,8 @@ const DEFAULT_LOADERS = {
     permissions: () => require('../../auth/permissions'),
     auth: () => require('../../auth'),
     audience: () => require('../../auth/audience'),
-    studioAppStore: () => require('../../stores/studioAppStore'),
-    automationStore: () => require('../../stores/automationStore'),
+    studioAppStore: () => moduleDep('stores/studioAppStore'),
+    automationStore: () => moduleDep('stores/automationStore'),
     kbStore: () => require('../../stores/knowledgeBases'),
     kbShared: () => require('../knowledgeBases/shared'),
     kbSourcesStore: () => require('../../stores/kbSources'),
@@ -137,18 +137,16 @@ const DEFAULT_LOADERS = {
     projectStore: () => require('../../stores/projectStore'),
     configStore: () => require('../../stores/configStore'),
     db: () => require('../../db'),
-    mapLimited: () => require('../../projects/summary').mapLimited,
-    /**
-     * One Solution's completeness — the SAME two calls GET /api/projects/summary
-     * makes per card, so Studio Home and the Solutions overview cannot disagree
-     * about whether a Solution is blocked.
-     */
-    solutionCompleteness: () => /** @param {string} projectId */ async (projectId) => {
-        const { buildGraphForProject } = /** @type {{ buildGraphForProject: typeof import('../../projects/graphForProject').buildGraphForProject }} */ (/** @type {unknown} */ (require('../projects')));
-        const { collectCompleteness } = require('../../projects/completeness');
+    mapLimited: () => moduleDep('projects/summary')?.mapLimited ?? null,
+    completeness: () => moduleDep('projects/completeness'),
+    /** One Solution's completeness — the SAME two calls GET /api/projects/summary makes per card, so
+     * Studio Home and the Solutions overview cannot disagree about whether a Solution is blocked. */
+    solutionCompleteness: () => (moduleDep('routes/projects') && moduleDep('projects/completeness') ? /** @param {string} projectId */ async (projectId) => {
+        const { buildGraphForProject } = /** @type {{ buildGraphForProject: typeof import('../../projects/graphForProject').buildGraphForProject }} */ (/** @type {unknown} */ (moduleDep('routes/projects')));
+        const { collectCompleteness } = moduleDep('projects/completeness');
         const { graph, members, unavailable } = await buildGraphForProject(projectId);
         return collectCompleteness({ graph, ...members, unavailable });
-    },
+    } : /** @type {never} */ (null)), // null: a module is absent (moduleDep), and solutionBlocked needs it
     now: () => Date.now,
 };
 
@@ -194,9 +192,9 @@ function toRow(source, finding) {
         kind: finding.kind,
         targetId: finding.targetRef?.id ?? null,
         message: finding.message,
-        // completeness.js's helper, unless the source can prove a link its
-        // general map is not allowed to build (see solutionDeepLink).
-        deepLink: (source.linkFor || deepLinkFor)(finding),
+        // completeness.js's helper (none without module projects), unless the source can prove
+        // a link its general map is not allowed to build (see solutionDeepLink).
+        deepLink: source.linkFor ? source.linkFor(finding) : (optionalFeatureModule('projects/completeness')?.deepLinkFor(finding) ?? null),
     };
     if (finding.remediation) row.remediation = finding.remediation;
     return row;
@@ -232,7 +230,7 @@ const isBudgetGap = (label) => typeof label === 'string' && label.endsWith(':bud
  */
 async function runSource(source, req, d, ctx) {
     try {
-        if (!(await source.gate(req, d))) {
+        if (!(await source.gate(req, d)) || lacksModule(d, source.needs)) {
             return { key: source.key, status: 'gated', findings: [], gaps: [] };
         }
     } catch (err) {

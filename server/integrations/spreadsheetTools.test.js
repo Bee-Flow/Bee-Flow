@@ -50,6 +50,8 @@ installResolveStub({
     './nextcloudClient': ncClient,
     '../nextcloudClient': ncClient,
 });
+// The delivery reads Nextcloud as the integration client 'nextcloud' (module int_nextcloud), by name.
+require('../core/integrations/integrationClients').registerIntegrationClients({ nextcloud: () => ncClient });
 
 const { SPREADSHEET_TOOLS, isSpreadsheetTool, safeSpreadsheetFileName, buildSpreadsheetFile } = require('./spreadsheetTools');
 // The builder is pure; storage and Nextcloud are the shared delivery's (officeFileDelivery.js).

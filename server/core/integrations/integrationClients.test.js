@@ -57,19 +57,28 @@ const EXPECTED = {
     youtrack: ['executeYouTrackTool'],
 };
 
-test('integrations/integrationClients.js registers every client core asks for', () => {
+// Every client is a first-party module's (firstParty/<id>.provides.json): the composition holds
+// each client of a module that is here, and asks nothing of a module that is not.
+const { providerOf, moduleStateOf } = require('../../modules/firstParty/moduleState');
+const here = (/** @type {string} */ name) => {
+    const id = providerOf('integrationClients', name);
+    return id !== null && moduleStateOf(id) !== 'absent';
+};
+
+test('integrations/integrationClients.js registers every client core asks for, of each module that is here', () => {
     require('../../integrations/integrationClients');
     for (const [name, fns] of Object.entries(EXPECTED)) {
+        if (!here(name)) continue;
         const client = registry.integrationClient(name);
         for (const fn of fns) assert.strictEqual(typeof client[fn], 'function', `${name}.${fn} is missing`);
     }
-    assert.strictEqual(typeof registry.integrationClient('msGraph').GRAPH_BASE, 'string');
-    assert.strictEqual(typeof registry.integrationClient('nextcloudWebdav').PROPFIND_BODY, 'string');
-    assert.strictEqual(typeof registry.integrationClient('nextcloudTables').TABLES_API, 'string');
-    assert.strictEqual(typeof registry.integrationClient('nextcloudTables').HEADERS, 'object');
-    assert.strictEqual(typeof registry.integrationClient('nextcloudTalkBot').TALK_V1, 'string');
-    assert.strictEqual(typeof registry.integrationClient('nextcloudTalkBot').MAX_MESSAGE_CHARS, 'number');
-    assert.strictEqual(typeof registry.integrationClient('nextcloud').getBaseUrl, 'function');
+    if (here('msGraph')) assert.strictEqual(typeof registry.integrationClient('msGraph').GRAPH_BASE, 'string');
+    if (here('nextcloudWebdav')) assert.strictEqual(typeof registry.integrationClient('nextcloudWebdav').PROPFIND_BODY, 'string');
+    if (here('nextcloudTables')) assert.strictEqual(typeof registry.integrationClient('nextcloudTables').TABLES_API, 'string');
+    if (here('nextcloudTables')) assert.strictEqual(typeof registry.integrationClient('nextcloudTables').HEADERS, 'object');
+    if (here('nextcloudTalkBot')) assert.strictEqual(typeof registry.integrationClient('nextcloudTalkBot').TALK_V1, 'string');
+    if (here('nextcloudTalkBot')) assert.strictEqual(typeof registry.integrationClient('nextcloudTalkBot').MAX_MESSAGE_CHARS, 'number');
+    if (here('nextcloud')) assert.strictEqual(typeof registry.integrationClient('nextcloud').getBaseUrl, 'function');
 });
 
 test('integrationClientNames lists every registered client name', () => {

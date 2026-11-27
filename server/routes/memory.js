@@ -597,7 +597,7 @@ router.post('/clear', validate({ query: NoQuery, body: ClearBody }), async (req,
 });
 
 // Export memories as JSON
-router.get('/export/all', validate({ query: NoQuery }), require('../compliance/dataPortability/stampExport')('memories'), async (req, res) => {
+router.get('/export/all', validate({ query: NoQuery }), function stampExport(req, res, next) { const stamp = require('../core/featureModules').optionalFeatureModule('compliance/dataPortability/stampExport'); return stamp ? stamp('memories')(req, res, next) : next(); }, async (req, res) => {
     const userId = getEffectiveUserId(req);
 
     // Every row of the person's own, any status, opened, with provenance.

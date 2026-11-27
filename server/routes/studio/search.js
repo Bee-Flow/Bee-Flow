@@ -71,7 +71,7 @@ const { validate } = require('../../core/http/validate');
 // The gate helpers and the lazy dependency factory are shared with the other
 // /api/studio aggregates — see routes/studio/shared.js.
 const {
-    makeLazyDeps, userIdOf, moduleActive, licenceAllows, capability, permission,
+    makeLazyDeps, moduleDep, lacksModule, userIdOf, moduleActive, licenceAllows, capability, permission,
     appAuthoringGate, solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
 } = require('./shared');
 const log = require('../../telemetry/log');
@@ -83,8 +83,8 @@ const MIN_QUERY_LENGTH = 2;
 /** Hard cap on what we accept, so the ILIKE pattern stays bounded. */
 const MAX_QUERY_LENGTH = 200;
 
-// Lazily-required production dependencies. Each is the module its list route
-// already uses; nothing here is new data access.
+// Lazily-required production dependencies, each the module its list route already
+// uses (a module's own by name, moduleDep: null when it is absent); no new data access.
 const DEFAULT_LOADERS = {
     modules: () => require('../../modules'),
     license: () => require('../../license/middleware'),
@@ -92,16 +92,16 @@ const DEFAULT_LOADERS = {
     permissions: () => require('../../auth/permissions'),
     auth: () => require('../../auth'),
     audience: () => require('../../auth/audience'),
-    datatableAccess: () => require('../../auth/datatableAccess'),
-    automationCore: () => require('../../stores/automationStore/core'),
-    datatableStore: () => require('../../stores/datatableStore'),
-    studioAppStore: () => require('../../stores/studioAppStore'),
-    webpageStore: () => require('../../stores/webpageStore'),
+    datatableAccess: () => moduleDep('auth/datatableAccess'),
+    automationCore: () => moduleDep('stores/automationStore/core'),
+    datatableStore: () => moduleDep('stores/datatableStore'),
+    studioAppStore: () => moduleDep('stores/studioAppStore'),
+    webpageStore: () => moduleDep('stores/webpageStore'),
     skillStore: () => require('../../stores/skillStore'),
     userStore: () => require('../../stores/userStore'),
     kbStore: () => require('../../stores/knowledgeBases'),
     kbShared: () => require('../knowledgeBases/shared'),
-    transcriptionsShared: () => require('../transcriptions/shared'),
+    transcriptionsShared: () => moduleDep('routes/transcriptions/shared'),
     db: () => require('../../db'),
     projectStore: () => require('../../stores/projectStore'),
     configStore: () => require('../../stores/configStore'),
@@ -113,7 +113,7 @@ const makeDefaultDeps = () => makeLazyDeps(DEFAULT_LOADERS);
  * @typedef {ReturnType<typeof makeDefaultDeps>} SearchDeps
  * @typedef {Record<string, unknown>} SearchRow  a store row or a raw database row
  * @typedef {{
- *   key: string,
+ *   key: string, needs?: readonly string[],
  *   gate: (req: import('express').Request, d: SearchDeps) => Promise<boolean>,
  *   search: (req: import('express').Request, d: SearchDeps, q: string) => Promise<SearchRow[]>,
  * }} SearchKind
@@ -214,7 +214,7 @@ const KINDS = [
         // the title filter, and only the two columns a hit needs — the list
         // selects every automation's definition JSON, which a name search never
         // reads.
-        key: 'automations',
+        key: 'automations', needs: ['automationCore'],
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
         search: async (req, d, q) => d.automationCore.getAll(
             `SELECT id, title FROM automations
@@ -228,7 +228,7 @@ const KINDS = [
         // (personal AND organisation), kept when the caller holds any grade.
         // The grade check is the whole point: scope alone would list tables
         // inside the org that this person holds nothing on.
-        key: 'datatables',
+        key: 'datatables', needs: ['datatableAccess', 'datatableStore'],
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
         search: async (req, d, q) => {
             const { resolveDatatablePrincipal, datatableScopesFor, gradeForPrincipal } = d.datatableAccess;
@@ -247,7 +247,7 @@ const KINDS = [
     {
         // routes/studioApps.js GET / → getAccessibleStudioApps(userId, groups,
         // orgIds): your own plus every app published into your org/groups.
-        key: 'apps',
+        key: 'apps', needs: ['studioAppStore'],
         gate: appAuthoringGate,
         search: async (req, d, q) => {
             const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
@@ -258,7 +258,7 @@ const KINDS = [
     },
     {
         // routes/webpages.js GET / → getAccessibleWebpages(userId, groups, orgIds).
-        key: 'webpages',
+        key: 'webpages', needs: ['webpageStore'],
         gate: async (req, d) => (await moduleActive(d, 'webpages')) && (await capability(d, req, 'webpages')),
         search: async (req, d, q) => {
             const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
@@ -322,7 +322,7 @@ const KINDS = [
         // is WRAPPED IN PARENTHESES before the name filter is ANDed on. Without
         // those brackets the trailing AND would bind to the last OR branch only
         // and the first two branches would return every row in the table.
-        key: 'meetingNotes',
+        key: 'meetingNotes', needs: ['transcriptionsShared'],
         gate: async (req, d) => (await moduleActive(d, 'meetingNotes')) && (await capability(d, req, 'meeting_notes')),
         search: async (req, d, q) => {
             const userId = userIdOf(req);
@@ -389,7 +389,7 @@ async function runSearch(req, d, q) {
     const errors = [];
     await Promise.all(KINDS.map(async (kind) => {
         try {
-            if (!(await kind.gate(req, d))) return;
+            if (!(await kind.gate(req, d)) || lacksModule(d, kind.needs)) return;
         } catch (err) {
             // A gate that cannot answer is NOT an open door: the kind is
             // dropped, and it is dropped LOUDLY so the caller can say the

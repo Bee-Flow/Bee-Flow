@@ -61,6 +61,29 @@ class GateUndecidable extends Error {
 // A dependency object whose modules are required on first touch; shared with
 // the adoption store, which may not reach up into routes/.
 const { makeLazyDeps } = require('../../stores/lib/lazyDeps');
+const { optionalFeatureModule } = require('../../core/featureModules');
+
+/** @typedef {import('../../core/featureModules').FeatureModuleMap} FeatureModuleMap */
+
+/**
+ * A dependency that a first-party module owns, looked up by name: that module's exports, or
+ * null when the module is absent. Typed as present, because a kind (a count, a search, an
+ * attention source) that reads it names it in its `needs`, and the aggregate drops a kind
+ * whose need is absent before it touches it (lacksModule).
+ * @template {keyof FeatureModuleMap} K
+ * @param {K} name
+ * @returns {FeatureModuleMap[K]}
+ */
+const moduleDep = (name) => /** @type {FeatureModuleMap[K]} */ (optionalFeatureModule(name));
+
+/**
+ * Is a module this kind needs absent? Then the kind contributes nothing: no count, no
+ * results, no attention rows, exactly as when that module is switched off. Only null means
+ * absent (moduleDep's answer); a test double that leaves a dependency out is not.
+ * @param {unknown} d the dependency object
+ * @param {readonly string[] | undefined} needs names of dependencies in `d`
+ */
+const lacksModule = (d, needs) => (needs || []).some((k) => /** @type {Record<string, unknown>} */ (d)[k] === null);
 
 /**
  * The gate and scoping dependencies (see the DEFAULT_LOADERS of counts.js).
@@ -213,6 +236,8 @@ async function visibleKnowledgeBasesFor(req, d) {
 module.exports = {
     GateUndecidable,
     makeLazyDeps,
+    moduleDep,
+    lacksModule,
     userIdOf,
     orgIdOf,
     moduleActive,

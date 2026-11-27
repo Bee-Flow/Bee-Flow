@@ -67,7 +67,7 @@ const { validate } = require('../../core/http/validate');
 // The gate helpers and the lazy dependency factory are shared with the other
 // /api/studio aggregates — see routes/studio/shared.js.
 const {
-    makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission,
+    makeLazyDeps, moduleDep, lacksModule, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission,
     appAuthoringGate, solutionsGate, visibleKnowledgeBasesFor, visibleSolutionsFor,
 } = require('./shared');
 const log = require('../../telemetry/log');
@@ -75,8 +75,8 @@ const log = require('../../telemetry/log');
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX_ENTRIES = 5000;
 
-// Lazily-required production dependencies. Each is the module its list route
-// already uses; nothing here is new data access.
+// Lazily-required production dependencies, each the module its list route already
+// uses (a module's own by name, moduleDep: null when it is absent); no new data access.
 const DEFAULT_LOADERS = {
     modules: () => require('../../modules'),
     license: () => require('../../license/middleware'),
@@ -84,18 +84,18 @@ const DEFAULT_LOADERS = {
     permissions: () => require('../../auth/permissions'),
     auth: () => require('../../auth'),
     audience: () => require('../../auth/audience'),
-    datatableAccess: () => require('../../auth/datatableAccess'),
-    automationCore: () => require('../../stores/automationStore/core'),
-    automationStore: () => require('../../stores/automationStore'),
-    datatableStore: () => require('../../stores/datatableStore'),
-    studioAppStore: () => require('../../stores/studioAppStore'),
-    playbookStore: () => require('../../stores/playbookStore'),
-    webpageStore: () => require('../../stores/webpageStore'),
+    datatableAccess: () => moduleDep('auth/datatableAccess'),
+    automationCore: () => moduleDep('stores/automationStore/core'),
+    automationStore: () => moduleDep('stores/automationStore'),
+    datatableStore: () => moduleDep('stores/datatableStore'),
+    studioAppStore: () => moduleDep('stores/studioAppStore'),
+    playbookStore: () => moduleDep('stores/playbookStore'),
+    webpageStore: () => moduleDep('stores/webpageStore'),
     skillStore: () => require('../../stores/skillStore'),
     userStore: () => require('../../stores/userStore'),
     kbStore: () => require('../../stores/knowledgeBases'),
     kbShared: () => require('../knowledgeBases/shared'),
-    transcriptionsShared: () => require('../transcriptions/shared'),
+    transcriptionsShared: () => moduleDep('routes/transcriptions/shared'),
     db: () => require('../../db'),
     projectStore: () => require('../../stores/projectStore'),
     configStore: () => require('../../stores/configStore'),
@@ -107,7 +107,7 @@ const makeDefaultDeps = () => makeLazyDeps(DEFAULT_LOADERS);
 /**
  * @typedef {ReturnType<typeof makeDefaultDeps>} CountsDeps
  * @typedef {{
- *   key: string,
+ *   key: string, needs?: readonly string[],
  *   gate: (req: import('express').Request, d: CountsDeps) => Promise<boolean>,
  *   count: (req: import('express').Request, d: CountsDeps) => Promise<{ count: number, owners: string[] }>,
  * }} CountKind
@@ -154,7 +154,7 @@ const KINDS = [
         // same predicate on the same (tasks-DB) pool: the list selects the
         // definition JSON of every automation, which is the one column a count
         // never needs.
-        key: 'automations',
+        key: 'automations', needs: ['automationCore'],
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
         count: async (req, d) => {
             const row = await d.automationCore.getOne(
@@ -182,7 +182,7 @@ const KINDS = [
         //
         // getRunCountForUserSince owns the predicate, so the count and the
         // list cannot drift apart in the way an inlined COUNT here would.
-        key: 'runs',
+        key: 'runs', needs: ['automationStore'],
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
         count: async (req, d) => {
             const sinceTs = new Date(d.now() - 24 * 3600 * 1000).toISOString();
@@ -198,7 +198,7 @@ const KINDS = [
         // routes/automation/crud.js GET /forms → listFormPagesForOrg(orgOf(req),
         // userId), one entry per (automation, trigger) — the busiest page wins
         // — keeping only rows whose trigger still IS a form.
-        key: 'forms',
+        key: 'forms', needs: ['datatableAccess', 'automationStore'],
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
         count: async (req, d) => {
             const principal = await d.datatableAccess.resolveDatatablePrincipal(req);
@@ -223,7 +223,7 @@ const KINDS = [
     {
         // routes/datatables.js GET / → every table in the caller's scopes
         // (personal AND organisation), kept when the caller holds any grade.
-        key: 'datatables',
+        key: 'datatables', needs: ['datatableAccess', 'datatableStore'],
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
         count: async (req, d) => {
             const { resolveDatatablePrincipal, datatableScopesFor, gradeForPrincipal } = d.datatableAccess;
@@ -241,7 +241,7 @@ const KINDS = [
         // orgIds): your own plus every app published into your org/groups —
         // the apps you can open, which is what "Apps 4" on an org rail means.
         // (/mine is the recents panel's list: what YOU build.)
-        key: 'apps',
+        key: 'apps', needs: ['studioAppStore'],
         gate: appAuthoringGate,
         count: async (req, d) => {
             const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
@@ -253,7 +253,7 @@ const KINDS = [
     {
         // routes/playbooks.js GET / → listPlaybooksForUser(userId): owner-only,
         // gated like its mount (apps + automation modules, app_studio, automations).
-        key: 'playbooks',
+        key: 'playbooks', needs: ['playbookStore'],
         gate: async (req, d) => (await moduleActive(d, 'apps')) && (await moduleActive(d, 'automation'))
             && (await capability(d, req, 'app_studio')) && (await licenceAllows(d, req, 'automations')),
         count: async (req, d) => {
@@ -264,7 +264,7 @@ const KINDS = [
     },
     {
         // routes/webpages.js GET / → getAccessibleWebpages(userId, groups, orgIds).
-        key: 'webpages',
+        key: 'webpages', needs: ['webpageStore'],
         gate: async (req, d) => (await moduleActive(d, 'webpages')) && (await capability(d, req, 'webpages')),
         count: async (req, d) => {
             const { userId, orgIds, memberOrgIds, userGroups } = await d.audience.resolveAudienceContext(req);
@@ -330,7 +330,7 @@ const KINDS = [
         // { orgIds, userGroupIds, isSuperAdmin }) — capped at 100 per page, so
         // this is a COUNT(*) over the store's exact predicate (own rows, legacy
         // per-user shares, published-to-my-org rows filtered by group).
-        key: 'meetingNotes',
+        key: 'meetingNotes', needs: ['transcriptionsShared'],
         gate: async (req, d) => (await moduleActive(d, 'meetingNotes')) && (await capability(d, req, 'meeting_notes')),
         count: async (req, d) => {
             const userId = userIdOf(req);
@@ -391,7 +391,7 @@ async function computeCounts(req, d) {
     let partial = false;
     await Promise.all(KINDS.map(async (kind) => {
         try {
-            if (!(await kind.gate(req, d))) return;
+            if (!(await kind.gate(req, d)) || lacksModule(d, kind.needs)) return;
             const { count, owners: kindOwners } = await kind.count(req, d);
             counts[kind.key] = Number.isFinite(count) ? count : 0;
             for (const o of kindOwners || []) if (o) owners.add(String(o));

@@ -1,6 +1,7 @@
 // @typecheck strict
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+const { optionalIntegrationClient } = require('../core/integrations/integrationClients');
 
 /**
  * The destination file path for a `nextcloudPath` / `oneDrivePath`: a path
@@ -29,7 +30,10 @@ const ONEDRIVE_NOT_CONNECTED = 'OneDrive is not connected: the user has to sign 
  * @param {string} path
  */
 async function uploadToOneDrive(built, ctx, path) {
-    const { graphRequest, isMicrosoftConnected } = require('./msGraphClient');
+    const graph = /** @type {typeof import('./msGraphClient') | null} */ (optionalIntegrationClient('msGraph'));
+    // Without module int_microsoft OneDrive is as out of reach as before a Microsoft sign-in.
+    if (!graph) return { error: ONEDRIVE_NOT_CONNECTED };
+    const { graphRequest, isMicrosoftConnected } = graph;
     if (!isMicrosoftConnected(ctx.session)) return { error: ONEDRIVE_NOT_CONNECTED };
     const segments = path.split('/').filter(Boolean);
     if (!segments.length || segments.some((s) => s === '.' || s === '..')) return { error: `Not a usable OneDrive path: ${path}` };

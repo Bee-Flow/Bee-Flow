@@ -9,7 +9,7 @@
 const log = require('../telemetry/log');
 const { isModuleAvailable } = require('../modules/catalog');
 const loader = require('../modules/firstParty/loader');
-const { requireIfPresent } = require('./optionalRequire');
+const { optionalFeatureModule } = require('../core/featureModules');
 
 /**
  * Retention jobs, the ports and the Azure group sync; then the module rows of this phase
@@ -42,7 +42,7 @@ function startRetentionAndComplianceJobs() {
         // A run on hold the retention pass ends withdraws the approval request it asked.
         // App Studio may be absent (an optional lookup): then there is no request to withdraw.
         require('../jobs/platformRetention').start({ releaseStudioWait: (appId, kind, ref, reason) => {
-            const waits = requireIfPresent(() => require('../appStudio/approvalWaits.mts'));
+            const waits = optionalFeatureModule('appStudio/approvalWaits');
             return waits ? waits.releaseWait(appId, kind, ref, reason) : Promise.resolve(undefined);
         } });
     } catch (err) {

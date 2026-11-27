@@ -1,6 +1,9 @@
 {
   "featureModules": [
     "projects/chatModel",
-    "projects/documentFiling"
+    "projects/documentFiling",
+    "projects/completeness",
+    "projects/summary",
+    "routes/projects"
   ]
 }

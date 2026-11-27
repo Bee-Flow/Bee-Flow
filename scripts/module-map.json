@@ -125,7 +125,9 @@
         "migrations/n8n-connections-2026-06{,.*}.js",
         "migrations/agent-mail-trigger-2026-11{,.*}.js",
         "migrations/drop-automation-trigger-samples-2026-09{,.*}.js",
-        "firstParty/automation{,.*}.{js,json}"
+        "firstParty/automation{,.*}.{js,json}",
+        "routes/studio/search.automation.test.js",
+        "core/integrations/integrationTools.agentAutomations.test.js"
       ],
       "agent-hub": [
         "src/components/automation/**",
@@ -473,7 +475,8 @@
         "shared/webpage/**",
         "i18n/defaults/en/webpages.js",
         "migrations/webpage-published-version-2026-09{,.*}.js",
-        "firstParty/webpages{,.*}.{js,json}"
+        "firstParty/webpages{,.*}.{js,json}",
+        "core/integrations/integrationTools.webpagesGate.test.js"
       ],
       "agent-hub": [
         "src/components/webpages/**",
@@ -514,7 +517,8 @@
         "agents/notebooks/**",
         "i18n/defaults/en/notebooks.js",
         "i18n/defaults/nl/notebooks.json",
-        "firstParty/notebooks{,.*}.{js,json}"
+        "firstParty/notebooks{,.*}.{js,json}",
+        "core/integrations/integrationTools.notebooks.test.js"
       ],
       "agent-hub": [
         "src/pages/documents/notebook/**",
@@ -600,6 +604,8 @@
         "i18n/defaults/en/teams_setup.js",
         "utils/summaryTemplates.js",
         "firstParty/meetingNotes{,.*}.{js,json}",
+        "routes/studio/search.meetingNotes.test.js",
+        "routes/studio/counts.meetingNotes.test.js",
         "stores/user/userSecretKeys.meetingNotes.test.js",
         "stores/notebookStore.project.meetingNotes.pg.test.js",
         "stores/encryptionBackfill.meetingNotes.test.js",
@@ -730,7 +736,9 @@
         "integrations/nextcloudFiles/**",
         "routes/nextcloudTaskProcessing.js",
         "usecases/nextcloudTaskProcessingUsage.js",
-        "firstParty/int_nextcloud{,.*}.{js,json}"
+        "firstParty/int_nextcloud{,.*}.{js,json}",
+        "core/integrations/integrationTools.ncBinding.test.js",
+        "core/integrations/integrationTools.ncCapabilities.test.js"
       ],
       "agent-hub": []
     },
@@ -791,7 +799,9 @@
         "routes/integrations/oneDrive.js",
         "routes/integrations/outlook.js",
         "routes/integrations/mailSchemaParts.js",
-        "firstParty/int_microsoft{,.*}.{js,json}"
+        "firstParty/int_microsoft{,.*}.{js,json}",
+        "core/integrations/integrationTools.outlookMultiProvider.test.js",
+        "integrations/toolFamilies.sharedMailbox.test.js"
       ],
       "agent-hub": [
         "src/pages/settings/Microsoft365Integration*",
@@ -856,7 +866,10 @@
         "services/githubSyncService.js",
         "services/testGenerator.js",
         "stores/githubSyncStore.js",
-        "firstParty/int_saas{,.*}.{js,json}"
+        "firstParty/int_saas{,.*}.{js,json}",
+        "core/integrations/integrationTools.n8nGrants.test.js",
+        "core/integrations/integrationTools.extraApps.test.js",
+        "core/integrations/integrationTools.coworkApps.test.js"
       ],
       "agent-hub": [
         "src/components/integrations/github/**",
@@ -934,6 +947,7 @@
         "i18n/defaults/nl/project_*.json",
         "routes/solutionStages.js",
         "firstParty/projects{,.*}.{js,json}",
+        "routes/studio/attentionChecks.projects.test.js",
         "stores/user/projectErasure.projects.test.js",
         "stores/blueprint/releases.projects.test.js"
       ],
@@ -1013,6 +1027,9 @@
       "shared/appDefinition/schemaEnvelope.mjs",
       "stores/voiceprintStore.js",
       "stores/kbSourcesMeetingArm.js",
+      "shared/appDefinition/schemaVersion.mjs",
+      "shared/appDefinition/schemaVersionQuery.mjs",
+      "stores/automationStore/webhookPolicy.mts",
       "automation/patterns/templating.js",
       "core/meetingNotes/teamsAppImport/settings.mts",
       "core/meetingNotes/lazyDeps.js"

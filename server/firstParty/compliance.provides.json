@@ -1,6 +1,9 @@
 {
   "featureModules": [
     "stores/complianceStore",
-    "compliance/events"
+    "compliance/events",
+    "legal/legalStore",
+    "compliance/dataPortability/stampExport",
+    "compliance/marking"
   ]
 }

@@ -30,6 +30,9 @@ function registerFeatureModules() {
         'automation/datatableUsage': () => require('../automation/datatableUsage'),
         'automation/validate': () => require('../automation/validate'),
         'stores/automationStore/webhookDeliveries': () => require('../stores/automationStore/webhookDeliveries'),
+        'automation/mcpBuilder': () => require('../automation/mcpBuilder'),
+        'stores/automationStore/core': () => require('../stores/automationStore/core'),
+        'stores/automationStore': () => require('../stores/automationStore'),
     });
 }
 

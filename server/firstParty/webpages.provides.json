@@ -1,6 +1,8 @@
 {
   "featureModules": [
     "services/webpageSnapshot",
-    "stores/webpageStore"
+    "auth/webpagePreviewToken",
+    "stores/webpageStore",
+    "core/webpages/webpageUsageSync"
   ]
 }

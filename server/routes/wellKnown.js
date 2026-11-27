@@ -262,9 +262,9 @@ async function disclosurePolicyLines(now = Date.now()) {
     /** @type {DisclosureLines} */
     let value = { policy: null, contact: null, enabled: false };
     try {
-        const complianceStore = require('../stores/complianceStore');
-        const settings = await complianceStore.getSettings(policyOrgId());
-        value = disclosureLinesFromSettings(settings);
+        // Module compliance's store, by name: without it nothing is published, as when the org set nothing.
+        const complianceStore = require('../core/featureModules').optionalFeatureModule('stores/complianceStore');
+        if (complianceStore) value = disclosureLinesFromSettings(await complianceStore.getSettings(policyOrgId()));
     } catch (e) {
         if (!_warnedPolicyRead) {
             _warnedPolicyRead = true;

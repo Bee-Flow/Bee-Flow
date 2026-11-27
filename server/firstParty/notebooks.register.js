@@ -83,6 +83,7 @@ function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // chat turn, tasks, custom integrations, KB
         'integrations/workspaceTools': () => require('../integrations/workspaceTools'),
+        'usecases/notebookArchive': () => require('../usecases/notebookArchive.mts'),
     }));
     contribute('integrations/toolFamilies', registerToolFamily);
     contribute('integrations/coreToolsets', () => require('../integrations/coreToolsets').registerToolsets({

@@ -1,6 +1,8 @@
 {
   "featureModules": [
     "stores/datatableStore",
-    "stores/datatableDbStore"
+    "core/tools/datatableTools",
+    "stores/datatableDbStore",
+    "auth/datatableAccess"
   ]
 }

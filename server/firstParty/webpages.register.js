@@ -15,6 +15,9 @@ function register() {
         // documents, webpages, KB
         'services/webpageSnapshot': () => require('../services/webpageSnapshot'),
         'stores/webpageStore': () => require('../stores/webpageStore'),
+        'auth/webpagePreviewToken': () => require('../auth/webpagePreviewToken'),
+        'stores/webpageStore': () => require('../stores/webpageStore'),
+        'core/webpages/webpageUsageSync': () => require('../core/webpages/webpageUsageSync'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

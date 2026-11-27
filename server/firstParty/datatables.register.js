@@ -15,6 +15,9 @@ function register() {
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
         'stores/datatableStore': () => require('../stores/datatableStore'),
         'stores/datatableDbStore': () => require('../stores/datatableDbStore'),
+        'auth/datatableAccess': () => require('../auth/datatableAccess'),
+        'stores/datatableStore': () => require('../stores/datatableStore'),
+        'core/tools/datatableTools': () => require('../core/tools/datatableTools'),
     }));
     // The live-datatable listeners (stores/datatableStore/liveChanges.js, this module's): the
     // knowledge-source arm, public webpage snapshots and the cowork items that start on a table.

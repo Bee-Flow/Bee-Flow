@@ -16,6 +16,9 @@ function register() {
         'projects/chatModel': () => require('../projects/chatModel'),
         // a filled-in document filed into a project from the chat (integrations/templateFillTools.mts)
         'projects/documentFiling': () => require('../projects/documentFiling.mts'),
+        'projects/completeness': () => require('../projects/completeness'),
+        'projects/summary': () => require('../projects/summary'),
+        'routes/projects': () => require('../routes/projects'),
     }));
     // Account erasure's owned projects (stores/user/erasurePorts.js).
     contribute('projects/erasurePorts', () => require('../stores/user/erasurePorts').registerErasurePorts({

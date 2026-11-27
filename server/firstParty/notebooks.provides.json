@@ -1,5 +1,6 @@
 {
   "featureModules": [
-    "integrations/workspaceTools"
+    "integrations/workspaceTools",
+    "usecases/notebookArchive"
   ]
 }

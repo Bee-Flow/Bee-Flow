@@ -62,9 +62,9 @@
 
 'use strict';
 const { makeFinding } = require('../../core/findings/finding');
-const {
-    buildCompleteness, emptyKnowledgeBaseFinding,
-} = require('../../projects/completeness');
+// projects/completeness.js (module projects), by name where it is used; a source that uses it
+// names 'completeness' in its needs, so it is gated off when that module is absent.
+const completeness = () => require('../../core/featureModules').optionalFeatureModule('projects/completeness');
 // The criterion of source 2, and the ONLY place where it stands. The card footer of
 // the agent overview (A5) reads the same answer via the field `grounding`
 // on GET /agents/all; see the header of that file for why it may not become a second implementation.
@@ -258,7 +258,7 @@ function evaluateAppValidation(data = {}) {
     for (const g of asArray(data.gaps)) miss(g);
     let result;
     try {
-        result = buildCompleteness({ apps: asArray(data.apps) });
+        result = completeness().buildCompleteness({ apps: asArray(data.apps) });
     } catch (err) {
         // buildCompleteness catches per app; this is the "could not even start"
         // case, and it means NOTHING was validated.
@@ -365,7 +365,7 @@ function evaluateKbEmptyInUse(data = {}) {
             if (asArray(entry?.usagePartial).length > 0) miss('knowledge:usage');
             continue;
         }
-        pushFinding(findings, () => emptyKnowledgeBaseFinding({ id: kb.id, name: kb.name }), miss, 'knowledge:row');
+        pushFinding(findings, () => completeness().emptyKnowledgeBaseFinding({ id: kb.id, name: kb.name }), miss, 'knowledge:row');
     }
     return { findings, gaps };
 }
@@ -537,7 +537,7 @@ function knowledgeBasesToActOn(req, d, ctx) {
  */
 const SOURCES = [
     {
-        key: 'appValidation',
+        key: 'appValidation', needs: ['studioAppStore', 'mapLimited', 'completeness'],
         kind: 'app',
         // routes/studioApps.js's mount gate, as counts.js and search.js read it.
         gate: appAuthoringGate,
@@ -620,7 +620,7 @@ const SOURCES = [
         evaluate: evaluateAgentNoKb,
     },
     {
-        key: 'kbEmptyInUse',
+        key: 'kbEmptyInUse', needs: ['completeness'],
         kind: 'kb',
         // routes/knowledgeBases/list.js is ungated at the mount — Knowledge base
         // is a Community feature, so this source exists for everyone.
@@ -662,7 +662,7 @@ const SOURCES = [
         evaluate: evaluateKbEmptyInUse,
     },
     {
-        key: 'automationFailing',
+        key: 'automationFailing', needs: ['automationStore'],
         kind: 'automation',
         // routes/automation/crud.js's mount gate, as counts.js reads it.
         gate: async (req, d) => (await moduleActive(d, 'automation')) && (await licenceAllows(d, req, 'automations')),
@@ -682,7 +682,7 @@ const SOURCES = [
         evaluate: evaluateAutomationFailing,
     },
     {
-        key: 'solutionBlocked',
+        key: 'solutionBlocked', needs: ['mapLimited', 'solutionCompleteness'],
         kind: 'solution',
         linkFor: solutionDeepLink,
         // routes/projects.js's mount gate plus the operator kill switch, as
@@ -775,12 +775,13 @@ module.exports = {
  *   db: typeof import('../../db'),
  *   mapLimited: typeof import('../../projects/summary').mapLimited,
  *   solutionCompleteness: (projectId: string) => ReturnType<typeof import('../../projects/completeness').collectCompleteness>,
+ *   completeness?: typeof import('../../projects/completeness') | null,
  *   now?: () => number,
  * }} AttentionDeps
  * @typedef {{ once: (key: string, fn: () => Promise<KnowledgeBaseRow[]>) => Promise<KnowledgeBaseRow[]> }} AttentionCtx  per-request shared reads
  * @typedef {{ findings: Finding[], gaps: string[] }} Evaluation
  * @typedef {{
- *   key: string,
+ *   key: string, needs?: readonly string[],
  *   kind: string,
  *   linkFor?: (finding: Finding) => string | null,
  *   gate: (req: import('express').Request, d: AttentionDeps) => Promise<boolean>,

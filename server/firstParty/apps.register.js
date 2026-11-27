@@ -24,6 +24,9 @@ function register() {
         'stores/studioAppData/runLogStore': () => require('../stores/studioAppData/runLogStore.mts'),
         'stores/studioAppData/webhookTriggers': () => require('../stores/studioAppData/webhookTriggers.mts'),
         'stores/studioAppData/runPolicy': () => require('../stores/studioAppData/runPolicy.mts'),
+        'appStudio/approvalWaits': () => require('../appStudio/approvalWaits.mts'),
+        'appStudio/mcpBuilder': () => require('../appStudio/mcpBuilder'),
+        'stores/studioAppStore': () => require('../stores/studioAppStore'),
     }));
 }
 

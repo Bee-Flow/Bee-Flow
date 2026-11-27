@@ -5,6 +5,8 @@
     "appStudio/portabilityReport",
     "appStudio/automationUsageSync",
     "appStudio/triggers/deploySync",
+    "appStudio/approvalWaits",
+    "appStudio/mcpBuilder",
     "stores/studioAppStore",
     "stores/studioAppData/actionRuns",
     "stores/studioAppData/runLogStore",

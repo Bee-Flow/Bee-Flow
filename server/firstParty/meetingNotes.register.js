@@ -15,6 +15,7 @@ function register() {
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
         'stores/transcriptionStore': () => require('../stores/transcriptionStore'),
         'stores/transcriptCrypto': () => require('../stores/transcriptCrypto'),
+        'routes/transcriptions/shared': () => require('../routes/transcriptions/shared'),
     }));
     contribute('boot/featureRegistrations', () => require('../core/meetingNotes/runnerPorts'));
     contribute('integrations/toolFamilies', () => {

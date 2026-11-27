@@ -55,7 +55,10 @@ const REAL = new Set([
     // The first-party loader the phases and the shutdown hand the module rows to (loaded before
     // the recording starts, see main); the rows' own requires are recorded like the core's.
     'modules/firstParty/loader.js', 'modules/firstParty/loaderRules.js', 'modules/firstParty/moduleState.js',
-    'modules/firstParty/parts.js', 'moduleRoots.cjs', 'boot/optionalRequire.js',
+    'modules/firstParty/parts.js', 'moduleRoots.cjs',
+    // The registry of the names the core looks up (optionalFeatureModule): filled before the
+    // recording starts, so a lookup's getter requires the module's file while recording.
+    'core/featureModules.js', 'modules/firstParty/registrationChannels.js',
 ]);
 
 /** @type {string | null} */
@@ -196,6 +199,10 @@ async function main() {
     // recorded where its rows run, not where the loader discovers them.
     const loader = require('../modules/firstParty/loader');
     loader.load();
+    // The feature-module getters, as index.js registers them (boot/featureRegistrations.js) and the
+    // test preload does: an optional lookup in a phase finds the module's file by name.
+    require('./featureModules');
+    require('../modules/firstParty/registrationChannels').registerModules();
     /** The loader's drain and close, with their calls marked as one concurrent group each. @param {'drain' | 'close'} hook */
     const grouped = (hook) => async (/** @type {any} */ opts) => {
         group = hook;

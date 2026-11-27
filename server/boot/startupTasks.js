@@ -21,7 +21,7 @@
 const fs = require('fs');
 const log = require('../telemetry/log');
 const { trackBootStep } = require('../utils/runtimeState.mts');
-const { requireIfPresent } = require('./optionalRequire');
+const { optionalFeatureModule } = require('../core/featureModules');
 const { startBootProbes, startLicenseAndModuleRuntime, startLateWarmups } = require('./startupProbes');
 const { runOneShotTasks } = require('./startupOneShots');
 const { startDunningAndTrialSchedulers, startPlanCapDriftAudit, startSeatSync, startPaygDrain } = require('./startupBilling');
@@ -107,14 +107,14 @@ function runStartupChecks() {
     // for installs that never set LEARNING_CERT_SECRET, so certificate serials
     // and public verify links survive restarts instead of silently breaking.
     // A file of the learning module: an optional lookup, skipped when the module is absent.
-    const certificateToken = requireIfPresent(() => require('../auth/certificateToken'));
+    const certificateToken = optionalFeatureModule('auth/certificateToken');
     if (certificateToken) certificateToken.ensureDurableSecret().catch(err => log.error('[CertificateToken] bootstrap failed:', err.message));
 
     // Webpage preview-token HMAC secret: same pattern — without this, each
     // replica of a multi-pod deploy would mint preview tokens with its own
     // random secret, so a token issued by one pod gets 401'd by another.
     // A file of the webpages module: an optional lookup, skipped when the module is absent.
-    const webpagePreviewToken = requireIfPresent(() => require('../auth/webpagePreviewToken'));
+    const webpagePreviewToken = optionalFeatureModule('auth/webpagePreviewToken');
     if (webpagePreviewToken) webpagePreviewToken.ensureDurableSecret().catch(err => log.error('[WebpagePreviewToken] bootstrap failed:', err.message));
 
     // Public-share HMAC secret: the same pattern once more, and the one with the
