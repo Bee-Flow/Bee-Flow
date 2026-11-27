@@ -223,6 +223,22 @@ test('Umami + GA both set → Umami keys top-level plus ga', async () => {
     });
 });
 
+// The blog index and its posts are public pages like any other: they get the
+// same envelope, or the tracker never loads on them.
+test('blog index and post carry the same analytics envelope as a page', async () => {
+    await cmsStore.createPost(siteId, { title: 'Tracked post', slug: 'tracked-post', status: 'published' });
+    await cmsStore.publishSite(siteId);
+
+    const page = await getJson('/site');
+    const index = await getJson('/site?blog=index');
+    const post = await getJson('/site?blog=post&post=tracked-post');
+    assert.ok(page.analytics, 'page envelope present');
+    assert.strictEqual(index.found, true);
+    assert.strictEqual(post.found, true);
+    assert.deepStrictEqual(index.analytics, page.analytics);
+    assert.deepStrictEqual(post.analytics, page.analytics);
+});
+
 test('neither Umami nor GA configured → analytics: null', async () => {
     await mockConfigStore.setConfig('cms_analytics_enabled', false);
     await setGaAndPublish('');

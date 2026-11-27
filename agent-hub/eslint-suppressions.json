@@ -90,7 +90,7 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     },
     "no-restricted-syntax": {
       "count": 1
@@ -7557,14 +7557,6 @@
     }
   },
   "src/components/cowork/CoworkComposer.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/cowork/CoworkEditForm.tsx": {
     "complexity": {
       "count": 1
     },
