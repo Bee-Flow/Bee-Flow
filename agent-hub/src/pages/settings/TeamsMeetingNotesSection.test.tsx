@@ -57,6 +57,24 @@ describe('TeamsMeetingNotesSection', () => {
         expect(await screen.findByText('Saved')).toBeTruthy();
     });
 
+    it('lets the member choose where the text comes from: the recording by default, or the Teams transcript', async () => {
+        const user = userEvent.setup();
+        state.query = settings(FULL);
+        renderWithClient(<TeamsMeetingNotesSection />);
+        const source = screen.getByRole('combobox', { name: 'Where the text comes from' }) as HTMLSelectElement;
+        expect(source.value).toBe('recording');
+        expect(screen.getByText(/When the chosen one is missing for a meeting, the other is used, so a note still comes\./)).toBeTruthy();
+        await user.selectOptions(source, 'The Teams transcript');
+        await user.click(screen.getByRole('button', { name: 'Save' }));
+        expect(state.save.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ source: 'transcript', autoImport: false }));
+    });
+
+    it('shows the stored choice for the Teams transcript', () => {
+        state.query = settings(FULL, { source: 'transcript' });
+        renderWithClient(<TeamsMeetingNotesSection />);
+        expect((screen.getByRole('combobox', { name: 'Where the text comes from' }) as HTMLSelectElement).value).toBe('transcript');
+    });
+
     it('locks the auto-record toggle without the meeting write permission', () => {
         state.query = settings({ ...FULL, hasMeetingWriteScope: false });
         renderWithClient(<TeamsMeetingNotesSection />);

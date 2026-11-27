@@ -250,6 +250,7 @@ tests and organisation-wide import do.
 |----------|---------|---------|
 | `TEAMS_DIAGNOSTICS_MIN_INTERVAL_SECONDS` | `10` | Seconds between two runs of the same Teams test by one person (the app registration test, the member test and the organisation-wide import test each have their own interval). A run within the interval gets a `429`. `0` = unlimited. |
 | `TEAMS_DIAGNOSTICS_PROBE_TIMEOUT_MS` | `15000` | How long one Microsoft request of a Teams test may take before the check says it could not be tested. `0` = no timeout. |
+| `TEAMS_TRANSCRIPT_WAIT_MINUTES` | `30` | With the Teams transcript as the source of meeting notes: minutes after a meeting that its recording waits for the Teams transcript before Bee Flow transcribes the recording itself. `0` = do not wait. |
 | `TEAMS_DIAGNOSTICS_MAX_MEMBERS` | `2000` | Members listed in an organisation's Teams member overview; the overview says when there are more. `0` = unlimited. |
 | `TEAMS_APP_IMPORT_MAX_SELECTED_USERS` | `5000` | Members an organisation admin may select for organisation-wide Teams import. `0` = unlimited. |
 | `TEAMS_APP_IMPORT` | `1` | `0` switches organisation-wide Teams import (application permissions) off for the whole server. Not a limit: any other value leaves it available. |

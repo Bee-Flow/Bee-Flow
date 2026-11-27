@@ -432,6 +432,47 @@ test('no recording but a transcript → the transcript is ingested', async () =>
     assert.deepStrictEqual(fx.ingestCalls[0].artifact, { kind: 'transcript', id: 'T1' });
 });
 
+test('source transcript: the Teams transcript is ingested although the meeting has a recording', async () => {
+    fx.settingsByOrg.orgA = { source: 'transcript' };
+    fx.recordings = [{ id: 'R1' }];
+    fx.transcripts = [{ id: 'T1' }];
+    await seeded();
+    await auto.processDue();
+    assert.deepStrictEqual(fx.ingestCalls.map((c) => c.artifact), [{ kind: 'transcript', id: 'T1' }]);
+    assert.strictEqual(fx.store.jobs[0].status, 'ingested');
+});
+
+test('source transcript: a transcript that cannot be used is answered with the recording, so the note still comes', async () => {
+    fx.settingsByOrg.orgA = { source: 'transcript' };
+    fx.recordings = [{ id: 'R1' }];
+    fx.transcripts = [{ id: 'T1' }];
+    const failing = coded('Speaker names are off', 'speaker_attribution_disabled');
+    fx.onIngest = () => { if (fx.ingestCalls.length === 1) throw failing; };
+    await seeded();
+    await auto.processDue();
+    assert.deepStrictEqual(fx.ingestCalls.map((c) => c.artifact), [{ kind: 'transcript', id: 'T1' }, { kind: 'recording', id: 'R1' }]);
+    assert.strictEqual(fx.store.jobs[0].status, 'ingested');
+});
+
+test('source transcript: an unusable transcript without a recording keeps its own failure', async () => {
+    fx.settingsByOrg.orgA = { source: 'transcript' };
+    fx.transcripts = [{ id: 'T1' }];
+    fx.ingestError = coded('Speaker names are off', 'speaker_attribution_disabled');
+    await seeded();
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls.length, 1);
+    assert.strictEqual(fx.store.jobs[0].errorCode, 'speaker_attribution_disabled');
+});
+
+test('source transcript: a recording whose transcript may still come waits; another ingest failure is not answered with the recording', async () => {
+    fx.settingsByOrg.orgA = { source: 'transcript' };
+    fx.recordings = [{ id: 'R1' }];
+    await seeded({ meetingStart: hoursAgo(0.5), meetingEnd: hoursAgo(0.1) });
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.strictEqual(fx.store.jobs[0].status, 'awaiting_artifacts');
+});
+
 test('the transcript fallback is skipped without the transcript scope', async () => {
     fx.transcripts = [{ id: 'T1' }];
     fx.authByUser.u1.scope = 'Calendars.ReadWrite OnlineMeetingRecording.Read.All';

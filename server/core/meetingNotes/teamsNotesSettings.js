@@ -13,6 +13,10 @@
  *   - autoRecordConfig  switch on Teams' own "record automatically" for a meeting
  *                       when the user turns recording on for it
  *   - language          transcription language for auto-ingest
+ *   - source            where the text of a note comes from: 'recording' (Bee Flow
+ *                       transcribes the recording; the Teams transcript only when
+ *                       there is no recording) or 'transcript' (the Teams transcript;
+ *                       the recording only when there is no usable transcript)
  *   - lookbackHours     how far back the poller scans for ended meetings
  *
  * There is no import scope: Graph only hands recordings and transcripts to
@@ -33,7 +37,11 @@ const DEFAULTS = Object.freeze({
     autoRecordConfig: false,
     language: 'nl',
     lookbackHours: 24,
+    source: 'recording',
 });
+
+/** The two text sources, in the order the settings screens list them. */
+const TEXT_SOURCES = Object.freeze(['recording', 'transcript']);
 
 // Graph permissions Teams import needs (see MICROSOFT_SCOPES in auth/permissions.js).
 const SCOPE_RECORDINGS = 'OnlineMeetingRecording.Read.All';
@@ -135,6 +143,11 @@ function userKey(userId) { return `user_teams_notes_${userId}`; }
 
 /** @param {unknown} v */
 function asLanguage(v) { return (typeof v === 'string' && v.trim()) ? v.trim() : DEFAULTS.language; }
+/**
+ * @param {unknown} v
+ * @returns {'recording' | 'transcript'}
+ */
+function asSource(v) { return v === 'transcript' ? 'transcript' : 'recording'; }
 /** @param {unknown} v */
 function asLookback(v) {
     const n = Number(v);
@@ -164,6 +177,7 @@ async function resolveTeamsNotesSettings({ orgId = null, userId = null } = {}) {
         autoRecordConfig: !!pick('autoRecordConfig'),
         language: asLanguage(pick('language')),
         lookbackHours: asLookback(pick('lookbackHours')),
+        source: asSource(pick('source')),
     };
 }
 
@@ -204,7 +218,7 @@ function orNull(value, coerce) { return value === null ? null : coerce(value); }
 
 /**
  * A settings patch from the API body; a field may be absent or an explicit null ("inherit").
- * @typedef {{ autoImport?: boolean | null, autoRecordConfig?: boolean | null, language?: string | null, lookbackHours?: number | string | null }} TeamsNotesPatch
+ * @typedef {{ autoImport?: boolean | null, autoRecordConfig?: boolean | null, language?: string | null, lookbackHours?: number | string | null, source?: string | null }} TeamsNotesPatch
  */
 /**
  * @param {TeamsNotesPatch} patch
@@ -218,6 +232,7 @@ function sanitizePatch(patch, { absentIsNull = false } = {}) {
         autoRecordConfig: orNull(field(patch.autoRecordConfig), v => !!v),
         language: orNull(field(patch.language), asLanguage),
         lookbackHours: orNull(field(patch.lookbackHours), asLookback),
+        source: orNull(field(patch.source), asSource),
     };
 }
 
@@ -245,6 +260,7 @@ async function saveUserSettings(userId, patch) {
 module.exports = {
     init,
     DEFAULTS,
+    TEXT_SOURCES,
     TEAMS_DELEGATED_PERMISSIONS,
     missingTeamsPermissions,
     hasTeamsScopes,

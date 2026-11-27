@@ -27,8 +27,8 @@ import { ALERT_ERROR } from '@/components/shared/adminUi';
  * unless `showSetup` is false, because the admin dashboard draws them on its
  * Microsoft 365 row instead.
  */
-const INHERITABLE = ['autoImport', 'autoRecordConfig', 'language', 'lookbackHours'] as const;
-const DEFAULT_CFG: TeamsNotesSettings = { autoImport: null, autoRecordConfig: null, language: null, lookbackHours: null };
+const INHERITABLE = ['source', 'autoImport', 'autoRecordConfig', 'language', 'lookbackHours'] as const;
+const DEFAULT_CFG: TeamsNotesSettings = { source: null, autoImport: null, autoRecordConfig: null, language: null, lookbackHours: null };
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -77,6 +77,21 @@ export default function TeamsAdminPanel({ user, orgId: orgIdProp, showSetup = tr
                 <InheritHint />
                 <LoadingState loading={query.isLoading} error={query.isError ? true : null} errorFallback={() => <OrgSettingsLoadError />}>
                     <SettingsList>
+                        <SettingRow
+                            label={t('teams_setup.source.label')}
+                            hint={t('teams_setup.source.hint')}
+                            expanded={cfg.source === 'transcript' ? <p className="m-0 text-xs text-[var(--text-secondary)]" data-testid="teams-source-transcript-note">{t('teams_setup.source.transcript_note')}</p> : undefined}
+                        >
+                            <InheritSelect
+                                ariaLabel={t('teams_setup.source.label')}
+                                value={cfg.source ?? null} disabled={busy}
+                                onChange={(v) => setCfg((c) => ({ ...c, source: v === 'transcript' || v === 'recording' ? v : null }))}
+                                options={[
+                                    { value: 'recording', label: t('teams_setup.source.recording') },
+                                    { value: 'transcript', label: t('teams_setup.source.transcript') },
+                                ]}
+                            />
+                        </SettingRow>
                         <SettingRow
                             label={t('settings.teams_admin_auto_import', 'Auto-import recorded Teams meetings')}
                             hint={t('settings.teams_admin_auto_import_desc', 'When a Teams meeting a member organised has a recording, create a Meeting Note automatically. Meetings organised by someone outside Bee Flow are not imported.')}

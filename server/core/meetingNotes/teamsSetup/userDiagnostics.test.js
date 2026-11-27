@@ -285,3 +285,44 @@ test('app.token in the user report carries no tenant id', async () => {
     assert.equal(token.status, 'pass');
     assert.deepEqual(token.params, { tenantSource: 'configured' });
 });
+
+// ── the Teams transcript as the source of the notes ──────────────────
+
+const transcriptSource = { settings: { resolveTeamsNotesSettings: async () => ({ autoImport: true, autoRecordConfig: false, source: 'transcript' }) } };
+
+test('with the Teams transcript as the source, a missing transcript permission fails instead of warning', async () => {
+    world(transcriptSource);
+    const scope = 'openid offline_access Calendars.ReadWrite OnlineMeetingRecording.Read.All';
+    const session = { oauthProvider: 'microsoft', accessToken: 'fixture-access-token', oauthScope: scope };
+    const report = await diag.runUserDiagnostics(input({ reqSession: session, credential: { status: 'active', scope } }));
+    const c = byId(report);
+    assert.deepEqual([c['a.scope_transcripts'].status, c['a.scope_transcripts'].code], ['fail', 'scope_missing']);
+    assert.equal(report.overall, 'fail');
+});
+
+test('with the Teams transcript as the source, the two Teams switches fail instead of warning', async () => {
+    world({ ...transcriptSource, artifacts: { listTranscripts: async () => { throw Object.assign(new Error('x'), { code: 'transcript_access_disabled' }); } } });
+    let c = byId(await diag.runUserDiagnostics(input()));
+    assert.deepEqual([c['a.transcripts'].status, c['a.transcripts'].code, c['a.transcripts'].fixer], ['fail', 'transcript_api_disabled', 'teams_admin']);
+    world({ ...transcriptSource, artifacts: { fetchTranscriptVtt: async () => { throw Object.assign(new Error('x'), { code: 'speaker_attribution_disabled' }); } } });
+    c = byId(await diag.runUserDiagnostics(input()));
+    assert.deepEqual([c['a.transcript_content'].status, c['a.transcript_content'].code], ['fail', 'speaker_attribution_off']);
+});
+
+test('with the Teams transcript as the source, a meeting that does not allow transcription fails, and names the Teams administrator', async () => {
+    const lookup = async (s, url) => ({ id: 'meeting-1', allowRecording: true, allowTranscription: false, recordAutomatically: false, joinWebUrl: url });
+    world({ ...transcriptSource, artifacts: { getOnlineMeetingByJoinUrl: lookup } });
+    let c = byId(await diag.runUserDiagnostics(input()))['a.meeting_lookup'];
+    assert.deepEqual([c.status, c.code, c.remediation, c.fixer], ['fail', 'transcription_not_allowed', 'teams_setup.fix.allow_transcription', 'teams_admin']);
+    assert.equal(c.params.allowTranscription, false);
+    // With the recording as the source the same meeting is fine: Bee Flow transcribes it itself.
+    world({ artifacts: { getOnlineMeetingByJoinUrl: lookup } });
+    c = byId(await diag.runUserDiagnostics(input()))['a.meeting_lookup'];
+    assert.equal(c.status, 'pass');
+});
+
+test('with the Teams transcript as the source, a healthy setup still passes every check', async () => {
+    world(transcriptSource);
+    const report = await diag.runUserDiagnostics(input());
+    assert.equal(report.overall, 'pass');
+});

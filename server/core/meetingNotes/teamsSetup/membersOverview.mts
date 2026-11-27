@@ -69,7 +69,7 @@ type MemberSkip = { reason: string; missingPermissions: string[]; at: string };
 /** One teams_import_jobs error code and how often it occurred in the window. */
 type MemberFailure = { code: string; count: number };
 /** The organisation document; null = members decide. */
-type OrgTeamsChoices = { autoImport: boolean | null; autoRecordConfig: boolean | null };
+type OrgTeamsChoices = { autoImport: boolean | null; autoRecordConfig: boolean | null; source: 'recording' | 'transcript' | null };
 type OverviewTotals = { members: number; connected: number; missingPermissions: number; needsReauth: number; skipped: number; failedImports: number };
 
 export interface TeamsMemberRow {
@@ -114,6 +114,7 @@ async function mapLimited<T, R>(items: T[], limit: number, fn: (item: T) => Prom
 }
 
 const boolOrNull = (v: unknown): boolean | null => (typeof v === 'boolean' ? v : null);
+const sourceOrNull = (v: unknown): 'recording' | 'transcript' | null => (v === 'recording' || v === 'transcript' ? v : null);
 
 async function safely<T>(what: string, run: () => Promise<T>, fallback: T): Promise<T> {
     try { return await run(); } catch (err) {
@@ -215,7 +216,7 @@ export async function buildOrgOverview(a: { orgId: string; days?: number; config
         windowDays,
         generatedAt: (a.now || new Date()).toISOString(),
         truncated,
-        settings: { autoImport: boolOrNull(orgDoc?.autoImport), autoRecordConfig: boolOrNull(orgDoc?.autoRecordConfig) },
+        settings: { autoImport: boolOrNull(orgDoc?.autoImport), autoRecordConfig: boolOrNull(orgDoc?.autoRecordConfig), source: sourceOrNull(orgDoc?.source) },
         checks,
         totals: totalsOf(members, required),
         members,

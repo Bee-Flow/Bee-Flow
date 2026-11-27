@@ -82,7 +82,7 @@ export interface TeamsOrgOverview {
     /** More active members than the server shows. */
     truncated: boolean;
     /** The org document; null = members decide. */
-    settings: { autoImport: boolean | null; autoRecordConfig: boolean | null };
+    settings: { autoImport: boolean | null; autoRecordConfig: boolean | null; source?: 'recording' | 'transcript' | null };
     /** org.consent_link, org.admin_consent. */
     checks: TeamsCheck[];
     totals: { members: number; connected: number; missingPermissions: number; needsReauth: number; skipped: number; failedImports: number };

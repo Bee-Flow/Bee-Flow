@@ -5,6 +5,8 @@
 //   2. the two ways Bee Flow can reach the meetings, each with its own action
 //      inside its card: the approval link for Microsoft under "members connect
 //      their own account", the switch and test under organisation-wide import;
+//      then what a Teams administrator switches on for the Teams transcript,
+//      with the commands ready to copy;
 //   3. a test of the admin's own connection;
 //   4. who is ready, per member.
 // All of them read /api/teams-setup, which takes no organisation from the
@@ -25,6 +27,7 @@ import TeamsHowItWorksCard from './TeamsHowItWorksCard';
 import TeamsMembersOverview from './TeamsMembersOverview';
 import TeamsRequirementsCard from './TeamsRequirementsCard';
 import TeamsSetupGuide from './TeamsSetupGuide';
+import TeamsTranscriptSetupCard from './TeamsTranscriptSetupCard';
 
 interface TeamsSetupCardsProps {
     /** The chosen organisation is the viewer's own: the only one these cards can act on. */
@@ -39,6 +42,7 @@ export default function TeamsSetupCards({ homeOrg }: TeamsSetupCardsProps) {
             <TeamsHowItWorksCard />
             <TeamsRequirementsCard />
             <TeamsSetupGuide consent={<TeamsConsentLinkCard embedded />} appImport={<TeamsAppImportPanel embedded />} />
+            <TeamsTranscriptSetupCard />
             <section className="flex flex-col gap-2" aria-labelledby="teams-test-title">
                 <h4 id="teams-test-title" className="text-[13px] font-semibold text-[var(--text-primary)]">{t('teams_setup.ui.test_title')}</h4>
                 <TeamsConnectionTest />

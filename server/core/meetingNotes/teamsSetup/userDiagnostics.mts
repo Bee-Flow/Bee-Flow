@@ -28,7 +28,7 @@ type Meeting = { eventId?: string; start?: string | null; end?: string | null; o
 type Artifact = { id?: string; createdDateTime?: string };
 type SessionLike = { oauthProvider?: string; accessToken?: string; oauthScope?: string } & Record<string, unknown>;
 type SkipState = { reason: string; missingPermissions: string[]; at: string; orgId: string | null };
-type TeamsSettings = { autoImport: boolean; autoRecordConfig: boolean };
+type TeamsSettings = { autoImport: boolean; autoRecordConfig: boolean; source?: 'recording' | 'transcript' };
 
 export interface UserDiagnosticsDeps {
     hasCapability: (capId: string, ctx: { userId: string; orgId: string | null }) => Promise<boolean>;
@@ -144,6 +144,16 @@ async function settingsOf(ctx: Ctx): Promise<TeamsSettings> {
     return ctx.settings;
 }
 
+/** The notes come from the Teams transcript (teamsNotesSettings.js `source`): the transcript checks then decide, not advise. */
+async function transcriptIsSource(ctx: Ctx): Promise<boolean> {
+    return (await settingsOf(ctx)).source === 'transcript';
+}
+
+/** A transcript check that only warns is a failure when the transcript is the source of the notes. */
+async function asTranscriptSource(ctx: Ctx, outcome: Outcome): Promise<Outcome> {
+    return outcome.status === 'warn' && await transcriptIsSource(ctx) ? { ...outcome, status: 'fail' } : outcome;
+}
+
 function scopeCheck(name: string, missingStatus: 'fail' | 'warn', fix: string, fixer: Fixer) {
     return async (ctx: Ctx): Promise<Outcome> => (ctx.missing.includes(name)
         ? { status: missingStatus, code: 'scope_missing', params: { permission: name }, fix, fixer }
@@ -217,6 +227,13 @@ async function meetingLookup(ctx: Ctx): Promise<Outcome> {
     });
 }
 
+/** With the Teams transcript as the source: the probed meeting must allow transcription (the organiser's Teams meeting policy). */
+async function transcriptionAllowed(ctx: Ctx): Promise<Outcome> {
+    const lookup = await meetingLookup(ctx);
+    if (lookup.status !== 'pass' || lookup.params?.allowTranscription !== false || !await transcriptIsSource(ctx)) return lookup;
+    return { status: 'fail', code: 'transcription_not_allowed', params: lookup.params, fix: 'allow_transcription', fixer: 'teams_admin' };
+}
+
 async function recordings(ctx: Ctx): Promise<Outcome> {
     const meetingId = String(ctx.meetingId);
     return probe(ctx, 'meeting', () => lazy.deps.artifacts.listRecordings(ctx.input.session, meetingId),
@@ -225,10 +242,10 @@ async function recordings(ctx: Ctx): Promise<Outcome> {
 
 async function transcripts(ctx: Ctx): Promise<Outcome> {
     const meetingId = String(ctx.meetingId);
-    return probe(ctx, 'meeting', () => lazy.deps.artifacts.listTranscripts(ctx.input.session, meetingId), (list) => {
+    return asTranscriptSource(ctx, await probe(ctx, 'meeting', () => lazy.deps.artifacts.listTranscripts(ctx.input.session, meetingId), (list) => {
         ctx.transcripts = Array.isArray(list) ? list.filter((t) => t && typeof t.id === 'string') : [];
         return { status: 'pass', code: 'ok', params: { count: ctx.transcripts.length } };
-    });
+    }));
 }
 
 async function transcriptContent(ctx: Ctx): Promise<Outcome> {
@@ -237,8 +254,8 @@ async function transcriptContent(ctx: Ctx): Promise<Outcome> {
     const meetingId = String(ctx.meetingId);
     const transcriptId = newest.id;
     // The text is read and dropped at once: only whether it could be read counts.
-    return probe(ctx, 'meeting', async () => { await lazy.deps.artifacts.fetchTranscriptVtt(ctx.input.session, { meetingId, transcriptId }); return true; },
-        () => ({ status: 'pass', code: 'ok' }));
+    return asTranscriptSource(ctx, await probe(ctx, 'meeting', async () => { await lazy.deps.artifacts.fetchTranscriptVtt(ctx.input.session, { meetingId, transcriptId }); return true; },
+        () => ({ status: 'pass', code: 'ok' })));
 }
 
 async function backgroundAccess(ctx: Ctx): Promise<Outcome> {
@@ -308,10 +325,10 @@ const CATALOGUE: readonly Spec[] = Object.freeze([
     { id: 'a.connection', option: 'A', dependsOn: ['app.configured'], run: connection },
     { id: 'a.scope_calendar', option: 'A', dependsOn: ['a.connection'], run: scopeCheck(SCOPE_CALENDAR, 'fail', 'reconnect_to_grant', 'user') },
     { id: 'a.scope_recordings', option: 'A', dependsOn: ['a.connection'], run: scopeCheck(SCOPE_RECORDINGS, 'fail', 'admin_consent_needed', 'entra_admin') },
-    { id: 'a.scope_transcripts', option: 'A', dependsOn: ['a.connection'], run: scopeCheck(SCOPE_TRANSCRIPTS, 'warn', 'admin_consent_needed', 'entra_admin') },
+    { id: 'a.scope_transcripts', option: 'A', dependsOn: ['a.connection'], run: async (ctx: Ctx) => asTranscriptSource(ctx, await scopeCheck(SCOPE_TRANSCRIPTS, 'warn', 'admin_consent_needed', 'entra_admin')(ctx)) },
     { id: 'a.auto_record', option: 'A', dependsOn: ['a.connection'], run: autoRecord },
     { id: 'a.calendar', option: 'A', dependsOn: ['a.scope_calendar'], run: calendarCheck },
-    { id: 'a.meeting_lookup', option: 'A', dependsOn: ['a.calendar'], instead: noMeetingInstead, run: meetingLookup },
+    { id: 'a.meeting_lookup', option: 'A', dependsOn: ['a.calendar'], instead: noMeetingInstead, run: transcriptionAllowed },
     { id: 'a.recordings', option: 'A', dependsOn: ['a.meeting_lookup', 'a.scope_recordings'], run: recordings },
     { id: 'a.transcripts', option: 'A', dependsOn: ['a.meeting_lookup', 'a.scope_transcripts'], run: transcripts },
     { id: 'a.transcript_content', option: 'A', dependsOn: ['a.transcripts'], run: transcriptContent },

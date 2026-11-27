@@ -13,22 +13,57 @@ about getting there and about the tests that tell you what is still missing.
 
 ## Who turns speech into text
 
-Bee Flow does, not Microsoft. The setup page says the same under **How a meeting becomes a note,
-and who turns speech into text**.
+Bee Flow or Teams: you choose. The setup page says the same under **How a meeting becomes a note,
+and who turns speech into text**, and marks the source your organisation uses.
 
 1. **Teams records the meeting.** Someone presses record in Teams, or Bee Flow sets the meeting to
-   record automatically when that setting is on. No bot joins the call.
-2. **Bee Flow turns speech into text.** After the meeting Bee Flow fetches the recording, keeps
-   only the sound (the video is deleted at once) and transcribes it with the transcription service
-   chosen for Bee Flow under Admin dashboard, Platform services, Transcription. Teams transcription
-   does not have to be on.
+   record automatically when that setting is on. When transcription is allowed in Teams, Teams
+   makes a transcript along with the recording. No bot joins the call.
+2. **The text is made in one of two ways**, set under **Where the text comes from** (Admin
+   dashboard, AI & agents, Meeting notes, Microsoft Teams; members have the same setting under
+   Settings, Preferences, and the organisation's choice wins):
+
+   | | Bee Flow transcribes the recording (default) | The Teams transcript |
+   |---|---|---|
+   | Who makes the text | Bee Flow, with the transcription service chosen under Admin dashboard, Platform services, Transcription | Microsoft Teams, during the meeting |
+   | Transcription cost in Bee Flow | Yes | None |
+   | Speakers | Bee Flow's own speaker recognition, anchored on the calendar attendees | The names Teams knows |
+   | Audio in the note | Yes | No |
+   | Needs in Teams | Recording allowed | Transcription allowed, plus the two transcript switches ([Using the Teams transcript](#using-the-teams-transcript)) |
+
 3. **Bee Flow writes the note.** The summary and the action items come from your own AI models.
    Microsoft Copilot is not used.
 
-One exception: a meeting that was transcribed in Teams but **not recorded** is imported from the
-text Microsoft made, with the speakers' Teams names. That works only with the two transcript
-switches under [Teams settings](#4-teams-settings), and such a note has no audio. When a meeting
-has both a recording and a Teams transcript, Bee Flow uses the recording.
+The other source is the way back, so a note still comes:
+
+- With the recording as the source, a meeting that was transcribed but not recorded is imported
+  from its Teams transcript.
+- With the Teams transcript as the source, a meeting without a transcript is imported from its
+  recording. Teams publishes a transcript shortly after the meeting, so a recording first waits
+  for it: until `TEAMS_TRANSCRIPT_WAIT_MINUTES` after the meeting ended (default 30). An import a
+  member starts by hand does not wait. A transcript that cannot be used (transcript access or
+  speaker names switched off, or no speech in it) is answered with the recording too.
+
+### Using the Teams transcript
+
+The simplest route to run: nobody starts anything by hand, and Bee Flow does no transcription.
+
+1. Choose **The Teams transcript** under **Where the text comes from**.
+2. Have your Teams administrator run these once, in Teams PowerShell (the setup page has them ready
+   to copy under **Using the Teams transcript: what to switch on**):
+
+   ```powershell
+   Set-CsTeamsMeetingPolicy -Identity Global -AllowTranscription $true
+   Set-CsTeamsMeetingConfiguration -Identity Global -EnableGraphTranscriptAccess $true -EnableAttributedTranscripts $true
+   ```
+
+3. Make sure `OnlineMeetingTranscript.Read.All` is on the app registration and approved
+   ([Grant admin consent](#3-grant-admin-consent)); members who connected before that reconnect
+   Microsoft 365 once.
+4. Switch on automatic import, and **Switch on Teams recording** when members should not have to
+   press record: Teams then records and transcribes by itself.
+5. Record a short test meeting and run **Test my connection**. With the Teams transcript as the
+   source, the transcript checks fail instead of warn, so the test says plainly what is missing.
 
 ## What each member needs
 
@@ -506,6 +541,7 @@ usual one.
 | `no_meeting_to_probe` | No meeting to test with, so the meeting checks could not run | The member | As `no_teams_meetings` |
 | `calendar_forbidden` | Microsoft refused access to the calendar | Entra administrator | Check that `Calendars.ReadWrite` (option B: the application permission `Calendars.Read`) is on the registration and consented, and that no Exchange policy excludes the mailbox |
 | `recording_not_allowed` | Recording is switched off for this meeting | Teams administrator | Allow cloud recording in the organiser's meeting policy (`AllowCloudRecording`) |
+| `transcription_not_allowed` | Only with the Teams transcript as the source: transcription is switched off for this meeting | Teams administrator | Allow transcription in the organiser's meeting policy (`AllowTranscription`) |
 | `meeting_not_available` | Microsoft has no online meeting for this calendar entry | The member | Schedule meetings as Teams meetings from Outlook or Teams; expired meetings cannot be read |
 | `graph_forbidden` | Microsoft refused access: a permission, licence or Teams policy blocks it | Teams administrator | Check the account's Teams licence and the recording and transcription policies |
 | `transcript_api_disabled` | Transcript API access is off in the tenant | Teams administrator | Switch on [Transcript API access](#4-teams-settings); recordings keep working |
@@ -609,6 +645,7 @@ timeout). See [Environment variables](../self-hosting/env.md#teams-meeting-notes
 | `TEAMS_DIAGNOSTICS_MAX_MEMBERS` | `2000` | Members shown in **Who is ready** |
 | `TEAMS_APP_IMPORT_MAX_SELECTED_USERS` | `5000` | Members an organisation admin may select for option B |
 | `TEAMS_APP_IMPORT` | `1` | `0` switches organisation-wide import off for the whole server |
+| `TEAMS_TRANSCRIPT_WAIT_MINUTES` | `30` | With the Teams transcript as the source: minutes after the meeting that a recording waits for its transcript before Bee Flow transcribes the recording itself. `0` = do not wait |
 
 ## Privacy
 
