@@ -35,6 +35,7 @@ const { ladderPglite } = require('../testUtils/pgliteTemplate');
 const { insertRow } = require('../testUtils/pgliteSeed');
 const { failReads } = require('../testUtils/pgliteFaults');
 const { recordDb } = require('../testUtils/routeHarness');
+const { stubFeatureModule } = require('../testUtils/featureDouble');
 
 const pg = ladderPglite();
 const rec = recordDb(undefined, { pg });
@@ -49,7 +50,9 @@ const stub = (relPath, exports) => {
 const settings = new Map();
 let settingsThrow = false;
 const heartbeats = [];
-stub('../stores/complianceStore', {
+// The job looks the compliance store up by name, as a data duty (module "compliance"): the double answers
+// there, with or without the module.
+stubFeatureModule('stores/complianceStore', {
     markRetentionRun: async (orgId) => { heartbeats.push(orgId); return true; },
     getSettings: async (orgId) => {
         if (settingsThrow) throw new Error('compliance settings unreachable');

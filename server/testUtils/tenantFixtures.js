@@ -53,6 +53,7 @@ const { listTreeDir } = require('../moduleRoots.cjs');
  *   params?: Record<string, string>,
  *   queries?: Record<string, string>,
  *   ownerStatus?: number,
+ *   ownerStatusWithout?: Record<string, number>,
  *   orgAdminCaller?: boolean,
  * }} TenantFixture
  *   `bodies`: per route, the body a member of org A sends where the schema is
@@ -61,6 +62,8 @@ const { listTreeDir } = require('../moduleRoots.cjs');
  *   `params`: a fixed value for a named path parameter (every other one is the
  *   kind's id), where a sub-resource is named by a word such as `current`.
  *   `queries`: per route, a query string its schema requires before the gate.
+ *   `ownerStatusWithout`: the owner's status when the named first-party module is not loaded (a
+ *   core route whose answer past the gate comes from that module, e.g. its 409 `module_absent`).
  */
 
 /** Every kind of today, in the order the matrix creates them. */
@@ -97,7 +100,26 @@ function discoverFixtures() {
     return found.map((f, i) => ({ f, i })).sort((a, b) => rank(a.f) - rank(b.f) || a.i - b.i).map(({ f }) => f);
 }
 
+/**
+ * The routes the kinds of a module that is not here would drive: the 'METHOD /path' literals of
+ * every kind file in testUtils/tenantFixtures/ of every root that listTreeDir leaves out (a hidden
+ * module's). Read as text: such a file is not required. Empty when every module is here.
+ * @returns {Set<string>}
+ */
+function routesOfAbsentKinds() {
+    const fs = require('node:fs');
+    const { walkServerTree } = require('./serverTree');
+    const here = new Set(listTreeDir('testUtils', 'tenantFixtures').map((e) => e.abs));
+    /** @type {Set<string>} */
+    const out = new Set();
+    for (const f of walkServerTree({ under: 'testUtils/tenantFixtures' })) {
+        if (here.has(f.abs) || !f.treePath.endsWith('.js') || f.treePath.endsWith('.test.js')) continue;
+        for (const m of fs.readFileSync(f.abs, 'utf8').matchAll(/'((?:GET|POST|PUT|PATCH|DELETE) \/[^'\s]*)'/g)) out.add(/** @type {string} */ (m[1]));
+    }
+    return out;
+}
+
 /** @type {TenantFixture[]} */
 const FIXTURES = discoverFixtures();
 
-module.exports = { FIXTURES, KIND_ORDER };
+module.exports = { FIXTURES, KIND_ORDER, routesOfAbsentKinds };

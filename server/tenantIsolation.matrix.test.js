@@ -46,8 +46,8 @@ const { usePglitePool } = require('./testUtils/pglitePool');
 const { close: closePg } = usePglitePool();
 
 const h = require('./testUtils/routeHarness');
-const { FIXTURES } = require('./testUtils/tenantFixtures');
-const { routesOfAbsentModules } = require('./testUtils/absentModuleRoutes');
+const { FIXTURES, routesOfAbsentKinds } = require('./testUtils/tenantFixtures');
+const { routesOfAbsentModules, moduleIsLoaded } = require('./testUtils/absentModuleRoutes');
 const { listTreeDir } = require('./moduleRoots.cjs');
 
 const ORG_A = 'org-matrix-a';
@@ -111,6 +111,9 @@ after(async () => {
     await closePg();
 });
 
+/** The owner's status: the kind's own, or the one it names for a first-party module that is not loaded here. */
+const ownerStatusOf = (f) => Object.entries(f.ownerStatusWithout || {}).find(([m]) => !moduleIsLoaded(m))?.[1] ?? (f.ownerStatus || 200);
+
 /** Every parameter is the id, except the ones the kind fixes (`params`). */
 const fill = (route, id, params = {}) => route.replace(/:([A-Za-z_]+)/g, (_m, name) => params[name] ?? id);
 /** The address of one of the kind's routes: its parameters filled, and the query string the kind gives it (`queries`). */
@@ -122,7 +125,7 @@ for (const f of FIXTURES) {
         const [method] = f.routes[0].split(' ');
         // The same body the callers send, so a route that validates first answers the owner past its schema.
         const res = await api.call(method, urlOf(f, f.routes[0], id), { user: USER_B, body: f.bodies?.[f.routes[0]] });
-        assert.equal(res.status, f.ownerStatus || 200, `${f.routes[0]} as the owner: ${res.status} ${res.text.slice(0, 200)}`);
+        assert.equal(res.status, ownerStatusOf(f), `${f.routes[0]} as the owner: ${res.status} ${res.text.slice(0, 200)}`);
     });
 
     const callers = [['a member of org A', USER_A]];
@@ -239,8 +242,10 @@ const paramRoutes = Object.keys(contract.routes).filter((id) => PARAM.test(id.sp
 const covered = new Set(FIXTURES.flatMap((f) => f.routes));
 
 test('every route with a path parameter is covered by a fixture or exempted with a reason', () => {
-    const uncovered = paramRoutes.filter((id) => !covered.has(id) && !exemptions.routes[id]);
-    // A route of a module that is not loaded has no kind here; with every module present nothing is left out.
+    // A route of a module that is not loaded has no kind here, nor has a core route whose kind belongs to such a
+    // module (its file is left out); with every module present nothing is left out.
+    const absentKinds = routesOfAbsentKinds();
+    const uncovered = paramRoutes.filter((id) => !covered.has(id) && !exemptions.routes[id] && !absentKinds.has(id));
     const absent = routesOfAbsentModules(uncovered);
     const missing = uncovered.filter((id) => !absent.has(id));
     assert.deepEqual(missing, [],

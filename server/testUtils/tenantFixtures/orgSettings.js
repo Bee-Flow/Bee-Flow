@@ -26,10 +26,10 @@ const { makeOwnerOrgAdmin } = require('./organisation');
  * @param {string} kind
  * @param {string} mount
  * @param {() => import('express').Router} router
- * @param {{ memberReads?: string[], adminRoutes?: string[], bodies?: Record<string, unknown>, params?: Record<string, string>, adminOwnerStatus?: number }} routes
+ * @param {{ memberReads?: string[], adminRoutes?: string[], bodies?: Record<string, unknown>, params?: Record<string, string>, adminOwnerStatus?: number, adminOwnerStatusWithout?: Record<string, number> }} routes
  * @returns {import('../tenantFixtures').TenantFixture[]}
  */
-function orgArea(kind, mount, router, { memberReads = [], adminRoutes = [], bodies, params, adminOwnerStatus }) {
+function orgArea(kind, mount, router, { memberReads = [], adminRoutes = [], bodies, params, adminOwnerStatus, adminOwnerStatusWithout }) {
     /** @type {(ctx: { orgId: string, userId: string }) => Promise<string>} */
     const create = async ({ orgId, userId }) => {
         await makeOwnerOrgAdmin(userId);
@@ -38,7 +38,7 @@ function orgArea(kind, mount, router, { memberReads = [], adminRoutes = [], bodi
     const base = { mount, router, create, bodies, params };
     return [
         ...(memberReads.length ? [{ ...base, kind, routes: memberReads }] : []),
-        ...(adminRoutes.length ? [{ ...base, kind: `${kind}Admin`, routes: adminRoutes, orgAdminCaller: true, ownerStatus: adminOwnerStatus }] : []),
+        ...(adminRoutes.length ? [{ ...base, kind: `${kind}Admin`, routes: adminRoutes, orgAdminCaller: true, ownerStatus: adminOwnerStatus, ownerStatusWithout: adminOwnerStatusWithout }] : []),
     ];
 }
 
@@ -103,8 +103,9 @@ const FIXTURES = [
             'PUT /api/subscriptions/orgs/:orgId', 'DELETE /api/subscriptions/orgs/:orgId',
         ],
         // The admin of B gets past the lifecycle gate to the 404 of a subscription that Stripe does not manage; the
-        // other routes are the platform administrator's.
+        // other routes are the platform administrator's. Without the Stripe module, past the gate is its 409 module_absent.
         adminOwnerStatus: 404,
+        adminOwnerStatusWithout: { billing_stripe: 409 },
     }),
 ];
 

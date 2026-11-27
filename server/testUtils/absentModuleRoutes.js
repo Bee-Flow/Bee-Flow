@@ -23,16 +23,9 @@
 
 const fs = require('node:fs');
 const { parseSurface, stripComments } = require('./routeSurfaceSweep');
-const { rowsOf } = require('./mountRowsText');
+const { rowsOf, defaultMountParts: everyMountPart } = require('./mountRowsText');
 const { treeFile, walkServerTree } = require('./serverTree');
 const { repoPath } = require('../moduleRoots.cjs');
-
-/** The mounts part files of every root, the hidden modules' included, by name. */
-function everyMountPart() {
-    return walkServerTree({ under: 'firstParty', filter: (_rel, e) => e.isDirectory() || e.name.endsWith('.mounts.js') })
-        .sort((a, b) => a.treePath.localeCompare(b.treePath))
-        .map((f) => ({ file: f.treePath, text: fs.readFileSync(f.abs, 'utf8') }));
-}
 
 /** @param {string} rel */
 function readSource(rel) {
@@ -101,8 +94,45 @@ function routeOwners(owner) {
         const near = nearestOwner(routePath, listed);
         if (near !== undefined) return near;
         const segs = segments(routePath);
-        return mounts.find((m) => shared(segs, m.segs) === m.segs.length)?.owner;
+        return mounts.find((m) => shared(segs, m.segs) === m.segs.length)?.owner ?? literalOwner(id, owner);
     };
+}
+
+/** @type {Array<{ treePath: string, text: string }> | null} */
+let sources = null;
+
+/** The text of every non-test .js / .mts file of every root, hidden modules included (read once). */
+function serverSources() {
+    sources ??= walkServerTree({
+        filter: (rel, e) => e.isDirectory() || ((rel.endsWith('.js') || rel.endsWith('.mts')) && !rel.includes('.test.')),
+    }).map((f) => ({ treePath: f.treePath, text: fs.readFileSync(f.abs, 'utf8') }));
+    return sources;
+}
+
+/**
+ * The owner of the files that register a route the sweep cannot follow (a router a factory
+ * builds, `router.use(require('./x').createRouter())`), read from the registration's literal:
+ * `.get('<path>'` for the longest tail of the path (at a segment boundary) that some file names,
+ * or the regex literal itself for a regex path (often a named constant). Undefined when no file names it, or files of more than one
+ * owner do (the core among them): then the route is not excused.
+ * @param {string} id 'METHOD /path'
+ * @param {(treePath: string) => string | null} owner
+ * @returns {string | null | undefined}
+ */
+function literalOwner(id, owner) {
+    const call = `.${id.slice(0, id.indexOf(' ')).toLowerCase()}(`;
+    const routePath = id.slice(id.indexOf(' ') + 1);
+    const segs = segments(routePath);
+    const forms = routePath.startsWith('/^')
+        ? [[routePath]]
+        : segs.map((_s, i) => `/${segs.slice(i).join('/')}`).map((tail) => [`'${tail}'`, `"${tail}"`, `\`${tail}\``].map((l) => call + l));
+    for (const literals of forms) {
+        const owners = new Set(serverSources()
+            .filter((f) => literals.some((l) => f.text.includes(l)))
+            .map((f) => owner(f.treePath)));
+        if (owners.size) return owners.size === 1 ? [...owners][0] : undefined;
+    }
+    return undefined;
 }
 
 /** @returns {(treePath: string) => string | null} the module that owns a server file, null for the core */
@@ -135,4 +165,33 @@ function routesOfAbsentModules(ids) {
     return out;
 }
 
-module.exports = { routesOfAbsentModules };
+/**
+ * The platform-module gates (`requireModule('<id>')`, modules/catalog.js ids) written in the source
+ * of first-party modules that are not loaded in this process: a catalog id that gates nothing in
+ * the route walk because the routes it gates belong to such a module.
+ * @returns {Map<string, string>} catalog id -> the absent first-party module whose file names it
+ */
+function moduleGatesOfAbsentModules() {
+    /** @type {Map<string, string>} */
+    const out = new Map();
+    const present = presentModules();
+    const owner = ownerOf();
+    for (const f of serverSources()) {
+        const moduleId = owner(f.treePath);
+        if (!moduleId || present.has(moduleId)) continue;
+        for (const m of f.text.matchAll(/\brequireModule\(\s*'(\w+)'/g)) {
+            if (!out.has(/** @type {string} */ (m[1]))) out.set(/** @type {string} */ (m[1]), moduleId);
+        }
+    }
+    return out;
+}
+
+/**
+ * Is this first-party module loaded (or failed) in this process?
+ * @param {string} moduleId
+ */
+function moduleIsLoaded(moduleId) {
+    return presentModules().has(moduleId);
+}
+
+module.exports = { routesOfAbsentModules, moduleGatesOfAbsentModules, moduleIsLoaded };

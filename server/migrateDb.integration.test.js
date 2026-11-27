@@ -126,7 +126,12 @@ test('gecureerde wording overleeft de ladder — de belofte uit elke catalogushe
 // ── De ledger ───────────────────────────────────────────────────────────────
 
 const { LOOSE_MIGRATIONS, NL_TRANSLATIONS, LEDGER_TABLE } = require('./boot/bootMigrations');
-const LADDER = [...LOOSE_MIGRATIONS, ...NL_TRANSLATIONS];
+const { absentModule } = require('./boot/migrationLadder');
+// A migration whose module is not here is skipped by the ladder (boot/migrationLadder.js absentModule),
+// as boot/nlTranslations.test.js leaves it out; with every module here that is none of them.
+const here = (/** @type {string} */ n) => !absentModule(n);
+const LOOSE_HERE = LOOSE_MIGRATIONS.filter(here);
+const LADDER = [...LOOSE_HERE, ...NL_TRANSLATIONS.filter(here)];
 const isLadder = (n) => n.startsWith('datamigraties/') || n.startsWith('NL-catalogi/');
 
 test('de eerste run registreert elke boot-migratie met de checksum van haar bestand', async () => {
@@ -155,7 +160,7 @@ test('een geregistreerde migratie wordt overgeslagen, en --force draait haar opn
 });
 
 test('een migratiebestand dat veranderde sinds de registratie draait opnieuw en wordt herregistreerd', async () => {
-    const name = LOOSE_MIGRATIONS[0];
+    const name = LOOSE_HERE[0];
     await rawQuery(`UPDATE ${LEDGER_TABLE} SET checksum = 'stale' WHERE name = $1`, [name]);
 
     const r = await runMigrations({ log: quiet });

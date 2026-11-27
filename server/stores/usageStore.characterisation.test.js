@@ -26,6 +26,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { preloadStubs, evictModule } = require('../testUtils/stubRequire');
+const { stubFeatureModule } = require('../testUtils/featureDouble');
 
 const GOLDEN = path.join(__dirname, 'usageStore.characterisation.golden.json');
 const TRACE = [];
@@ -134,9 +135,11 @@ const STUBS = {
     '../telemetry/log': logger,
     '../telemetry/metrics': metrics,
     '../core/text/currency': currency,
-    '../workers/paygDrain': drain,
 };
 preloadStubs(require, STUBS);
+// The store looks the drain worker up by name (module "billing_stripe"): the double answers there,
+// with or without the module.
+stubFeatureModule('workers/paygDrain', drain);
 const prevMode = process.env.DEPLOYMENT_MODE;
 const store = require('./usageStore');
 after(() => {

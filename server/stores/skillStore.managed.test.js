@@ -28,6 +28,7 @@ const assert = require('node:assert');
 
 const { usePglitePool } = require('../testUtils/pglitePool');
 const { makeSwaps } = require('../testUtils/swaps');
+const { stubFeatureModule } = require('../testUtils/featureDouble');
 
 const { close } = usePglitePool();
 const db = require('../db');
@@ -276,10 +277,9 @@ test('filing into or out of a stage needs a deploy; Dev is ordinary', async () =
 // ── GitHub sync ──────────────────────────────────────────────────────
 
 test('a stage skill never becomes a pending GitHub sync change', async (t) => {
-    const local = makeSwaps();
-    t.after(local.restore);
     const asked = [];
-    local.swap(require('./githubSyncStore'), 'getOrgSyncConfig', async (orgId) => { asked.push(orgId); return null; });
+    // The sync store is looked up by name (module "int_saas"): the double answers there, with or without the module.
+    t.after(stubFeatureModule('stores/githubSyncStore', { getOrgSyncConfig: async (orgId) => { asked.push(orgId); return null; } }));
 
     await skillStore._notifySkillSync('org1', 'skill-on-stage', 'pending', uat.projectId);
     assert.deepStrictEqual(asked, [], 'skipped for a stage skill');
