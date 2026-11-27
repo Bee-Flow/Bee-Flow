@@ -17,6 +17,7 @@ function register() {
         'stores/transcriptCrypto': () => require('../stores/transcriptCrypto'),
         'routes/transcriptions/shared': () => require('../routes/transcriptions/shared'),
         'routes/teamsProviderTest': () => require('../routes/teamsProviderTest.mts'),
+        'stores/transcription/accountErasure': () => require('../stores/transcription/accountErasure'),
     }));
     contribute('boot/featureRegistrations', () => require('../core/meetingNotes/runnerPorts'));
     contribute('integrations/toolFamilies', () => {

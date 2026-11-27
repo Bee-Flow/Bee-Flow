@@ -18,29 +18,26 @@ const { isMissingTable } = require('../utils/isMissingTable');
 const { moduleForDataDuty } = require('../modules/firstParty/moduleData');
 
 /**
- * A module's store for one erasure, or null when neither the module nor its data is here (then
- * its tables are not asked either). With its data but not its code the erasure refuses.
- * @template {'stores/transcriptionStore' | 'stores/webpageStore' | 'stores/studioAppStore'} K
+ * A module's part of an erasure (its own file, which holds the SQL about its tables), or null when
+ * neither the module nor its data is here (then its tables are not asked either). With its data
+ * but not its code the erasure refuses.
+ * @template {'stores/transcription/accountErasure' | 'stores/webpage/accountErasure' | 'stores/studioApp/accountErasure'} K
  * @param {string} moduleId
  * @param {K} name
  * @param {string} duty
  */
-function storeFor(moduleId, name, duty) {
+function partFor(moduleId, name, duty) {
     return moduleForDataDuty(moduleId, name, { duty, whenDataPresent: 'refuse' });
 }
 
 /**
- * Meeting notes: through the store, which also removes the recording (the
- * local file and the durable object).
+ * Meeting notes (module meetingNotes): through the store, which also removes the recording, and
+ * the knowledge sources that watch their tags are armed.
  * @param {string} userId
  */
 async function eraseTranscriptions(userId) {
-    const store = await storeFor('meetingNotes', 'stores/transcriptionStore', 'erase the meeting notes of an account');
-    if (!store) return 0;
-    const rows = await getAll('SELECT id, tags FROM transcriptions WHERE user_id = $1', [userId]);
-    for (const r of rows) await store.deleteTranscription(r.id, userId);
-    await rearmMeetingSourcesFor(rows);
-    return rows.length;
+    const part = await partFor('meetingNotes', 'stores/transcription/accountErasure', 'erase the meeting notes of an account');
+    return part ? part.eraseTranscriptions(userId) : 0;
 }
 
 /**
@@ -49,65 +46,26 @@ async function eraseTranscriptions(userId) {
  * @param {string} orgId
  */
 async function eraseOrgTranscriptions(orgId) {
-    const store = await storeFor('meetingNotes', 'stores/transcriptionStore', 'erase the meeting notes of an organisation');
-    if (!store) return 0;
-    const rows = await getAll('SELECT id, user_id, tags FROM transcriptions WHERE organization_id = $1', [orgId]);
-    for (const r of rows) await store.deleteTranscription(r.id, r.user_id);
-    await rearmMeetingSourcesFor(rows);
-    return rows.length;
+    const part = await partFor('meetingNotes', 'stores/transcription/accountErasure', 'erase the meeting notes of an organisation');
+    return part ? part.eraseOrgTranscriptions(orgId) : 0;
 }
 
 /**
- * A meeting_tag source in a colleague's knowledge base holds the summaries of
- * the erased notes until its next pass: arm every source watching one of
- * their tags, so that pass comes now and drops them. Best-effort: the erasure
- * itself already happened, and a source left unarmed still catches up at its
- * own next refresh.
- * @param {Array<{ tags?: unknown }>} rows
- */
-async function rearmMeetingSourcesFor(rows) {
-    /** @type {string[]} */
-    const tags = [...new Set(rows.flatMap((r) => (Array.isArray(r.tags) ? r.tags : []))
-        .filter((t) => typeof t === 'string' && t.trim()))];
-    if (!tags.length) return;
-    try {
-        await require('../stores/kbSources').armMeetingSourcesForRemoval(tags);
-    } catch (err) {
-        require('../utils/bestEffort').bestEffort('projects/accountContentErasure:rearmMeetingSources', err);
-    }
-}
-
-/**
- * Web pages: the objects under the page's prefix (scripts, versions, extra
- * files, the page database) and then the row; versions, sources, extra-file
- * and public-share rows cascade on the FK. A plain DELETE rather than
- * deleteWebpage: that one refuses a page filed into a Solution stage
- * (retired by a deploy, never deleted), and an account erasure is not a deploy.
+ * Web pages (module webpages): the objects under each page's prefix, then the row.
  * @param {string} userId
  */
 async function eraseWebpages(userId) {
-    const webpageStore = await storeFor('webpages', 'stores/webpageStore', 'erase the web pages of an account');
-    if (!webpageStore) return 0;
-    const rows = await getAll('SELECT id FROM webpages WHERE user_id = $1', [userId]);
-    const { run } = require('../db');
-    for (const r of rows) {
-        await webpageStore.purgeWebpageObjects(userId, r.id);
-        await run('DELETE FROM webpages WHERE id = $1 AND user_id = $2', [r.id, userId]);
-    }
-    return rows.length;
+    const part = await partFor('webpages', 'stores/webpage/accountErasure', 'erase the web pages of an account');
+    return part ? part.eraseWebpages(userId) : 0;
 }
 
 /**
- * App Studio apps: through the store's delete, which purges the per-app
- * database and the attachment objects before the rows.
+ * App Studio apps (module apps): through the store's delete.
  * @param {string} userId
  */
 async function eraseStudioApps(userId) {
-    const studioAppStore = await storeFor('apps', 'stores/studioAppStore', 'erase the App Studio apps of an account');
-    if (!studioAppStore) return 0;
-    const rows = await getAll('SELECT id FROM studio_apps WHERE user_id = $1', [userId]);
-    for (const r of rows) await studioAppStore.deleteStudioApp(r.id, userId);
-    return rows.length;
+    const part = await partFor('apps', 'stores/studioApp/accountErasure', 'erase the App Studio apps of an account');
+    return part ? part.eraseStudioApps(userId) : 0;
 }
 
 /**

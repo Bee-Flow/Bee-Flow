@@ -12,6 +12,7 @@
     "stores/studioAppData/actionRuns",
     "stores/studioAppData/runLogStore",
     "stores/studioAppData/webhookTriggers",
-    "stores/studioAppData/runPolicy"
+    "stores/studioAppData/runPolicy",
+    "stores/studioApp/accountErasure"
   ]
 }

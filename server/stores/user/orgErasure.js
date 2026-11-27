@@ -8,8 +8,10 @@
  * delete on its organisation column.
  *
  * Automations cascade their runs, schedules, versions and the rest on their
- * own FK. A table an install does not have is skipped; anything else throws,
- * like every other rung of the cascade.
+ * own FK. A module's table (erasureCoverage.js MODULE_TABLES) is erased while
+ * that module is here or its schema is in this database, and skipped when
+ * neither is; a missing one then throws. A core table an install does not have
+ * is skipped; anything else throws, like every other rung of the cascade.
  */
 
 'use strict';
@@ -17,6 +19,7 @@
 const { run } = require('../../db');
 const { isMissingTable } = require('../../utils/isMissingTable');
 const { erasurePort } = require('./erasurePorts');
+const { moduleOfTable, erasesTable } = require('./erasureCoverage');
 
 /**
  * Table → the column that names the organisation. Literals from this list,
@@ -57,8 +60,13 @@ async function eraseOrgKeyedRows(orgId, at) {
     at('meeting notes');
     await erasurePort('content').eraseOrgTranscriptions(orgId);
     for (const [table, column] of ORG_KEYED_TABLES) {
+        if (!await erasesTable(table)) continue;
         at(table);
-        try { await run(`DELETE FROM "${table}" WHERE "${column}" = $1`, [orgId]); } catch (e) { if (!isMissingTable(e)) throw e; }
+        try {
+            await run(`DELETE FROM "${table}" WHERE "${column}" = $1`, [orgId]);
+        } catch (e) {
+            if (moduleOfTable(table) !== null || !isMissingTable(e)) throw e;
+        }
     }
 }
 

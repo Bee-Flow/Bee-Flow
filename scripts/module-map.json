@@ -65,7 +65,8 @@
         "core/kb/sources/cloudFolder.datatables.test.js",
         "core/tools/toolDispatcher.datatableIdentity.test.js",
         "stores/user/organizations.datatables.test.js",
-        "migrations/add-nl-datatable-quota-translations.js"
+        "migrations/add-nl-datatable-quota-translations.js",
+        "scripts/datatable-orphan-scan.mjs"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Datatables/**",
@@ -170,7 +171,9 @@
         "mcpServers/tuya/events.automation.test.js",
         "utils/nextcloudErrorClassifier.automation.test.js",
         "utils/stepErrorInfo.js",
-        "utils/stepErrorTexts.mts"
+        "utils/stepErrorTexts.mts",
+        "stores/agent/agentCrud.bindings.automation.pg.test.js",
+        "scripts/research/reseed-fixture-account.js"
       ],
       "agent-hub": [
         "src/components/automation/**",

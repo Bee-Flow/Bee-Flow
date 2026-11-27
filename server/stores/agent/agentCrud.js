@@ -355,19 +355,17 @@ async function deleteAgent(id, ownerId, opts = {}) {
 }
 
 /**
- * An agent that is gone can no longer be called by anything, so the grants that
- * named it (automation_agent_bindings, automation/agentBinding.js) go with it.
- * `agent_id` there is a soft reference, not a foreign key, so nothing cascades.
- * Best effort and probe-first: the table belongs to the automation store, which
- * may not have booted yet, and a failed sweep must never fail the delete (the
- * runtime ignores a binding whose agent is gone either way).
+ * The automation links that named a deleted agent go with it: the automation module's sweep
+ * (stores/automationStore/agentBindingsSweep.js). Without the module and its data there are none;
+ * with its data but not its code they stay, with one warning (the runtime ignores a binding whose
+ * agent is gone). Best effort: a failed sweep never fails the delete.
  * @param {string} agentId
  */
 async function dropAutomationBindings(agentId) {
     try {
-        const probe = await getOne(`SELECT to_regclass('public.automation_agent_bindings') AS t`);
-        if (!probe || !probe.t) return;
-        await run('DELETE FROM automation_agent_bindings WHERE agent_id = $1', [agentId]);
+        const sweep = await require('../../modules/firstParty/moduleData').moduleForDataDuty('automation', 'stores/automationStore/agentBindingsSweep',
+            { duty: 'drop the automation links of a deleted agent', whenDataPresent: 'warn' });
+        if (sweep) await sweep.dropAgentBindings(agentId);
     } catch (e) {
         log.warn(`[AgentCrud] could not drop the automation bindings of deleted agent ${agentId}: ${/** @type {Error} */ (e).message}`);
     }

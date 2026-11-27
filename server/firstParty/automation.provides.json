@@ -17,7 +17,8 @@
     "core/runEventBus",
     "automation/agentBinding",
     "automation/access",
-    "stores/automationStore/webhookDeliveries"
+    "stores/automationStore/webhookDeliveries",
+    "stores/automationStore/agentBindingsSweep"
   ],
   "runnerPorts": [
     "approvals",

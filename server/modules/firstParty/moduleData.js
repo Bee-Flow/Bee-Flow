@@ -266,6 +266,24 @@ function moduleFileInTree(name) {
 }
 
 /**
+ * For one statement about a module's table among the core's own in a stepwise duty (deleteUser,
+ * deleteOrganization): must it run? A module that is not absent: yes, as before. An absent one:
+ * when this database holds its schema (an edition that leaves the module out still erases its
+ * rows), not when it does not. A ledger that cannot be read: yes, fail closed: the statement then
+ * runs, and a missing table fails the step instead of leaving data behind unreported.
+ * @param {string} moduleId
+ * @returns {Promise<boolean>}
+ */
+async function moduleDataHere(moduleId) {
+    if (deps.state(moduleId) !== 'absent') return true;
+    try {
+        return await hasSchemaOf(moduleId);
+    } catch {
+        return true;
+    }
+}
+
+/**
  * Test seam: replace some sources, and forget every cached answer and warning.
  * @param {Partial<typeof deps>} [next]
  */
@@ -287,6 +305,7 @@ module.exports = {
     ModuleDataPresentError,
     moduleForDataDuty,
     hasSchemaOf,
+    moduleDataHere,
     unitsOf,
     lookupFeatureModule,
     moduleFileInTree,

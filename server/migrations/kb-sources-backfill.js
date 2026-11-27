@@ -48,11 +48,60 @@
 const { planSourcesForKb, truncate } = require('../stores/kb/sourcePlan');
 
 /**
- * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run'>,
- *   log?: (msg: string) => void }} [opts]  `dryRun` (default false) reports what would happen and
- *   writes nothing; `db` is injectable for tests; `log` is console.log by default
+ * Every KB an automation actually points at, whether or not it was ever
+ * offered to agents. Same scan kbUsage does: any `knowledgeBaseIds` array,
+ * at any depth of the definition.
+ * @param {{ dryRun: boolean, db: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run'>,
+ *   log: (msg: string) => void, tag: string, stats: { automationKbIds: string[], aiStepFromAutomations: number } }} ctx
  */
-async function up({ dryRun = false, db = require('../db'), log = console.log } = {}) {
+async function widenForAutomations({ dryRun, db, log, tag, stats }) {
+    try {
+        const rows = await db.getAll(
+            `SELECT DISTINCT (x #>> '{}') AS kb_id
+               FROM automations a,
+                    LATERAL jsonb_path_query(a.definition_json, '$.**.knowledgeBaseIds[*]') AS x`,
+        );
+        const ids = /** @type {string[]} */ (Array.from(new Set((rows || [])
+            .map(r => (r && r.kb_id ? String(r.kb_id) : null))
+            .filter(id => id && /^[0-9a-f-]{36}$/i.test(id))))); // the filter drops the nulls
+        stats.automationKbIds = ids;
+        if (ids.length > 0) {
+            if (dryRun) {
+                const r = await db.getOne(
+                    `SELECT COUNT(*)::int AS n FROM knowledge_bases
+                      WHERE id = ANY($1::uuid[])
+                        AND NOT (COALESCE(usage_contexts, '[]'::jsonb) ? 'ai_step')`,
+                    [ids],
+                );
+                stats.aiStepFromAutomations = Number(r && r.n) || 0;
+            } else {
+                const r = await db.run(
+                    `UPDATE knowledge_bases
+                        SET usage_contexts = COALESCE(usage_contexts, '[]'::jsonb) || '["ai_step"]'::jsonb
+                      WHERE id = ANY($1::uuid[])
+                        AND NOT (COALESCE(usage_contexts, '[]'::jsonb) ? 'ai_step')`,
+                    [ids],
+                );
+                stats.aiStepFromAutomations = (r && r.rowCount) || 0;
+            }
+            // Logged on purpose: these are the KBs a routine depends on that
+            // the agent context did not already cover.
+            log(`${tag}: automations reference ${ids.length} knowledge base${ids.length === 1 ? '' : 's'} [${ids.join(', ')}] — ${stats.aiStepFromAutomations} gained 'ai_step'`);
+        }
+    } catch (e) {
+        log(`${tag}: automations scan skipped (${/** @type {Error} */ (e).message})`);
+    }
+}
+
+/**
+ * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run'>,
+ *   log?: (msg: string) => void, automationData?: () => Promise<boolean> }} [opts]  `dryRun` (default
+ *   false) reports what would happen and writes nothing; `db` is injectable for tests; `log` is
+ *   console.log by default; `automationData` says whether the automations are to be scanned
+ *   (modules/firstParty/moduleData.js moduleDataHere)
+ */
+async function up({ dryRun = false, db = require('../db'), log = console.log,
+    automationData = () => require('../modules/firstParty/moduleData').moduleDataHere('automation') } = {}) {
     const tag = `[Migration] kb-sources-backfill${dryRun ? ' (dry-run)' : ''}`;
     const stats = {
         knowledgeBases: 0, sourcesCreated: 0, sourcesReused: 0, documentsAssigned: 0,
@@ -177,45 +226,9 @@ async function up({ dryRun = false, db = require('../db'), log = console.log } =
         stats.aiStepFromAgent = (r && r.rowCount) || 0;
     }
 
-    // Every KB an automation actually points at, whether or not it was ever
-    // offered to agents. Same scan kbUsage does: any `knowledgeBaseIds` array,
-    // at any depth of the definition.
-    try {
-        const rows = await db.getAll(
-            `SELECT DISTINCT (x #>> '{}') AS kb_id
-               FROM automations a,
-                    LATERAL jsonb_path_query(a.definition_json, '$.**.knowledgeBaseIds[*]') AS x`,
-        );
-        const ids = /** @type {string[]} */ (Array.from(new Set((rows || [])
-            .map(r => (r && r.kb_id ? String(r.kb_id) : null))
-            .filter(id => id && /^[0-9a-f-]{36}$/i.test(id))))); // the filter drops the nulls
-        stats.automationKbIds = ids;
-        if (ids.length > 0) {
-            if (dryRun) {
-                const r = await db.getOne(
-                    `SELECT COUNT(*)::int AS n FROM knowledge_bases
-                      WHERE id = ANY($1::uuid[])
-                        AND NOT (COALESCE(usage_contexts, '[]'::jsonb) ? 'ai_step')`,
-                    [ids],
-                );
-                stats.aiStepFromAutomations = Number(r && r.n) || 0;
-            } else {
-                const r = await db.run(
-                    `UPDATE knowledge_bases
-                        SET usage_contexts = COALESCE(usage_contexts, '[]'::jsonb) || '["ai_step"]'::jsonb
-                      WHERE id = ANY($1::uuid[])
-                        AND NOT (COALESCE(usage_contexts, '[]'::jsonb) ? 'ai_step')`,
-                    [ids],
-                );
-                stats.aiStepFromAutomations = (r && r.rowCount) || 0;
-            }
-            // Logged on purpose: these are the KBs a routine depends on that
-            // the agent context did not already cover.
-            log(`${tag}: automations reference ${ids.length} knowledge base${ids.length === 1 ? '' : 's'} [${ids.join(', ')}] — ${stats.aiStepFromAutomations} gained 'ai_step'`);
-        }
-    } catch (e) {
-        log(`${tag}: automations scan skipped (${/** @type {Error} */ (e).message})`);
-    }
+    // Every KB an automation actually points at (the automation module's
+    // table): while that module is here or its schema is in this database.
+    if (await automationData()) await widenForAutomations({ dryRun, db, log, tag, stats });
 
     log(`${tag}: ${stats.knowledgeBases} knowledge base(s), ${stats.sourcesCreated} source(s) created, ${stats.sourcesReused} reused, ${stats.documentsAssigned} document(s) assigned, ${stats.duplicatesMarked} marked duplicate, ${stats.createdByFilled} created_by filled, ${stats.aiStepFromAgent + stats.aiStepFromAutomations} KB(s) gained 'ai_step'`);
     return stats;
