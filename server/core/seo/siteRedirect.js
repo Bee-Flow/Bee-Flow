@@ -7,16 +7,17 @@
  */
 
 const { findRedirect, pathOnly } = require('../../stores/cms/redirectRules');
-const { BLOG_BASE } = require('./publicPath');
+const { BLOG_BASE, parsePublicPath, buildPublicPath } = require('./publicPath');
 
 /**
  * @param {{ redirects?: unknown, posts?: Record<string, unknown>, site?: { pages?: { slug?: string }[] } } | null | undefined} snapshot
  * @param {string} reqPath
  * @param {string[]} locales   locales the site publishes (a prefix is only stripped for these)
  * @param {URLSearchParams} [query]  carried to a site target that has no query of its own
- * @returns {{ status: 301 | 302, location: string } | null}
+ * @param {SiteContext} [site]  with `defaultLocale`, a `?locale=` in the query is applied to the target here
+ * @returns {{ status: 301 | 302, location: string, locale?: string } | null}  `locale`: the `?locale=` that was applied
  */
-function resolveSiteRedirect(snapshot, reqPath, locales, query) {
+function resolveSiteRedirect(snapshot, reqPath, locales, query, site = {}) {
     const list = Array.isArray(snapshot?.redirects) ? snapshot.redirects : [];
     if (!list.length) return null;
     const hit = findRedirect(list, reqPath, locales);
@@ -35,13 +36,46 @@ function resolveSiteRedirect(snapshot, reqPath, locales, query) {
         if (Object.values(snapshot?.posts || {}).some((p) => !!p && typeof p === 'object' && /** @type {{ slug?: string }} */ (p).slug === postSlug)) return null;
     }
 
-    let location = hit.to;
-    const qs = query ? query.toString() : '';
+    const localized = hit.external ? null : withAskedLocale(hit.to, query, locales, site);
+    let location = localized ? localized.location : hit.to;
+    const qs = localized ? localized.query.toString() : (query ? query.toString() : '');
     if (!hit.external && qs && !location.includes('?')) {
         const hashAt = location.indexOf('#');
         location = hashAt === -1 ? `${location}?${qs}` : `${location.slice(0, hashAt)}?${qs}${location.slice(hashAt)}`;
     }
-    return { status: hit.status, location };
+    return localized ? { status: hit.status, location, locale: localized.locale } : { status: hit.status, location };
 }
+
+/**
+ * The `?locale=` the visitor asked for, applied to a site target right away.
+ * Left in the query it made the redirect land on `/new?locale=nl`, which the
+ * locale consolidation in routes/publicRender.js then moved to `/nl/new`: two
+ * 301s for one hop. Null when the target is not a marketing page or the
+ * locale is not one the site publishes; the query then goes along unchanged.
+ * @param {string} to the redirect target (a site path, maybe with ?query and #hash)
+ * @param {URLSearchParams | undefined} query
+ * @param {string[]} locales
+ * @param {SiteContext} site
+ * @returns {{ location: string, query: URLSearchParams, locale: string } | null}
+ */
+function withAskedLocale(to, query, locales, { defaultLocale, pageLocales }) {
+    const asked = String(query?.get('locale') || '').toLowerCase().split('-')[0];
+    if (!asked || !defaultLocale || !locales.includes(asked)) return null;
+    const cut = [to.indexOf('?'), to.indexOf('#')].filter((i) => i !== -1);
+    const at = cut.length ? Math.min(...cut) : to.length;
+    const parsed = parsePublicPath(to.slice(0, at), locales);
+    if (!parsed) return null;
+    // A page that has no translation in that locale is served in the default one (the publicRender rule).
+    const available = pageLocales ? pageLocales(parsed.slug) : null;
+    const locale = available && !available.includes(asked) ? defaultLocale : asked;
+    const rest = new URLSearchParams(query);
+    rest.delete('locale');
+    return { location: `${buildPublicPath(locale, parsed.slug, defaultLocale)}${to.slice(at)}`, query: rest, locale: asked };
+}
+
+/**
+ * @typedef {{ defaultLocale?: string, pageLocales?: (slug: string) => string[] | null }} SiteContext
+ *   `pageLocales`: the locales a target page is published in, or null when unknown (no page of that slug)
+ */
 
 module.exports = { resolveSiteRedirect };

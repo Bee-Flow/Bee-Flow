@@ -34,9 +34,19 @@ const MOCKS = {
             page: { id: 'p1', slug, title: 'Pricing', blocks: [], isHomepage: slug === 'home' },
         }),
         getPublishedSnapshot: async () => page.snapshot,
+        // Five posts, two per page: pages 1-3 exist.
+        getEffectiveBlog: async (siteId, { page: asked = 1 }) => {
+            const pageCount = 3;
+            return {
+                found: true, design: {}, header: {}, pages: [],
+                page: { id: null, slug: 'blog', title: 'Blog', seo: {}, blocks: [] },
+                blog: { view: 'index', page: Math.min(pageCount, Math.max(1, asked)), pageCount, locales: ['en'], posts: [] },
+            };
+        },
     },
     '../stores/configStore': { getConfig: async () => 'site-1' },
-    '../stores/languageStore': { getAvailableLocales: async () => [{ code: 'en' }, { code: 'nl' }] },
+    '../usecases/liveSitemap.mts': { siteLocales: async () => ({ defaultLocale: 'en', locales: ['en', 'nl'] }), liveSitemapXml: async () => '' },
+    '../core/seo/blog': { buildBlogHead: () => '<title>Blog</title>', renderBlogBody: () => '<main>Blog</main>', buildFeed: () => '' },
     '../core/seo/head': { buildHead: () => '<title>Pricing</title>' },
     '../core/seo/renderBlocks': { renderBlocksWithHints: () => ({ html: '<main>Pricing</main>', heroImage: null, headLinks: [] }), PREHYDRATE_CSS: '' },
     '../core/seo/shell': { getShell: async () => '<html><head></head><body><div id="root"></div></body></html>' },
@@ -88,7 +98,7 @@ function get(url, headers = {}) {
     });
 }
 
-test.beforeEach(() => { page.translations = ['en', 'nl']; page.snapshot = {}; });
+test.beforeEach(() => { page.translations = ['en', 'nl']; page.snapshot = {}; delete process.env.INDEXNOW_KEY; });
 
 test('a parameter the route has never heard of still gets the page', async () => {
     const res = await get('/pricing?gclid=abc&utm_source=news');
@@ -211,4 +221,62 @@ test('the homepage under its own slug moves to the root of its locale, query kep
     const nl = await get('/nl/home');
     assert.strictEqual(nl.statusCode, 301);
     assert.strictEqual(nl.location, '/nl');
+});
+
+test('blog pages 2 and 3 exist; page 4, page 0 and a negative page answer 404', async () => {
+    for (const ok of ['/blog', '/blog?page=2', '/blog?page=3']) {
+        assert.strictEqual((await get(ok)).statusCode, 200, ok);
+    }
+    for (const gone of ['/blog?page=4', '/blog?page=0', '/blog?page=-1', '/blog?page=99']) {
+        const res = await get(gone);
+        assert.strictEqual(res.statusCode, 404, gone);
+        assert.strictEqual(res.headers['x-beeflow-render'], 'not-found', gone);
+    }
+});
+
+test('a managed redirect asked with ?locale= lands on the final address in ONE 301', async () => {
+    page.snapshot = { redirects: [{ from: '/pricing', to: '/plans', status: 301, external: false }], site: { pages: [] } };
+    const res = await get('/pricing?locale=nl&utm_source=news');
+    assert.strictEqual(res.statusCode, 301);
+    // Was /plans?locale=nl&utm_source=news, which the locale consolidation then moved again.
+    assert.strictEqual(res.location, '/nl/plans?utm_source=news');
+    assert.match(String(res.headers['set-cookie']), /bf_site_locale=nl/);
+    assert.match(res.headers['cache-control'], /no-store/);
+    const en = await get('/nl/pricing?locale=en');
+    assert.strictEqual(en.location, '/plans');
+});
+
+test('a managed redirect with ?locale= to a page without that translation goes straight to the default language', async () => {
+    page.translations = ['en'];
+    page.snapshot = { redirects: [{ from: '/pricing', to: '/plans', status: 301, external: false }], site: { pages: [{ id: 'p9', slug: 'plans' }] } };
+    const res = await get('/pricing?locale=nl');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/plans');
+});
+
+test('/index.html moves to / (and a locale index to that locale root), query kept', async () => {
+    const res = await get('/index.html?utm_source=news');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/?utm_source=news');
+    assert.strictEqual((await get('/nl/index.html')).location, '/nl');
+    assert.strictEqual((await get('/blog/index.html')).location, '/blog');
+});
+
+test('an unknown .xml or .txt answers 404, never the SPA shell with a 200', async () => {
+    for (const p of ['/sitemap_index.xml', '/ads.txt', '/nl/feed.xml', '/wp-sitemap.xml', '/humans.txt']) {
+        const res = await get(p);
+        assert.strictEqual(res.statusCode, 404, p);
+        assert.strictEqual(res.headers['x-beeflow-render'], 'not-found', p);
+        assert.match(res.headers['cache-control'], /max-age/);
+    }
+});
+
+test('the IndexNow key file is served at /<key>.txt only while INDEXNOW_KEY is set', async () => {
+    const key = 'indexnow-test-key';
+    assert.strictEqual((await get(`/${key}.txt`)).statusCode, 404);
+    process.env.INDEXNOW_KEY = key;
+    const res = await get(`/${key}.txt`);
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body, key);
+    assert.strictEqual((await get('/other-key-0000.txt')).statusCode, 404);
 });

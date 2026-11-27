@@ -58,6 +58,7 @@ const isCmsAdmin = (user) => require('./cmsShared').canAdminCms({ isAdmin: user?
 function buildRuntime() {
     const cmsMcp = require('../cms/mcp');
     const cmsStore = require('../stores/cmsStore');
+    const { publishWithIndexNow } = require('../usecases/cmsIndexNow.mts');
     const storageStore = require('../stores/storageStore');
     const userStore = require('../stores/userStore');
     const cmsParts = {
@@ -81,7 +82,8 @@ function buildRuntime() {
     const screenshots = cmsMcp.createScreenshotRenderer();
 
     const mcp = cmsMcp.createCmsMcp({
-        cmsStore,
+        // publishSite through IndexNow (off unless INDEXNOW_KEY is set), like the REST publish.
+        cmsStore: { ...cmsStore, publishSite: (/** @type {string} */ siteId) => publishWithIndexNow(siteId, () => cmsStore.publishSite(siteId)) },
         cmsParts: { collectLocaleOverrides: cmsParts.collectLocaleOverrides, deepMerge: cmsParts.deepMerge, sanitizeAnalytics: cmsParts.sanitizeAnalytics },
         builder,
         validateDraft: validateSiteDraft,

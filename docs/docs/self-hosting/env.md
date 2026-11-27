@@ -68,6 +68,8 @@ Postgres instance.
 | `CLIENT_PUBLIC_HOST` / `CLIENT_PROTOCOL` | `localhost:5176` / `http` | Where the SPA lives; drives CORS and OAuth redirect URLs. |
 | `CORS_ORIGIN` | `http://localhost:5176` | Comma-separated list of allowed browser origins. |
 | `PUBLIC_SITE_URL` | falls back to `PUBLIC_BASE_URL` | Public origin of the marketing site: canonical/og URLs, sitemap, and the robots.txt gate. Unset on a public site means `Disallow: /` — it will not be indexed. Leave unset on staging. |
+| `INDEXNOW_KEY` | (none: off) | [IndexNow](https://www.indexnow.org) key for the live website (8 to 128 letters, digits or dashes). When set, the site serves it at `/<key>.txt` and every publish of the live site sends the addresses it added or changed (the sitemap before and after, compared) to `api.indexnow.org`, after the publish has answered. Only those public addresses are sent. Needs `PUBLIC_SITE_URL` (or `PUBLIC_BASE_URL`). |
+| `INDEXNOW_MAX_URLS` | `1000` | Most addresses one publish sends to IndexNow. `0` = the protocol's own limit of 10 000. |
 
 ## Sessions and cookies
 

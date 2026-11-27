@@ -451,6 +451,13 @@ server {
         try_files /__render_homepage__ @render;
     }
 
+    # /index.html is the same file under a second address, served with a 200.
+    # The renderer answers it with a 301 to / (routes/publicFilesRender.mts);
+    # with the backend down, @shell still serves the file as before.
+    location = /index.html {
+        try_files /__render_index_html__ @render;
+    }
+
     # Handle SPA routing.
     #
     # A non-file request no longer goes straight to index.html — it goes to the

@@ -331,7 +331,7 @@
     "routes/projects/stages/settingsRoutes.js": 527,
     "routes/projects/stages/stageRoutes.js": 536,
     "routes/projects/stages/stages.test.js": 1076,
-    "routes/publicRender.js": 519,
+    "routes/publicRender.js": 500,
     "routes/publicViewer.js": 813,
     "routes/skills.js": 480,
     "routes/skills/examples.js": 417,

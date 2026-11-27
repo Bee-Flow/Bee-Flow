@@ -196,3 +196,13 @@ describe('nginx: /p/ is an app path', () => {
         expect(claims.map((l) => l.args.join(' '))).toEqual([]);
     });
 });
+
+describe('nginx: /index.html reaches the renderer', () => {
+    it('is not served from disk with a 200, so the renderer can 301 it to /', () => {
+        const exact = locations.find((l) => l.args[0] === '=' && l.args[1] === '/index.html');
+        expect(exact, 'an exact-match location for /index.html').toBeDefined();
+        const tryFiles = directives(exact!, 'try_files')[0]?.args ?? [];
+        expect(tryFiles.at(-1)).toBe('@render');
+        expect(tryFiles.slice(0, -1).some((a) => a === '$uri' || a === '/index.html')).toBe(false);
+    });
+});
