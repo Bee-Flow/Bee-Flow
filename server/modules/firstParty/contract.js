@@ -118,6 +118,10 @@
  *   id              the module id; equals the file name
  *   requires        hard: loaded first, and this module fails when one is absent or failed
  *   uses            soft: reached only through an optional lookup; informational here
+ *   capabilities    the capability ids it offers (core/entitlements/capabilityRegistry.js) when it is
+ *                   not a catalog module (modules/catalog.js); the core keeps the same record in
+ *                   modules/firstParty/capabilityOwners.json, so they leave the projection while
+ *                   the module is absent (modules/firstParty/absentCapabilities.js)
  *   provides        the registry names it registers (moduleState.declareProvides), declared
  *                   before any module code runs, so a failed module never looks absent
  *   mounts          rows for the main app, by slot
@@ -136,6 +140,7 @@
  *   id: string,
  *   requires?: string[],
  *   uses?: string[],
+ *   capabilities?: string[],
  *   provides?: Provides,
  *   mounts?: MountRow[],
  *   aiMounts?: MountRow[],

@@ -19,4 +19,8 @@ module.exports = withParts({
     id: 'int_microsoft',
     requires: [],
     uses: ['cowork', 'meetingNotes'],
+    // The capabilities it offers (core/entitlements/capabilityRegistry.js ids); they leave the projection while it is absent.
+    capabilities: [
+        'outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts',
+    ],
 });

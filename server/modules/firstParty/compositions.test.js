@@ -27,7 +27,7 @@ const { spawnSync } = require('node:child_process');
 const SERVER = path.resolve(__dirname, '..', '..');
 const MAP = JSON.parse(fs.readFileSync(path.join(SERVER, '..', 'scripts', 'module-map.json'), 'utf8'));
 const { PART_KEYS } = require('./parts');
-const ALLOWED_KEYS = new Set(['id', 'requires', 'uses', ...Object.values(PART_KEYS).flat()]);
+const ALLOWED_KEYS = new Set(['id', 'requires', 'uses', 'capabilities', ...Object.values(PART_KEYS).flat()]);
 const ORDER = require('./order.json');
 
 /**

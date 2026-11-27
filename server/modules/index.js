@@ -177,7 +177,8 @@ async function listModulesWithStatus() {
 }
 
 /** Capability ids owned by INACTIVE modules — the registry projection filter.
- *  Includes lapsed/removed remote modules (their caps drop from the ceiling). */
+ *  Includes lapsed/removed remote modules (their caps drop from the ceiling), and
+ *  the capabilities of every first-party module the loader finds absent. */
 async function listInactiveCapabilityIds() {
     const states = await loadStates();
     const inactive = new Set();
@@ -185,7 +186,23 @@ async function listInactiveCapabilityIds() {
         if (isActive(entry, states.rows.get(entry.id))) continue;
         for (const capId of entry.capabilityIds || []) inactive.add(capId);
     }
+    for (const capId of absentFirstPartyCapabilityIds()) inactive.add(capId);
     return inactive;
+}
+
+/**
+ * The capabilities of the first-party modules that are absent (modules/firstParty/absentCapabilities.js).
+ * When the loader's verdict cannot be had, nothing extra is left out: the projection stays what
+ * the catalog path alone makes of it, as before modules could be absent.
+ * @returns {Set<string>}
+ */
+function absentFirstPartyCapabilityIds() {
+    try {
+        return require('./firstParty/absentCapabilities').absentModuleCapabilityIds(getModule);
+    } catch (err) {
+        log.warn('[Modules] the first-party module states could not be read; no absent module\'s capabilities are left out:', /** @type {Error} */ (err).message);
+        return new Set();
+    }
 }
 
 /**

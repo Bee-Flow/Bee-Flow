@@ -38,6 +38,11 @@ before(async () => {
     await userStore.initDB();
     for (const id of [ORG_A, ORG_B]) await userStore.createOrganization({ id, name: id }, { autoGrantTrial: false });
     for (const u of [ADMIN_A, ADMIN_B, MEMBER_A, PLATFORM]) await userStore.createUser({ ...u, passwordHash: 'x' });
+    // The rows are asked about with every module present, also when the suite runs with the modules
+    // hidden (an absent module's rows leave the projection: core/entitlements/capabilityProjection.characterisation.test.js).
+    const registry = require('../../core/entitlements/capabilityRegistry');
+    registry.refreshModuleCapabilityFilter = async () => {};
+    registry.setInactiveModuleCapabilityIds(new Set());
     api = h.serve('/auth', require('./featureAccessRoutes'), { user: ADMIN_A });
 }, { timeout: 120_000 });
 

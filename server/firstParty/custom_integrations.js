@@ -19,4 +19,6 @@ module.exports = withParts({
     id: 'custom_integrations',
     requires: [],
     uses: [],
+    // The capabilities it offers (core/entitlements/capabilityRegistry.js ids); they leave the projection while it is absent.
+    capabilities: ['ai_integration_builder'],
 });

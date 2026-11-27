@@ -19,4 +19,10 @@ module.exports = withParts({
     id: 'int_nextcloud',
     requires: [],
     uses: ['automation', 'meetingNotes', 'int_google'],
+    // The capabilities it offers (core/entitlements/capabilityRegistry.js ids); they leave the projection while it is absent.
+    capabilities: [
+        'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts', 'nextcloud-deck', 'nextcloud-mail',
+        'nextcloud-notifications', 'nextcloud-talk', 'nextcloud-tasks', 'nextcloud-notes',
+        'nextcloud-activity', 'nextcloud-tables', 'nextcloud-forms', 'nextcloud-teams', 'nextcloud-status',
+    ],
 });

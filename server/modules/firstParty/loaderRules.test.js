@@ -30,7 +30,7 @@ describe('compositionProblem', () => {
     test('a minimal composition and a full one pass', () => {
         assert.strictEqual(rules.compositionProblem({ id: 'm1' }, 'm1'), null);
         assert.strictEqual(rules.compositionProblem({
-            id: 'm1', requires: ['m2'], uses: ['m3'], provides: { featureModules: ['a'], runnerPorts: [] },
+            id: 'm1', requires: ['m2'], uses: ['m3'], capabilities: ['m1_cap'], provides: { featureModules: ['a'], runnerPorts: [] },
             mounts: [{ key: 'm1:/api/x', slot: 'main', path: '/api/x', handlers, when: () => true, onMount: () => {} }],
             aiMounts: [{ key: 'm1:ai', path: null, handlers }],
             jobs: [{ key: 'm1:tick', phase: 'startRunnersAndFeeds', start: () => {}, label: 'Tick', failText: 'start failed' }],
@@ -45,6 +45,7 @@ describe('compositionProblem', () => {
         ['a require of itself', { id: 'm1', requires: ['m1'] }, /requires itself/],
         ['an unknown key', { id: 'm1', mount: [] }, /unknown key "mount"/],
         ['requires that is no list of names', { id: 'm1', requires: 'm2' }, /requires is a list of names/],
+        ['capabilities that are no list of names', { id: 'm1', capabilities: ['ok', ''] }, /capabilities is a list of names/],
         ['a register that is no function', { id: 'm1', register: {} }, /register is a function/],
         ['an unknown provides kind', { id: 'm1', provides: { routes: [] } }, /provides.routes is not one of/],
         ['a mount key without the module prefix', { id: 'm1', mounts: [{ key: 'x', slot: 'main', path: '/x', handlers }] }, /mounts\[0\]: key "x"/],

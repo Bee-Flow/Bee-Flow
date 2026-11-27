@@ -19,4 +19,8 @@ module.exports = withParts({
     id: 'int_erp_nl',
     requires: [],
     uses: ['automation'],
+    // The capabilities it offers (core/entitlements/capabilityRegistry.js ids); they leave the projection while it is absent.
+    capabilities: [
+        'afas-profit', 'nmbrs', 'vplan', 'firebird', 'frappe-crm', 'twoba',
+    ],
 });

@@ -19,4 +19,9 @@ module.exports = withParts({
     id: 'int_saas',
     requires: [],
     uses: ['automation', 'cowork'],
+    // The capabilities it offers (core/entitlements/capabilityRegistry.js ids); they leave the projection while it is absent.
+    capabilities: [
+        'fireflies', 'gamma', 'signrequest', 'scaleway-billing', 'youtrack', 'github', 'n8n', 'linkedin',
+        'withings',
+    ],
 });

@@ -35,7 +35,7 @@ const STARTUP_PHASE_NAMES = Object.freeze(/** @type {StartupPhase[]} */ ([
 
 const PROVIDE_KINDS = Object.freeze(['featureModules', 'integrationClients', 'runnerPorts']);
 const FUNCTION_KEYS = Object.freeze(['register', 'afterListen', 'drain', 'close']);
-const NAME_LIST_KEYS = Object.freeze(['requires', 'uses', 'migrations', 'nlTranslations']);
+const NAME_LIST_KEYS = Object.freeze(['requires', 'uses', 'capabilities', 'migrations', 'nlTranslations']);
 const KNOWN_KEYS = new Set(['id', 'provides', 'mounts', 'aiMounts', 'jobs', 'stores', ...FUNCTION_KEYS, ...NAME_LIST_KEYS]);
 
 /** @param {unknown} v */
