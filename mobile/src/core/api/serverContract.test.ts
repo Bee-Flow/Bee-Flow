@@ -26,9 +26,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { compositionText } from '@/features/forms/testing/sources';
 import { AGENT_FRAMES } from '@/shared/stream/adapters/agent';
 import { WEBPAGE_FRAMES } from '@/shared/stream/adapters/webpage';
 import { accounts } from '@/shared/stream/chatFrameReducer';
+
 
 import { GUARD_KINDS } from './deleteGuard';
 
@@ -467,7 +469,8 @@ describe('the mount points (server/index.js)', () => {
     // the one whose loss is quietest: the stream keeps flowing, and the
     // answer to the DLP question has nowhere to go.
     it('still mounts every prefix the phone calls', () => {
-        const source = read('index.js');
+        // index.js and the first-party modules' mount rows (server/firstParty/<id>.mounts.js).
+        const source = compositionText();
         for (const mount of [
             '/api/health',
             '/agents',
@@ -724,7 +727,7 @@ describe('the form list (server/routes/automation/forms.js GET /forms)', () => {
         // index.js. Losing either one 404s the whole Forms tab.
         expect(source).toContain("'/forms'");
         expect(read('routes/automation/crud.js')).toContain('registerFormRoutes(router);');
-        expect(read('index.js')).toContain("'/api/automation'");
+        expect(compositionText()).toContain("'/api/automation'");
     });
 });
 
@@ -1038,7 +1041,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(catalog).toContain("require('./agentStepRoutes').registerAgentStepRoutes(router);");
         // actions.js serves under /api/automation through the automation router.
         expect(read('routes/automation.js')).toContain("router.use(require('./automation/actions').makeActionsRouter());");
-        expect(read('index.js')).toContain("app.use('/api/automation/builder'");
+        expect(compositionText()).toContain("path: '/api/automation/builder'");
     });
 
     it('PUT and POST still read every key the editor sends', () => {
@@ -1215,7 +1218,7 @@ describe('App Studio (server/routes/studioApps*.js, studioAppData.js, the builde
     const store = read('stores/studioApp/rowMappers.js');
 
     it('still mounts the studio routers and the builder', () => {
-        const index = read('index.js');
+        const index = compositionText();
         expect(index).toContain("'/api/studio-apps'");
         expect(index).toContain("'/api/studio-apps/builder'");
         const barrel = read('routes/studioApps.js');
@@ -1411,7 +1414,7 @@ describe('datatables (server/routes/datatables/**)', () => {
     });
 
     it('still lives at /api/datatables, with the delete confirmation on the query string', () => {
-        expect(read('index.js')).toContain("app.use('/api/datatables'");
+        expect(compositionText()).toContain("path: '/api/datatables'");
         expect(read('routes/datatables/deleteTable.js')).toContain('query: ConfirmBreakingQuery');
     });
 });
@@ -1652,7 +1655,7 @@ describe('playbooks (server/stores/playbookStore.js + routes/playbooks/)', () =>
         ]) {
             expect(routes).toContain(marker);
         }
-        expect(read('index.js')).toContain("'/api/playbooks'");
+        expect(compositionText()).toContain("'/api/playbooks'");
     });
 
     it('still answers a conflict with the current playbook, which the phone adopts', () => {

@@ -99,9 +99,13 @@ test('every App Studio write and publish route requires manage_apps', () => {
 
 test('the internal app API requires an app role, with a separate permission for the AI builder', () => {
     const src = require('../testUtils/compositionText').compositionText();
-    const base = src.indexOf("app.use('/api/studio-apps', requireAnyPermission('use_apps', 'manage_apps'))");
-    const builder = src.indexOf("app.use('/api/studio-apps/builder',");
+    // Rows of module apps (firstParty/apps.mounts.js), in the order the loader mounts them
+    // (modules/firstParty/order.json; the recorded order: boot/composition.mounts.characterisation.golden.json).
+    const base = src.indexOf("path: '/api/studio-apps', handlers: (g) => [g.requireAnyPermission('use_apps', 'manage_apps')]");
+    const builder = src.indexOf("path: '/api/studio-apps/builder',");
     assert.ok(base >= 0 && base < builder);
+    const order = require('../modules/firstParty/order.json').mounts;
+    assert.ok(order.indexOf('apps:/api/studio-apps#permission') > -1 && order.indexOf('apps:/api/studio-apps#permission') < order.indexOf('apps:/api/studio-apps/builder'));
     assert.match(src.slice(builder).split('\n')[0], /requireManageApps,/);
 });
 

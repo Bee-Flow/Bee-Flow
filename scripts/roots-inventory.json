@@ -1759,6 +1759,11 @@
       "reason": "names only the resolver files it copies (server/moduleRoots.cjs, server/modules/roots/*.cjs), which are core and never move"
     },
     {
+      "file": "server/testUtils/mountRowsText.js",
+      "status": "root-aware",
+      "what": "the first-party mount rows as use() text for the route sweep, its part files found through listTreeDir('firstParty')"
+    },
+    {
       "file": "server/testUtils/pgliteLadderDb.js",
       "status": "pending",
       "what": "stub key path.join(server, 'db.js') and migration paths",

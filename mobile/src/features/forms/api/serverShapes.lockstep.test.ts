@@ -72,8 +72,9 @@ function functionSource(src: string, name: string, role: string = 'a helper'): s
 const missing = (src: string, keys: string[]) => keys.filter((k) => !new RegExp(`\\b${k}\\b`).test(src));
 
 it('mounts the routes where the phone calls them', () => {
-    expect(index).toContain("app.use('/api/automation'");
-    expect(index).toContain("app.use('/api/datatables'");
+    // Rows of modules automation and datatables (server/firstParty/<id>.mounts.js).
+    expect(index).toContain("path: '/api/automation', handlers:");
+    expect(index).toContain("path: '/api/datatables', handlers:");
     expect(crud).toContain("const { registerFormRoutes } = require('./forms');");
     expect(crud).toMatch(/^registerFormRoutes\(router\);$/m);
     for (const route of ["router.get('/forms'", "router.get('/forms/:automationId'", "router.put('/forms/:automationId/audience'", "router.post('/forms/:automationId/answers-table'", "router.post('/forms/ai/draft'"]) {

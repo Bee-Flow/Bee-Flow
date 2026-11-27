@@ -94,12 +94,6 @@ const ALLOWED_PER_FILE = new Map([
         // proving each loads the shared engine instead of carrying a copy.
         ['./bfBridgeNotices', 'source needle into services/*: the bridges share one engine'],
     ])],
-    ['routes/studioAppUsage.test.js', new Map([
-        // Needles searched in the source of index.js — where './routes/…' is
-        // the correct path — to pin the mount order and gates of the two routers.
-        ['./routes/studioAppUsage', 'source needle into index.js: mount-order proof'],
-        ['./routes/studioApps', 'source needle into index.js: mount-order proof'],
-    ])],
     // The resolver tests write a throwaway multi-root tree to a temp directory and run
     // probes there: these are the sources of that tree's files, resolved inside it
     // (and two that must not resolve anywhere), never from server/.

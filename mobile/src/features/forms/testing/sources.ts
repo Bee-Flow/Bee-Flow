@@ -20,8 +20,8 @@ export const readWeb = (rel: string): string => fs.readFileSync(webPath(rel), 'u
  * server/index.js followed by every first-party composition file (`firstParty/<id>.js` of
  * server/ and of each modules/<id>/server/, joined by name, in name order): the twin of
  * server/testUtils/compositionText.js. A needle that looks for a mount or a registration
- * (`"app.use('/api/datatables'"`) reads this, so it is still found after the line moves out
- * of index.js into a module's composition file. Today that text is index.js alone.
+ * (`"path: '/api/datatables', handlers:"`) reads this, so it is found in the module's mount
+ * rows (firstParty/<id>.mounts.js) as well as in index.js.
  */
 export function compositionText(): string {
     const roots = [path.join(REPO, 'server')];

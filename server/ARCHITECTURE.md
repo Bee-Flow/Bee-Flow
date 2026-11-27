@@ -295,6 +295,14 @@ the modules contribute by it (unlisted rows after the listed ones, by module id 
 row order). That is how `datatableStore` keeps coming after `automationStore`
 although automation requires datatables.
 
+The **mounts** are the first kind moved: every router a module owns is a row of its
+`firstParty/<id>.mounts.js`. `index.js` mounts them by slot (`loader.mount(app, gates,
+'main')` after the core's routes, `'fallback'` between the JSON 404 and the SPA
+fallback), `boot/staticAssets.js` the `'static'` slot, and `routes/ai.js` the `aiMounts`
+(`loader.mountAi`). The gate factories the rows get are one object, `boot/gates.js`;
+`requireTraining` there is module learning's gate when learning is present and a
+pass-through when it is absent.
+
 ---
 
 ## The rule is enforced, not just written down

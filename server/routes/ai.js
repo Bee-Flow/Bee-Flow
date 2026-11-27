@@ -15,16 +15,36 @@ const providerRoutes = require('./ai/providers');
 const localRuntimeRoutes = require('./ai/localRuntimes');
 const directChatRoutes = require('./ai/directChat');
 
-const templateChatRoutes = require('./ai/templateChat');
-const notebookChatRoutes = require('./ai/notebookChat');
-const webpageChatRoutes = require('./ai/webpageChat');
 const voiceRoutes = require('./ai/voice');
 const swarmsRoutes = require('./ai/swarms');
-const learningRoutes = require('./ai/learning');
-const learningAdminRoutes = require('./ai/learningAdmin');
 const { requireCapability } = require('../core/entitlements/entitlements');
 const { requireModule } = require('../modules');
-const { bestEffort } = require('../utils/bestEffort');
+const firstParty = require('../modules/firstParty/loader');
+
+/** @typedef {import('../modules/firstParty/contract').Gates} Gates */
+
+/**
+ * The gates the /ai mount rows get: the same factories as boot/gates.js, built here because
+ * routes/ may not require boot/ (layering.test.js). featureGate (boot/) and requireTraining
+ * (module learning) are out of reach from here and refuse loudly when an /ai row asks for one
+ * (the loader then marks that module failed); no /ai row uses either.
+ * @returns {Gates}
+ */
+function aiGates() {
+    /** @param {string} name */
+    const unavailable = (name) => () => { throw new TypeError(`gates.${name} is not available to the /ai mount rows (routes/ai.js)`); };
+    return {
+        requireModule,
+        requireCapability,
+        get requireLicenseFeature() { return require('../license/middleware').requireFeature; },
+        get requireAuthedUser() { return require('../auth').requireAuth; },
+        get requireAnyPermission() { return require('../auth/permissions').requireAnyPermission; },
+        get googleSessionHydration() { return require('../auth/googleSessionHydration').googleSessionHydration; },
+        get microsoftSessionHydration() { return require('../auth/microsoftSessionHydration').microsoftSessionHydration; },
+        featureGate: unavailable('featureGate'),
+        requireTraining: unavailable('requireTraining'),
+    };
+}
 
 // Mount all sub-routes
 router.use('/', configRoutes);
@@ -32,62 +52,13 @@ router.use('/', providerRoutes);
 router.use('/', localRuntimeRoutes);
 router.use('/', directChatRoutes);
 
-router.use('/', templateChatRoutes);
-// Notebook chat feature gate. Resolves `notebooks` through the ONE entitlements
-// resolver (requireCapability) — identical to the /api/notebooks* mounts — so
-// notebook chat agrees with them on cloud (subscription) and self-hosted
-// (licence). The capability check runs first so the SPA gets the actionable
-// `feature_locked` body; the configStore flag stays a separate operator
-// kill-switch and runs only after the entitlement passes.
-const notebookCapGate = requireCapability('notebooks');
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {() => void} next
- */
-const notebookKillSwitch = async (req, res, next) => {
-    try {
-        const configStore = require('../stores/configStore');
-        const enabled = await configStore.getConfig('feature_notebooks_enabled');
-        if (enabled === false) {
-            return res.status(403).json({ error: 'Notebooks feature is disabled' });
-        }
-    } catch (err) { bestEffort('routes/ai:notebookKillSwitch', err); /* fail open on the operator kill-switch only */ }
-    next();
-};
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-const notebookChatGate = (req, res, next) => {
-    // Lowercased: the router matches paths case-insensitively.
-    if (!req.path.toLowerCase().startsWith('/chat/notebook')) return next();
-    // requireCapability answers feature_locked/feature_disabled itself, or hands a
-    // 503 entitlement_unavailable to next(err). The continuation runs for BOTH, so
-    // it must forward an error and only run the operator kill-switch on success.
-    return notebookCapGate(req, res, (/** @type {unknown} */ err) => (err ? next(err) : notebookKillSwitch(req, res, next))
-);
-};
-router.use(notebookChatGate);
-router.use('/', notebookChatRoutes);
-
-// Webpage chat — gated through the same `webpages` capability as the
-// /api/webpages mount, so the AI build path and the list/CRUD API can never
-// disagree (the split that made the page render while its API 403'd). Path-
-// scoped so the gate only fires on /chat/webpage/* and not on the rest of /ai.
-const webpageCapGate = requireCapability('webpages');
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-const webpageChatGate = (req, res, next) => {
-    if (!req.path.toLowerCase().startsWith('/chat/webpage')) return next();
-    return webpageCapGate(req, res, next);
-};
-router.use(webpageChatGate);
-router.use('/', webpageChatRoutes);
+// The sub-routers of the first-party modules (firstParty/<id>.mounts.js aiMounts),
+// in the order of modules/firstParty/order.json "aiMounts": template chat, the
+// notebook chat gate and router, the webpage chat gate and router, then
+// '/learning/admin' BEFORE '/learning' (router.use('/learning') also matches
+// '/learning/admin/*'). Here, ahead of /voice and /swarms: the '/' and path-less
+// rows overlap every path, so they keep their place before those two.
+firstParty.mountAi(router, aiGates());
 
 // Voice Chat (Beta) — gated on org-level beta feature flag.
 // Further gated on a configured Mistral API key by the voice router itself.
@@ -98,23 +69,5 @@ router.use('/voice', requireCapability('voice_chat'), voiceRoutes);
 // endpoint also returns [] when the gate is disabled, so the sidebar simply
 // hides the "Swarms" section for non-eligible users.
 router.use('/swarms', requireCapability('swarm'), swarmsRoutes);
-
-// Academy Custom Courses (Beta) — org-admin authoring CRUD + publish. Must be
-// mounted BEFORE '/learning': router.use('/learning') also matches
-// '/learning/admin/*' paths, so with the other order the learning_center gate
-// and router would intercept admin requests first. Org-admin auth is enforced
-// inside the router (requirePrimaryOrgAdmin).
-router.use('/learning/admin', requireModule('learning'), requireCapability('learning_custom_content'), learningAdminRoutes);
-
-// Learning Center — AI coach (grade/hint), achievements + certificate issuance.
-// Gated on the `learning_center` capability so it can be enabled/disabled per
-// subscription plan. Auth + rate limiting are enforced inside the router.
-//
-// requireModule FIRST on both mounts, per modules/index.js: the capability
-// projection alone answers a de-imported module with 403 feature_locked, which
-// tells the caller the surface exists and they cannot afford it. A module that
-// is not on the instance has to 404 like the other nine — same contract as
-// /verify below, which is the same module's public half.
-router.use('/learning', requireModule('learning'), requireCapability('learning_center'), learningRoutes);
 
 module.exports = router;

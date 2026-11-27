@@ -94,14 +94,18 @@ function handlerText(reg) {
     return `\n${own}\n${helpers}`;
 }
 
+// The mount is a row of module datatables (firstParty/datatables.mounts.js); its order and
+// recorded gate chain are in boot/composition.mounts.characterisation.golden.json.
+const MOUNT_ROW = (INDEX.split('\n').find(l => l.includes("path: '/api/datatables'")) || '');
+
 test('the router is mounted on its own path, not under /api/automation', () => {
-    assert.match(INDEX, /app\.use\('\/api\/datatables'/);
+    assert.match(MOUNT_ROW, /require\('\.\.\/routes\/datatables'\)/);
     // automation.routetable.test.js freezes the automation router's table.
     assert.doesNotMatch(SRC, /\/api\/automation/);
 });
 
 test('the mount carries module, auth and licence gates', () => {
-    const line = INDEX.split('\n').find(l => l.includes("app.use('/api/datatables'"));
+    const line = MOUNT_ROW;
     assert.match(line, /requireModule\('automation'\)/);
     assert.match(line, /requireAuthedUser/);
     assert.match(line, /requireLicenseFeature\('automations'\)/);

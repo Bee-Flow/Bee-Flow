@@ -23,6 +23,7 @@
  */
 
 const path = require('node:path');
+const { expandMountCalls } = require('./mountRowsText'); // a loader mount call (firstParty.mount / mountAi) reads as its rows' use() calls
 
 // ── Gate vocabulary ─────────────────────────────────────────────────────────
 // Identity gates: middleware names that decide WHO may pass. Deliberately NOT counted:
@@ -531,8 +532,7 @@ function resolveSpec(fromFile, spec, readSource) {
  *
  * @param {(relPath: string) => string|null} readSource source per relative path
  * @param {string} entry  entry file, e.g. 'index.js'
- * @param {{ skipPrefix?: (p: string) => boolean }} [opts] mounts to skip
- *        (e.g. triagedPrefixes: the walker drift test already covers those, in depth)
+ * @param {{ skipPrefix?: (p: string) => boolean, mountParts?: () => Array<{ file: string, text: string }> }} [opts] mounts to skip (triagedPrefixes: the drift test covers those); mountParts: testUtils/mountRowsText.js
  * @returns {{ routes: Array, opaque: Array, files: string[], skippedMounts: string[] }}
  */
 function parseSurface(readSource, entry, opts = {}) {
@@ -549,7 +549,7 @@ function parseSurface(readSource, entry, opts = {}) {
     const visited = new Set();
 
     const parseOf = (/** @type {string} */ file) => {
-        if (!parsed.has(file)) parsed.set(file, parseFile(readSource(file)));
+        if (!parsed.has(file)) parsed.set(file, parseFile(expandMountCalls(readSource(file), file, { strip: stripComments, requiresOf: parseRequires, parts: opts.mountParts })));
         return parsed.get(file);
     };
 
@@ -734,7 +734,7 @@ function sweepSurface(surface, registry, exempt) {
 module.exports = {
     parseSurface,
     sweepSurface,
-    parseFile,
+    parseFile, parseRequires,
     stripComments,
     probeText,
     AUTH_GATE_RX,

@@ -178,17 +178,21 @@ test('an unsupported window is refused, not silently answered as a month', async
 const INDEX = require('../testUtils/compositionText').compositionText();
 
 test('the router is mounted BEFORE the CRUD router, or GET /:id swallows /usage-counts', () => {
-    const usageAt = INDEX.indexOf("require('./routes/studioAppUsage')");
-    const crudAt = INDEX.indexOf("require('./routes/studioApps')");
-    assert.ok(usageAt > -1, 'routes/studioAppUsage is not mounted in index.js');
+    // Rows of module apps (firstParty/apps.mounts.js); the loader mounts them in the order of
+    // modules/firstParty/order.json, which lists them in this order too.
+    const usageAt = INDEX.indexOf("require('../routes/studioAppUsage')");
+    const crudAt = INDEX.indexOf("require('../routes/studioApps')");
+    const order = require('../modules/firstParty/order.json').mounts;
+    assert.ok(order.indexOf('apps:/api/studio-apps#usage') > -1 && order.indexOf('apps:/api/studio-apps#usage') < order.indexOf('apps:/api/studio-apps#crud'));
+    assert.ok(usageAt > -1, 'routes/studioAppUsage is not mounted by a row of module apps');
     assert.ok(crudAt > -1);
     assert.ok(usageAt < crudAt,
         'studioApps.js has GET /:id — mounted after it, /usage-counts answers 404 for an app that does not exist');
 });
 
 test('the mount carries the same module and capability gates as the rest of App Studio', () => {
-    const line = INDEX.split('\n').find(l => l.includes("require('./routes/studioAppUsage')"));
-    assert.match(line, /app\.use\('\/api\/studio-apps'/);
+    const line = INDEX.split('\n').find(l => l.includes("require('../routes/studioAppUsage')"));
+    assert.match(line, /path: '\/api\/studio-apps'/);
     assert.match(line, /requireModule\('apps'\)/);
     assert.match(line, /requireCapability\('app_studio'\)/);
 });

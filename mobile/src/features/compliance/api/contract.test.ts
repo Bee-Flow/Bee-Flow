@@ -27,11 +27,12 @@ const C = 'routes/compliance/';
 
 describe('the mounts and the gate', () => {
     it('keeps /api/compliance behind the module and the GDPR capability, /api/dsr behind the module', () => {
-        // index.js and every module's composition file, so a mount that moves is still found.
+        // index.js and every module's composition file: the two mounts are rows of module
+        // compliance (server/firstParty/compliance.mounts.js), with these gates.
         expectAll(compositionText(), [
-            "app.use('/api/compliance', requireModule('compliance')",
+            "path: '/api/compliance', handlers: (g) => [g.requireModule('compliance')",
             "requireCapability('compliance_hub_gdpr')",
-            "app.use('/api/dsr', requireModule('compliance'), require('./routes/dsr'))",
+            "path: '/api/dsr', handlers: (g) => [g.requireModule('compliance'), require('../routes/dsr')]",
         ]);
         expect(read(`${C}checks.js`)).toContain("requirePermission('admin_compliance')");
     });
