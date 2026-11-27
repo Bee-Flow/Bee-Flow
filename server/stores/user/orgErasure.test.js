@@ -101,6 +101,14 @@ test('a missing core table is skipped; a missing module table fails the rung', a
     await assert.rejects(eraseOrgKeyedRows(ORG, () => {}), /relation "playbooks" does not exist/);
 });
 
+test('a module left out by the edition whose schema is here but lacks one table: that table is skipped, the others are erased', async () => {
+    absentModules(['compliance']);
+    await pg.exec('DROP TABLE "iso_risks"');
+    await eraseOrgKeyedRows(ORG, () => {});
+    const left = await holding();
+    assert.deepEqual(left, TABLES.filter((t) => ![null, 'compliance'].includes(moduleOfTable(t))));
+});
+
 // ── Legacy tables: group_chats, tasks, custom_tables, dashboards, dashboard_panels ──────────────
 // No file of the tree creates them. An older installation has them; a database migrated from
 // empty does not, and deleting an organisation there must not fail at the first of them.

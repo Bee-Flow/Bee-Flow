@@ -367,7 +367,9 @@ async function dropAutomationBindings(agentId) {
             { duty: 'drop the automation links of a deleted agent', whenDataPresent: 'warn' });
         if (sweep) await sweep.dropAgentBindings(agentId);
     } catch (e) {
-        log.warn(`[AgentCrud] could not drop the automation bindings of deleted agent ${agentId}: ${/** @type {Error} */ (e).message}`);
+        // A module that failed to load is not an absent one: its rows are left behind, and that is an error to see.
+        const failed = /** @type {{ code?: string }} */ (e).code === 'MODULE_FAILED';
+        log[failed ? 'error' : 'warn'](`[AgentCrud] could not drop the automation bindings of deleted agent ${agentId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 

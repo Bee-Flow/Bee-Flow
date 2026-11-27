@@ -53,6 +53,19 @@ const ORG_KEYED_TABLES = Object.freeze([
 ]);
 
 /**
+ * Must this table be there? A core table may be missing (an optional one). A table of a module
+ * that is here must exist: its absence is a broken schema and fails the rung. A table of a module
+ * that is NOT here, erased because this database holds the module's schema, may be missing: a
+ * release that added it ran while the edition left the module out, so nothing ever created it,
+ * and there is nothing in it to erase.
+ * @param {string} table
+ */
+function mustExist(table) {
+    const moduleId = moduleOfTable(table);
+    return moduleId !== null && require('../../modules/firstParty/moduleData').modulePresent(moduleId);
+}
+
+/**
  * @param {string} orgId
  * @param {(step: string) => void} at  names the rung for the caller's failure log
  */
@@ -65,7 +78,7 @@ async function eraseOrgKeyedRows(orgId, at) {
         try {
             await run(`DELETE FROM "${table}" WHERE "${column}" = $1`, [orgId]);
         } catch (e) {
-            if (moduleOfTable(table) !== null || !isMissingTable(e)) throw e;
+            if (!isMissingTable(e) || mustExist(table)) throw e;
         }
     }
 }

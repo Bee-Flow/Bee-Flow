@@ -246,6 +246,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // readServerProgress so the legacy intro-tour flag is lazily migrated into a
     // real getting-started entry (same view the achievements endpoints use).
     let learningProgress = {};
+    // Inside the try on purpose: these settings are read at every start of the app, and a Learning Center that failed to load must not take them down. The failure is reported through fallback(), not hidden.
     try { const certificates = optionalFeatureModule('learning/certificates'); if (certificates) learningProgress = await certificates.readServerProgress(userId); } catch (err) { fallback('routes/ai/config/userSettings:anon#8', err); /* empty on failure, and without the module */ }
 
     // Learning path (v2): the role/goal the learner picked on the Learning
@@ -324,8 +325,10 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
     // Learning Center blob is size-checked by its own sanitizer.
     /** @type {ReturnType<typeof import('../../../learning/progressValidation').sanitizeLearningProgress> | null} */
     let learning = null;
-    const progress = optionalFeatureModule('learning/progressValidation');
+    /** @type {typeof import('../../../learning/progressValidation') | null} */
+    let progress = null; // asked for only when the body carries learning progress: any other save does not depend on that module
     if (learningProgressReset !== true && learningProgress) {
+        progress = optionalFeatureModule('learning/progressValidation');
         if (!progress) throw new HttpError(409, 'module_absent', 'Learning progress needs the Learning Center module, which is not installed here.');
         learning = progress.sanitizeLearningProgress(learningProgress);
         if (learning.error === 'too_large') {

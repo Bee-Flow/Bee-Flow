@@ -284,6 +284,15 @@ async function moduleDataHere(moduleId) {
 }
 
 /**
+ * Is the module here (loaded, or failed while loading), as opposed to absent? A module that is
+ * here must have its tables; one that is absent may lack a table that a later release added.
+ * @param {string} moduleId
+ */
+function modulePresent(moduleId) {
+    return deps.state(moduleId) !== 'absent';
+}
+
+/**
  * Test seam: replace some sources, and forget every cached answer and warning.
  * @param {Partial<typeof deps>} [next]
  */
@@ -306,6 +315,7 @@ module.exports = {
     moduleForDataDuty,
     hasSchemaOf,
     moduleDataHere,
+    modulePresent,
     unitsOf,
     lookupFeatureModule,
     moduleFileInTree,
