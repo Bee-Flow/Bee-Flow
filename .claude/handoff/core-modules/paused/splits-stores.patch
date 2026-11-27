@@ -1,0 +1,3333 @@
+diff --git a/scripts/module-map.json b/scripts/module-map.json
+index eadf4b6b..4aab7108 100644
+--- a/scripts/module-map.json
++++ b/scripts/module-map.json
+@@ -66,7 +66,8 @@
+         "core/tools/toolDispatcher.datatableIdentity.test.js",
+         "stores/user/organizations.datatables.test.js",
+         "migrations/add-nl-datatable-quota-translations.js",
+-        "scripts/datatable-orphan-scan.mjs"
++        "scripts/datatable-orphan-scan.mjs",
++        "stores/documentSharing.datatables.pg.test.js"
+       ],
+       "agent-hub": [
+         "src/components/admin/Studio/Datatables/**",
+@@ -173,7 +174,8 @@
+         "utils/stepErrorInfo.js",
+         "utils/stepErrorTexts.mts",
+         "stores/agent/agentCrud.bindings.automation.pg.test.js",
+-        "scripts/research/reseed-fixture-account.js"
++        "scripts/research/reseed-fixture-account.js",
++        "core/packaging/scrub.automation.test.js"
+       ],
+       "agent-hub": [
+         "src/components/automation/**",
+@@ -342,7 +344,8 @@
+         "migrations/add-nl-app-studio-documents-2026-10-translations.js",
+         "migrations/add-nl-namespace-files.apps.test.js",
+         "core/findings/finding.apps.test.js",
+-        "i18n/defaults/en.discovery.apps.test.js"
++        "i18n/defaults/en.discovery.apps.test.js",
++        "core/packaging/scrub.apps.test.js"
+       ],
+       "agent-hub": [
+         "src/components/admin/Studio/AppStudio/**",
+@@ -1089,7 +1092,10 @@
+         "migrations/add-nl-project-golf4-translations.js",
+         "migrations/add-nl-project-rail-translations.js",
+         "core/findings/finding.projects.test.js",
+-        "i18n/translate.projects.test.js"
++        "i18n/translate.projects.test.js",
++        "stores/user/users.erasurePorts.projects.test.js",
++        "stores/userStore.credentialCleanup.projects.test.js",
++        "core/packaging/scrub.projects.test.js"
+       ],
+       "agent-hub": [
+         "src/components/projects/**",
+diff --git a/server/core/packaging/scrub.apps.test.js b/server/core/packaging/scrub.apps.test.js
+new file mode 100644
+index 00000000..80ffef9a
+--- /dev/null
++++ b/server/core/packaging/scrub.apps.test.js
+@@ -0,0 +1,55 @@
++/**
++ * The core's sweep (scrub.js) through the apps module's own entry point and template: capturing
++ * an app template (appStudio/templateCapture.js) no longer ships approver ids, and every approval
++ * of the real invoice-approvals template gets its own seat slot. Moved out of scrub.test.js
++ * unchanged.
++ *
++ * Run: cd server && node --test core/packaging/scrub.apps.test.js
++ */
++
++const test = require('node:test');
++const assert = require('node:assert');
++
++const scrub = require('./scrub');
++const { pipe } = require('./scrub.testkit');
++
++// ═══ The leak, through the real entry point ══════════════════════════
++
++test('REGRESSION: capturing an app template no longer ships approver ids', () => {
++    const { captureTemplate } = require('../../appStudio/templateCapture');
++    const result = captureTemplate({
++        meta: { title: 'Order desk' },
++        definition: {
++            schemaVersion: 2,
++            meta: { name: 'Order desk' },
++            homeScreenId: 'home',
++            screens: [{ id: 'home', name: 'Home', sections: [{ id: 'sec', children: [] }] }],
++            actions: {
++                ask: { kind: 'request_approval', prompt: 'Approve?', assigneeUserId: 'usr_alice', approverUserIds: ['usr_bob'] },
++                run: { kind: 'run_automation', automationId: 'aut_live' },
++            },
++        },
++    });
++    const wire = JSON.stringify(result);
++    assert.ok(!wire.includes('usr_alice'), 'the assignee travelled before this');
++    assert.ok(!wire.includes('usr_bob'), 'so did the panel seats');
++    assert.ok(!wire.includes('aut_live'));
++});
++
++test('every request_approval in the real invoice-approvals template gets its own seat slot', () => {
++    const def = JSON.parse(JSON.stringify(require('../../appStudio/templates/appInvoiceApprovals').definition));
++    let n = 0;
++    const seed = (node) => {
++        if (Array.isArray(node)) { node.forEach(seed); return; }
++        if (!node || typeof node !== 'object') return;
++        if (node.kind === 'request_approval') { n += 1; node.approverUserIds = [`usr_${n}`]; }
++        Object.values(node).forEach(seed);
++    };
++    seed(def);
++    const opts = pipe('app_1');
++    scrub.liftAppHoles(def, opts);
++    const seats = opts.slots.filter(x => x.kind === 'approver_seats');
++    assert.ok(n > 1, 'the template has several approval actions');
++    assert.strictEqual(seats.length, n);
++    assert.strictEqual(new Set(seats.map(x => x.slot)).size, n, 'no two seat slots share a name');
++});
+diff --git a/server/core/packaging/scrub.automation.test.js b/server/core/packaging/scrub.automation.test.js
+new file mode 100644
+index 00000000..eca0ab86
+--- /dev/null
++++ b/server/core/packaging/scrub.automation.test.js
+@@ -0,0 +1,53 @@
++/**
++ * The core's sweep (scrub.js) through the automation module's own code: exporting an automation
++ * (automation/portability.js) no longer ships approver ids, and a legacy per-event Talk room
++ * lifted out of a definition stays out once automation/notificationDefaults.js normalises it.
++ * Moved out of scrub.test.js unchanged.
++ *
++ * Run: cd server && node --test core/packaging/scrub.automation.test.js
++ */
++
++const test = require('node:test');
++const assert = require('node:assert');
++
++const scrub = require('./scrub');
++const { pipe } = require('./scrub.testkit');
++
++// ═══ The leak, through the real entry point ══════════════════════════
++
++test('REGRESSION: exporting an automation no longer ships approver ids', () => {
++    const { buildExport } = require('../../automation/portability');
++    const envelope = buildExport({
++        id: 'a1', title: 'Release', description: '',
++        definition: {
++            schemaVersion: 2,
++            trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
++            steps: [{
++                id: 's1', type: 'approval', prompt: 'Ship it?',
++                approval: { assignee: { userId: 'usr_carol' }, approvers: [{ groupId: 'grp_finance' }] },
++            }],
++        },
++    });
++    const wire = JSON.stringify(envelope);
++    assert.ok(!wire.includes('usr_carol'), 'the assignee travelled before this');
++    assert.ok(!wire.includes('grp_finance'), 'so did the group seat');
++    assert.ok(envelope.warnings.some(w => /approvers are people/.test(w)), 'and the exporter says so');
++});
++
++test('pipeline: the legacy per-event ncTalkRoom is lifted into talkRoom and leaves the definition', () => {
++    const { normalizeNotificationSettings } = require('../../automation/notificationDefaults');
++    const def = {
++        steps: [],
++        notificationSettings: {
++            onApproval: { enabled: true, level: 'heads_up', channels: ['inapp', 'nc_talk'], ncTalkRoom: 'dev-room' },
++            onError: { enabled: true, recipients: [{ type: 'owner' }], talkRoom: 'new-room', ncTalkRoom: 'old-room' },
++        },
++    };
++    const opts = pipe('aut_1');
++    scrub.liftAutomationHoles(def, opts);
++    assert.deepStrictEqual(opts.slots[0].suggested, { onError: { talkRoom: 'new-room' }, onApproval: { talkRoom: 'dev-room' } });
++    assert.ok(!JSON.stringify(def).includes('room'), 'neither spelling of a Dev room is left behind');
++    const normalized = normalizeNotificationSettings(def.notificationSettings);
++    assert.strictEqual(normalized.onApproval.talkRoom, undefined);
++    assert.strictEqual(normalized.onError.talkRoom, undefined);
++});
+diff --git a/server/core/packaging/scrub.projects.test.js b/server/core/packaging/scrub.projects.test.js
+new file mode 100644
+index 00000000..f598eda7
+--- /dev/null
++++ b/server/core/packaging/scrub.projects.test.js
+@@ -0,0 +1,91 @@
++/**
++ * The skill and document-template allow-lists of projects/packaging/capture.js (they need the
++ * Blueprint's ref map), and the rules they note. Moved out of scrub.test.js unchanged; the last
++ * test holds this module's line of scrub.testkit.js MODULE_RULES: each rule there fires here.
++ *
++ * Run: cd server && node --test core/packaging/scrub.projects.test.js
++ */
++
++const test = require('node:test');
++const assert = require('node:assert');
++
++const { RULES } = require('./scrub');
++const { MODULE_RULES } = require('./scrub.testkit');
++
++const FIRED = new Set();
++const capture = require('../../projects/packaging/capture');
++const record2 = (fn) => (...args) => {
++    const result = fn(...args);
++    for (const entry of result.report) FIRED.add(entry.rule);
++    return result;
++};
++const captureSkillShape = record2(capture.captureSkillShape);
++const captureDocumentShape = record2(capture.captureDocumentShape);
++
++// ═══ Skills and document templates ═══════════════════════════════════
++
++const SKILL_ROW = {
++    id: 'skl_live', orgId: 'org1', userId: 'usr_alice', name: 'Tone', description: 'd', instructions: 'Be brief.',
++    isShared: true, sharedGroups: ['grp_x'], enabledIntegrations: ['gmail'], projectId: 'p1', version: 3,
++    knowledgeBaseIds: ['kb_in', 'kb_out'], allowedAutomationIds: ['aut_out'], automationId: 'aut_in', mcpServers: ['LEAK'],
++};
++
++test('a skill: its resources outside the bundle are dropped and named, the in-bundle ones become $ref', () => {
++    const refs = new Map([['kb_in', 'kb_1'], ['aut_in', 'aut_1']]);
++    const { payload, integrations, report } = captureSkillShape(SKILL_ROW, refs, []);
++    assert.deepStrictEqual(payload.knowledge_base_ids, [{ $ref: 'kb_1' }]);
++    assert.deepStrictEqual(payload.allowed_automation_ids, []);
++    assert.deepStrictEqual(payload.automation_id, { $ref: 'aut_1' });
++    assert.deepStrictEqual(report.filter(r => r.rule === RULES.SKILL_RESOURCE_REFERENCE).map(r => [r.field, r.count]),
++        [['knowledge_base_ids', 1], ['allowed_automation_ids', 1]]);
++    assert.deepStrictEqual(integrations, ['gmail']);
++    assert.ok(!JSON.stringify(payload).includes('kb_out'));
++});
++
++test('a skill: owner, organisation, sharing and enabled apps are reported as tenant identity, and an unlisted key as unlisted', () => {
++    const { payload, report } = captureSkillShape(SKILL_ROW, new Map(), []);
++    const fields = report.filter(r => r.rule === RULES.SKILL_TENANT_IDENTITY).map(r => r.field).sort();
++    assert.deepStrictEqual(fields, ['enabledIntegrations', 'isShared', 'orgId', 'projectId', 'sharedGroups', 'userId']);
++    assert.ok(report.some(r => r.rule === RULES.UNLISTED_FIELD && r.field === 'mcpServers'));
++    for (const key of ['orgId', 'userId', 'isShared', 'sharedGroups', 'enabledIntegrations', 'enabled_integrations', 'mcpServers', 'id', 'projectId']) {
++        assert.ok(!(key in payload), `${key} does not travel`);
++    }
++});
++
++test('a skill outside the Solution is a blocking finding only in a release', () => {
++    const findings = [];
++    captureSkillShape(SKILL_ROW, new Map(), [], { pipeline: true, ref: 'skl_1', findings });
++    assert.deepStrictEqual(findings.map(f => [f.code, f.severity, f.ref, f.field]), [
++        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'knowledge_base_ids'],
++        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'allowed_automation_ids'],
++        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'automation_id'],
++    ]);
++    const gallery = [];
++    captureSkillShape(SKILL_ROW, new Map(), [], { ref: 'skl_1', findings: gallery });
++    assert.deepStrictEqual(gallery, []);
++});
++
++test('a document template: placement, sharing and what its author typed do not travel', () => {
++    const doc = {
++        id: 'doc_live', userId: 'u', organizationId: 'o', name: 'Offer', docType: 'presentation', kind: 'section', description: 'x',
++        bodyHtml: '<p>b</p>', css: '.c{}', visibility: 'team', folderId: 'f', categories: ['c'], archived: false, versionId: 'v',
++        settings: { margin: 1, sampleValues: { a: 'LEAK' }, sectionOverrides: { b: 'LEAK' }, resolvedHouseStyleCss: 'body{}' }, extra: 1,
++    };
++    const { payload, report } = captureDocumentShape(doc, []);
++    assert.deepStrictEqual(payload, {
++        name: 'Offer', doc_type: 'presentation', kind: 'section', description: 'x', body_html: '<p>b</p>', css: '.c{}', settings: { margin: 1 },
++    });
++    assert.deepStrictEqual(report.filter(r => r.rule === RULES.DOCUMENT_TENANT_IDENTITY).map(r => r.field).sort(), [
++        'categories', 'folderId', 'organizationId', 'settings.resolvedHouseStyleCss', 'settings.sampleValues',
++        'settings.sectionOverrides', 'userId', 'visibility',
++    ]);
++    assert.ok(report.some(r => r.rule === RULES.UNLISTED_FIELD && r.field === 'extra'));
++    assert.deepStrictEqual(doc.settings.sampleValues, { a: 'LEAK' }, 'the source row is not mutated');
++    const piped = captureDocumentShape(doc, [], { pipeline: true }).payload;
++    assert.deepStrictEqual(piped.settings, { margin: 1, resolvedHouseStyleCss: 'body{}' });
++});
++
++test('every rule of the projects module in scrub.testkit.js MODULE_RULES fires in this file', () => {
++    const never = MODULE_RULES.projects.filter(rule => !FIRED.has(rule));
++    assert.deepStrictEqual(never, [], `these rules never fired: ${never.join(', ')}`);
++});
+diff --git a/server/core/packaging/scrub.test.js b/server/core/packaging/scrub.test.js
+index fc34a06e..b1dffd69 100644
+--- a/server/core/packaging/scrub.test.js
++++ b/server/core/packaging/scrub.test.js
+@@ -8,9 +8,15 @@
+  * template or exporting an automation handed one organisation's user ids, group ids
+  * and KB ids to another.
+  *
+- * The last two tests below go through the real capture and export entry points
++ * The two regression tests go through the real capture and export entry points
+  * rather than this module, because that is where the leak actually was — a
+  * sweep that works but is not called is exactly the shape of the original bug.
++ * Those entry points are the modules' (appStudio/templateCapture.js: apps,
++ * automation/portability.js: automation), so the tests live beside this file in
++ * scrub.apps.test.js and scrub.automation.test.js; the skill and
++ * document-template allow-lists of projects/packaging/capture.js, and the rules
++ * they note, in scrub.projects.test.js (scrub.testkit.js says which rule is
++ * whose).
+  *
+  * Run: cd server && node --test core/packaging/scrub.test.js
+  */
+@@ -54,16 +60,9 @@ const captureAgentShape = buildShape(scrub.captureAgentShape);
+ const captureKnowledgeBaseShape = buildShape(scrub.captureKnowledgeBaseShape);
+ const captureBridgeGrants = buildShape(scrub.captureBridgeGrants);
+ 
+-// The skill and document-template allow-lists live in capture.js (they need the ref
+-// map); they feed the same coverage set.
+-const capture = require('../../projects/packaging/capture');
+-const record2 = (fn) => (...args) => {
+-    const result = fn(...args);
+-    for (const entry of result.report) FIRED.add(entry.rule);
+-    return result;
+-};
+-const captureSkillShape = record2(capture.captureSkillShape);
+-const captureDocumentShape = record2(capture.captureDocumentShape);
++// The skill and document-template allow-lists live in projects/packaging/capture.js
++// (they need the ref map): their rules fire in scrub.projects.test.js.
++const { MODULE_RULES, pipe, gallery } = require('./scrub.testkit');
+ 
+ const rulesOf = (report) => [...new Set(report.map(r => r.rule))].sort();
+ 
+@@ -278,48 +277,6 @@ test('malformed input is survived, not thrown over', () => {
+     assert.deepStrictEqual(scrubAutomationDefinition({ steps: 'not an array' }), []);
+ });
+ 
+-// ═══ The leaks, through the real entry points ════════════════════════
+-
+-test('REGRESSION: capturing an app template no longer ships approver ids', () => {
+-    const { captureTemplate } = require('../../appStudio/templateCapture');
+-    const result = captureTemplate({
+-        meta: { title: 'Order desk' },
+-        definition: {
+-            schemaVersion: 2,
+-            meta: { name: 'Order desk' },
+-            homeScreenId: 'home',
+-            screens: [{ id: 'home', name: 'Home', sections: [{ id: 'sec', children: [] }] }],
+-            actions: {
+-                ask: { kind: 'request_approval', prompt: 'Approve?', assigneeUserId: 'usr_alice', approverUserIds: ['usr_bob'] },
+-                run: { kind: 'run_automation', automationId: 'aut_live' },
+-            },
+-        },
+-    });
+-    const wire = JSON.stringify(result);
+-    assert.ok(!wire.includes('usr_alice'), 'the assignee travelled before this');
+-    assert.ok(!wire.includes('usr_bob'), 'so did the panel seats');
+-    assert.ok(!wire.includes('aut_live'));
+-});
+-
+-test('REGRESSION: exporting an automation no longer ships approver ids', () => {
+-    const { buildExport } = require('../../automation/portability');
+-    const envelope = buildExport({
+-        id: 'a1', title: 'Release', description: '',
+-        definition: {
+-            schemaVersion: 2,
+-            trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+-            steps: [{
+-                id: 's1', type: 'approval', prompt: 'Ship it?',
+-                approval: { assignee: { userId: 'usr_carol' }, approvers: [{ groupId: 'grp_finance' }] },
+-            }],
+-        },
+-    });
+-    const wire = JSON.stringify(envelope);
+-    assert.ok(!wire.includes('usr_carol'), 'the assignee travelled before this');
+-    assert.ok(!wire.includes('grp_finance'), 'so did the group seat');
+-    assert.ok(envelope.warnings.some(w => /approvers are people/.test(w)), 'and the exporter says so');
+-});
+-
+ // ═══ The allow-lists: a table, an agent and a knowledge base ═════════
+ //
+ // These three are ROWS, not documents. A sweep would list what is dangerous
+@@ -469,8 +426,6 @@ const captureWebpageKnowledgeBases = (ids, report = [], opts = {}) => {
+     for (const entry of report) FIRED.add(entry.rule);
+     return out;
+ };
+-const pipe = (ref, extra = {}) => ({ ref, pipeline: true, slots: [], findings: [], ...extra });
+-const gallery = (ref) => ({ ref, pipeline: false, slots: [], findings: [] });
+ 
+ test('pipeline: a panel + escalateTo + finalApprover step yields ONE seats slot with the full shape', () => {
+     const approval = {
+@@ -681,78 +636,19 @@ test('an app data model travels as shape; outside tables and group mappings are
+     assert.deepStrictEqual(opts.slots.map(x => [x.slot, x.suggested]), [['table:app_1:source:leads', { datatableId: 'tbl_elsewhere' }]]);
+ });
+ 
+-// ═══ Skills and document templates ═══════════════════════════════════
+-
+-const SKILL_ROW = {
+-    id: 'skl_live', orgId: 'org1', userId: 'usr_alice', name: 'Tone', description: 'd', instructions: 'Be brief.',
+-    isShared: true, sharedGroups: ['grp_x'], enabledIntegrations: ['gmail'], projectId: 'p1', version: 3,
+-    knowledgeBaseIds: ['kb_in', 'kb_out'], allowedAutomationIds: ['aut_out'], automationId: 'aut_in', mcpServers: ['LEAK'],
+-};
+-
+-test('a skill: its resources outside the bundle are dropped and named, the in-bundle ones become $ref', () => {
+-    const refs = new Map([['kb_in', 'kb_1'], ['aut_in', 'aut_1']]);
+-    const { payload, integrations, report } = captureSkillShape(SKILL_ROW, refs, []);
+-    assert.deepStrictEqual(payload.knowledge_base_ids, [{ $ref: 'kb_1' }]);
+-    assert.deepStrictEqual(payload.allowed_automation_ids, []);
+-    assert.deepStrictEqual(payload.automation_id, { $ref: 'aut_1' });
+-    assert.deepStrictEqual(report.filter(r => r.rule === RULES.SKILL_RESOURCE_REFERENCE).map(r => [r.field, r.count]),
+-        [['knowledge_base_ids', 1], ['allowed_automation_ids', 1]]);
+-    assert.deepStrictEqual(integrations, ['gmail']);
+-    assert.ok(!JSON.stringify(payload).includes('kb_out'));
+-});
+-
+-test('a skill: owner, organisation, sharing and enabled apps are reported as tenant identity, and an unlisted key as unlisted', () => {
+-    const { payload, report } = captureSkillShape(SKILL_ROW, new Map(), []);
+-    const fields = report.filter(r => r.rule === RULES.SKILL_TENANT_IDENTITY).map(r => r.field).sort();
+-    assert.deepStrictEqual(fields, ['enabledIntegrations', 'isShared', 'orgId', 'projectId', 'sharedGroups', 'userId']);
+-    assert.ok(report.some(r => r.rule === RULES.UNLISTED_FIELD && r.field === 'mcpServers'));
+-    for (const key of ['orgId', 'userId', 'isShared', 'sharedGroups', 'enabledIntegrations', 'enabled_integrations', 'mcpServers', 'id', 'projectId']) {
+-        assert.ok(!(key in payload), `${key} does not travel`);
+-    }
+-});
+-
+-test('a skill outside the Solution is a blocking finding only in a release', () => {
+-    const findings = [];
+-    captureSkillShape(SKILL_ROW, new Map(), [], { pipeline: true, ref: 'skl_1', findings });
+-    assert.deepStrictEqual(findings.map(f => [f.code, f.severity, f.ref, f.field]), [
+-        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'knowledge_base_ids'],
+-        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'allowed_automation_ids'],
+-        ['skill.resource_not_in_solution', 'blocking', 'skl_1', 'automation_id'],
+-    ]);
+-    const gallery = [];
+-    captureSkillShape(SKILL_ROW, new Map(), [], { ref: 'skl_1', findings: gallery });
+-    assert.deepStrictEqual(gallery, []);
+-});
+-
+-test('a document template: placement, sharing and what its author typed do not travel', () => {
+-    const doc = {
+-        id: 'doc_live', userId: 'u', organizationId: 'o', name: 'Offer', docType: 'presentation', kind: 'section', description: 'x',
+-        bodyHtml: '<p>b</p>', css: '.c{}', visibility: 'team', folderId: 'f', categories: ['c'], archived: false, versionId: 'v',
+-        settings: { margin: 1, sampleValues: { a: 'LEAK' }, sectionOverrides: { b: 'LEAK' }, resolvedHouseStyleCss: 'body{}' }, extra: 1,
+-    };
+-    const { payload, report } = captureDocumentShape(doc, []);
+-    assert.deepStrictEqual(payload, {
+-        name: 'Offer', doc_type: 'presentation', kind: 'section', description: 'x', body_html: '<p>b</p>', css: '.c{}', settings: { margin: 1 },
+-    });
+-    assert.deepStrictEqual(report.filter(r => r.rule === RULES.DOCUMENT_TENANT_IDENTITY).map(r => r.field).sort(), [
+-        'categories', 'folderId', 'organizationId', 'settings.resolvedHouseStyleCss', 'settings.sampleValues',
+-        'settings.sectionOverrides', 'userId', 'visibility',
+-    ]);
+-    assert.ok(report.some(r => r.rule === RULES.UNLISTED_FIELD && r.field === 'extra'));
+-    assert.deepStrictEqual(doc.settings.sampleValues, { a: 'LEAK' }, 'the source row is not mutated');
+-    const piped = captureDocumentShape(doc, [], { pipeline: true }).payload;
+-    assert.deepStrictEqual(piped.settings, { margin: 1, resolvedHouseStyleCss: 'body{}' });
+-});
+-
+ // ═══ The promise this file's header makes ════════════════════════════
+ 
+-test('every rule in RULES actually fires somewhere in this file', () => {
++test('every rule in RULES that the core notes actually fires somewhere in this file', () => {
+     // The header has promised this since the module was written, and the test
+     // was never there — which is precisely how `automation.datatable_reference`
+     // went unwritten while portability.js swept datatables on its own. A rule
+-    // nobody exercises is a rule nobody has checked.
+-    const never = Object.values(RULES).filter(rule => !FIRED.has(rule));
++    // nobody exercises is a rule nobody has checked. A module's own rules
++    // (scrub.testkit.js MODULE_RULES) fire in that module's half beside this file.
++    const ofModules = new Set(Object.values(MODULE_RULES).flat());
++    const never = Object.values(RULES).filter(rule => !ofModules.has(rule) && !FIRED.has(rule));
+     assert.deepStrictEqual(never, [], `these rules never fired: ${never.join(', ')}`);
++    assert.deepStrictEqual([...ofModules].filter(rule => FIRED.has(rule)), [],
++        'a rule the core\'s own functions note is the core\'s: take it out of MODULE_RULES');
+ });
+ 
+ // ═══ Review fixes: unique app addresses, legacy Talk room, connection hosts, page agent ═══
+@@ -787,42 +683,6 @@ test('two id-less ai_chat components with different bases are two distinct kb sl
+     ]);
+ });
+ 
+-test('every request_approval in the real invoice-approvals template gets its own seat slot', () => {
+-    const def = JSON.parse(JSON.stringify(require('../../appStudio/templates/appInvoiceApprovals').definition));
+-    let n = 0;
+-    const seed = (node) => {
+-        if (Array.isArray(node)) { node.forEach(seed); return; }
+-        if (!node || typeof node !== 'object') return;
+-        if (node.kind === 'request_approval') { n += 1; node.approverUserIds = [`usr_${n}`]; }
+-        Object.values(node).forEach(seed);
+-    };
+-    seed(def);
+-    const opts = pipe('app_1');
+-    scrub.liftAppHoles(def, opts);
+-    const seats = opts.slots.filter(x => x.kind === 'approver_seats');
+-    assert.ok(n > 1, 'the template has several approval actions');
+-    assert.strictEqual(seats.length, n);
+-    assert.strictEqual(new Set(seats.map(x => x.slot)).size, n, 'no two seat slots share a name');
+-});
+-
+-test('pipeline: the legacy per-event ncTalkRoom is lifted into talkRoom and leaves the definition', () => {
+-    const { normalizeNotificationSettings } = require('../../automation/notificationDefaults');
+-    const def = {
+-        steps: [],
+-        notificationSettings: {
+-            onApproval: { enabled: true, level: 'heads_up', channels: ['inapp', 'nc_talk'], ncTalkRoom: 'dev-room' },
+-            onError: { enabled: true, recipients: [{ type: 'owner' }], talkRoom: 'new-room', ncTalkRoom: 'old-room' },
+-        },
+-    };
+-    const opts = pipe('aut_1');
+-    scrub.liftAutomationHoles(def, opts);
+-    assert.deepStrictEqual(opts.slots[0].suggested, { onError: { talkRoom: 'new-room' }, onApproval: { talkRoom: 'dev-room' } });
+-    assert.ok(!JSON.stringify(def).includes('room'), 'neither spelling of a Dev room is left behind');
+-    const normalized = normalizeNotificationSettings(def.notificationSettings);
+-    assert.strictEqual(normalized.onApproval.talkRoom, undefined);
+-    assert.strictEqual(normalized.onError.talkRoom, undefined);
+-});
+-
+ test('pipeline: a connection slot suggests the Dev step\'s literal host, merged across holes on one slot', () => {
+     const def = {
+         steps: [
+diff --git a/server/core/packaging/scrub.testkit.js b/server/core/packaging/scrub.testkit.js
+new file mode 100644
+index 00000000..8c9b5b7e
+--- /dev/null
++++ b/server/core/packaging/scrub.testkit.js
+@@ -0,0 +1,42 @@
++// @typecheck strict
++/**
++ * Shared by scrub.test.js (the core's sweeps) and the module halves beside it
++ * (scrub.projects.test.js, scrub.apps.test.js, scrub.automation.test.js).
++ *
++ * MODULE_RULES: the rules of RULES that a first-party module's own code notes, keyed by module.
++ * A rule belongs to the module whose function produces its report entry: the skill and
++ * document-template allow-lists live in projects/packaging/capture.js (they need the Blueprint's
++ * ref map), so their three rules are the projects module's; every other rule is noted by
++ * core/packaging/scrub.js itself and is the core's. Two checks hold this record: scrub.test.js
++ * fails when a rule not listed here never fires through the core's functions (or a listed one
++ * does), and each module's half fails when one of its listed rules never fires there. A rule a
++ * module adds without a line here fails the first, a stale line the second.
++ */
++
++'use strict';
++
++const { RULES } = require('./scrub');
++
++/** @type {Readonly<Record<string, readonly string[]>>} */
++const MODULE_RULES = Object.freeze({
++    projects: Object.freeze([RULES.SKILL_RESOURCE_REFERENCE, RULES.SKILL_TENANT_IDENTITY, RULES.DOCUMENT_TENANT_IDENTITY]),
++});
++
++/** @typedef {{ ref: string, pipeline: boolean, slots: unknown[], findings: unknown[] }} LiftOptions */
++
++/**
++ * Lift options of a release (pipeline mode).
++ * @param {string} ref
++ * @param {Record<string, unknown>} [extra]
++ * @returns {LiftOptions & Record<string, unknown>}
++ */
++const pipe = (ref, extra = {}) => ({ ref, pipeline: true, slots: [], findings: [], ...extra });
++
++/**
++ * Lift options of a gallery file.
++ * @param {string} ref
++ * @returns {LiftOptions}
++ */
++const gallery = (ref) => ({ ref, pipeline: false, slots: [], findings: [] });
++
++module.exports = { MODULE_RULES, pipe, gallery };
+diff --git a/server/migrateDb.erasure.integration.test.js b/server/migrateDb.erasure.integration.test.js
+index 8dfcbadf..f2a946a7 100644
+--- a/server/migrateDb.erasure.integration.test.js
++++ b/server/migrateDb.erasure.integration.test.js
+@@ -11,6 +11,12 @@
+  * own behaviour (fresh run, idempotence, ledger, --force) is proven in
+  * migrateDb.integration.test.js, which runs it step by step.
+  *
++ * A table a first-party module creates (erasureCoverage.js MODULE_TABLES) is
++ * expected, seeded and checked while that module is loaded or its schema is in
++ * this database (erasureCoverage.erasesTable, the erasure's own rule); with
++ * every module hidden the ladder builds the core schema only, and the map
++ * entries of the absent modules' tables are not expected in it.
++ *
+  * Run: cd server && node --test migrateDb.erasure.integration.test.js
+  */
+ 
+@@ -49,7 +55,7 @@ const { query: rawQuery, close } = usePglitePool(ladderPglite());
+ // ═══════════════════════════════════════════════════════════════════════════
+ 
+ const { discoverUserTables } = require('./scripts/lib/userDataFootprint');
+-const { ERASURE_COVERAGE, entriesOf } = require('./stores/user/erasureCoverage');
++const { ERASURE_COVERAGE, entriesOf, erasesTable } = require('./stores/user/erasureCoverage');
+ /** @type {Record<string, string>} */
+ const exemptions = JSON.parse(fs.readFileSync(path.join(__dirname, 'stores', 'user', 'erasure-exemptions.json'), 'utf8'));
+ 
+@@ -64,6 +70,25 @@ async function userTables() {
+     return discovered;
+ }
+ 
++/**
++ * The tables the erasure expects in this schema: the core's, and a module's while it is here.
++ * @param {string[]} tables
++ */
++async function expectedTables(tables) {
++    const keep = await Promise.all(tables.map((t) => erasesTable(t)));
++    return tables.filter((_, i) => keep[i]);
++}
++
++/**
++ * @template {[string, unknown]} E
++ * @param {E[]} entries
++ * @returns {Promise<E[]>}
++ */
++async function expectedEntries(entries) {
++    const keep = new Set(await expectedTables(entries.map(([t]) => t)));
++    return entries.filter(([t]) => keep.has(t));
++}
++
+ /** @param {string} table @param {string} column */
+ async function columnInfo(table, column) {
+     const { rows } = await rawQuery(
+@@ -90,10 +115,12 @@ test('every covered or exempted table exists, and the columns the generic steps
+     // The generic steps and the exemptions name user-keyed tables; a `step`
+     // or `cascade` entry may document a table the discovery does not see
+     // (its owner column has another name, or it only has a parent key).
++    // A module's table (erasureCoverage.js MODULE_TABLES) is expected when that module is loaded
++    // or its schema is in this database (erasesTable): an absent module's entries stay in the map.
+     const present = new Set(discovered.map((t) => t.table));
+-    const generic = [...entriesOf('deleted'), ...entriesOf('detached'), ...entriesOf('reassigned')];
+-    const stale = [...generic.map(([t]) => t), ...Object.keys(exemptions).filter((k) => !k.startsWith('_'))]
+-        .filter((t) => !present.has(t));
++    const generic = await expectedEntries([...entriesOf('deleted'), ...entriesOf('detached'), ...entriesOf('reassigned')]);
++    const named = [...generic.map(([t]) => t), ...await expectedTables(Object.keys(exemptions).filter((k) => !k.startsWith('_')))];
++    const stale = named.filter((t) => !present.has(t));
+     assert.deepStrictEqual(stale, [], 'named in the erasure map or the exemptions but no longer a user-keyed table in the schema');
+ 
+     /** @type {string[]} */
+@@ -139,6 +166,16 @@ async function count(table, column, value = LEAVER) {
+     return rows[0].n;
+ }
+ 
++/**
++ * A step of the cascade about a module's table: run while that module is here or its schema is in
++ * this database (erasesTable), the way the erasure decides; the core's tables always.
++ * @param {string} table
++ * @param {() => Promise<unknown>} fn
++ */
++async function whileHere(table, fn) {
++    if (await erasesTable(table)) await fn();
++}
++
+ test('deleting the account erases its content and detaches it from the organisation\'s records', async () => {
+     const users = require('./stores/user/users');
+     const { resetErasurePortsForTests, registerErasurePorts } = require('./stores/user/erasurePorts');
+@@ -162,20 +199,27 @@ test('deleting the account erases its content and detaches it from the organisat
+     await q(`INSERT INTO conversation_messages (id, conversation_id, role, content, author_user_id, seq) VALUES
+              ('m1', 'c-leaver', 'user', 'my secret', $1, 1), ('m2', 'c-leaver', 'assistant', 'reply', NULL, 2),
+              ('m3', 'c-heir', 'user', 'in a group chat', $1, 1)`, [LEAVER]);
+-    // Meeting note, web page, app, skill, routine with a schedule and a run.
+-    await q(`INSERT INTO transcriptions (id, user_id, organization_id) VALUES ('t1', $1, $2)`, [LEAVER, ORG]);
+-    await q(`INSERT INTO webpages (id, user_id) VALUES ('w1', $1)`, [LEAVER]);
+-    await q(`INSERT INTO webpage_versions (id, webpage_id) VALUES ('wv1', 'w1')`);
+-    await q(`INSERT INTO studio_apps (id, user_id, organization_id) VALUES ('app1', $1, $2)`, [LEAVER, ORG]);
+-    await q(`INSERT INTO studio_app_attachments (id, app_id, owner_user_id) VALUES ('att1', 'app1', $1)`, [LEAVER]);
++    // Meeting note, web page, app, skill, routine with a schedule and a run
++    // (each module's rows while that module is here, see whileHere).
++    await whileHere('transcriptions', () => q(`INSERT INTO transcriptions (id, user_id, organization_id) VALUES ('t1', $1, $2)`, [LEAVER, ORG]));
++    await whileHere('webpages', async () => {
++        await q(`INSERT INTO webpages (id, user_id) VALUES ('w1', $1)`, [LEAVER]);
++        await q(`INSERT INTO webpage_versions (id, webpage_id) VALUES ('wv1', 'w1')`);
++    });
++    await whileHere('studio_apps', async () => {
++        await q(`INSERT INTO studio_apps (id, user_id, organization_id) VALUES ('app1', $1, $2)`, [LEAVER, ORG]);
++        await q(`INSERT INTO studio_app_attachments (id, app_id, owner_user_id) VALUES ('att1', 'app1', $1)`, [LEAVER]);
++    });
+     await q(`INSERT INTO skills (id, user_id, name) VALUES ('sk1', $1, 'Skill')`, [LEAVER]);
+-    await q(`INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('auto1', $1, $2, 'Routine', '{}'::jsonb)`, [LEAVER, ORG]);
+-    await q(`INSERT INTO automation_schedules (id, automation_id, trigger_step_id, cron) VALUES ('sch1', 'auto1', 'trig', '0 7 * * *')`);
+-    await q(`INSERT INTO automation_runs (id, automation_id, version, user_id, trigger_kind) VALUES ('run1', 'auto1', 1, $1, 'schedule')`, [LEAVER]);
++    await whileHere('automations', async () => {
++        await q(`INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('auto1', $1, $2, 'Routine', '{}'::jsonb)`, [LEAVER, ORG]);
++        await q(`INSERT INTO automation_schedules (id, automation_id, trigger_step_id, cron) VALUES ('sch1', 'auto1', 'trig', '0 7 * * *')`);
++        await q(`INSERT INTO automation_runs (id, automation_id, version, user_id, trigger_kind) VALUES ('run1', 'auto1', 1, $1, 'schedule')`, [LEAVER]);
++    });
+     await q(`INSERT INTO reminders (id, user_id, title, remind_at) VALUES ('r1', $1, 'Call', NOW())`, [LEAVER]);
+     // The organisation's records that name the leaver: a risk (nullable
+     // author) and an app template (NOT NULL author, handed to the heir).
+-    await q(`INSERT INTO iso_risks (organization_id, title, created_by, owner_user_id) VALUES ($1, 'Risk', $2, $2)`, [ORG, LEAVER]);
++    await whileHere('iso_risks', () => q(`INSERT INTO iso_risks (organization_id, title, created_by, owner_user_id) VALUES ($1, 'Risk', $2, $2)`, [ORG, LEAVER]));
+     await q(`INSERT INTO guardrail_events (organization_id, user_id, violation_type) VALUES ($1, $2, 'pii')`, [ORG, LEAVER]);
+     // A colleague's project with a task the leaver created: to the project's owner.
+     await q(`INSERT INTO projects (id, name, owner_id, organization_id) VALUES ('p1', 'Project', $1, $2)`, [HEIR, ORG]);
+@@ -192,8 +236,8 @@ test('deleting the account erases its content and detaches it from the organisat
+     await q(`INSERT INTO kb_chunks (tenant_id, knowledge_base_id, document_id, chunk_id, content) VALUES
+              ($1, '00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000d1', 0, 'personal text'),
+              ($1, '00000000-0000-4000-8000-0000000000a2', 'doc-team', 0, 'team text')`, [LEAVER]);
+-    await q(`INSERT INTO support_threads (organization_id, requester_user_id, requester_email, requester_name, source, subject, requester_ip, requester_ua)
+-             VALUES ($1, $2, 'leaver@example.test', 'Lea Ver', 'in_app', 'Help', '192.0.2.1', 'UA')`, [ORG, LEAVER]);
++    await whileHere('support_threads', () => q(`INSERT INTO support_threads (organization_id, requester_user_id, requester_email, requester_name, source, subject, requester_ip, requester_ua)
++             VALUES ($1, $2, 'leaver@example.test', 'Lea Ver', 'in_app', 'Help', '192.0.2.1', 'UA')`, [ORG, LEAVER]));
+     await q(`INSERT INTO config (key, value) VALUES ($1, '"x"'), ($2, '"y"')`, [`afas_token_user_${LEAVER}`, `github_token_user_${LEAVER}`]);
+ 
+     assert.strictEqual(await users.deleteUser(LEAVER), true);
+@@ -204,31 +248,41 @@ test('deleting the account erases its content and detaches it from the organisat
+     assert.strictEqual(await count('kb_chunks', 'knowledge_base_id', '00000000-0000-4000-8000-0000000000a1'), 0);
+     assert.strictEqual(await count('knowledge_bases', 'id', '00000000-0000-4000-8000-0000000000a2'), 1, 'the organisation\'s base stays');
+     // The support thread stays without the requester's details.
+-    const thread = (await q(`SELECT requester_user_id, requester_email, requester_name, requester_ip, requester_ua FROM support_threads WHERE organization_id = $1`, [ORG])).rows[0];
+-    assert.deepStrictEqual({ ...thread }, { requester_user_id: null, requester_email: '', requester_name: null, requester_ip: null, requester_ua: null });
++    await whileHere('support_threads', async () => {
++        const thread = (await q(`SELECT requester_user_id, requester_email, requester_name, requester_ip, requester_ua FROM support_threads WHERE organization_id = $1`, [ORG])).rows[0];
++        assert.deepStrictEqual({ ...thread }, { requester_user_id: null, requester_email: '', requester_name: null, requester_ip: null, requester_ua: null });
++    });
+     assert.strictEqual((await q(`SELECT COUNT(*)::int AS n FROM config WHERE key LIKE $1`, [`%_user_${LEAVER}`])).rows[0].n, 0, 'per-user integration secrets');
+ 
+     // Gone with the account.
+     assert.strictEqual(await count('users', 'id'), 0);
+     assert.strictEqual(await count('agent_conversations', 'user_id'), 0);
+     assert.strictEqual(await count('conversation_messages', 'conversation_id', 'c-leaver'), 0, 'the chat content itself');
+-    assert.strictEqual(await count('transcriptions', 'user_id'), 0);
+-    assert.strictEqual(await count('webpages', 'user_id'), 0);
+-    assert.strictEqual(await count('webpage_versions', 'webpage_id', 'w1'), 0);
+-    assert.strictEqual(await count('studio_apps', 'user_id'), 0);
+-    assert.strictEqual(await count('studio_app_attachments', 'owner_user_id'), 0);
++    await whileHere('transcriptions', async () => assert.strictEqual(await count('transcriptions', 'user_id'), 0));
++    await whileHere('webpages', async () => {
++        assert.strictEqual(await count('webpages', 'user_id'), 0);
++        assert.strictEqual(await count('webpage_versions', 'webpage_id', 'w1'), 0);
++    });
++    await whileHere('studio_apps', async () => {
++        assert.strictEqual(await count('studio_apps', 'user_id'), 0);
++        assert.strictEqual(await count('studio_app_attachments', 'owner_user_id'), 0);
++    });
+     assert.strictEqual(await count('skills', 'user_id'), 0);
+-    assert.strictEqual(await count('automations', 'user_id'), 0);
+-    assert.strictEqual(await count('automation_schedules', 'automation_id', 'auto1'), 0, 'the schedule goes with the routine');
+-    assert.strictEqual(await count('automation_runs', 'user_id'), 0);
++    await whileHere('automations', async () => {
++        assert.strictEqual(await count('automations', 'user_id'), 0);
++        assert.strictEqual(await count('automation_schedules', 'automation_id', 'auto1'), 0, 'the schedule goes with the routine');
++        assert.strictEqual(await count('automation_runs', 'user_id'), 0);
++    });
+     assert.strictEqual(await count('reminders', 'user_id'), 0);
+ 
+     // Kept, without the person.
+     assert.strictEqual(await count('conversation_messages', 'conversation_id', 'c-heir'), 1, 'the colleague\'s conversation keeps its message');
+     assert.strictEqual(await count('conversation_messages', 'author_user_id'), 0, '...but it no longer names the author');
+-    assert.strictEqual(await count('iso_risks', 'organization_id', ORG), 1, 'the risk register is the organisation\'s');
+-    assert.strictEqual(await count('iso_risks', 'created_by'), 0);
+-    assert.strictEqual(await count('iso_risks', 'owner_user_id'), 0);
++    await whileHere('iso_risks', async () => {
++        assert.strictEqual(await count('iso_risks', 'organization_id', ORG), 1, 'the risk register is the organisation\'s');
++        assert.strictEqual(await count('iso_risks', 'created_by'), 0);
++        assert.strictEqual(await count('iso_risks', 'owner_user_id'), 0);
++    });
+     assert.strictEqual(await count('guardrail_events', 'organization_id', ORG), 1);
+     assert.strictEqual(await count('guardrail_events', 'user_id'), 0);
+     assert.strictEqual(await count('project_tasks', 'created_by'), 0);
+@@ -246,8 +300,8 @@ test('deleting the organisation afterwards leaves no row keyed by it', async ()
+     await q(`CREATE TABLE IF NOT EXISTS dashboards (id TEXT PRIMARY KEY, organization_id TEXT)`);
+     await q(`CREATE TABLE IF NOT EXISTS dashboard_panels (dashboard_id TEXT)`);
+     // A record of a member removed by another path, which only the org cascade can reach.
+-    await q(`INSERT INTO transcriptions (id, user_id, organization_id) VALUES ('t-orphan', 'gone-member', $1)`, [ORG]);
+-    await q(`INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('auto-orphan', 'gone-member', $1, 'Routine', '{}'::jsonb)`, [ORG]);
++    await whileHere('transcriptions', () => q(`INSERT INTO transcriptions (id, user_id, organization_id) VALUES ('t-orphan', 'gone-member', $1)`, [ORG]));
++    await whileHere('automations', () => q(`INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('auto-orphan', 'gone-member', $1, 'Routine', '{}'::jsonb)`, [ORG]));
+ 
+     // An organisation agent with a conversation that is not a member's.
+     await q(`INSERT INTO agents (id, name, owner_id, organization_id) VALUES ('ag-org', 'Org agent', 'gone-member', $1)`, [ORG]);
+@@ -260,7 +314,7 @@ test('deleting the organisation afterwards leaves no row keyed by it', async ()
+     assert.strictEqual(await count('knowledge_bases', 'organization_id', ORG), 0);
+     assert.strictEqual(await count('kb_chunks', 'knowledge_base_id', '00000000-0000-4000-8000-0000000000a2'), 0, 'the chunks of the organisation\'s base');
+     for (const table of ['iso_risks', 'guardrail_events', 'transcriptions', 'automations', 'studio_apps', 'playbooks']) {
+-        assert.strictEqual(await count(table, 'organization_id', ORG), 0, table);
++        await whileHere(table, async () => assert.strictEqual(await count(table, 'organization_id', ORG), 0, table));
+     }
+     assert.strictEqual(await count('users', 'id', HEIR), 0);
+ });
+diff --git a/server/stores/documentSharing.datatables.pg.test.js b/server/stores/documentSharing.datatables.pg.test.js
+new file mode 100644
+index 00000000..3721ab67
+--- /dev/null
++++ b/server/stores/documentSharing.datatables.pg.test.js
+@@ -0,0 +1,44 @@
++'use strict';
++
++/**
++ * Sharing a spreadsheet document re-encrypts its cells, which live in a datatables module table
++ * (stores/datatableDbStore.js), under the organisation key. Moved out of
++ * documentSharing.pg.test.js unchanged; same bed (documentSharing.testkit.js).
++ *
++ * Run: cd server && node --test stores/documentSharing.datatables.pg.test.js
++ */
++
++const { test } = require('node:test');
++const assert = require('node:assert/strict');
++const { usePglitePool } = require('../testUtils/pglitePool');
++const { documentSharingBed } = require('./documentSharing.testkit');
++let tier = 'none';
++const { pg, sharing, unlocked, make } = documentSharingBed(usePglitePool(), () => tier);
++
++test('spreadsheet cells and formulas use the organisation key after sharing', async () => {
++    tier = 'zk';
++    const sheetCrypto = require('./lib/sheetCrypto');
++    const tableStore = require('./datatableDbStore');
++    const scopeKey = tableStore.scopeKey({ kind: 'user', id: 'alice' });
++    const schema = tableStore._schemaFor(scopeKey);
++    await pg.exec(`CREATE TABLE datatables (id TEXT PRIMARY KEY, key TEXT, scope_kind TEXT, scope_id TEXT, managed_kind TEXT);
++        INSERT INTO datatables VALUES ('dt1','sheet_test','user','alice','document_sheet');
++        CREATE SCHEMA "${schema}";
++        CREATE TABLE "${schema}".sheet_test (id TEXT PRIMARY KEY, row_no INTEGER, ${'abcdefghijklmnopqrstuvwxyz'.split('').map((c) => `"${c}" TEXT`).join(', ')});`);
++    const doc = await unlocked('alice', () => make({ docType: 'spreadsheet', sheetTableId: 'dt1' }));
++    const resolved = { table: { id: 'dt1', managedKind: 'document_sheet', ownerUserId: 'alice' }, scopeKey, meta: { key: 'sheet_test' } };
++    const values = await unlocked('alice', () => sheetCrypto.sealValues(resolved, { row_no: 1, a: '42', b: '=SUM(A1:A2)' }));
++    assert.equal(JSON.parse(values.a).documentContext.scope, 'user');
++    await pg.query(`INSERT INTO "${schema}".sheet_test(id,row_no,a,b) VALUES ('r1',1,$1,$2)`, [values.a, values.b]);
++    await unlocked('alice', () => sharing.setSharing('document', doc.id, 'alice', { audience: 'restricted', sharedUserIds: ['bob'] }));
++    const row = (await pg.query(`SELECT * FROM "${schema}".sheet_test`)).rows[0];
++    assert.equal(JSON.parse(row.a).documentContext.scope, 'organisation');
++    const read = await unlocked('bob', () => sheetCrypto.openRow('dt1', row));
++    assert.equal(read.a, '42');
++    assert.equal(read.b, '=SUM(A1:A2)');
++    const edited = await sheetCrypto.sealValues(resolved, { row_no: 1, a: '43' });
++    assert.equal(JSON.parse(edited.a).documentContext.scope, 'organisation');
++    await assert.rejects(sheetCrypto.assertQuery(resolved, ['a']), (e) => e.status === 400 && e.code === 'encrypted_sheet_query');
++    await sheetCrypto.assertQuery(resolved, ['row_no']);
++    tier = 'none';
++});
+diff --git a/server/stores/documentSharing.pg.test.js b/server/stores/documentSharing.pg.test.js
+index 6e37cdbc..d4c6cd9c 100644
+--- a/server/stores/documentSharing.pg.test.js
++++ b/server/stores/documentSharing.pg.test.js
+@@ -1,36 +1,18 @@
+ 'use strict';
+ 
+-const { before, after, test } = require('node:test');
++/**
++ * Sharing documents and notebooks, and re-encrypting them under the organisation key. The bed is
++ * documentSharing.testkit.js; spreadsheet cells, which live in the datatables module's tables,
++ * are documentSharing.datatables.pg.test.js.
++ */
++
++const { test } = require('node:test');
+ const assert = require('node:assert/strict');
+-const crypto = require('node:crypto');
+ const { Readable } = require('node:stream');
+ const { usePglitePool } = require('../testUtils/pglitePool');
+-const { pg, close } = usePglitePool();
+-const documents = require('./documentStore');
+-const notebooks = require('./notebookStore');
+-const sharing = require('./lib/documentSharing');
+-const encryption = require('./lib/documentCrypto');
+-const { makeSwaps } = require('../testUtils/swaps');
+-const { swap, restore } = makeSwaps();
+-const userKey = crypto.randomBytes(32);
+-const orgKey = crypto.randomBytes(32);
++const { documentSharingBed } = require('./documentSharing.testkit');
+ let tier = 'none';
+-const unlocked = (id, fn) => encryption.sessions.run({ session: { user: { id }, encryptionKey: userKey.toString('base64') } }, fn);
+-const make = (extra = {}) => documents.createDocument({ userId: 'alice', name: 'Shared plan', bodyHtml: '<p>Confidential content</p>', settings: { houseStyle: false }, ...extra });
+-
+-before(async () => {
+-    await pg.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT, groups TEXT DEFAULT '[]', username TEXT, "displayName" TEXT);
+-        INSERT INTO users VALUES ('alice','org1','[]','Alice',NULL),('bob','org1','["finance"]','Bob',NULL),('carol','org1','[]','Carol',NULL),('eve','org2','["finance"]','Eve',NULL);
+-        CREATE TABLE groups (id TEXT PRIMARY KEY, "organizationId" TEXT, name TEXT);
+-        INSERT INTO groups VALUES ('finance','org1','Finance'),('foreign','org2','Foreign');
+-        CREATE TABLE projects (id TEXT PRIMARY KEY, owner_id TEXT, organization_id TEXT NOT NULL DEFAULT '');`);
+-    swap(encryption.keySources, 'policy', async () => ({ enabled: tier !== 'none', tier }));
+-    swap(encryption.keySources, 'userKey', async () => userKey);
+-    swap(encryption.keySources, 'orgKey', async () => orgKey);
+-    await documents.initDB();
+-    await notebooks.initDB();
+-});
+-after(async () => { restore(); await close(); });
++const { pg, documents, notebooks, sharing, encryption, swap, orgKey, unlocked, make } = documentSharingBed(usePglitePool(), () => tier);
+ 
+ test('every document type can be shared to one user, groups, or the organisation', async () => {
+     for (const docType of documents.DOC_TYPES.filter((type) => type !== 'spreadsheet')) {
+@@ -159,34 +141,6 @@ test('notebooks share their encrypted content, sources and versions with viewer
+     tier = 'none';
+ });
+ 
+-test('spreadsheet cells and formulas use the organisation key after sharing', async () => {
+-    tier = 'zk';
+-    const sheetCrypto = require('./lib/sheetCrypto');
+-    const tableStore = require('./datatableDbStore');
+-    const scopeKey = tableStore.scopeKey({ kind: 'user', id: 'alice' });
+-    const schema = tableStore._schemaFor(scopeKey);
+-    await pg.exec(`CREATE TABLE datatables (id TEXT PRIMARY KEY, key TEXT, scope_kind TEXT, scope_id TEXT, managed_kind TEXT);
+-        INSERT INTO datatables VALUES ('dt1','sheet_test','user','alice','document_sheet');
+-        CREATE SCHEMA "${schema}";
+-        CREATE TABLE "${schema}".sheet_test (id TEXT PRIMARY KEY, row_no INTEGER, ${'abcdefghijklmnopqrstuvwxyz'.split('').map((c) => `"${c}" TEXT`).join(', ')});`);
+-    const doc = await unlocked('alice', () => make({ docType: 'spreadsheet', sheetTableId: 'dt1' }));
+-    const resolved = { table: { id: 'dt1', managedKind: 'document_sheet', ownerUserId: 'alice' }, scopeKey, meta: { key: 'sheet_test' } };
+-    const values = await unlocked('alice', () => sheetCrypto.sealValues(resolved, { row_no: 1, a: '42', b: '=SUM(A1:A2)' }));
+-    assert.equal(JSON.parse(values.a).documentContext.scope, 'user');
+-    await pg.query(`INSERT INTO "${schema}".sheet_test(id,row_no,a,b) VALUES ('r1',1,$1,$2)`, [values.a, values.b]);
+-    await unlocked('alice', () => sharing.setSharing('document', doc.id, 'alice', { audience: 'restricted', sharedUserIds: ['bob'] }));
+-    const row = (await pg.query(`SELECT * FROM "${schema}".sheet_test`)).rows[0];
+-    assert.equal(JSON.parse(row.a).documentContext.scope, 'organisation');
+-    const read = await unlocked('bob', () => sheetCrypto.openRow('dt1', row));
+-    assert.equal(read.a, '42');
+-    assert.equal(read.b, '=SUM(A1:A2)');
+-    const edited = await sheetCrypto.sealValues(resolved, { row_no: 1, a: '43' });
+-    assert.equal(JSON.parse(edited.a).documentContext.scope, 'organisation');
+-    await assert.rejects(sheetCrypto.assertQuery(resolved, ['a']), (e) => e.status === 400 && e.code === 'encrypted_sheet_query');
+-    await sheetCrypto.assertQuery(resolved, ['row_no']);
+-    tier = 'none';
+-});
+-
+ test('original notebook source files are re-encrypted and replaced only after the sharing transaction commits', async () => {
+     tier = 'zk';
+     const files = new Map();
+diff --git a/server/stores/documentSharing.testkit.js b/server/stores/documentSharing.testkit.js
+new file mode 100644
+index 00000000..376b9715
+--- /dev/null
++++ b/server/stores/documentSharing.testkit.js
+@@ -0,0 +1,63 @@
++// @typecheck strict
++/**
++ * The test bed of documentSharing.pg.test.js and its datatables half
++ * (documentSharing.datatables.pg.test.js): a real Postgres (PGlite behind db.js) with the users,
++ * groups and projects the sharing code reads, the document and notebook stores initialised, and
++ * the encryption key sources swapped for fixed keys under a tier the test chooses.
++ *
++ *   let tier = 'none';
++ *   const bed = documentSharingBed(usePglitePool(), () => tier);
++ */
++
++'use strict';
++
++const { before, after } = require('node:test');
++const crypto = require('node:crypto');
++const { makeSwaps } = require('../testUtils/swaps');
++
++/**
++ * Open the bed on the test's PGlite pool (testUtils/pglitePool.js usePglitePool(), opened before
++ * this call so the stores below answer from it): registers its own before() and after().
++ * @param {ReturnType<typeof import('../testUtils/pglitePool').usePglitePool>} pool
++ * @param {() => string} tier  the encryption tier the policy answers, read at call time
++ */
++function documentSharingBed(pool, tier) {
++    const { pg, close } = pool;
++    const documents = require('./documentStore');
++    const notebooks = require('./notebookStore');
++    const sharing = require('./lib/documentSharing');
++    const encryption = require('./lib/documentCrypto');
++    const { swap, restore } = makeSwaps();
++    const userKey = crypto.randomBytes(32);
++    const orgKey = crypto.randomBytes(32);
++    /**
++     * Run `fn` as `id` with the session's key unlocked.
++     * @template T
++     * @param {string} id
++     * @param {() => T} fn
++     * @returns {T}
++     */
++    const unlocked = (id, fn) => encryption.sessions.run(/** @type {Parameters<typeof encryption.sessions.run>[0]} */ (
++        { session: { user: { id }, encryptionKey: userKey.toString('base64') } }), fn);
++    /** @param {Record<string, unknown>} [extra] */
++    const make = (extra = {}) => documents.createDocument(/** @type {Parameters<typeof documents.createDocument>[0]} */ (
++        { userId: 'alice', name: 'Shared plan', bodyHtml: '<p>Confidential content</p>', settings: { houseStyle: false }, ...extra }));
++
++    before(async () => {
++        await pg.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT, groups TEXT DEFAULT '[]', username TEXT, "displayName" TEXT);
++            INSERT INTO users VALUES ('alice','org1','[]','Alice',NULL),('bob','org1','["finance"]','Bob',NULL),('carol','org1','[]','Carol',NULL),('eve','org2','["finance"]','Eve',NULL);
++            CREATE TABLE groups (id TEXT PRIMARY KEY, "organizationId" TEXT, name TEXT);
++            INSERT INTO groups VALUES ('finance','org1','Finance'),('foreign','org2','Foreign');
++            CREATE TABLE projects (id TEXT PRIMARY KEY, owner_id TEXT, organization_id TEXT NOT NULL DEFAULT '');`);
++        swap(encryption.keySources, 'policy', async () => ({ enabled: tier() !== 'none', tier: tier() }));
++        swap(encryption.keySources, 'userKey', async () => userKey);
++        swap(encryption.keySources, 'orgKey', async () => orgKey);
++        await documents.initDB();
++        await notebooks.initDB();
++    });
++    after(async () => { restore(); await close(); });
++
++    return { pg, documents, notebooks, sharing, encryption, swap, orgKey, unlocked, make };
++}
++
++module.exports = { documentSharingBed };
+diff --git a/server/stores/user/users.erasurePorts.projects.test.js b/server/stores/user/users.erasurePorts.projects.test.js
+new file mode 100644
+index 00000000..50200c4c
+--- /dev/null
++++ b/server/stores/user/users.erasurePorts.projects.test.js
+@@ -0,0 +1,43 @@
++// @typecheck
++/**
++ * deleteUser with the projects module loaded but its erasure port not
++ * registered: refused before the first write, the account stays. Moved out of
++ * users.erasurePorts.test.js unchanged: with the module absent the core
++ * resolves the teardown itself (stores/user/erasurePorts.js projectTeardown).
++ *
++ * Run: cd server && node --test stores/user/users.erasurePorts.projects.test.js
++ */
++
++'use strict';
++
++process.env.NODE_ENV = 'test';
++
++const { test, before, after } = require('node:test');
++const assert = require('node:assert');
++
++const { usePglitePool } = require('../../testUtils/pglitePool');
++
++const { close } = usePglitePool();
++const users = require('./users');
++const { initDB } = require('./schema');
++const { resetErasurePortsForTests, registerErasurePorts } = require('./erasurePorts');
++const db = require('../../db');
++
++before(async () => {
++    await initDB();
++    await db.run(`INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')`);
++    assert.strictEqual(await users.createUser({ id: 'alice', username: 'alice', passwordHash: '', organizationId: 'org1' }), true);
++});
++
++after(close);
++
++const stillThere = async (id) => !!(await db.getOne('SELECT id FROM users WHERE id = $1', [id]));
++
++test('deleteUser with the notebooks port registered and the projects port not rejects before any write', async () => {
++    resetErasurePortsForTests();
++    // Notebooks registered, projects not: still refused before the DELETE.
++    registerErasurePorts({ notebooks: { deleteAllForUser: async () => ({ notebooks: 0 }) } });
++    await assert.rejects(() => users.deleteUser('alice'), /Erasure port 'projects' is not registered/);
++    assert.strictEqual(await stillThere('alice'), true);
++    resetErasurePortsForTests();
++});
+diff --git a/server/stores/user/users.erasurePorts.test.js b/server/stores/user/users.erasurePorts.test.js
+index c00e0849..f7384941 100644
+--- a/server/stores/user/users.erasurePorts.test.js
++++ b/server/stores/user/users.erasurePorts.test.js
+@@ -1,9 +1,13 @@
+ // @typecheck
+ /**
+- * deleteUser / deleteOrganization resolve BOTH erasure ports before the first
+- * write. With the ports unregistered the call rejects and the user row (and the
++ * deleteUser / deleteOrganization resolve their erasure ports before the first
++ * write. With a port unregistered the call rejects and the user row (and the
+  * organisation's members) are still there: no half-erased account.
+  *
++ * The projects port is the projects module's: what an unregistered one does
++ * with that module loaded is users.erasurePorts.projects.test.js; what an
++ * absent module does is erasurePorts.test.js.
++ *
+  * Run: cd server && node --test stores/user/users.erasurePorts.test.js
+  */
+ 
+@@ -39,10 +43,16 @@ test('deleteUser with an unregistered port rejects before any write', async () =
+     resetErasurePortsForTests();
+     await assert.rejects(() => users.deleteUser('alice'), /Erasure port 'notebooks' is not registered/);
+     assert.strictEqual(await stillThere('alice'), true);
++    resetErasurePortsForTests();
++});
+ 
+-    // Notebooks registered, projects not: still refused before the DELETE.
+-    registerErasurePorts({ notebooks: { deleteAllForUser: async () => ({ notebooks: 0 }) } });
+-    await assert.rejects(() => users.deleteUser('alice'), /Erasure port 'projects' is not registered/);
++test('deleteUser with the content port unregistered rejects before any write', async () => {
++    resetErasurePortsForTests();
++    registerErasurePorts({
++        notebooks: { deleteAllForUser: async () => ({ notebooks: 0 }) },
++        projects: { makeTeardown: () => ({ deleteProject: async () => true }) },
++    });
++    await assert.rejects(() => users.deleteUser('alice'), /Erasure port 'content' is not registered/);
+     assert.strictEqual(await stillThere('alice'), true);
+     resetErasurePortsForTests();
+ });
+diff --git a/server/stores/user/usersDelete.characterisation.core.golden.json b/server/stores/user/usersDelete.characterisation.core.golden.json
+new file mode 100644
+index 00000000..d6bf2bd8
+--- /dev/null
++++ b/server/stores/user/usersDelete.characterisation.core.golden.json
+@@ -0,0 +1,2057 @@
++{
++ "unknown account": {
++  "outcome": {
++   "returned": false
++  },
++  "trace": [
++   {
++    "sql": "SELECT to_regclass('solution_stages') IS NOT NULL AS present",
++    "params": []
++   },
++   {
++    "sql": "SELECT s.* FROM solution_stages s LEFT JOIN projects p ON p.id = s.project_id WHERE s.run_as_user_id = $1 OR p.owner_id = $1 ORDER BY s.solution_id, s.stage",
++    "params": [
++     "nobody"
++    ]
++   },
++   {
++    "sql": "SELECT id, \"organizationId\" FROM users WHERE id = $1",
++    "params": [
++     "nobody"
++    ]
++   }
++  ],
++  "left": {
++   "users": 0,
++   "mcp_tokens": 0,
++   "notebook_conversations": 0,
++   "user_memories": 0,
++   "pii_vault_entries": 0,
++   "pii_vault_counters": 0,
++   "execution_history": 0,
++   "message_feedback": 0,
++   "ai_usage_log": 0,
++   "chat_signal_objections": 0,
++   "automation_credentials": 0,
++   "voiceprints": 0,
++   "integration_connections": 0,
++   "user_sessions": 0,
++   "config": 0,
++   "connection_grants": 0,
++   "project_shares": 0,
++   "notifications": 0,
++   "agents": 0,
++   "agent_conversations": 0,
++   "conversation_messages": 0,
++   "reminders": 0,
++   "projects": 0
++  }
++ },
++ "full account": {
++  "before": {
++   "users": 1,
++   "mcp_tokens": 1,
++   "notebook_conversations": 1,
++   "user_memories": 1,
++   "pii_vault_entries": 1,
++   "pii_vault_counters": 1,
++   "execution_history": 1,
++   "message_feedback": 1,
++   "ai_usage_log": 1,
++   "chat_signal_objections": 1,
++   "automation_credentials": 1,
++   "voiceprints": 1,
++   "integration_connections": 1,
++   "user_sessions": 1,
++   "config": 5,
++   "connection_grants": 1,
++   "project_shares": 1,
++   "notifications": 1,
++   "agents": 1,
++   "agent_conversations": 1,
++   "conversation_messages": 1,
++   "reminders": 1,
++   "projects": 1
++  },
++  "outcome": {
++   "returned": true
++  },
++  "trace": [
++   {
++    "sql": "SELECT to_regclass('solution_stages') IS NOT NULL AS present",
++    "params": []
++   },
++   {
++    "sql": "SELECT s.* FROM solution_stages s LEFT JOIN projects p ON p.id = s.project_id WHERE s.run_as_user_id = $1 OR p.owner_id = $1 ORDER BY s.solution_id, s.stage",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT id, \"organizationId\" FROM users WHERE id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "log": "log",
++    "line": "[UserStore] Erasing the data of user 'full-leaver'..."
++   },
++   {
++    "sql": "SELECT value FROM config WHERE key = $1",
++    "params": [
++     "learning_certificate_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "learning_cert_lookup_hash-full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT pg_notify($1, $2)",
++    "params": [
++     "beeflow_config_invalidate",
++     "learning_cert_lookup_hash-full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "fireflies_api_key_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "gamma_api_key_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "youtrack_url_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "youtrack_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "signrequest_subdomain_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "signrequest_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "afas_member_number_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "afas_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "afas_env_type_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_api_mode_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_subdomain_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_email_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_env_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_subscription_key_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_client_id_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "nmbrs_client_secret_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "vplan_api_key_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "vplan_api_env_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "firebird_host_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "firebird_port_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "firebird_database_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "firebird_user_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "firebird_password_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "firebird_charset_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "frappe_crm_url_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "frappe_crm_api_key_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "frappe_crm_api_secret_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "twoba_client_id_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "twoba_client_secret_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "twoba_auth_mode_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "twoba_username_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "twoba_password_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "scaleway_billing_secret_key_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "scaleway_billing_org_id_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "gads_developer_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "gads_manager_id_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "gads_customer_id_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "enabled_apps_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "github_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "github_username_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "linkedin_access_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "linkedin_person_id_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "linkedin_name_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "google_workspace_email_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "microsoft365_email_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "withings_userid_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "simple_mode_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "learning_path_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "memory_enabled_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "memory_sensitive_opt_in_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "teams_autoimport_skip_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "learning_progress_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT pg_notify($1, $2)",
++    "params": [
++     "beeflow_config_invalidate",
++     "learning_progress_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "learning_exercises_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "learning_certificate_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT pg_notify($1, $2)",
++    "params": [
++     "beeflow_config_invalidate",
++     "learning_certificate_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "learning_intro_migrated_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "has_seen_intro_tour_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "mcp_server_token_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "mcp_server_token_user_full-leaver_revoked"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "mcp_server_token_user_full-leaver_issued"
++    ]
++   },
++   {
++    "sql": "DELETE FROM user_sessions WHERE sess::jsonb -> 'user' ->> 'id' = $1 RETURNING sid",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "log": "log",
++    "line": "[SessionCache] bust.user user_id=full-leaver sessions=1 bridge_tokens=0"
++   },
++   {
++    "sql": "DELETE FROM mcp_tokens WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT key FROM config WHERE key LIKE $1 ESCAPE '\\'",
++    "params": [
++     "mcp\\_cred\\_%"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "mcp_cred_frappe_FRAPPE_API_SECRET_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT pg_notify($1, $2)",
++    "params": [
++     "beeflow_config_invalidate",
++     "mcp_cred_frappe_FRAPPE_API_SECRET_user_full-leaver"
++    ]
++   },
++   {
++    "sql": "INSERT INTO access_audit_log (id, action, target_type, target_id, organization_id, changed_by, old_values, new_values) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
++    "params": [
++     "<id1>",
++     "credential.delete",
++     "credential",
++     "mcp_cred_frappe_FRAPPE_API_SECRET_user_full-leaver",
++     null,
++     "system",
++     null,
++     "{\"integration\":\"unknown\",\"action\":\"delete\"}"
++    ]
++   },
++   {
++    "sql": "SELECT key FROM config WHERE key LIKE $1 ESCAPE '\\'",
++    "params": [
++     "cms\\_mcp\\_upload\\_%"
++    ]
++   },
++   {
++    "sql": "SELECT value FROM config WHERE key = $1",
++    "params": [
++     "cms_mcp_upload_ticket-full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "cms_mcp_upload_ticket-full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT pg_notify($1, $2)",
++    "params": [
++     "beeflow_config_invalidate",
++     "cms_mcp_upload_ticket-full-leaver"
++    ]
++   },
++   {
++    "port": "notebooks.deleteAllForUser",
++    "args": [
++     "full-leaver"
++    ]
++   },
++   {
++    "log": "log",
++    "line": "[UserStore] Erased 2 notebook(s) for 'full-leaver'"
++   },
++   {
++    "sql": "DELETE FROM notebook_conversations WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM user_memories WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM pii_vault_entries WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM pii_vault_counters WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM conversation_messages WHERE conversation_id IN ( SELECT id FROM agent_conversations WHERE user_id = $1 UNION SELECT id FROM direct_conversations WHERE user_id = $1)",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM agent_conversations WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM direct_conversations WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE conversation_messages SET author_user_id = NULL WHERE author_user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM execution_history WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM message_feedback WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM ai_usage_log WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM chat_signal_objections WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM kb_query_log_ack WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM kb_query_log WHERE user_id = $1 AND ($2::text IS NULL OR organization_id = $2)",
++    "params": [
++     "full-leaver",
++     null
++    ]
++   },
++   {
++    "sql": "UPDATE kb_query_log SET reviewed_by = NULL WHERE reviewed_by = $1 AND ($2::text IS NULL OR organization_id = $2)",
++    "params": [
++     "full-leaver",
++     null
++    ]
++   },
++   {
++    "sql": "DELETE FROM suggestion_scan_cache WHERE user_id = $1 OR scope_key = $2",
++    "params": [
++     "full-leaver",
++     "user:full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM automation_suggestion_feedback WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM automation_credentials WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM integration_response_cache WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM connection_grants WHERE grantor_user_id = $1 OR (grantee_type = 'user' AND grantee_id = $1)",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM integration_connections WHERE owner_user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM voiceprints WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT id FROM projects WHERE owner_id = $1 ORDER BY id",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT p.stage_of, EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages FROM projects p WHERE p.id = $1",
++    "params": [
++     "p-full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT 1 AS x FROM solution_stages WHERE solution_id = $1 LIMIT 1",
++    "params": [
++     "p-full-leaver"
++    ]
++   },
++   {
++    "sql": "WITH heir AS ( SELECT id, shared_with_id FROM project_shares WHERE project_id = $1 AND shared_with_type = 'user' AND permission = 'editor' AND shared_with_id <> $2 ORDER BY created_at, id LIMIT 1 ), moved AS ( UPDATE projects SET owner_id = (SELECT shared_with_id FROM heir), updated_at = NOW() WHERE id = $1 AND owner_id = $2 AND EXISTS (SELECT 1 FROM heir) RETURNING owner_id ), dropped AS ( DELETE FROM project_shares WHERE id IN (SELECT id FROM heir) AND EXISTS (SELECT 1 FROM moved) ) SELECT owner_id FROM moved",
++    "params": [
++     "p-full-leaver",
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT (SELECT COUNT(*) FROM direct_conversations WHERE project_id = $1 AND shared_scope = 'project') + (SELECT COUNT(*) FROM agent_conversations WHERE project_id = $1 AND shared_scope = 'project') AS n",
++    "params": [
++     "p-full-leaver"
++    ]
++   },
++   {
++    "port": "projects.deleteProject",
++    "args": [
++     "p-full-leaver"
++    ]
++   },
++   {
++    "log": "log",
++    "line": "[UserStore] Owned projects of 'full-leaver': {\"deleted\":1,\"kept\":0,\"failed\":0,\"handedOver\":0}"
++   },
++   {
++    "sql": "DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "BEGIN",
++    "params": []
++   },
++   {
++    "sql": "UPDATE project_chat_messages SET content = '', mentions = '[]'::jsonb, refs = '[]'::jsonb, deleted_at = NOW() WHERE author_user_id = $1 AND deleted_at IS NULL RETURNING id, chat_id",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM project_chat_reads WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "COMMIT",
++    "params": []
++   },
++   {
++    "sql": "BEGIN",
++    "params": []
++   },
++   {
++    "sql": "UPDATE project_comments SET content = '', mentions = '[]'::jsonb, mentions_ai = FALSE, deleted_at = NOW() WHERE author_user_id = $1 AND deleted_at IS NULL RETURNING thread_id",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE project_comments SET mentions = mentions - $1::text WHERE mentions ? $1::text RETURNING id",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "COMMIT",
++    "params": []
++   },
++   {
++    "sql": "BEGIN",
++    "params": []
++   },
++   {
++    "sql": "UPDATE collab_doc_updates SET user_id = NULL WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE collab_doc_clients SET user_id = NULL WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE collab_docs SET created_by = NULL WHERE created_by = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "COMMIT",
++    "params": []
++   },
++   {
++    "sql": "DELETE FROM project_member_state WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM project_item_reads WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM project_ai_feedback WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM project_ai_watch WHERE author_user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM config WHERE key = $1",
++    "params": [
++     "user_ai_participation_full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT id FROM agents WHERE owner_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM conversation_messages WHERE conversation_id IN (SELECT id FROM agent_conversations WHERE agent_id = $1)",
++    "params": [
++     "ag-full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM agent_conversations WHERE agent_id = $1",
++    "params": [
++     "ag-full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM agents WHERE owner_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT id FROM skills WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT id, tenant_id FROM knowledge_bases WHERE tenant_id = $1 AND organization_id IS NULL",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT key FROM config WHERE key LIKE $1 ESCAPE '\\'",
++    "params": [
++     "org\\_%"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"conversation_labels\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"agent_favorites\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"kb_favorites\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"reminders\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"ai_task_termination_log\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"studio_documents\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"studio_document_folders\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"document_suggestions\" WHERE \"author_user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"icon_packs\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"user_security_keys\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"sso_identities\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"user_notification_prefs\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"consent_acceptances\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"consumer_subscriptions\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"azure_sync_memberships\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"azure_service_usage_log\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"integration_activity_log\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"skill_activations\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"workflows\" WHERE \"owner_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"folders\" WHERE \"owner_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_chat_reads\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_item_reads\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_member_colors\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_member_state\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_notification_mutes\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_ai_feedback\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_ai_watch\" WHERE \"author_user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"collab_doc_clients\" WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"guardrail_events\" SET \"user_id\" = NULL WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"license_keys\" SET \"user_id\" = NULL WHERE \"user_id\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"agent_versions\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"documents\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"kb_sources\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"collab_docs\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"org_house_styles\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"project_blueprints\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"project_blueprints\" WHERE \"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM \"solution_stages\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"solution_stages\" WHERE \"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"project_chats\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"project_comment_threads\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"project_sprints\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "UPDATE \"project_tasks\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "sql": "DELETE FROM notifications WHERE user_id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "log": "log",
++    "line": "[NotificationStore] Deleted 1 notification(s) for user full-leaver"
++   },
++   {
++    "sql": "DELETE FROM users WHERE id = $1",
++    "params": [
++     "full-leaver"
++    ]
++   },
++   {
++    "log": "log",
++    "line": "[UserStore] Cleanup complete for user 'full-leaver'"
++   }
++  ],
++  "left": {
++   "users": 0,
++   "mcp_tokens": 0,
++   "notebook_conversations": 0,
++   "user_memories": 0,
++   "pii_vault_entries": 0,
++   "pii_vault_counters": 0,
++   "execution_history": 0,
++   "message_feedback": 0,
++   "ai_usage_log": 0,
++   "chat_signal_objections": 0,
++   "automation_credentials": 0,
++   "voiceprints": 0,
++   "integration_connections": 0,
++   "user_sessions": 0,
++   "config": 0,
++   "connection_grants": 0,
++   "project_shares": 0,
++   "notifications": 0,
++   "agents": 0,
++   "agent_conversations": 0,
++   "conversation_messages": 0,
++   "reminders": 0,
++   "projects": 0
++  }
++ },
++ "stage run-as": {
++  "threw": {
++   "status": 409,
++   "code": "stage_run_as",
++   "message": "This account runs a Solution stage. An org admin can detach or remove the stages first.",
++   "expose": true,
++   "stages": 1
++  },
++  "statements": 2,
++  "left": {
++   "users": 1,
++   "mcp_tokens": 1,
++   "notebook_conversations": 1,
++   "user_memories": 1,
++   "pii_vault_entries": 1,
++   "pii_vault_counters": 1,
++   "execution_history": 1,
++   "message_feedback": 1,
++   "ai_usage_log": 1,
++   "chat_signal_objections": 1,
++   "automation_credentials": 1,
++   "voiceprints": 1,
++   "integration_connections": 1,
++   "user_sessions": 1,
++   "config": 5,
++   "connection_grants": 1,
++   "project_shares": 1,
++   "notifications": 1,
++   "agents": 1,
++   "agent_conversations": 1,
++   "conversation_messages": 1,
++   "reminders": 1,
++   "projects": 3
++  }
++ },
++ "fault: certificate lookups": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "certificate lookups"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'certificate lookups' failed for user 'fault-1' (57014)"
++  ],
++  "statements": 175,
++  "trace": "9bf36f97b1b4af4e9aa6ad50062aaf89bbd48d4894a7e314885cbf2526507ff1",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "d4ce76547668b05e1bcdc842488a093cd78599a7d25c1b5d0354c9860ef4b988",
++   "left": 1
++  }
++ },
++ "fault: config keys": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "config keys"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'config keys' failed for user 'fault-2' (57014)"
++  ],
++  "statements": 167,
++  "trace": "fabd9d1e135c26862cbdcc7c1ed2406c44d7d4282bcd07615a5e677266a983fc",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "4aa0b095044123354feb43615f42c16e16d012fd6fcc85e9eb8882dd45eb8642",
++   "left": 0
++  }
++ },
++ "fault: sessions": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "sessions"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[SessionCache] bustSessionsForUser error: canceling statement due to statement timeout",
++   "[UserStore] erasure step 'sessions' failed for user 'fault-3' (57014)"
++  ],
++  "statements": 176,
++  "trace": "f3d0aed7a6c5f9efa1fe8950e6ce93650b3feb993db580e9853a9fe00742b262",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "a2eae59a5f1e4b8a53e52039658d40e4715cb13c7bd7fe6c648e744fcb8c89c5",
++   "left": 0
++  }
++ },
++ "fault: mcp_tokens": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "mcp_tokens"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'mcp_tokens' failed for user 'fault-4' (57014)"
++  ],
++  "statements": 176,
++  "trace": "df5db693557e4160d15b75e9666f4afb138efb259b9b2d95212db8e4ce92aad9",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "0c5d87eb323786786898011e3676568f449ae32a6859e5917481050b40aa693c",
++   "left": 0
++  }
++ },
++ "fault: mcp credentials": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "mcp credentials"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'mcp credentials' failed for user 'fault-5' (57014)"
++  ],
++  "statements": 174,
++  "trace": "815d0a0ca7fd514d648eb10bb6e9669b98d52776b4e64d461e9324018966f93e",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "d85756dff5838b031eb5d809c341ea222ac3852b0fde4de2dde41bc353e8d6d6",
++   "left": 0
++  }
++ },
++ "fault: cms upload tickets": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "cms upload tickets"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'cms upload tickets' failed for user 'fault-6' (57014)"
++  ],
++  "statements": 175,
++  "trace": "fd404745d64746b81218649516f1e7613f9f563e68010ab8bd094c96948e0654",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "a69b31e85b75462bb63c118efc07cd54b1f83aa3279c9c3ee2278b6a8c75b0d6",
++   "left": 0
++  }
++ },
++ "fault: notebooks": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "notebooks"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'notebooks' failed for user 'fault-7' (ECONNREFUSED)"
++  ],
++  "statements": 176,
++  "trace": "0b5dfd8ad823564be59cf76fd51c5ce2d84e825180fb5b7ffa151d124a57cba2",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "b9a947bf48bc17978f48be7ec0e13339651691fad1b574a44e200a80d29a679a",
++   "left": 0
++  }
++ },
++ "fault: notebook_conversations": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "notebook_conversations"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'notebook_conversations' failed for user 'fault-8' (57014)"
++  ],
++  "statements": 176,
++  "trace": "4e65f8d478c7124a622b9ab248e1564882d093a803fc2a04f76e57db49db46a8",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "80d7fdec6cbc3447c9cf7a42842c4c61efaadc90d5fb5d575e62aadcba1a6a7a",
++   "left": 0
++  }
++ },
++ "fault: user_memories": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "user_memories",
++      "owned projects"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'user_memories' failed for user 'fault-9' (57014)",
++   "[UserStore] deleting owned project p-fault-9 failed: canceling statement due to statement timeout"
++  ],
++  "statements": 176,
++  "trace": "74575c5f73c23b7d9c75ccb1f56cccfd67b286317b1adc0256b300d569cb983a",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "4f7d7ec27d937328f549268fb66f12547370734ca5ff982e6f4a2209fc552ff9",
++   "left": 0
++  }
++ },
++ "fault: pii_vault_entries": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "pii_vault_entries"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'pii_vault_entries' failed for user 'fault-10' (57014)"
++  ],
++  "statements": 176,
++  "trace": "4993f77dae1493e90d366937843c79eb867b2ffa63498071418a79ff6be7f01d",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "2daaf10a7de005170cf51537459565fc0c31905dd8c9239a033f79882b1369e7",
++   "left": 0
++  }
++ },
++ "fault: pii_vault_counters": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "pii_vault_counters"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'pii_vault_counters' failed for user 'fault-11' (57014)"
++  ],
++  "statements": 176,
++  "trace": "c7b6784617d892eb0a3bb5a33119a70905df2608062235a684e411de870b09a8",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "9a40612df2f86b09477c840c4e0f3b75ba4828c6714c0ade76671f16545dee47",
++   "left": 0
++  }
++ },
++ "fault: conversations (content port)": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "conversations",
++      "agents"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'conversations' failed for user 'fault-12' (57014)",
++   "[UserStore] erasure step 'agents' failed for user 'fault-12' (57014)"
++  ],
++  "statements": 173,
++  "trace": "677ccf28033c8f80ff1d6d91f25ea61f7d994bffaf79578ac37bfed116777a2c",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "f5d251f285e75cdd12937fd89ae07b8dbe644045a720e96846e026b6661902d7",
++   "left": 0
++  }
++ },
++ "fault: execution_history": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "execution_history"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'execution_history' failed for user 'fault-13' (57014)"
++  ],
++  "statements": 176,
++  "trace": "584828b0f03828c1fa89255bda598771bce6826e36f88cb768c215a51dfa2145",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "c3eb266737cb72869ba5eb822d82e5cfc5f722a9057e1b696531a4c823564122",
++   "left": 0
++  }
++ },
++ "fault: message_feedback": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "message_feedback"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'message_feedback' failed for user 'fault-14' (57014)"
++  ],
++  "statements": 176,
++  "trace": "e935854f2065216ab197e6b5454c86c715c32714ca5564fa1490261c0a170867",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "ba9d061cfd6ef0ae0c92e5411fec25fe334cc2b1d8077eccd728824bf8e4cf70",
++   "left": 0
++  }
++ },
++ "fault: ai_usage_log": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "ai_usage_log"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'ai_usage_log' failed for user 'fault-15' (57014)"
++  ],
++  "statements": 176,
++  "trace": "f945df3add428fa578b60c07010e90c13aa6ef0cae04317a0920b6d110e76a15",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "6fb8da94cebacfd4e385cba3f6609b8ab02d14ce64e24c0b666d48d137c47722",
++   "left": 0
++  }
++ },
++ "fault: chat_signal_objections": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "chat_signal_objections"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'chat_signal_objections' failed for user 'fault-16' (57014)"
++  ],
++  "statements": 176,
++  "trace": "92cebbffd94234c5dabc312615115b52851f081943eb2bd280eb3ee861928517",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "5671a42a686e7a492a1c3d22cd339e8b2f552f3afce84f9dbe359706b97c3700",
++   "left": 0
++  }
++ },
++ "fault: kb_query_log": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "kb_query_log"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'kb_query_log' failed for user 'fault-17' (57014)"
++  ],
++  "statements": 175,
++  "trace": "ebb9bc45ee8038e3b7b3b17a28341b93025fce7e0667460c5663b8c788312182",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "5b05d29b14cf268befc88c1dc7dcea3d9d31856e266b03dc4296983369fab9bc",
++   "left": 0
++  }
++ },
++ "fault: suggestion traces": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "suggestion traces"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'suggestion traces' failed for user 'fault-18' (57014)"
++  ],
++  "statements": 176,
++  "trace": "18c21265a8952cc5fcec7808b70efb7962a55b8c82d09327a4be6b0700a9f7bc",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "f5a0e94662bf3d1df6da0038bcb1abcc5ba2f26d8c380656bc52c4dab7a24264",
++   "left": 0
++  }
++ },
++ "fault: automation_credentials": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "automation_credentials"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'automation_credentials' failed for user 'fault-19' (57014)"
++  ],
++  "statements": 176,
++  "trace": "86e36e2a8de21c283ffbc8f36738dbd513474957f48c6abd17f040ed3112553a",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "6f7f7848f2f2f0c2dbc4d8fd4d128e664a99ff2f1d967b4e4ce9ae2eecfac90d",
++   "left": 0
++  }
++ },
++ "fault: integration cache": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "integration cache"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'integration cache' failed for user 'fault-20' (57014)"
++  ],
++  "statements": 176,
++  "trace": "036d67f6cc66412b9c57f45a37939f4f2c3d2397420bca58a2cb786a6133003e",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "926c9a6a2aacb53587ce2e5127f16f7efd92aaf540b11e154780efd651275803",
++   "left": 0
++  }
++ },
++ "fault: connection_grants": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "connection_grants",
++      "integration_connections"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'connection_grants' failed for user 'fault-21' (57014)",
++   "[UserStore] erasure step 'integration_connections' failed for user 'fault-21' (57014)"
++  ],
++  "statements": 176,
++  "trace": "fbfa3e96f6d4cec0dfbffb0abceb0416c4451bcffd6e6268796adf680bb850cf",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "1379b4ab4679a7c9501efc55dc0e643c8e9cdda9acf16b50bb079c8878ffdc8d",
++   "left": 0
++  }
++ },
++ "fault: integration_connections": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "integration_connections"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'integration_connections' failed for user 'fault-22' (57014)"
++  ],
++  "statements": 176,
++  "trace": "1fa3e4b6ca4fadfa860fe64feb1ba88cc3c1c8dd8e17b64886dd0da084f95189",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "43984dc0b621cc5c2e911e473e611e12fa2fdea55d2b724c856fc7e200be9a2e",
++   "left": 0
++  }
++ },
++ "fault: voiceprints": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "voiceprints"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'voiceprints' failed for user 'fault-23' (57014)"
++  ],
++  "statements": 176,
++  "trace": "2595f353e788e6e3a22bd972e667b249543eb895b0dbb74c7ec453c820478934",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "1facaf0b8ec87bd6b80f5a7baca98bd99b6415b2d78e993216fe8de2118d27a9",
++   "left": 0
++  }
++ },
++ "fault: owned projects": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "owned projects"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] deleting owned project p-fault-24 failed: teardown refused"
++  ],
++  "statements": 176,
++  "trace": "496197d018753b0176cb1cf5436abfd8cf30ad10edb0cc24dba895868af0792a",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "5497e82032e40f01c8584cf34058050dee70fa3e7350fc207cc20cc41a3879b7",
++   "left": 0
++  }
++ },
++ "fault: project_shares": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "owned projects",
++      "project_shares"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] deleting owned project p-fault-25 failed: canceling statement due to statement timeout",
++   "[UserStore] erasure step 'project_shares' failed for user 'fault-25' (57014)"
++  ],
++  "statements": 175,
++  "trace": "6d25f58123ee0b8ff9485455f29bd8716dfbc44e4ac0989ca852dc2324eb38d7",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "40fc8d95884082f497e5618520007dd29f58c3c03206a937e654b9b9f1512930",
++   "left": 0
++  }
++ },
++ "fault: project traces": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "project comments"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasing comments failed: canceling statement due to statement timeout"
++  ],
++  "statements": 175,
++  "trace": "2253cae9e29c502235d81fbda577ef90ee5b38dec65a0c9531a1a4cc096281c2",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "62b99b15f8f7ff8f4996d0dbe1732908a31a9569c581fe67b3fd3a8d55798a66",
++   "left": 0
++  }
++ },
++ "fault: agents": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "agents"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'agents' failed for user 'fault-27' (57014)"
++  ],
++  "statements": 176,
++  "trace": "26291402a0f0c136a2055e9932ebdebf3fd246d6fc1464aa162d1c0aa37cfe8c",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "484c4764cc899890b686e09ed2c87c363f32fd8c1cb6cd5f9db88161fac895e6",
++   "left": 0
++  }
++ },
++ "fault: content (coverage map)": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "reminders"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'reminders' failed for user 'fault-28' (57014)"
++  ],
++  "statements": 176,
++  "trace": "74d45a345aab75f7e1839864263f9c4b40f80440289f0ed3b9186a4e34b04bde",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "cdb9e721eb314a8612b10d4c6c513b91987163f2e2a0f8693ffbd49df2df34a9",
++   "left": 0
++  }
++ },
++ "fault: notifications": {
++  "outcome": {
++   "threw": {
++    "status": 500,
++    "code": "erasure_incomplete",
++    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
++    "expose": true,
++    "details": {
++     "failed": [
++      "notifications"
++     ]
++    }
++   }
++  },
++  "errorLines": [
++   "[UserStore] erasure step 'notifications' failed for user 'fault-29' (57014)"
++  ],
++  "statements": 176,
++  "trace": "881eaa1f8ee9daf9f9f8312c03402914daf135063ec186a21f62e186360d48db",
++  "accountKept": 1,
++  "retry": {
++   "outcome": {
++    "returned": true
++   },
++   "trace": "5f1cd380f9449ea4da826989cc80deaaaa8a8310dd608d28e85296daa4d89ff0",
++   "left": 0
++  }
++ }
++}
+diff --git a/server/stores/user/usersDelete.characterisation.pg.test.js b/server/stores/user/usersDelete.characterisation.pg.test.js
+index 6ef21965..859915ae 100644
+--- a/server/stores/user/usersDelete.characterisation.pg.test.js
++++ b/server/stores/user/usersDelete.characterisation.pg.test.js
+@@ -13,8 +13,17 @@
+  * step fails, the call rejects naming exactly that step, the account stays,
+  * and the same call with the fault gone finishes the erasure.
+  *
++ * Two goldens of the same scenario. The only module data it holds is the
++ * datatables module's (tables, grants, a personal schema): with that module
++ * here the golden is usersDelete.characterisation.golden.json; with it absent
++ * (every module hidden) the core's own steps are pinned in
++ * usersDelete.characterisation.core.golden.json, and the datatables parts of
++ * the scenario (the tables of the full account, their heir, the fault in the
++ * datatables step) are not set up, because their tables do not exist.
++ *
+  * Refresh (only for a deliberate change):
+  *   cd server && UPDATE_GOLDEN=1 node --require ./testUtils/registerFeatures.js --test stores/user/usersDelete.characterisation.pg.test.js
++ *   cd server && BEEFLOW_HIDE_MODULES=all UPDATE_GOLDEN=1 node --require ./moduleRoots.cjs --require ./testUtils/registerFeatures.js --test stores/user/usersDelete.characterisation.pg.test.js
+  */
+ 
+ 'use strict';
+@@ -36,8 +45,14 @@ const db = require('../../db');
+ const users = require('./users');
+ const configStore = require('../configStore');
+ const { resetErasurePortsForTests, registerErasurePorts } = require('./erasurePorts');
+-
+-const GOLDEN_PATH = path.join(__dirname, 'usersDelete.characterisation.golden.json');
++const { moduleStateOf } = require('../../modules/firstParty/moduleState');
++const moduleData = require('../../modules/firstParty/moduleData');
++
++/** The datatables module is here: its tables exist and the scenario holds its data. */
++const DATATABLES = moduleStateOf('datatables') !== 'absent';
++const GOLDEN_PATH = path.join(__dirname, DATATABLES
++    ? 'usersDelete.characterisation.golden.json'
++    : 'usersDelete.characterisation.core.golden.json');
+ const ORG = 'org-char';
+ const HEIR = 'heir-char';
+ 
+@@ -195,6 +210,7 @@ async function left(/** @type {string} */ id) {
+     await count('conversation_messages', `SELECT COUNT(*)::int AS n FROM conversation_messages WHERE conversation_id = 'c-' || $1`);
+     await count('reminders', 'SELECT COUNT(*)::int AS n FROM reminders WHERE user_id = $1');
+     await count('projects', 'SELECT COUNT(*)::int AS n FROM projects WHERE owner_id = $1');
++    if (!DATATABLES) return counts;
+     await count('datatables', 'SELECT COUNT(*)::int AS n FROM datatables WHERE owner_user_id = $1');
+     await count('datatable_grants', `SELECT COUNT(*)::int AS n FROM datatable_grants WHERE grantee_type = 'user' AND grantee_id = $1`);
+     await count('datatable_models', `SELECT COUNT(*)::int AS n FROM datatable_models WHERE scope_kind = 'user' AND scope_id = $1`);
+@@ -239,6 +255,11 @@ before(async () => {
+     console.log = recordLog('log'); console.info = recordLog('info');
+     console.warn = recordLog('warn'); console.error = recordLog('error');
+     registerPorts();
++    // With a module absent the erasure asks the schema ledger whether the database holds its
++    // data, and keeps a "no" for 30 seconds (modules/firstParty/moduleData.js). A still clock
++    // keeps the warm-up's answer for the whole run, so when a re-read lands does not depend
++    // on how fast the cases run.
++    moduleData._setModuleDataDepsForTests({ now: () => 0 });
+     if (fs.existsSync(GOLDEN_PATH)) golden = JSON.parse(fs.readFileSync(GOLDEN_PATH, 'utf8'));
+ 
+     await rawQuery(`INSERT INTO organizations (id, name) VALUES ($1, 'Characterisation Org')`, [ORG]);
+@@ -259,6 +280,7 @@ after(async () => {
+     db.pool.connect = pooled.connect;
+     Object.assign(console, realConsole);
+     resetErasurePortsForTests();
++    moduleData._resetModuleDataForTests();
+     if (process.env.UPDATE_GOLDEN === '1') fs.writeFileSync(GOLDEN_PATH, `${JSON.stringify(actual, null, 1)}\n`);
+     await close();
+ });
+@@ -278,6 +300,16 @@ test('an unknown account', async () => {
+ test('an account with rows in every table the steps name', async () => {
+     const id = 'full-leaver';
+     await account(id);
++    if (DATATABLES) await datatablesOf(id);
++    const before = await left(id);
++    pin('full account', { before, ...(await recorded(id)) });
++    if (!DATATABLES) return;
++    const heirTables = await q('SELECT key FROM datatables WHERE owner_user_id = $1 ORDER BY key', [HEIR]);
++    pin('full account: tables handed to the heir', heirTables.map((row) => row.key));
++});
++
++/** A private and a shared table in the organisation, a personal table, and a grant: the datatables module's rows. */
++async function datatablesOf(/** @type {string} */ id) {
+     const datatableStore = require('../datatableStore');
+     const scope = { kind: 'org', id: ORG };
+     const fields = [{ key: 'name', type: 'text', label: 'Name' }];
+@@ -286,11 +318,7 @@ test('an account with rows in every table the steps name', async () => {
+     await rawQuery('UPDATE datatables SET is_published = TRUE WHERE id = $1', [shared.id]);
+     await datatableStore.createDatatable({ scope: { kind: 'user', id }, ownerUserId: id, key: 'own_list', name: 'Own list', fields });
+     await seed('datatable_grants', { datatable_id: shared.id, grantee_type: 'user', grantee_id: id, grade: 'viewer' });
+-    const before = await left(id);
+-    pin('full account', { before, ...(await recorded(id)) });
+-    const heirTables = await q('SELECT key FROM datatables WHERE owner_user_id = $1 ORDER BY key', [HEIR]);
+-    pin('full account: tables handed to the heir', heirTables.map((r) => r.key));
+-});
++}
+ 
+ test('an account that runs a Solution stage', async () => {
+     const id = 'stage-runner';
+@@ -353,7 +381,8 @@ const FAULTS = [
+     ['project traces', refuseDeletes('project_comments', 'UPDATE')],
+     ['agents', refuseDeletes('agents')],
+     ['content (coverage map)', refuseDeletes('reminders')],
+-    ['datatables', refuseDeletes('datatable_grants')],
++    // The datatables module's step: its tables exist only with the module here.
++    ...(DATATABLES ? /** @type {typeof FAULTS} */ ([['datatables', refuseDeletes('datatable_grants')]]) : []),
+     ['notifications', refuseDeletes('notifications')],
+ ];
+ 
+diff --git a/server/stores/userStore.credentialCleanup.projects.test.js b/server/stores/userStore.credentialCleanup.projects.test.js
+new file mode 100644
+index 00000000..c1b0800a
+--- /dev/null
++++ b/server/stores/userStore.credentialCleanup.projects.test.js
+@@ -0,0 +1,67 @@
++/**
++ * deleteUser with the projects module's teardown (projects/projectTeardown.js): each owned
++ * project is deleted on its own, never by a bare DELETE by owner. Moved out of
++ * userStore.credentialCleanup.test.js with its assertions unchanged; the statements it reads are
++ * the ones a real database ran (the ladder's schema, testUtils/pgliteTemplate.js), recorded at
++ * the pool, where the stubbed db of that file only collected them. With the projects module
++ * absent and its code not here, an owned project refuses the erasure instead
++ * (stores/user/erasurePorts.test.js).
++ *
++ * Run: cd server && node --test stores/userStore.credentialCleanup.projects.test.js
++ */
++
++process.env.NODE_ENV = 'test';
++process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'integration-test-session-secret-0123456789abcdef';
++
++const assert = require('assert');
++const { test, before, after } = require('node:test');
++const { usePglitePool } = require('../testUtils/pglitePool');
++const { ladderPglite } = require('../testUtils/pgliteTemplate');
++
++const { query: rawQuery, close } = usePglitePool(ladderPglite());
++const db = require('../db');
++const userStore = require('./userStore');
++require('../projects/erasurePorts'); // deleteUser erases through these ports (the real ones)
++
++/** @type {Array<{ sql: string, params: unknown[] }>} */
++const runCalls = [];
++const pooled = { query: db.pool.query, connect: db.pool.connect };
++/** @param {(sql: any, params?: any) => Promise<unknown>} query */
++const recordQuery = (query) => async (/** @type {any} */ sql, /** @type {any} */ params) => {
++    runCalls.push({ sql: typeof sql === 'string' ? sql : String(sql?.text || ''), params: Array.isArray(params) ? params : (sql?.values || []) });
++    return query(sql, params);
++};
++/** @param {string} table */
++const deletesFrom = (table) => runCalls.filter(c =>
++    /DELETE\s+FROM/i.test(c.sql) && new RegExp(`\\b${table}\\b`, 'i').test(c.sql));
++
++before(async () => {
++    await rawQuery(`INSERT INTO organizations (id, name) VALUES ('orgA', 'Acme')`);
++    assert.strictEqual(await userStore.createUser({ id: 'u1', username: 'u1', passwordHash: '', organizationId: 'orgA' }), true);
++    await rawQuery(`INSERT INTO projects (id, name, owner_id, organization_id) VALUES ('p-owned', 'Owned', 'u1', 'orgA')`);
++    db.pool.query = /** @type {any} */ (recordQuery(pooled.query));
++    db.pool.connect = /** @type {any} */ (async () => {
++        const client = await /** @type {any} */ (pooled.connect)();
++        return { ...client, query: recordQuery(client.query) };
++    });
++});
++
++after(async () => {
++    db.pool.query = pooled.query;
++    db.pool.connect = pooled.connect;
++    await close();
++});
++
++test('deleteUser deletes owned projects through the project teardown, never a bare DELETE by owner', async () => {
++    // A bare `DELETE FROM projects WHERE owner_id = $1` cascaded the co-editing
++    // log away with colleagues' edits not yet written back, and left the
++    // project's files base behind (stores/user/projectErasure.js).
++    runCalls.length = 0;
++
++    assert.strictEqual(await userStore.deleteUser('u1'), true);
++
++    assert.strictEqual(runCalls.filter(c => /DELETE\s+FROM\s+projects\s+WHERE\s+owner_id/i.test(c.sql)).length, 0,
++        'the owner-wide DELETE must be gone');
++    const byId = deletesFrom('projects').filter(c => /DELETE\s+FROM\s+projects\s+WHERE id = \$1/i.test(c.sql));
++    assert.deepStrictEqual(byId.map(c => c.params), [['p-owned']], 'each owned project is deleted on its own');
++});
+diff --git a/server/stores/userStore.credentialCleanup.test.js b/server/stores/userStore.credentialCleanup.test.js
+index a409c07f..074b3fa5 100644
+--- a/server/stores/userStore.credentialCleanup.test.js
++++ b/server/stores/userStore.credentialCleanup.test.js
+@@ -36,6 +36,11 @@
+  *     first require or the run ends with a live ECONNREFUSED to :5432 and a
+  *     ref'd reconnect-backoff timer. (Same line 96 other suites here use.)
+  *
++ * The datatables module's two stores are doubles registered under the names
++ * the core looks them up by, so this file runs with every module hidden too.
++ * What the projects module's teardown does is
++ * userStore.credentialCleanup.projects.test.js.
++ *
+  * Run: cd server && node --test stores/userStore.credentialCleanup.test.js
+  */
+ 
+@@ -143,6 +148,12 @@ const restore = installResolveStub({
+     },
+ });
+ after(restore);
++// The names the core looks the datatables stores up by (stores/user/usersDeleteSteps.js,
++// through modules/firstParty/moduleData.js): the same doubles.
++require('../core/featureModules').registerFeatureModules({
++    'stores/datatableStore': () => datatableStoreStub,
++    'stores/datatableDbStore': () => datatableDbStoreStub,
++});
+ 
+ const userStore = require('./userStore');
+ require('../projects/erasurePorts'); // deleteUser erases through these ports (real ones, db stubbed above)
+@@ -397,19 +408,3 @@ test('deleteUser erases the team chat messages the leaver wrote', async () => {
+     await userStore.deleteUser('u1');
+     assert.deepStrictEqual(teamChatErasures, ['u1']);
+ });
+-
+-test('deleteUser deletes owned projects through the project teardown, never a bare DELETE by owner', async () => {
+-    // A bare `DELETE FROM projects WHERE owner_id = $1` cascaded the co-editing
+-    // log away with colleagues' edits not yet written back, and left the
+-    // project's files base behind (stores/user/projectErasure.js).
+-    runCalls.length = 0;
+-    getOneImpl = (sql) => (/FROM users WHERE id/i.test(sql) ? { id: 'u1' } : null);
+-    getAllImpl = (sql) => (/SELECT id FROM projects WHERE owner_id/i.test(sql) ? [{ id: 'p-owned' }] : []);
+-
+-    await userStore.deleteUser('u1');
+-
+-    assert.strictEqual(runCalls.filter(c => /DELETE\s+FROM\s+projects\s+WHERE\s+owner_id/i.test(c.sql)).length, 0,
+-        'the owner-wide DELETE must be gone');
+-    const byId = deletesFrom('projects').filter(c => /DELETE\s+FROM\s+projects\s+WHERE id = \$1/i.test(c.sql));
+-    assert.deepStrictEqual(byId.map(c => c.params), [['p-owned']], 'each owned project is deleted on its own');
+-});

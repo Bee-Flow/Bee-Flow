@@ -1,5 +1,9 @@
 # Status of the core / modules split
 
+> **Paused on 2026-11-27 at the owner's request.** Four workers were stopped mid-task; their
+> unfinished work is in `paused/` (read its README before resuming). Everything below the line
+> "Done" is merged and pushed.
+
 Branch `ccr-b6017e12-l1bxyh`. Updated at the end of every batch.
 
 ## Done
@@ -93,6 +97,14 @@ first DELETE of an agent, a knowledge base or a skill answers "still in use, cou
 apps, automations, ..." because the usage scans count a missing module table as unchecked.
 
 ## Next
+
+Round 2 so far (merged): the edition switch for all 23 modules, the erasure of module data, the
+capabilities of an absent module, what the core does for an absent module, the CI job, the read
+models, the test kits, the findings of round 1's review, and a fix for deleting an organisation
+on a freshly migrated database (a defect that `main` has too). Still open from round 2: the two
+groups of mixed tests (`paused/`), the reviews of the two tasks merged last, a core-mode measure
+(49 files failed at the last one, before these merges), a full typecheck and a full suite on the
+merged state.
 
 1. **Round 2 on the server** (`round2/`: the rules, ten task briefs, the lists): the edition
    switch for all 23 modules, capabilities of an absent module out of the projection, the

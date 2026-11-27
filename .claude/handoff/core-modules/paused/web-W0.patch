@@ -1,0 +1,3144 @@
+diff --git a/agent-hub/eslint-suppressions.json b/agent-hub/eslint-suppressions.json
+index 02c77ba8..ac4e7872 100644
+--- a/agent-hub/eslint-suppressions.json
++++ b/agent-hub/eslint-suppressions.json
+@@ -11038,11 +11038,6 @@
+       "count": 1
+     }
+   },
+-  "src/utils/lazyWithReload.ts": {
+-    "max-statements": {
+-      "count": 1
+-    }
+-  },
+   "src/utils/mcpLogos.tsx": {
+     "complexity": {
+       "count": 1
+diff --git a/agent-hub/eslint.config.js b/agent-hub/eslint.config.js
+index 5c4be8c9..7d26dcb0 100644
+--- a/agent-hub/eslint.config.js
++++ b/agent-hub/eslint.config.js
+@@ -29,6 +29,19 @@ const sizeComplexityRules = {
+ // count ratchets (scripts/count-ratchet.mjs): api/typedRequest.ts.
+ const RAW_FETCH_MESSAGE = 'Call the API through api/typedRequest.ts (apiJson, apiRequest, apiFetch) or a React Query hook built on it instead of raw fetch().';
+ 
++// no-restricted-imports patterns, shared by the blocks that set the rule (a later
++// block replaces the options of an earlier one for the files it matches).
++const AUTHFETCH_IMPORT = {
++    // utils/helpers defines it, api/mutate re-exports it; any relative spelling.
++    group: ['**/helpers', '**/mutate'],
++    importNames: ['authFetch'],
++    message: 'Call the API through api/typedRequest.ts with an operation key: apiJson for the parsed body, apiRequest for the Response (it throws on a non-2xx), apiFetch where the caller reads res.ok itself, as authFetch did.',
++};
++const VIRTUAL_MODULES_IMPORT = {
++    group: ['virtual:beeflow/*'],
++    message: 'Only src/moduleHost/registry.ts reads the build\'s module list; ask the module host (src/moduleHost) for a module\'s part by key.',
++};
++
+ // typescript-eslint's no-unused-vars with every report dropped except an
+ // import binding (see the block that turns it on). The rule has no option for
+ // "imports only", and an unused local or parameter is not this gate's business.
+@@ -309,14 +322,15 @@ export default [
+             'src/api/mutate.ts', 'src/api/typedRequest.ts', 'src/api/client.ts',
+         ],
+         rules: {
+-            'no-restricted-imports': ['error', {
+-                patterns: [{
+-                    // utils/helpers defines it, api/mutate re-exports it; any relative spelling.
+-                    group: ['**/helpers', '**/mutate'],
+-                    importNames: ['authFetch'],
+-                    message: 'Call the API through api/typedRequest.ts with an operation key: apiJson for the parsed body, apiRequest for the Response (it throws on a non-2xx), apiFetch where the caller reads res.ok itself, as authFetch did.',
+-                }],
+-            }],
++            'no-restricted-imports': ['error', { patterns: [AUTHFETCH_IMPORT, VIRTUAL_MODULES_IMPORT] }],
++        },
++    },
++    {
++        // The module host's registry is the one reader of the build's module list
++        // (vite/beeflowModules.mjs): everything else asks src/moduleHost by key.
++        files: ['src/moduleHost/registry.ts'],
++        rules: {
++            'no-restricted-imports': ['error', { patterns: [AUTHFETCH_IMPORT] }],
+         },
+     },
+     {
+diff --git a/agent-hub/knip.json b/agent-hub/knip.json
+index 76209bae..7056b2d0 100644
+--- a/agent-hub/knip.json
++++ b/agent-hub/knip.json
+@@ -2,6 +2,7 @@
+   "$schema": "https://unpkg.com/knip@6/schema.json",
+   "entry": [
+     "src/main.tsx",
++    "src/firstParty/*.{ts,tsx}",
+     "src/test/setup.ts",
+     "src/**/*.test.{js,jsx,ts,tsx}",
+     "src/editor/serialization/index.ts",
+diff --git a/agent-hub/src/AppRoutes.tsx b/agent-hub/src/AppRoutes.tsx
+index 5f31799c..937b1191 100644
+--- a/agent-hub/src/AppRoutes.tsx
++++ b/agent-hub/src/AppRoutes.tsx
+@@ -1,5 +1,6 @@
+ import React, { Suspense } from 'react';
+ import { lazyWithI18n } from './utils/lazyWithReload';
++import { lazyWithShell } from './moduleHost/lazyZone';
+ import { logger } from './utils/logger';
+ import { readInlinedCms, resolveInitialLocale, blogQuery } from './App.helpers';
+ import ProductWebsite from './marketing/ProductWebsite';
+@@ -16,8 +17,10 @@ import type { CmsState, CmsSiteResponse } from './App.types';
+    itself statically imported the licence contexts, the Studio route table
+    (→ module-runtime registry) and the 1,200-line <App/>, which a marketing
+    visitor parsed for nothing. Import NOTHING from AuthedApp.jsx statically;
+-   one careless import welds the whole product back into the entry chunk. */
+-const AuthedApp = lazyWithI18n(() => import('./AuthedApp'));
++   one careless import welds the whole product back into the entry chunk.
++   lazyWithShell also reads the server's first-party module states and loads the
++   module areas of the shell (src/moduleHost), in parallel with the chunk. */
++const AuthedApp = lazyWithShell(() => import('./AuthedApp'));
+ 
+ const EmbedChat = lazyWithI18n(() => import('./pages/EmbedChat'));
+ 
+diff --git a/agent-hub/src/AuthedApp.tsx b/agent-hub/src/AuthedApp.tsx
+index 4667e89b..7d2a01a8 100644
+--- a/agent-hub/src/AuthedApp.tsx
++++ b/agent-hub/src/AuthedApp.tsx
+@@ -3,6 +3,7 @@ import { whenMayNavigate } from './utils/unsavedNavigation';
+ import React, { Suspense, useState, useEffect, useRef, useEffectEvent } from 'react';
+ import { lazy } from './utils/lazyWithReload';
+ import { logger } from './utils/logger';
++import { modulePart } from './moduleHost';
+ 
+ /**
+  * The authenticated product, behind ONE lazy boundary.
+@@ -27,7 +28,7 @@ const EncryptionSetup = lazy(() => import('./pages/EncryptionSetup'));
+ const DlpPreviewModal = lazy(() => import('./components/chat/DlpPreviewModal'));
+ const CoworkHabitChip = lazy(() => import('./components/cowork/CoworkHabitChip'));
+ const OnboardingTour = lazy(() => import('./components/onboarding/OnboardingTour'));
+-const LessonPlayerHost = lazy(() => import('./components/onboarding/LessonPlayerHost'));
++const LessonPlayerHost = modulePart('learning:LessonPlayerHost');
+ import ErrorBoundary from './components/shell/ErrorBoundary';
+ import MaintenanceBanner from './components/shell/MaintenanceBanner';
+ import { LicenseProvider } from './components/licensing/LicenseContext';
+@@ -37,7 +38,6 @@ const NcOnboardingWizard = lazy(() => import('./components/NcOnboardingWizard'))
+ const NcOnboardingPending = lazy(() => import('./components/integrations/nextcloud/NcOnboardingPending'));
+ const NcBindingApprovalModal = lazy(() => import('./components/integrations/nextcloud/NcBindingApprovalModal'));
+ 
+-
+ // Heavy admin / studio routes are loaded on demand so the initial chat
+ // bundle stays lean. Each render site is wrapped in <Suspense> + a per-
+ // route <ErrorBoundary> so a load failure or runtime crash in one panel
+diff --git a/agent-hub/src/firstParty/learning.boot.tsx b/agent-hub/src/firstParty/learning.boot.tsx
+new file mode 100644
+index 00000000..88bc19a0
+--- /dev/null
++++ b/agent-hub/src/firstParty/learning.boot.tsx
+@@ -0,0 +1,14 @@
++/**
++ * The Learning Center's area in the signed-in shell (zone `boot`: AuthedApp.tsx, loaded with
++ * the AuthedApp chunk). The lesson player was a lazy import of AuthedApp; it stays a chunk of
++ * its own, loaded the first time the shell renders it.
++ */
++import { defineModuleArea, lazyEntry } from '../moduleHost/contract';
++
++export default defineModuleArea({
++    id: 'learning',
++    zone: 'boot',
++    parts: {
++        'learning:LessonPlayerHost': lazyEntry(() => import('../components/onboarding/LessonPlayerHost')),
++    },
++});
+diff --git a/agent-hub/src/i18n/en-defaults.js b/agent-hub/src/i18n/en-defaults.js
+index a31b2cce..30e93b9d 100644
+--- a/agent-hub/src/i18n/en-defaults.js
++++ b/agent-hub/src/i18n/en-defaults.js
+@@ -41159,6 +41159,12 @@ const EN_DEFAULTS = {
+     "incognito.error.no_attachments": "An incognito chat cannot take attachments. Remove the file, or start a normal chat.",
+     "incognito.error.unsupported_mode": "This mode is not available in an incognito chat. Pick another model, or start a normal chat.",
+     "incognito.error.conversation_id": "This incognito chat cannot continue. Start a new chat.",
++    "module_host.not_installed_title": "Not installed",
++    "module_host.not_installed_body": "This part of Bee Flow is not installed here.",
++    "module_host.back_to_app": "Back to Bee Flow",
++    "module_host.unavailable_title": "Not available right now",
++    "module_host.unavailable_body": "This part of Bee Flow could not be loaded. Reloading the page usually helps.",
++    "module_host.reload": "Reload the page",
+     "nc_pairing.intro": "Generate a one-shot code, then enter it on the setup page of the Bee Flow connector on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.",
+     "nc_pairing.generate": "Generate pairing code",
+     "nc_pairing.generating": "Generating…",
+diff --git a/agent-hub/src/i18n/en/module_host.generated.mjs b/agent-hub/src/i18n/en/module_host.generated.mjs
+new file mode 100644
+index 00000000..4ec36f0a
+--- /dev/null
++++ b/agent-hub/src/i18n/en/module_host.generated.mjs
+@@ -0,0 +1,15 @@
++/**
++ * English GUI defaults for ONE namespace. GENERATED by scripts/gen-i18n-defaults.mjs
++ * from server/i18n/defaults/en/. DO NOT EDIT BY HAND. Loaded on demand by
++ * ensureI18nNamespaces() (hooks/useTranslation) so a surface that needs a few
++ * namespaces does not download the whole dictionary.
++ */
++
++export default {
++    "module_host.not_installed_title": "Not installed",
++    "module_host.not_installed_body": "This part of Bee Flow is not installed here.",
++    "module_host.back_to_app": "Back to Bee Flow",
++    "module_host.unavailable_title": "Not available right now",
++    "module_host.unavailable_body": "This part of Bee Flow could not be loaded. Reloading the page usually helps.",
++    "module_host.reload": "Reload the page",
++};
+diff --git a/agent-hub/src/moduleHost/ModuleBoundary.tsx b/agent-hub/src/moduleHost/ModuleBoundary.tsx
+new file mode 100644
+index 00000000..c568a384
+--- /dev/null
++++ b/agent-hub/src/moduleHost/ModuleBoundary.tsx
+@@ -0,0 +1,35 @@
++import { Component, type ErrorInfo, type ReactNode } from 'react';
++import { logger } from '../utils/logger';
++
++interface ModuleBoundaryProps {
++    moduleId: string;
++    /** What the host shows instead: ModuleUnavailable for a screen, nothing for a part, the children for a wrap. */
++    fallback: ReactNode;
++    children?: ReactNode;
++}
++
++interface ModuleBoundaryState {
++    failed: boolean;
++}
++
++/**
++ * Around everything a first-party module renders inside the core: a chunk that will not load
++ * (loadModuleChunk already marked the module failed) or a module component that throws ends
++ * here, and the host keeps rendering. Suspense is not caught: a lazy key suspends to the host's
++ * own boundary, exactly as the core's lazy import did before.
++ */
++export default class ModuleBoundary extends Component<ModuleBoundaryProps, ModuleBoundaryState> {
++    state: ModuleBoundaryState = { failed: false };
++
++    static getDerivedStateFromError(): ModuleBoundaryState {
++        return { failed: true };
++    }
++
++    componentDidCatch(error: Error, info: ErrorInfo) {
++        logger.warn(`module ${this.props.moduleId}: a part of it failed to render; the host goes on without it`, error, info.componentStack);
++    }
++
++    render() {
++        return this.state.failed ? this.props.fallback : this.props.children;
++    }
++}
+diff --git a/agent-hub/src/moduleHost/ModuleNotInstalled.tsx b/agent-hub/src/moduleHost/ModuleNotInstalled.tsx
+new file mode 100644
+index 00000000..2160bcc8
+--- /dev/null
++++ b/agent-hub/src/moduleHost/ModuleNotInstalled.tsx
+@@ -0,0 +1,25 @@
++import type { MouseEvent } from 'react';
++import { useTranslation } from '../hooks/useTranslation';
++import { navigate } from '../router/history';
++
++/**
++ * What a screen of an absent first-party module shows, inside the shell: its address still
++ * parses, and the page says plainly that this part is not installed here. Nothing that sells
++ * it (DESIGN.md, decision 6): no lock, no upgrade text, one way back to the app.
++ */
++export default function ModuleNotInstalled() {
++    const { t } = useTranslation();
++    const toApp = (e: MouseEvent<HTMLAnchorElement>) => {
++        e.preventDefault();
++        navigate('/app');
++    };
++    return (
++        <div role="status" className="h-full flex flex-col items-center justify-center px-6 py-12 text-center">
++            <div className="text-lg font-semibold text-[var(--text-primary)] mb-2">{t('module_host.not_installed_title')}</div>
++            <div className="text-sm text-[var(--text-tertiary)] mb-6 max-w-md leading-relaxed">{t('module_host.not_installed_body')}</div>
++            <a href="/app" onClick={toApp} className="text-sm font-medium text-[var(--accent-primary)] hover:underline">
++                {t('module_host.back_to_app')}
++            </a>
++        </div>
++    );
++}
+diff --git a/agent-hub/src/moduleHost/ModuleUnavailable.tsx b/agent-hub/src/moduleHost/ModuleUnavailable.tsx
+new file mode 100644
+index 00000000..50438e61
+--- /dev/null
++++ b/agent-hub/src/moduleHost/ModuleUnavailable.tsx
+@@ -0,0 +1,23 @@
++import { useTranslation } from '../hooks/useTranslation';
++
++/**
++ * What a screen of a first-party module shows when the module is there but failed: the server
++ * reports it failed, or its code would not load on this page. The page is not reloaded for the
++ * person (a module chunk never reloads, loadModuleChunk.ts); they can, with the button.
++ */
++export default function ModuleUnavailable() {
++    const { t } = useTranslation();
++    return (
++        <div role="alert" className="h-full flex flex-col items-center justify-center px-6 py-12 text-center">
++            <div className="text-lg font-semibold text-[var(--text-primary)] mb-2">{t('module_host.unavailable_title')}</div>
++            <div className="text-sm text-[var(--text-tertiary)] mb-6 max-w-md leading-relaxed">{t('module_host.unavailable_body')}</div>
++            <button
++                type="button"
++                onClick={() => window.location.reload()}
++                className="px-4 py-2 rounded-full text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:opacity-90"
++            >
++                {t('module_host.reload')}
++            </button>
++        </div>
++    );
++}
+diff --git a/agent-hub/src/moduleHost/contract.ts b/agent-hub/src/moduleHost/contract.ts
+new file mode 100644
+index 00000000..ef1ce77d
+--- /dev/null
++++ b/agent-hub/src/moduleHost/contract.ts
+@@ -0,0 +1,96 @@
++/**
++ * The contract between the core of the web client and its first-party modules.
++ *
++ * The core never imports a module's file. Where it shows something a module provides, it asks
++ * for it by KEY, `<moduleId>:<Export>` (the prefix is the owner), through the accessors of
++ * src/moduleHost (moduleScreen, modulePart, moduleWrap, moduleValue, moduleImport,
++ * moduleList). The core owns the type of every key: the props of a screen, part or wrap, the
++ * type of a value, the row type of a list, written per zone in exports/<zone>.ts. A module
++ * provides its keys in its AREA files, `src/firstParty/<id>.<zone>.tsx` (later
++ * `modules/<id>/frontend/src/firstParty/...`, the same tree path), with defineModuleArea.
++ *
++ * A ZONE is the core lazy boundary that hosts a key: its area files load together with that
++ * boundary (lazyZone), so a part an area provides statically renders on the boundary's first
++ * commit, as it did when the core imported it. A part that was lazy stays lazy: lazyEntry.
++ */
++
++import type { ComponentType, ReactNode } from 'react';
++import type { AdminZone } from './exports/admin';
++import type { BootZone } from './exports/boot';
++import type { DemoZone } from './exports/demo';
++import type { DocsZone } from './exports/docs';
++import type { HubZone } from './exports/hub';
++import type { PublicZone } from './exports/public';
++import type { SettingsZone } from './exports/settings';
++import type { StudioZone } from './exports/studio';
++import type { FIRST_PARTY_IDS } from './ids.generated';
++
++export type FirstPartyId = (typeof FIRST_PARTY_IDS)[number];
++
++/**
++ * loaded: built into this web client and loaded by the server. absent: not built, or the server
++ * did not load it. failed: the server reports it failed, or one of its chunks failed to load on
++ * this page.
++ */
++export type ModuleState = 'loaded' | 'absent' | 'failed';
++
++const ZONES = ['boot', 'public', 'hub', 'studio', 'admin', 'settings', 'docs', 'demo'] as const;
++export type ZoneKey = (typeof ZONES)[number];
++
++type Kind = 'screens' | 'parts' | 'wraps' | 'values' | 'lists';
++type AllZones<K extends Kind> = BootZone[K] & PublicZone[K] & HubZone[K] & StudioZone[K]
++    & AdminZone[K] & SettingsZone[K] & DocsZone[K] & DemoZone[K];
++
++/** Key -> props of a screen: a page or panel; absent -> "not installed" inside the shell. */
++export type ModuleScreens = AllZones<'screens'>;
++/** Key -> props of a part embedded in a core screen; absent -> nothing. */
++export type ModuleParts = AllZones<'parts'>;
++/** Key -> props of a provider around core children; absent -> the children alone. */
++export type ModuleWraps = AllZones<'wraps'>;
++/** Key -> a value (a function, a hook, a constant); absent -> the fallback the caller passes. */
++export type ModuleValues = AllZones<'values'>;
++/** List name -> row type of a list modules contribute rows to; absent -> no rows. */
++export type ModuleLists = AllZones<'lists'>;
++
++const LAZY = Symbol.for('beeflow.moduleHost.lazyEntry');
++
++/** A component an area provides as its own chunk, loaded the first time it renders. */
++export interface LazyEntry<P> {
++    readonly [LAZY]: true;
++    readonly load: () => Promise<{ default: ComponentType<P> }>;
++}
++
++/** A component of an area file: provided as it is (part of the area chunk), or as a chunk of its own. */
++type Entry<P> = ComponentType<P> | LazyEntry<P>;
++
++/**
++ * Provide a component as a chunk of its own: `lazyEntry(() => import('../components/x/X'))`.
++ * The import stays a string literal, so the GUI inventory (test/guiInventory/sourceAst.ts)
++ * resolves the key to the same file the core used to import.
++ */
++export function lazyEntry<P>(load: () => Promise<{ default: ComponentType<P> }>): LazyEntry<P> {
++    return { [LAZY]: true, load };
++}
++
++export function isLazyEntry(entry: unknown): entry is LazyEntry<unknown> {
++    return typeof entry === 'object' && entry !== null && LAZY in entry;
++}
++
++/** The keys of a contract map that a module owns (their prefix is its id). */
++type OwnKeys<I extends string, M> = Extract<keyof M, `${I}:${string}`>;
++
++/** What one area file of module I provides, for one zone. */
++export interface ModuleArea<I extends FirstPartyId = FirstPartyId> {
++    id: I;
++    zone: ZoneKey;
++    screens?: { [K in OwnKeys<I, ModuleScreens>]?: Entry<ModuleScreens[K]> };
++    parts?: { [K in OwnKeys<I, ModuleParts>]?: Entry<ModuleParts[K]> };
++    wraps?: { [K in OwnKeys<I, ModuleWraps>]?: Entry<ModuleWraps[K] & { children?: ReactNode }> };
++    values?: { [K in OwnKeys<I, ModuleValues>]?: ModuleValues[K] };
++    lists?: { [L in keyof ModuleLists]?: ReadonlyArray<ModuleLists[L]> };
++}
++
++/** The default export of an area file: `export default defineModuleArea({ id: 'learning', zone: 'boot', parts: { … } })`. */
++export function defineModuleArea<I extends FirstPartyId>(area: ModuleArea<I>): ModuleArea<I> {
++    return area;
++}
+diff --git a/agent-hub/src/moduleHost/exports/admin.ts b/agent-hub/src/moduleHost/exports/admin.ts
+new file mode 100644
+index 00000000..f1aed63e
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/admin.ts
+@@ -0,0 +1,13 @@
++/**
++ * The keys the core asks first-party modules for in the zone `admin`: the admin dashboard (pages/AdminDashboard.tsx), loaded with its lazy boundary.
++ * Empty until a slice of plan phase 2 turns an import of this zone into a lookup. The props
++ * (or the value type) of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++export interface AdminZone {
++    screens: Record<never, never>;
++    parts: Record<never, never>;
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/exports/boot.ts b/agent-hub/src/moduleHost/exports/boot.ts
+new file mode 100644
+index 00000000..3a0a8c60
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/boot.ts
+@@ -0,0 +1,23 @@
++/**
++ * The keys the core asks first-party modules for in the zone `boot`: the signed-in shell
++ * (AuthedApp.tsx, its providers and the overlays it mounts once). The area files of this zone
++ * load together with the AuthedApp chunk (`lazyWithShell` in AppRoutes.tsx), never with the
++ * public entry. The props of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++
++/** The Learning Center's lesson player, mounted once beside the product tour. */
++interface LessonPlayerHostProps {
++    user?: Record<string, unknown> | null;
++    onNavigate?: (page: string) => void;
++}
++
++export interface BootZone {
++    screens: Record<never, never>;
++    parts: {
++        'learning:LessonPlayerHost': LessonPlayerHostProps;
++    };
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/exports/demo.ts b/agent-hub/src/moduleHost/exports/demo.ts
+new file mode 100644
+index 00000000..48fcaf60
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/demo.ts
+@@ -0,0 +1,13 @@
++/**
++ * The keys the core asks first-party modules for in the zone `demo`: the public feature demos (demo/DemoHost.tsx), loaded with their lazy boundary.
++ * Empty until a slice of plan phase 2 turns an import of this zone into a lookup. The props
++ * (or the value type) of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++export interface DemoZone {
++    screens: Record<never, never>;
++    parts: Record<never, never>;
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/exports/docs.ts b/agent-hub/src/moduleHost/exports/docs.ts
+new file mode 100644
+index 00000000..0507c3e7
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/docs.ts
+@@ -0,0 +1,13 @@
++/**
++ * The keys the core asks first-party modules for in the zone `docs`: the documents pages (pages/documents), loaded with their lazy boundary.
++ * Empty until a slice of plan phase 2 turns an import of this zone into a lookup. The props
++ * (or the value type) of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++export interface DocsZone {
++    screens: Record<never, never>;
++    parts: Record<never, never>;
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/exports/hub.ts b/agent-hub/src/moduleHost/exports/hub.ts
+new file mode 100644
+index 00000000..2c78141f
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/hub.ts
+@@ -0,0 +1,13 @@
++/**
++ * The keys the core asks first-party modules for in the zone `hub`: the chat hub (AgentHub.tsx and AgentHub/*), loaded with the hub's lazy boundary.
++ * Empty until a slice of plan phase 2 turns an import of this zone into a lookup. The props
++ * (or the value type) of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++export interface HubZone {
++    screens: Record<never, never>;
++    parts: Record<never, never>;
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/exports/public.ts b/agent-hub/src/moduleHost/exports/public.ts
+new file mode 100644
+index 00000000..83c94f2b
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/public.ts
+@@ -0,0 +1,13 @@
++/**
++ * The keys the core asks first-party modules for in the zone `public`: the public router shell (AppRoutes.tsx): marketing pages, embeds and anonymous pages.
++ * Empty until a slice of plan phase 2 turns an import of this zone into a lookup. The props
++ * (or the value type) of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++export interface PublicZone {
++    screens: Record<never, never>;
++    parts: Record<never, never>;
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/exports/settings.ts b/agent-hub/src/moduleHost/exports/settings.ts
+new file mode 100644
+index 00000000..503bf259
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/settings.ts
+@@ -0,0 +1,13 @@
++/**
++ * The keys the core asks first-party modules for in the zone `settings`: the settings pages (pages/settings), loaded with their lazy boundary.
++ * Empty until a slice of plan phase 2 turns an import of this zone into a lookup. The props
++ * (or the value type) of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++export interface SettingsZone {
++    screens: Record<never, never>;
++    parts: Record<never, never>;
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/exports/studio.ts b/agent-hub/src/moduleHost/exports/studio.ts
+new file mode 100644
+index 00000000..08f28023
+--- /dev/null
++++ b/agent-hub/src/moduleHost/exports/studio.ts
+@@ -0,0 +1,13 @@
++/**
++ * The keys the core asks first-party modules for in the zone `studio`: the Studio (components/admin/Studio), loaded with the Studio's lazy boundary.
++ * Empty until a slice of plan phase 2 turns an import of this zone into a lookup. The props
++ * (or the value type) of each key are written here by the core, never imported from the
++ * module (src/moduleHost/contract.ts).
++ */
++export interface StudioZone {
++    screens: Record<never, never>;
++    parts: Record<never, never>;
++    wraps: Record<never, never>;
++    values: Record<never, never>;
++    lists: Record<never, never>;
++}
+diff --git a/agent-hub/src/moduleHost/ids.generated.ts b/agent-hub/src/moduleHost/ids.generated.ts
+new file mode 100644
+index 00000000..7adbbf11
+--- /dev/null
++++ b/agent-hub/src/moduleHost/ids.generated.ts
+@@ -0,0 +1,27 @@
++// GENERATED from scripts/module-map.json by scripts/gen-module-host-ids.mjs: do not edit.
++// The first-party module ids the module host knows (src/moduleHost/contract.ts), in the order of the map.
++export const FIRST_PARTY_IDS = [
++    'datatables',
++    'automation',
++    'cowork',
++    'apps',
++    'playbooks',
++    'compliance',
++    'sanctions',
++    'cms',
++    'webpages',
++    'notebooks',
++    'templates',
++    'meetingNotes',
++    'support',
++    'learning',
++    'int_nextcloud',
++    'int_google',
++    'int_microsoft',
++    'int_erp_nl',
++    'int_saas',
++    'custom_integrations',
++    'mcp_server',
++    'projects',
++    'billing_stripe',
++] as const;
+diff --git a/agent-hub/src/moduleHost/index.ts b/agent-hub/src/moduleHost/index.ts
+new file mode 100644
+index 00000000..f6aa552d
+--- /dev/null
++++ b/agent-hub/src/moduleHost/index.ts
+@@ -0,0 +1,182 @@
++/**
++ * The module host: how the core asks a first-party module for what it shows, by key
++ * (`<moduleId>:<Export>`, contract.ts), and what it gets when the module is not there.
++ *
++ *   moduleScreen(k)   a page or panel   absent -> ModuleNotInstalled, failed -> ModuleUnavailable
++ *   modulePart(k)     a part of a core screen          absent or failed -> nothing
++ *   moduleWrap(k)     a provider around core children  absent or failed -> the children alone
++ *   moduleValue(k, a) a function, hook or constant     absent -> `a`; frozen per page
++ *   moduleImport(k)   the same, at callback time       absent -> null
++ *   moduleList(l)     rows modules add to a core list  absent -> none
++ *   visibleByOwner(host, rows, keyOf)  the rows of a shell list without those of absent modules
++ *
++ * The components are made once per key at module scope (`const X = modulePart('…')`) and decide
++ * at render time. A key provided as a component renders on the first commit of its zone; a key
++ * provided with lazyEntry suspends to the host's own Suspense boundary, as the core's lazy
++ * import did. Nothing here adds a Suspense boundary or reloads the page.
++ */
++
++import { createElement, Fragment, lazy, type ComponentType, type ReactNode } from 'react';
++import { isLazyEntry, type FirstPartyId, type ModuleLists, type ModuleParts, type ModuleScreens, type ModuleValues, type ModuleWraps } from './contract';
++import ModuleBoundary from './ModuleBoundary';
++import ModuleNotInstalled from './ModuleNotInstalled';
++import ModuleUnavailable from './ModuleUnavailable';
++import { ownerOfRow, type OwnerHost } from './owners';
++import {
++    assertBooted, bootModules, findEntry, isBooted, isFirstPartyId, listRows, loadAreasOf, loadChunk, moduleAvailable,
++    moduleState, onHostReset,
++} from './registry';
++import { logger } from '../utils/logger';
++
++// Area files import defineModuleArea and lazyEntry from ./contract; AppRoutes imports lazyWithShell from ./lazyZone.
++export { loadZone, moduleState } from './registry';
++export { lazyZone } from './lazyZone';
++
++type ComponentKind = 'screens' | 'parts' | 'wraps';
++/** Props as a host passes them on: the key's own, plus the children of a wrap. */
++type HostedProps<P> = P & { children?: ReactNode };
++
++// Per key, made once and kept for the page. The props differ per key, so the maps hold
++// `unknown` and each accessor reads its entry back at the props type of its key.
++const components = new Map<string, unknown>();
++const resolved = new Map<string, unknown>();
++const bootGates = new Map<string, unknown>();
++const values = new Map<string, unknown>();
++const warned = new Set<string>();
++onHostReset(() => { resolved.clear(); bootGates.clear(); values.clear(); warned.clear(); });
++
++/** The module id of a key, `<id>:<Export>`. */
++function idOfKey(key: string): FirstPartyId {
++    const id = key.slice(0, key.indexOf(':'));
++    if (!isFirstPartyId(id)) throw new Error(`module host: "${key}" does not start with a first-party module id`);
++    return id;
++}
++
++function warnOnce(key: string, message: string) {
++    if (warned.has(key)) return;
++    warned.add(key);
++    logger.warn(`module host: ${message}`);
++}
++
++/** The component behind a key when its module is loaded: as provided, its lazy chunk, or (outside its zone) its area first. */
++function componentOf<P extends object>(kind: ComponentKind, key: string, id: FirstPartyId): ComponentType<P> {
++    const cacheKey = `${kind}\0${key}`;
++    const hit = resolved.get(cacheKey);
++    if (hit) return hit as ComponentType<P>;
++    const fromEntry = (entry: unknown): Promise<{ default: ComponentType<P> }> => (isLazyEntry(entry)
++        ? loadChunk(id, entry.load as () => Promise<{ default: ComponentType<P> }>)
++        : Promise.resolve({ default: entry as ComponentType<P> }));
++    const found = findEntry(kind, key, id);
++    let component: ComponentType<P>;
++    if (found.found && !isLazyEntry(found.entry)) component = found.entry as ComponentType<P>;
++    else if (found.found) component = lazy(() => fromEntry(found.entry));
++    else if (found.pending) {
++        component = lazy(async () => {
++            await loadAreasOf(id);
++            const late = findEntry(kind, key, id);
++            if (!late.found) throw new Error(`module host: no area file of ${id} provides ${key}`);
++            return fromEntry(late.entry);
++        });
++    } else {
++        warnOnce(key, `no area file of ${id} provides ${key}`);
++        component = () => null;
++    }
++    resolved.set(cacheKey, component);
++    return component;
++}
++
++/** What the host renders instead of a key whose module is not loaded. */
++function standIn(kind: ComponentKind, children: ReactNode, state: 'absent' | 'failed'): ReactNode {
++    if (kind === 'wraps') return createElement(Fragment, null, children);
++    if (kind === 'parts') return null;
++    return createElement(state === 'absent' ? ModuleNotInstalled : ModuleUnavailable);
++}
++
++function hosted<P extends object>(kind: ComponentKind, key: string): ComponentType<HostedProps<P>> {
++    const cacheKey = `${kind}\0${key}`;
++    const hit = components.get(cacheKey);
++    if (hit) return hit as ComponentType<HostedProps<P>>;
++    const id = idOfKey(key);
++    function ModuleHosted(props: HostedProps<P>): ReactNode {
++        if (!isBooted()) {
++            // Rendered before the shell booted (a public page): suspend until the states are in.
++            let gate = bootGates.get(cacheKey) as ComponentType<HostedProps<P>> | undefined;
++            if (!gate) {
++                gate = lazy(() => bootModules().then(() => ({ default: ModuleHosted })));
++                bootGates.set(cacheKey, gate);
++            }
++            return createElement(gate, props);
++        }
++        const state = moduleState(id);
++        if (state !== 'loaded') return standIn(kind, props.children, state);
++        return createElement(ModuleBoundary, { moduleId: id, fallback: standIn(kind, props.children, 'failed') },
++            createElement(componentOf<HostedProps<P>>(kind, key, id), props));
++    }
++    ModuleHosted.displayName = `Module(${key})`;
++    components.set(cacheKey, ModuleHosted);
++    return ModuleHosted;
++}
++
++/** A page or panel of a module, by key. */
++export function moduleScreen<K extends keyof ModuleScreens>(key: K): ComponentType<ModuleScreens[K]> {
++    return hosted<ModuleScreens[K]>('screens', key);
++}
++
++/** A part of a core screen that a module provides, by key. */
++export function modulePart<K extends keyof ModuleParts>(key: K): ComponentType<ModuleParts[K]> {
++    return hosted<ModuleParts[K]>('parts', key);
++}
++
++/** A provider a module puts around core children, by key. */
++export function moduleWrap<K extends keyof ModuleWraps>(key: K): ComponentType<ModuleWraps[K] & { children?: ReactNode }> {
++    return hosted<ModuleWraps[K]>('wraps', key);
++}
++
++/**
++ * A value a module provides (a function, a hook, a constant), or `absent`. Read at render or
++ * call time, never at module scope. The first answer after boot is kept for the page, so a hook
++ * read through here is the same hook on every render.
++ */
++export function moduleValue<K extends keyof ModuleValues>(key: K, absent: ModuleValues[K]): ModuleValues[K] {
++    if (values.has(key)) return values.get(key) as ModuleValues[K];
++    if (!assertBooted(`moduleValue('${String(key)}')`)) return absent;
++    const id = idOfKey(key);
++    let value: ModuleValues[K] = absent;
++    if (moduleState(id) === 'loaded') {
++        const found = findEntry('values', key, id);
++        if (found.found) value = found.entry as ModuleValues[K];
++        else warnOnce(key, `${key} was read before the area file that provides it loaded (asked outside its zone?); the fallback stays for this page`);
++    }
++    values.set(key, value);
++    return value;
++}
++
++/** A value of a module, loaded when a callback needs it; null when the module is not loaded. */
++export async function moduleImport<K extends keyof ModuleValues>(key: K): Promise<ModuleValues[K] | null> {
++    await bootModules();
++    const id = idOfKey(key);
++    if (moduleState(id) !== 'loaded') return null;
++    let found = findEntry('values', key, id);
++    if (!found.found) {
++        await loadAreasOf(id);
++        found = findEntry('values', key, id);
++    }
++    return found.found ? (found.entry as ModuleValues[K]) : null;
++}
++
++/** The rows loaded modules add to a core list; read when the list is built, never at module scope. */
++export function moduleList<L extends keyof ModuleLists>(list: L): ReadonlyArray<ModuleLists[L]> {
++    return listRows(list) as ModuleLists[L][];
++}
++
++/**
++ * The rows of a shell list without the rows of absent modules (owners/<host>.ts says whose a
++ * row is). Applied before any gate or lock logic, so an absent module shows no locked row. The
++ * identity when every module is there.
++ */
++export function visibleByOwner<R>(host: OwnerHost, rows: readonly R[], keyOf: (row: R) => string): R[] {
++    return rows.filter((row) => {
++        const owner = ownerOfRow(host, keyOf(row));
++        return !owner || moduleAvailable(owner);
++    });
++}
+diff --git a/agent-hub/src/moduleHost/lazyZone.ts b/agent-hub/src/moduleHost/lazyZone.ts
+new file mode 100644
+index 00000000..882a8f7c
+--- /dev/null
++++ b/agent-hub/src/moduleHost/lazyZone.ts
+@@ -0,0 +1,29 @@
++import type { ComponentType, ExoticComponent } from 'react';
++import type { ZoneKey } from './contract';
++import { loadZone } from './registry';
++import { importerId, lazy, lazyWithI18n } from '../utils/lazyWithReload';
++
++type PropsOf<T> = T extends ComponentType<infer P> ? P : never;
++
++/**
++ * A core lazy boundary that hosts the keys of a zone: `lazyZone('settings', () => import('./X'))`
++ * in place of `lazy(() => import('./X'))`. The host's chunk and the area files of the zone's
++ * loaded modules load in parallel, and the boundary resolves once both are in, so a part an
++ * area provides as a component renders on the host's first commit (no Suspense fallback, no
++ * layout shift). The host keeps lazyWithReload's retry and reload; an area that fails to load
++ * makes only its module 'failed' (registry.loadChunk), never the host.
++ */
++export function lazyZone<T>(zone: ZoneKey, importer: () => Promise<{ default: T }>): ExoticComponent<PropsOf<T>>;
++export function lazyZone(zone: ZoneKey, importer: () => Promise<{ default: ComponentType }>): ExoticComponent {
++    return lazy(() => Promise.all([importer(), loadZone(zone)]).then(([m]) => m), importerId(importer));
++}
++
++/**
++ * The boundary of the signed-in shell (AppRoutes.tsx): the AuthedApp chunk, the English
++ * catalogue, the server's module states (bootModules) and the area files of the zone `boot`,
++ * all in parallel. A marketing pageview never reaches it, so no module code joins the entry.
++ */
++export function lazyWithShell<T>(importer: () => Promise<{ default: T }>): ExoticComponent<PropsOf<T>>;
++export function lazyWithShell(importer: () => Promise<{ default: ComponentType }>): ExoticComponent {
++    return lazyWithI18n(() => Promise.all([importer(), loadZone('boot')]).then(([m]) => m), importerId(importer));
++}
+diff --git a/agent-hub/src/moduleHost/loadModuleChunk.ts b/agent-hub/src/moduleHost/loadModuleChunk.ts
+new file mode 100644
+index 00000000..06d7010e
+--- /dev/null
++++ b/agent-hub/src/moduleHost/loadModuleChunk.ts
+@@ -0,0 +1,31 @@
++import { logger } from '../utils/logger';
++
++/**
++ * Load a chunk of a first-party module (an area file, or a component an area provides with
++ * lazyEntry): one retry after a short pause, then the failure is reported through `onFailed`
++ * (the registry marks the module 'failed' for this page), logged, and rethrown.
++ *
++ * Unlike the core's own lazy boundaries (utils/lazyWithReload.ts) this never reloads the page
++ * and never touches the reload flag: a module that cannot load is a missing part of the page,
++ * not a reason to throw away the page the person is on. Its host decides what to show
++ * (ModuleUnavailable, nothing, or the bare children).
++ */
++export async function loadModuleChunk<T>(
++    moduleId: string,
++    importer: () => Promise<T>,
++    { onFailed, retryDelayMs = 250 }: { onFailed: (moduleId: string, err: unknown) => void; retryDelayMs?: number },
++): Promise<T> {
++    try {
++        return await importer();
++    } catch (first) {
++        logger.debug(`module ${moduleId}: chunk failed to load, retrying once`, first);
++    }
++    await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
++    try {
++        return await importer();
++    } catch (err) {
++        logger.warn(`module ${moduleId}: chunk failed to load twice; the module is unavailable on this page`, err);
++        onFailed(moduleId, err);
++        throw err;
++    }
++}
+diff --git a/agent-hub/src/moduleHost/moduleHost.test.tsx b/agent-hub/src/moduleHost/moduleHost.test.tsx
+new file mode 100644
+index 00000000..4de4e407
+--- /dev/null
++++ b/agent-hub/src/moduleHost/moduleHost.test.tsx
+@@ -0,0 +1,225 @@
++/**
++ * The module host's accessors, each kind in each state a module can be in on a page:
++ *   loaded        built, and the server loaded it
++ *   absent        built, but the server reports it absent (an edition without it)
++ *   not built     left out of this web build (BEEFLOW_HIDE_MODULES, a core image)
++ *   chunk failed  built and loaded, but its area file would not load on this page
++ *   fetch failed  the server's module states could not be read: every built module counts as loaded
++ * plus: a failing module chunk never reloads the page and never blanks its host, a zone's
++ * static part renders on the host's first commit, and the shell's boundary waits for the boot.
++ */
++import { act, render, screen } from '@testing-library/react';
++import { Suspense, useLayoutEffect, type ComponentType, type ReactNode } from 'react';
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { lazyEntry, type ModuleArea } from './contract';
++import { lazyZone, loadZone, moduleImport, moduleList, modulePart, moduleScreen, moduleState, moduleValue, moduleWrap, visibleByOwner } from './index';
++import { bootModules, isBooted, setModuleStateSource } from './registry';
++import { resetModules, withAreas, withModules } from './testing';
++
++// Made-up keys of the learning module, of every kind; the contract has none of them.
++const SCREEN = 'learning:TestScreen' as never;
++const PART = 'learning:TestPart' as never;
++const WRAP = 'learning:TestWrap' as never;
++const VALUE = 'learning:testValue' as never;
++const LIST = 'test.rows' as never;
++
++// The made-up keys have no props type in the contract: the tests render them as plain components.
++type Loose = ComponentType<{ children?: ReactNode }>;
++const screenOf = () => moduleScreen(SCREEN) as Loose;
++const partOf = () => modulePart(PART) as Loose;
++const wrapOf = () => moduleWrap(WRAP) as Loose;
++
++const Screen = () => <p>module screen</p>;
++const Part = () => <p>module part</p>;
++const Wrap = ({ children }: { children?: ReactNode }) => <section aria-label="module wrap">{children}</section>;
++const AREA = {
++    id: 'learning', zone: 'hub',
++    screens: { [SCREEN]: Screen }, parts: { [PART]: Part }, wraps: { [WRAP]: Wrap },
++    values: { [VALUE]: 'provided' }, lists: { [LIST]: ['row'] },
++} as unknown as ModuleArea;
++
++type Scenario = 'loaded' | 'absent' | 'not built' | 'chunk failed' | 'fetch failed';
++
++const chunkError = () => new TypeError('Failed to fetch dynamically imported module: /assets/learning.hub-x.js');
++
++/** Start the page in a scenario, boot it the way the shell does, and load the zone. */
++async function enter(scenario: Scenario) {
++    const load = scenario === 'chunk failed' ? () => Promise.reject(chunkError()) : async () => ({ default: AREA });
++    const server = scenario === 'absent' ? { learning: 'absent' as const } : { learning: 'loaded' as const };
++    setModuleStateSource(scenario === 'fetch failed' ? () => Promise.reject(new Error('503')) : async () => ({ modules: server }));
++    withAreas([{ id: 'learning', zone: 'hub', load }], { booted: false, hide: scenario === 'not built' ? ['learning'] : [] });
++    await loadZone('hub');
++}
++
++const EXPECT: Record<Scenario, { state: string; screen: string; part: boolean; wrapped: boolean; value: string; imported: string | null; rows: string[] }> = {
++    loaded: { state: 'loaded', screen: 'module screen', part: true, wrapped: true, value: 'provided', imported: 'provided', rows: ['row'] },
++    absent: { state: 'absent', screen: 'Not installed', part: false, wrapped: false, value: 'fallback', imported: null, rows: [] },
++    'not built': { state: 'absent', screen: 'Not installed', part: false, wrapped: false, value: 'fallback', imported: null, rows: [] },
++    'chunk failed': { state: 'failed', screen: 'Not available right now', part: false, wrapped: false, value: 'fallback', imported: null, rows: [] },
++    'fetch failed': { state: 'loaded', screen: 'module screen', part: true, wrapped: true, value: 'provided', imported: 'provided', rows: ['row'] },
++};
++
++afterEach(() => {
++    setModuleStateSource(async () => null);
++    resetModules();
++    vi.restoreAllMocks();
++});
++
++describe.each(Object.keys(EXPECT) as Scenario[])('a module that is %s', (scenario) => {
++    const want = EXPECT[scenario];
++    beforeEach(() => enter(scenario));
++
++    it(`has the state ${want.state}`, () => {
++        expect(moduleState('learning')).toBe(want.state);
++    });
++
++    it('screen', async () => {
++        const S = screenOf();
++        render(<Suspense fallback="loading"><S /></Suspense>);
++        expect(await screen.findByText(want.screen)).toBeInTheDocument();
++    });
++
++    it('part', async () => {
++        const P = partOf();
++        render(<div><span>host</span><P /></div>);
++        expect(screen.getByText('host')).toBeInTheDocument();
++        expect(!!screen.queryByText('module part')).toBe(want.part);
++    });
++
++    it('wrap', () => {
++        const W = wrapOf();
++        render(<W><span>core child</span></W>);
++        expect(screen.getByText('core child')).toBeInTheDocument();
++        expect(!!screen.queryByRole('region', { name: 'module wrap' })).toBe(want.wrapped);
++    });
++
++    it('value, frozen for the page', () => {
++        expect(moduleValue(VALUE, 'fallback' as never)).toBe(want.value);
++        expect(moduleValue(VALUE, 'another fallback' as never)).toBe(want.value);
++    });
++
++    it('import', async () => {
++        expect(await moduleImport(VALUE)).toBe(want.imported);
++    });
++
++    it('list', () => {
++        expect(moduleList(LIST)).toEqual(want.rows);
++    });
++});
++
++describe('failure stays inside the module', () => {
++    it('a lazy part whose chunk never loads leaves the host rendered, marks the module failed and never reloads', async () => {
++        const reload = vi.fn();
++        vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, reload } as Location);
++        sessionStorage.clear();
++        const area = { id: 'learning', zone: 'hub', parts: { [PART]: lazyEntry<object>(() => Promise.reject(chunkError())) } } as unknown as ModuleArea;
++        withAreas([{ id: 'learning', zone: 'hub', load: async () => ({ default: area }) }]);
++        await loadZone('hub');
++        const P = partOf();
++        vi.spyOn(console, 'warn').mockImplementation(() => {});
++        vi.spyOn(console, 'error').mockImplementation(() => {});
++        render(<Suspense fallback={<span>part loading</span>}><main><span>host</span><P /></main></Suspense>);
++        await act(() => new Promise((r) => setTimeout(r, 400)));
++        expect(screen.getByText('host')).toBeInTheDocument();
++        expect(screen.queryByText('part loading')).toBeNull();
++        expect(moduleState('learning')).toBe('failed');
++        expect(reload).not.toHaveBeenCalled();
++        expect(sessionStorage.getItem('beeflow-chunk-reload')).toBeNull();
++    });
++
++    it('every module failed: the host still renders, its parts are empty, its screens say unavailable', async () => {
++        vi.spyOn(console, 'warn').mockImplementation(() => {});
++        withAreas([{ id: 'learning', zone: 'hub', load: () => Promise.reject(chunkError()) }], { server: { learning: 'failed', cowork: 'failed' } });
++        await loadZone('hub');
++        const P = partOf();
++        const S = screenOf();
++        render(<main><span>host</span><P /><S /></main>);
++        expect(screen.getByText('host')).toBeInTheDocument();
++        expect(screen.queryByText('module part')).toBeNull();
++        expect(screen.getByText('Not available right now')).toBeInTheDocument();
++    });
++});
++
++describe('zones', () => {
++    it('a part an area provides as a component is in the DOM on the host boundary\'s first commit', async () => {
++        withAreas([{ id: 'learning', zone: 'settings', load: async () => ({ default: { ...AREA, zone: 'settings' } }) }]);
++        const P = partOf();
++        const seen: boolean[] = [];
++        function SettingsHost() {
++            useLayoutEffect(() => { seen.push(!!document.querySelector('p')?.textContent?.includes('module part')); }, []);
++            return <div><span>settings host</span><P /></div>;
++        }
++        const Host = lazyZone('settings', async () => ({ default: SettingsHost }));
++        render(<Suspense fallback={<span>fallback</span>}><Host /></Suspense>);
++        expect(await screen.findByText('settings host')).toBeInTheDocument();
++        expect(seen).toEqual([true]);
++    });
++
++    it('a lazy part suspends to the host\'s own boundary, as the core\'s lazy import did', async () => {
++        const area = { id: 'learning', zone: 'hub', parts: { [PART]: lazyEntry(async () => ({ default: Part })) } } as unknown as ModuleArea;
++        withAreas([{ id: 'learning', zone: 'hub', load: async () => ({ default: area }) }]);
++        await loadZone('hub');
++        const P = partOf();
++        render(<Suspense fallback={<span>host fallback</span>}><span>host</span><P /></Suspense>);
++        expect(screen.getByText('host fallback')).toBeInTheDocument();
++        expect(await screen.findByText('module part')).toBeInTheDocument();
++    });
++
++    it('a key asked for outside its zone loads its area first', async () => {
++        withAreas([{ id: 'learning', zone: 'studio', load: async () => ({ default: { ...AREA, zone: 'studio' } }) }]);
++        const P = partOf();
++        render(<Suspense fallback="loading"><P /></Suspense>);
++        expect(await screen.findByText('module part')).toBeInTheDocument();
++    });
++});
++
++describe('boot', () => {
++    it('reads the server once per page; a slow server counts as no answer after 3 s', async () => {
++        vi.useFakeTimers();
++        try {
++            const source = vi.fn(() => new Promise<never>(() => {}));
++            setModuleStateSource(source);
++            withAreas([], { booted: false });
++            const booted = bootModules();
++            expect(bootModules()).toBe(booted);
++            expect(isBooted()).toBe(false);
++            await vi.advanceTimersByTimeAsync(3000);
++            await booted;
++            expect(isBooted()).toBe(true);
++            expect(source).toHaveBeenCalledTimes(1);
++            expect(moduleState('learning')).toBe('loaded');
++        } finally {
++            vi.useRealTimers();
++        }
++    });
++
++    it('an unknown answer or an unknown id counts as no opinion; a known one is taken', async () => {
++        setModuleStateSource(async () => ({ modules: { learning: 'absent', nonsense: 'absent', cowork: 'sideways' } }));
++        withAreas([], { booted: false });
++        await bootModules();
++        expect(moduleState('learning')).toBe('absent');
++        expect(moduleState('cowork')).toBe('loaded');
++    });
++
++    it('a read before the boot fails loudly in tests', () => {
++        withAreas([], { booted: false });
++        expect(() => moduleState('learning')).toThrow(/before bootModules/);
++        expect(() => moduleValue(VALUE, 'x' as never)).toThrow(/before bootModules/);
++    });
++
++    it('a screen rendered before the boot waits for it', async () => {
++        setModuleStateSource(async () => ({ modules: { learning: 'absent' } }));
++        withAreas([], { booted: false });
++        const S = screenOf();
++        render(<Suspense fallback="booting"><S /></Suspense>);
++        expect(await screen.findByText('Not installed')).toBeInTheDocument();
++    });
++});
++
++describe('rows', () => {
++    it('visibleByOwner keeps every row while no owner table names it', () => {
++        withModules({ learning: 'absent' });
++        const rows = [{ id: 'agents' }, { id: 'learning' }];
++        expect(visibleByOwner('settings', rows, (r) => r.id)).toEqual(rows);
++    });
++});
+diff --git a/agent-hub/src/moduleHost/owners/admin.ts b/agent-hub/src/moduleHost/owners/admin.ts
+new file mode 100644
+index 00000000..0a8fcb3f
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/admin.ts
+@@ -0,0 +1,8 @@
++import type { OwnerTable } from './table';
++
++/**
++ * The owners of the ADMIN_TABS rows (components/admin/dashboard), by tab id:
++ * row key -> module id. A row this table does not name is the core's.
++ * Empty until the slice of plan phase 2 that converts this host fills it. Once filled it equals the `owner` column of the adminTabs inventory golden.
++ */
++export const ADMIN_OWNERS: OwnerTable = {};
+diff --git a/agent-hub/src/moduleHost/owners/demo.ts b/agent-hub/src/moduleHost/owners/demo.ts
+new file mode 100644
+index 00000000..b75380aa
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/demo.ts
+@@ -0,0 +1,8 @@
++import type { OwnerTable } from './table';
++
++/**
++ * The owners of the DEMO_FEATURES (demo/), by feature id:
++ * row key -> module id. A row this table does not name is the core's.
++ * Empty until the slice of plan phase 2 that converts this host fills it.
++ */
++export const DEMO_OWNERS: OwnerTable = {};
+diff --git a/agent-hub/src/moduleHost/owners/index.ts b/agent-hub/src/moduleHost/owners/index.ts
+new file mode 100644
+index 00000000..9e1aca6a
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/index.ts
+@@ -0,0 +1,38 @@
++/**
++ * Whose row is it: per shell list (a HOST), the rows a first-party module owns.
++ *
++ * The shell lists themselves (STUDIO_SECTIONS, ADMIN_TABS, the settings routes, the sidebar
++ * builders, the organisation sections, PAGE_ROUTES, DEMO_FEATURES) stay where they are, byte
++ * for byte (DESIGN.md, decision 1). A table here only says whose a row is, and visibleByOwner
++ * (src/moduleHost) drops the rows of an absent module before any gate or lock logic sees them,
++ * so an absent module has no locked row and no teaser. One file per host, so the slices that
++ * fill them do not write the same file.
++ */
++
++import type { FirstPartyId } from '../contract';
++import { ADMIN_OWNERS } from './admin';
++import { DEMO_OWNERS } from './demo';
++import { ORG_SECTION_OWNERS } from './orgSections';
++import { PAGE_OWNERS } from './pages';
++import { SETTINGS_OWNERS } from './settings';
++import { SIDEBAR_OWNERS } from './sidebar';
++import { STUDIO_OWNERS } from './studio';
++import type { OwnerTable } from './table';
++
++const OWNER_TABLES = {
++    studio: STUDIO_OWNERS,
++    sidebar: SIDEBAR_OWNERS,
++    admin: ADMIN_OWNERS,
++    settings: SETTINGS_OWNERS,
++    pages: PAGE_OWNERS,
++    orgSections: ORG_SECTION_OWNERS,
++    demo: DEMO_OWNERS,
++} as const satisfies Record<string, OwnerTable>;
++
++export type OwnerHost = keyof typeof OWNER_TABLES;
++
++/** The module that owns a row of a host's list, or null for a core row. */
++export function ownerOfRow(host: OwnerHost, key: string): FirstPartyId | null {
++    const table: OwnerTable = OWNER_TABLES[host];
++    return (Object.hasOwn(table, key) && table[key]) || null;
++}
+diff --git a/agent-hub/src/moduleHost/owners/orgSections.ts b/agent-hub/src/moduleHost/owners/orgSections.ts
+new file mode 100644
+index 00000000..083fb86f
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/orgSections.ts
+@@ -0,0 +1,8 @@
++import type { OwnerTable } from './table';
++
++/**
++ * The owners of the organisation sections (components/admin/organisation), by section id:
++ * row key -> module id. A row this table does not name is the core's.
++ * Empty until the slice of plan phase 2 that converts this host fills it. Once filled it equals the `owner` column of the orgSections inventory golden.
++ */
++export const ORG_SECTION_OWNERS: OwnerTable = {};
+diff --git a/agent-hub/src/moduleHost/owners/pages.ts b/agent-hub/src/moduleHost/owners/pages.ts
+new file mode 100644
+index 00000000..b95d70e1
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/pages.ts
+@@ -0,0 +1,8 @@
++import type { OwnerTable } from './table';
++
++/**
++ * The owners of the PAGE_ROUTES pages (authedApp/appRoutes.ts), by page key:
++ * row key -> module id. A row this table does not name is the core's.
++ * Empty until the slice of plan phase 2 that converts this host fills it. Once filled it equals the `owner` column of the appRoutes inventory golden.
++ */
++export const PAGE_OWNERS: OwnerTable = {};
+diff --git a/agent-hub/src/moduleHost/owners/settings.ts b/agent-hub/src/moduleHost/owners/settings.ts
+new file mode 100644
+index 00000000..c0750e1d
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/settings.ts
+@@ -0,0 +1,8 @@
++import type { OwnerTable } from './table';
++
++/**
++ * The owners of the settings routes (authedApp/settingsRoutes), by section id:
++ * row key -> module id. A row this table does not name is the core's.
++ * Empty until the slice of plan phase 2 that converts this host fills it. Once filled it equals the `owner` column of the settingsRoutes inventory golden.
++ */
++export const SETTINGS_OWNERS: OwnerTable = {};
+diff --git a/agent-hub/src/moduleHost/owners/sidebar.ts b/agent-hub/src/moduleHost/owners/sidebar.ts
+new file mode 100644
+index 00000000..6de7a590
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/sidebar.ts
+@@ -0,0 +1,8 @@
++import type { OwnerTable } from './table';
++
++/**
++ * The owners of the sidebar rows (components/shell/sidebar/sidebarNav.tsx), by row id:
++ * row key -> module id. A row this table does not name is the core's.
++ * Empty until the slice of plan phase 2 that converts this host fills it. Once filled it equals the `owner` column of the sidebarNav inventory golden.
++ */
++export const SIDEBAR_OWNERS: OwnerTable = {};
+diff --git a/agent-hub/src/moduleHost/owners/studio.ts b/agent-hub/src/moduleHost/owners/studio.ts
+new file mode 100644
+index 00000000..9f238291
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/studio.ts
+@@ -0,0 +1,8 @@
++import type { OwnerTable } from './table';
++
++/**
++ * The owners of the STUDIO_SECTIONS rows (components/admin/Studio/studioSections.ts), by section id:
++ * row key -> module id. A row this table does not name is the core's.
++ * Empty until the slice of plan phase 2 that converts this host fills it. Once filled it equals the `owner` column of the studioSections inventory golden.
++ */
++export const STUDIO_OWNERS: OwnerTable = {};
+diff --git a/agent-hub/src/moduleHost/owners/table.ts b/agent-hub/src/moduleHost/owners/table.ts
+new file mode 100644
+index 00000000..b4aad3ad
+--- /dev/null
++++ b/agent-hub/src/moduleHost/owners/table.ts
+@@ -0,0 +1,4 @@
++import type { FirstPartyId } from '../contract';
++
++/** Row key -> the first-party module that owns that row of a shell list. */
++export type OwnerTable = Readonly<Partial<Record<string, FirstPartyId>>>;
+diff --git a/agent-hub/src/moduleHost/registry.ts b/agent-hub/src/moduleHost/registry.ts
+new file mode 100644
+index 00000000..8f5db687
+--- /dev/null
++++ b/agent-hub/src/moduleHost/registry.ts
+@@ -0,0 +1,236 @@
++/**
++ * The module host's state for one page: which first-party modules this web client was built
++ * with, which of them the server loaded, which area files have loaded, and which modules failed
++ * on this page.
++ *
++ * The ONLY importer of `virtual:beeflow/*` (eslint: no-restricted-imports): the build plugin
++ * (agent-hub/vite/beeflowModules.mjs) lists the area files of every root, minus the modules
++ * BEEFLOW_HIDE_MODULES hides, and this file turns that list into answers.
++ *
++ * A module is 'loaded' when it is built (not hidden) and the server did not report it absent or
++ * failed; on no answer from the server (an old server, a 404, an error, 3 s) every built module
++ * counts as loaded, which is what the client did before modules existed. The answer is read once
++ * per page (bootModules) and then frozen, so the accessors give a component the same answer on
++ * every render and hooks keep their order; only a chunk that fails on this page turns its module
++ * 'failed' afterwards.
++ */
++
++import { AREAS, HIDE } from 'virtual:beeflow/first-party';
++import type { FirstPartyId, ModuleArea, ModuleState, ZoneKey } from './contract';
++import { FIRST_PARTY_IDS } from './ids.generated';
++import { loadModuleChunk } from './loadModuleChunk';
++import { logger } from '../utils/logger';
++
++/** One area file of the build: module, zone, and the import of its chunk. */
++export interface AreaRecord {
++    id: FirstPartyId;
++    zone: ZoneKey;
++    load: () => Promise<{ default: ModuleArea }>;
++}
++
++/** What the server says (GET /api/modules/first-party): module id -> state. */
++export type ServerModuleStates = Partial<Record<FirstPartyId, ModuleState>>;
++type StateSource = () => Promise<unknown>;
++
++const STATE_TIMEOUT_MS = 3000;
++const KNOWN = new Set<string>(FIRST_PARTY_IDS);
++
++export function isFirstPartyId(id: string): id is FirstPartyId {
++    return KNOWN.has(id);
++}
++
++function buildAreas(raw: readonly { id: string; zone: string; load: () => Promise<{ default: unknown }> }[]): AreaRecord[] {
++    return raw.filter((a) => isFirstPartyId(a.id)).map((a) => a as AreaRecord);
++}
++
++interface HostState {
++    areas: AreaRecord[];
++    hidden: (id: FirstPartyId) => boolean;
++    server: ServerModuleStates | null;
++    failed: Set<FirstPartyId>;
++    loaded: Map<AreaRecord, ModuleArea>;
++    loading: Map<AreaRecord, Promise<void>>;
++    boot: Promise<void> | null;
++    booted: boolean;
++}
++
++function hiddenBy(hide: readonly string[]): (id: FirstPartyId) => boolean {
++    const all = hide.includes('all');
++    return (id) => all || hide.includes(id);
++}
++
++function freshState(areas: AreaRecord[], hide: readonly string[]): HostState {
++    return { areas, hidden: hiddenBy(hide), server: null, failed: new Set(), loaded: new Map(), loading: new Map(), boot: null, booted: false };
++}
++
++let host = freshState(buildAreas(AREAS), HIDE);
++let stateSource: StateSource = async () => null;
++const resetListeners = new Set<() => void>();
++
++/** Dev and test fail loudly on a read before bootModules(); production answers as if every built module loaded. */
++const STRICT = !!import.meta.env.DEV;
++
++/**
++ * Where bootModules reads the server's answer. The server route (GET /api/modules/first-party,
++ * plan phase 2 slice WS) does not exist yet: until it is wired here, no request is made and every
++ * built module counts as loaded.
++ */
++export function setModuleStateSource(source: StateSource): void {
++    stateSource = source;
++}
++
++function parseStates(body: unknown): ServerModuleStates | null {
++    const modules = (body as { modules?: unknown } | null)?.modules;
++    if (!modules || typeof modules !== 'object') return null;
++    const out: ServerModuleStates = {};
++    for (const [id, state] of Object.entries(modules as Record<string, unknown>)) {
++        if (isFirstPartyId(id) && (state === 'loaded' || state === 'absent' || state === 'failed')) out[id] = state;
++    }
++    return out;
++}
++
++async function readServerStates(): Promise<ServerModuleStates | null> {
++    let timer: ReturnType<typeof setTimeout> | undefined;
++    const timeout = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), STATE_TIMEOUT_MS); });
++    try {
++        return parseStates(await Promise.race([stateSource(), timeout]));
++    } catch (err) {
++        logger.debug('module host: no module states from the server; every built module counts as loaded', err);
++        return null;
++    } finally {
++        clearTimeout(timer);
++    }
++}
++
++/** Read the server's module states once per page. Never rejects; idempotent. */
++export function bootModules(): Promise<void> {
++    if (host.boot) return host.boot;
++    const at = host;
++    at.boot = readServerStates().then((server) => {
++        at.server = server;
++        at.booted = true;
++    });
++    return at.boot;
++}
++
++export function isBooted(): boolean {
++    return host.booted;
++}
++
++/** True once booted. Before that: throws in dev and test, false in production. */
++export function assertBooted(what: string): boolean {
++    if (host.booted) return true;
++    if (STRICT) throw new Error(`module host: ${what} was read before bootModules() resolved`);
++    return false;
++}
++
++function isBuilt(id: FirstPartyId): boolean {
++    return !host.hidden(id);
++}
++
++/** The state of a module on this page. */
++export function moduleState(id: FirstPartyId): ModuleState {
++    if (!isBuilt(id)) return 'absent';
++    if (!assertBooted(`moduleState('${id}')`)) return 'loaded';
++    const server = host.server?.[id];
++    if (server === 'absent') return 'absent';
++    if (server === 'failed' || host.failed.has(id)) return 'failed';
++    return 'loaded';
++}
++
++/** Is the module there (loaded, or there but failed)? False only when it is absent: its rows go. */
++export function moduleAvailable(id: FirstPartyId): boolean {
++    return moduleState(id) !== 'absent';
++}
++
++/** Mark a module failed for the rest of this page (a chunk of it would not load). */
++function markModuleFailed(id: string): void {
++    if (isFirstPartyId(id)) host.failed.add(id);
++}
++
++/** Load a module chunk: one retry, then the module is failed on this page; never a reload. */
++export function loadChunk<T>(id: FirstPartyId, importer: () => Promise<T>): Promise<T> {
++    return loadModuleChunk(id, importer, { onFailed: markModuleFailed });
++}
++
++function loadArea(area: AreaRecord): Promise<void> {
++    const pending = host.loading.get(area);
++    if (pending) return pending;
++    const at = host;
++    const p = loadChunk(area.id, area.load).then(
++        (mod) => { at.loaded.set(area, mod.default); },
++        () => undefined,
++    );
++    at.loading.set(area, p);
++    return p;
++}
++
++function loadAreas(areas: AreaRecord[]): Promise<void> {
++    return Promise.allSettled(areas.filter((a) => moduleState(a.id) === 'loaded').map(loadArea)).then(() => undefined);
++}
++
++/** Boot, then load the area files of every loaded module in one zone. Never rejects. */
++export async function loadZone(zone: ZoneKey): Promise<void> {
++    await bootModules();
++    await loadAreas(host.areas.filter((a) => a.zone === zone));
++}
++
++/** Boot, then load every area file of one module (a key asked for outside its zone). Never rejects. */
++export async function loadAreasOf(id: FirstPartyId): Promise<void> {
++    await bootModules();
++    await loadAreas(host.areas.filter((a) => a.id === id));
++}
++
++type MapKind = 'screens' | 'parts' | 'wraps' | 'values';
++
++type EntryLookup =
++    | { found: true; entry: unknown }
++    | { found: false; pending: boolean };
++
++/** What the loaded area files of a key's module provide for it; `pending` while one of them has not loaded. */
++export function findEntry(kind: MapKind, key: string, id: FirstPartyId): EntryLookup {
++    let pending = false;
++    for (const area of host.areas) {
++        if (area.id !== id) continue;
++        const mod = host.loaded.get(area);
++        if (!mod) {
++            pending ||= !host.failed.has(id);
++            continue;
++        }
++        const map = mod[kind] as Record<string, unknown> | undefined;
++        if (map && Object.hasOwn(map, key)) return { found: true, entry: map[key] };
++    }
++    return { found: false, pending };
++}
++
++/** The rows the loaded areas of available modules add to a list, in the order of the build's area list. */
++export function listRows(list: string): unknown[] {
++    if (!assertBooted(`moduleList('${list}')`)) return [];
++    const rows: unknown[] = [];
++    for (const area of host.areas) {
++        const mod = host.loaded.get(area);
++        if (!mod || moduleState(area.id) !== 'loaded') continue;
++        const contributed = (mod.lists as Record<string, readonly unknown[]> | undefined)?.[list];
++        if (contributed) rows.push(...contributed);
++    }
++    return rows;
++}
++
++/** Called when the state is reset (tests): the accessors drop what they froze. */
++export function onHostReset(listener: () => void): void {
++    resetListeners.add(listener);
++}
++
++/**
++ * Tests only (src/moduleHost/testing.ts): start the page over with other areas, hidden modules
++ * or server states. `undefined` keeps the build's own list.
++ */
++export function resetModuleHost(opts: { areas?: AreaRecord[]; hide?: readonly string[]; server?: ServerModuleStates | null; booted?: boolean } = {}): void {
++    host = freshState(opts.areas ?? buildAreas(AREAS), opts.hide ?? HIDE);
++    if (opts.booted !== false) {
++        host.server = opts.server ?? null;
++        host.booted = true;
++        host.boot = Promise.resolve();
++    }
++    for (const listener of resetListeners) listener();
++}
+diff --git a/agent-hub/src/moduleHost/testing.ts b/agent-hub/src/moduleHost/testing.ts
+new file mode 100644
+index 00000000..c1970933
+--- /dev/null
++++ b/agent-hub/src/moduleHost/testing.ts
+@@ -0,0 +1,49 @@
++/**
++ * Test helpers for the module host. src/test/setup.ts boots the host once per test file with
++ * no server answer (every built module loaded); a suite that needs another state starts the
++ * page over with one of these, and calls the returned function (or resetModules) afterwards.
++ *
++ *   withModules({ cowork: 'absent', learning: 'failed' })   as if the server said so
++ *   withModules({ learning: 'absent' }, { built: false })  as if the build left them out
++ *   await mockModulePart('learning:LessonPlayerHost', Stub) provide one key without its area file
++ *   withAreas([...])                                         a made-up set of area files
++ */
++
++import type { ComponentType } from 'react';
++import type { FirstPartyId, ModuleArea, ModuleParts, ModuleState, ZoneKey } from './contract';
++import { loadZone, resetModuleHost, type AreaRecord, type ServerModuleStates } from './registry';
++
++type Restore = () => void;
++
++/** Start over with the build's own areas, nothing hidden beyond the build's, every built module loaded. */
++export function resetModules(): void {
++    resetModuleHost();
++}
++
++/**
++ * Start the page over with these module states. `built: false` hides the modules from the
++ * build instead (BEEFLOW_HIDE_MODULES), the other way a module is absent.
++ */
++export function withModules(states: Partial<Record<FirstPartyId, ModuleState>>, { built = true }: { built?: boolean } = {}): Restore {
++    if (built) resetModuleHost({ server: states as ServerModuleStates });
++    else resetModuleHost({ hide: Object.keys(states) });
++    return resetModules;
++}
++
++/** Start the page over with these area files in place of the build's (a missing `load` result fails like a missing chunk). */
++export function withAreas(areas: { id: FirstPartyId; zone: ZoneKey; load: () => Promise<{ default: ModuleArea }> }[], opts: { server?: ServerModuleStates; hide?: string[]; booted?: boolean } = {}): Restore {
++    resetModuleHost({ areas: areas as AreaRecord[], ...opts });
++    return resetModules;
++}
++
++/**
++ * Provide one part by key, as a component of a made-up area file of its module (every module
++ * loaded, the area already in), so it renders on the first commit.
++ */
++export async function mockModulePart<K extends keyof ModuleParts>(key: K, component: ComponentType<ModuleParts[K]>, zone: ZoneKey = 'boot'): Promise<Restore> {
++    const id = key.slice(0, key.indexOf(':')) as FirstPartyId;
++    const area: ModuleArea = { id, zone, parts: { [key]: component } };
++    const restore = withAreas([{ id, zone, load: async () => ({ default: area }) }]);
++    await loadZone(zone);
++    return restore;
++}
+diff --git a/agent-hub/src/tailwind-utilities.css b/agent-hub/src/tailwind-utilities.css
+index 23519930..524c7b1f 100644
+--- a/agent-hub/src/tailwind-utilities.css
++++ b/agent-hub/src/tailwind-utilities.css
+@@ -9,6 +9,9 @@
+    colours, breakpoints), but its variables are emitted once, by ./index.css. */
+ @import "tailwindcss/theme.css" layer(theme) theme(reference);
+ @import "tailwindcss/utilities.css" layer(utilities);
++/* First-party modules that have moved out of agent-hub keep their web sources in
++   modules/<id>/frontend/src, outside the directory Tailwind scans by itself. */
++@source "../../modules/*/frontend/src";
+ /* Bind the Tailwind `dark:` variant to our theme system (`data-theme`) instead
+    of `prefers-color-scheme`. Without this override the scattered `dark:` classes
+    across the codebase would apply on a dark-mode OS even when the admin picked
+diff --git a/agent-hub/src/test/guiInventory/areaKeys.ts b/agent-hub/src/test/guiInventory/areaKeys.ts
+new file mode 100644
+index 00000000..ad8d08e7
+--- /dev/null
++++ b/agent-hub/src/test/guiInventory/areaKeys.ts
+@@ -0,0 +1,77 @@
++/**
++ * The keys of the module host (src/moduleHost) as the GUI inventory reads them: per key
++ * (`<id>:<Export>`), the file the area file of its module (src/firstParty/<id>.<zone>.tsx,
++ * any root) provides it from, so a lookup reads as the import it replaced (sourceAst.ts).
++ */
++
++import fs from 'node:fs';
++import ts from 'typescript';
++import { importBindings, resolveImport } from './imports';
++import { webFile, webFilesUnder } from './ownership';
++
++const AREA_KINDS = new Set(['screens', 'parts', 'wraps']);
++const AREA_DIR = 'src/firstParty';
++
++/** Module-host key (`<id>:<Export>`) -> tree path of the file its area file provides it from. */
++export type KeyFiles = ReadonlyMap<string, string>;
++
++/** The tree path of the first `import('…')` inside an expression (a `lazyEntry(() => import('…'))`). */
++function importedFile(node: ts.Node, from: string): string | null {
++    let found: string | null = null;
++    const visit = (n: ts.Node) => {
++        if (found) return;
++        if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword) {
++            const arg = n.arguments[0];
++            found = arg && ts.isStringLiteral(arg) ? resolveImport(from, arg.text) : null;
++            return;
++        }
++        ts.forEachChild(n, visit);
++    };
++    visit(node);
++    return found;
++}
++
++/**
++ * The keys an area file provides as components (`defineModuleArea({ parts: { 'x:Y': … } })`),
++ * each with the file it comes from: a `lazyEntry(() => import('…'))`, or a static import binding.
++ */
++function areaKeys(sf: ts.SourceFile, from: string, out: Map<string, string>): void {
++    const bindings = importBindings(sf, from);
++    const visit = (n: ts.Node) => {
++        if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'defineModuleArea') {
++            const arg = n.arguments[0];
++            if (!arg || !ts.isObjectLiteralExpression(arg)) return;
++            for (const kind of arg.properties) {
++                if (!ts.isPropertyAssignment(kind) || !ts.isIdentifier(kind.name) || !AREA_KINDS.has(kind.name.text)) continue;
++                if (!ts.isObjectLiteralExpression(kind.initializer)) continue;
++                for (const p of kind.initializer.properties) {
++                    if (!ts.isPropertyAssignment(p) || !ts.isStringLiteral(p.name)) continue;
++                    let v: ts.Expression = p.initializer;
++                    while (ts.isAsExpression(v) || ts.isSatisfiesExpression(v) || ts.isParenthesizedExpression(v)) v = v.expression;
++                    const file = ts.isIdentifier(v) ? bindings.get(v.text) ?? null : importedFile(v, from);
++                    if (file) out.set(p.name.text, file);
++                }
++            }
++            return;
++        }
++        ts.forEachChild(n, visit);
++    };
++    visit(sf);
++}
++
++/** The key files of some area files given as text (a test's made-up areas). */
++export function areaKeyFiles(areas: readonly { treePath: string; text: string }[]): KeyFiles {
++    const out = new Map<string, string>();
++    for (const a of areas) areaKeys(ts.createSourceFile(a.treePath, a.text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX), a.treePath, out);
++    return out;
++}
++
++let realKeyFiles: KeyFiles | null = null;
++
++/** The key files of the area files of the repository, over every root. */
++export function moduleKeyFiles(): KeyFiles {
++    realKeyFiles ??= areaKeyFiles(webFilesUnder(AREA_DIR)
++        .filter((p) => /\.tsx?$/.test(p) && !/\.(test|d)\./.test(p))
++        .map((treePath) => ({ treePath, text: fs.readFileSync(webFile(treePath) as string, 'utf8') })));
++    return realKeyFiles;
++}
+diff --git a/agent-hub/src/test/guiInventory/imports.ts b/agent-hub/src/test/guiInventory/imports.ts
+new file mode 100644
+index 00000000..22d3e35b
+--- /dev/null
++++ b/agent-hub/src/test/guiInventory/imports.ts
+@@ -0,0 +1,43 @@
++/**
++ * How the GUI inventory resolves the imports of a web file to tree paths (any root):
++ * `@/…`, `@shared/…` and relative specifiers; packages resolve to nothing.
++ */
++
++import fs from 'node:fs';
++import path from 'node:path';
++import ts from 'typescript';
++import { webFile } from './ownership';
++
++const EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '/index.ts', '/index.tsx', '/index.js', '/index.jsx'];
++
++/** The tree path of a web import (`@/…`, `@shared/…` or relative), or null for a package or a missing file. */
++export function resolveImport(fromTreePath: string, spec: string): string | null {
++    let base: string;
++    if (spec.startsWith('@/')) base = `src/${spec.slice(2)}`;
++    else if (spec.startsWith('@shared/')) base = `src/shared/${spec.slice(8)}`;
++    else if (spec.startsWith('.')) base = path.posix.normalize(path.posix.join(path.posix.dirname(fromTreePath), spec));
++    else return null;
++    for (const ext of EXTENSIONS) {
++        const abs = webFile(base + ext);
++        if (abs && fs.statSync(abs).isFile()) return base + ext;
++    }
++    return null;
++}
++
++/** Local name -> tree path of the web file each value import binding of a file comes from. */
++export function importBindings(sf: ts.SourceFile, from: string): Map<string, string> {
++    const out = new Map<string, string>();
++    for (const st of sf.statements) {
++        if (!ts.isImportDeclaration(st) || !st.importClause || st.importClause.isTypeOnly) continue;
++        const target = resolveImport(from, (st.moduleSpecifier as ts.StringLiteral).text);
++        if (!target) continue;
++        const clause = st.importClause;
++        if (clause.name) out.set(clause.name.text, target);
++        const named = clause.namedBindings;
++        if (named && ts.isNamedImports(named)) {
++            for (const el of named.elements) if (!el.isTypeOnly) out.set(el.name.text, target);
++        }
++        if (named && ts.isNamespaceImport(named)) out.set(named.name.text, target);
++    }
++    return out;
++}
+diff --git a/agent-hub/src/test/guiInventory/ownership.ts b/agent-hub/src/test/guiInventory/ownership.ts
+index f68fe080..353830da 100644
+--- a/agent-hub/src/test/guiInventory/ownership.ts
++++ b/agent-hub/src/test/guiInventory/ownership.ts
+@@ -18,6 +18,7 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
+ 
+ interface RootsHelper {
+     resolveTreePath: (pkg: string, treePath: string) => string | null;
++    walkTree: (pkg: string, opts: { under?: string }) => Iterable<{ treePath: string; abs: string }>;
+     locate: (abs: string) => { pkg: string; treePath: string; moduleId: string | null } | null;
+ }
+ interface ModuleMap {
+@@ -42,6 +43,11 @@ export function webFile(treePath: string): string | null {
+     return rootsHelper().resolveTreePath('agent-hub', treePath);
+ }
+ 
++/** The tree paths of the web files below a directory (a tree path), over every root. */
++export function webFilesUnder(dir: string): string[] {
++    return [...rootsHelper().walkTree('agent-hub', { under: dir })].map((f) => f.treePath);
++}
++
+ /** The tree path of an absolute web file (`src/...`), whichever root it is in; null outside the web roots. */
+ export function webTreePath(abs: string): string | null {
+     const at = rootsHelper().locate(abs);
+diff --git a/agent-hub/src/test/guiInventory/sourceAst.test.ts b/agent-hub/src/test/guiInventory/sourceAst.test.ts
+new file mode 100644
+index 00000000..8a7bfb85
+--- /dev/null
++++ b/agent-hub/src/test/guiInventory/sourceAst.test.ts
+@@ -0,0 +1,67 @@
++// @vitest-environment node
++/**
++ * The golden normaliser: a module-host lookup (`modulePart('learning:LessonPlayerHost')`,
++ * src/moduleHost) is read as the lazy import it replaced, through the area file that provides
++ * the key, so converting an import leaves every inventory golden byte-identical, and a key
++ * provided from another file changes the recorded entry.
++ */
++import fs from 'node:fs';
++import { describe, expect, it } from 'vitest';
++import { areaKeyFiles, moduleKeyFiles } from './areaKeys';
++import { webFile } from './ownership';
++import { jsxTree, loadSource, parseSource } from './sourceAst';
++
++const read = (treePath: string) => fs.readFileSync(webFile(treePath) as string, 'utf8');
++
++/** A made-up area file of a module, providing keys from files (`lazyEntry(() => import(…))`). */
++function area(id: string, zone: string, kind: string, keys: Record<string, string>) {
++    const rows = Object.entries(keys).map(([key, spec]) => `        '${key}': lazyEntry(() => import('${spec}')),`).join('\n');
++    return {
++        treePath: `src/firstParty/${id}.${zone}.tsx`,
++        text: `import { defineModuleArea, lazyEntry } from '../moduleHost/contract';\nexport default defineModuleArea({\n    id: '${id}',\n    zone: '${zone}',\n    ${kind}: {\n${rows}\n    },\n});\n`,
++    };
++}
++
++const LESSON_LAZY = "lazy(() => import('./components/onboarding/LessonPlayerHost'))";
++const LESSON_LOOKUP = "modulePart('learning:LessonPlayerHost')";
++
++describe('module-host lookups in the GUI inventory', () => {
++    it('the repository area file provides learning:LessonPlayerHost from the file AuthedApp used to import', () => {
++        expect(moduleKeyFiles().get('learning:LessonPlayerHost')).toBe('src/components/onboarding/LessonPlayerHost.tsx');
++    });
++
++    it('AuthedApp.tsx reads the same with the lookup as with the lazy import it replaced', () => {
++        const text = read('src/AuthedApp.tsx');
++        expect(text).toContain(LESSON_LOOKUP);
++        const before = parseSource('src/AuthedApp.tsx', text.replace(LESSON_LOOKUP, LESSON_LAZY));
++        const after = loadSource('src/AuthedApp.tsx');
++        expect([...after.lazies]).toEqual([...before.lazies]);
++        for (const fn of ['AuthedApp', 'App', 'AppRecorderProvider']) expect(jsxTree(after, fn)).toEqual(jsxTree(before, fn));
++    });
++
++    it('studioRegistry.tsx:29 as a screen lookup reads the same (prototype on a made-up automation area)', () => {
++        const original = read('src/components/admin/Studio/studioRegistry.tsx');
++        const lazyLine = "aiTasks: lazy(() => import('../../automation/index')),";
++        expect(original).toContain(lazyLine);
++        const converted = original.replace(lazyLine, "aiTasks: moduleScreen('automation:AutomationStudio'),");
++        const keys = areaKeyFiles([area('automation', 'studio', 'screens', { 'automation:AutomationStudio': '../components/automation/index' })]);
++        const after = parseSource('src/components/admin/Studio/studioRegistry.tsx', converted, keys);
++        expect([...after.lazies]).toEqual([...loadSource('src/components/admin/Studio/studioRegistry.tsx').lazies]);
++    });
++
++    it('a key provided from another file changes the recorded entry, and an unknown key drops it', () => {
++        const text = read('src/AuthedApp.tsx');
++        const elsewhere = areaKeyFiles([area('learning', 'boot', 'parts', { 'learning:LessonPlayerHost': '../components/onboarding/OnboardingTour' })]);
++        expect(parseSource('src/AuthedApp.tsx', text, elsewhere).lazies.get('LessonPlayerHost')).toBe('src/components/onboarding/OnboardingTour.tsx');
++        expect(parseSource('src/AuthedApp.tsx', text, new Map()).lazies.has('LessonPlayerHost')).toBe(false);
++    });
++
++    it('an area that provides a key as a static import binding resolves to that file', () => {
++        const keys = areaKeyFiles([{
++            treePath: 'src/firstParty/learning.boot.tsx',
++            text: "import LessonPlayerHost from '../components/onboarding/LessonPlayerHost';\nimport { defineModuleArea } from '../moduleHost/contract';\n"
++                + "export default defineModuleArea({ id: 'learning', zone: 'boot', parts: { 'learning:LessonPlayerHost': LessonPlayerHost } });\n",
++        }]);
++        expect(keys.get('learning:LessonPlayerHost')).toBe('src/components/onboarding/LessonPlayerHost.tsx');
++    });
++});
+diff --git a/agent-hub/src/test/guiInventory/sourceAst.ts b/agent-hub/src/test/guiInventory/sourceAst.ts
+index 2378f470..c5daa75f 100644
+--- a/agent-hub/src/test/guiInventory/sourceAst.ts
++++ b/agent-hub/src/test/guiInventory/sourceAst.ts
+@@ -8,13 +8,23 @@
+  * `lazy(() => import('…'))` assigned to a variable or a property (its anchor).
+  * A tag that is a function of the same file is followed into its body, so a
+  * local wrapper (`function LicensePage`) reports the panels it draws.
++ *
++ * A lookup of the module host (`modulePart('learning:LessonPlayerHost')`,
++ * `moduleScreen`, `moduleWrap`; src/moduleHost) counts as the lazy import it
++ * replaced: the key is resolved through the area file that provides it
++ * (src/firstParty/<id>.<zone>.tsx, any root) to the file that area imports, so
++ * a conversion leaves the goldens byte-identical, and a key provided from
++ * another file changes them.
+  */
+ 
+ import fs from 'node:fs';
+-import path from 'node:path';
+ import ts from 'typescript';
++import { moduleKeyFiles, type KeyFiles } from './areaKeys';
++import { importBindings, resolveImport } from './imports';
+ import { webFile } from './ownership';
+ 
++export { resolveImport } from './imports';
++
+ export interface SourceInfo {
+     treePath: string;
+     sf: ts.SourceFile;
+@@ -31,39 +41,6 @@ export interface ComponentRef {
+     file: string | null;
+ }
+ 
+-const EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '/index.ts', '/index.tsx', '/index.js', '/index.jsx'];
+-
+-/** The tree path of a web import (`@/…`, `@shared/…` or relative), or null for a package or a missing file. */
+-export function resolveImport(fromTreePath: string, spec: string): string | null {
+-    let base: string;
+-    if (spec.startsWith('@/')) base = `src/${spec.slice(2)}`;
+-    else if (spec.startsWith('@shared/')) base = `src/shared/${spec.slice(8)}`;
+-    else if (spec.startsWith('.')) base = path.posix.normalize(path.posix.join(path.posix.dirname(fromTreePath), spec));
+-    else return null;
+-    for (const ext of EXTENSIONS) {
+-        const abs = webFile(base + ext);
+-        if (abs && fs.statSync(abs).isFile()) return base + ext;
+-    }
+-    return null;
+-}
+-
+-function importBindings(sf: ts.SourceFile, from: string): Map<string, string> {
+-    const out = new Map<string, string>();
+-    for (const st of sf.statements) {
+-        if (!ts.isImportDeclaration(st) || !st.importClause || st.importClause.isTypeOnly) continue;
+-        const target = resolveImport(from, (st.moduleSpecifier as ts.StringLiteral).text);
+-        if (!target) continue;
+-        const clause = st.importClause;
+-        if (clause.name) out.set(clause.name.text, target);
+-        const named = clause.namedBindings;
+-        if (named && ts.isNamedImports(named)) {
+-            for (const el of named.elements) if (!el.isTypeOnly) out.set(el.name.text, target);
+-        }
+-        if (named && ts.isNamespaceImport(named)) out.set(named.name.text, target);
+-    }
+-    return out;
+-}
+-
+ /** The name of the variable or property an expression is assigned to, nearest first. */
+ function anchorOf(node: ts.Node): string | null {
+     for (let at: ts.Node | undefined = node.parent; at; at = at.parent) {
+@@ -73,13 +50,24 @@ function anchorOf(node: ts.Node): string | null {
+     return null;
+ }
+ 
+-function lazyImports(sf: ts.SourceFile, from: string): Map<string, string> {
++/** The accessors of src/moduleHost that stand for a module's component, asked for by key. */
++const MODULE_LOOKUPS = new Set(['moduleScreen', 'modulePart', 'moduleWrap']);
++
++/** The tree path a lazy edge loads: an `import('…')`, or a module-host lookup by key; null for any other node. */
++function lazyTarget(node: ts.Node, from: string, keyFiles: KeyFiles): string | null | undefined {
++    if (!ts.isCallExpression(node)) return undefined;
++    const arg = node.arguments[0];
++    if (node.expression.kind === ts.SyntaxKind.ImportKeyword) return arg && ts.isStringLiteral(arg) ? resolveImport(from, arg.text) : null;
++    if (ts.isIdentifier(node.expression) && MODULE_LOOKUPS.has(node.expression.text)) return arg && ts.isStringLiteral(arg) ? keyFiles.get(arg.text) ?? null : null;
++    return undefined;
++}
++
++function lazyImports(sf: ts.SourceFile, from: string, keyFiles: KeyFiles): Map<string, string> {
+     const out = new Map<string, string>();
+     const visit = (node: ts.Node) => {
+-        if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+-            const arg = node.arguments[0];
++        const target = lazyTarget(node, from, keyFiles);
++        if (target !== undefined) {
+             const anchor = anchorOf(node);
+-            const target = arg && ts.isStringLiteral(arg) ? resolveImport(from, arg.text) : null;
+             if (anchor && target && !out.has(anchor)) out.set(anchor, target);
+         }
+         ts.forEachChild(node, visit);
+@@ -110,13 +98,18 @@ export function loadSource(treePath: string): SourceInfo {
+     if (hit) return hit;
+     const abs = webFile(treePath);
+     if (!abs) throw new Error(`web file ${treePath} is in no root`);
+-    const kind = treePath.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+-    const sf = ts.createSourceFile(abs, fs.readFileSync(abs, 'utf8'), ts.ScriptTarget.Latest, true, kind);
+-    const info = { treePath, sf, bindings: importBindings(sf, treePath), lazies: lazyImports(sf, treePath), locals: localFunctions(sf) };
++    const info = parseSource(treePath, fs.readFileSync(abs, 'utf8'));
+     cache.set(treePath, info);
+     return info;
+ }
+ 
++/** Parse a web file's text as if it were at a tree path (not cached); `keyFiles` stands in for the repository's area files. */
++export function parseSource(treePath: string, text: string, keyFiles: KeyFiles = moduleKeyFiles()): SourceInfo {
++    const kind = treePath.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
++    const sf = ts.createSourceFile(webFile(treePath) ?? treePath, text, ts.ScriptTarget.Latest, true, kind);
++    return { treePath, sf, bindings: importBindings(sf, treePath), lazies: lazyImports(sf, treePath, keyFiles), locals: localFunctions(sf) };
++}
++
+ /** The component name of a JSX tag: an upper-case identifier, or the head of `A.B`; null for an HTML tag. */
+ function tagName(tag: ts.JsxTagNameExpression): string | null {
+     let head: ts.Node = tag;
+diff --git a/agent-hub/src/test/setup.ts b/agent-hub/src/test/setup.ts
+index 1627e9dc..99f0d4b7 100644
+--- a/agent-hub/src/test/setup.ts
++++ b/agent-hub/src/test/setup.ts
+@@ -31,6 +31,16 @@ if (typeof window !== 'undefined') {
+     await ensureI18nDefaults();
+ }
+ 
++// The module host (src/moduleHost) reads the server's first-party module states once
++// per page, before the signed-in shell renders (lazyWithShell in AppRoutes.tsx). Tests
++// mount components directly, so the setup does the same once: no server answer, so
++// every module this build has counts as loaded, as on an old server. A suite that
++// needs another state uses src/moduleHost/testing.ts (withModules, mockModulePart).
++{
++    const { bootModules } = await import('../moduleHost/registry');
++    await bootModules();
++}
++
+ // Each test gets a fresh DOM. Without this the React-Testing-Library
+ // container leaks across tests and assertions get cross-contaminated.
+ afterEach(() => {
+diff --git a/agent-hub/src/utils/lazyWithReload.test.ts b/agent-hub/src/utils/lazyWithReload.test.ts
+new file mode 100644
+index 00000000..5240abb0
+--- /dev/null
++++ b/agent-hub/src/utils/lazyWithReload.test.ts
+@@ -0,0 +1,75 @@
++/**
++ * The reload guard of lazyWithReload: a chunk that is gone for good reloads the tab at most
++ * once, however often it is asked for afterwards, and another chunk loading in between does
++ * not re-arm it. Only the same import loading clears its record.
++ */
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { importWithReload } from './lazyWithReload';
++
++const chunkError = () => new TypeError('Failed to fetch dynamically imported module: /assets/Gone-abc123.js');
++
++describe('importWithReload', () => {
++    let reload: ReturnType<typeof vi.fn>;
++
++    beforeEach(() => {
++        vi.useFakeTimers();
++        sessionStorage.clear();
++        reload = vi.fn();
++        vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, reload } as Location);
++    });
++    afterEach(() => {
++        vi.useRealTimers();
++        vi.restoreAllMocks();
++    });
++
++    /** Ask for an import once: 'reloaded' when it hangs for a reload, else the rejection or the module. */
++    async function attempt<M>(importer: () => Promise<M>): Promise<'reloaded' | Error | M> {
++        let settled: 'reloaded' | Error | M = 'reloaded';
++        const p = importWithReload(importer).then((m) => { settled = m; }, (e: Error) => { settled = e; });
++        await vi.advanceTimersByTimeAsync(300);
++        await Promise.race([p, Promise.resolve()]);
++        return settled;
++    }
++
++    it('a chunk that always fails reloads at most once, over any number of attempts', async () => {
++        const gone = () => Promise.reject(chunkError());
++        expect(await attempt(gone)).toBe('reloaded');
++        // After the reload (sessionStorage survives it) the same chunk still fails: give up, every time.
++        for (let i = 0; i < 4; i++) expect(await attempt(gone)).toBeInstanceOf(TypeError);
++        expect(reload).toHaveBeenCalledTimes(1);
++    });
++
++    it('another chunk loading does not re-arm the reload of a failing one', async () => {
++        const gone = () => Promise.reject(chunkError());
++        const fine = () => Promise.resolve({ default: 'ok' });
++        expect(await attempt(gone)).toBe('reloaded');
++        expect(await attempt(fine)).toEqual({ default: 'ok' });
++        expect(await attempt(gone)).toBeInstanceOf(TypeError);
++        expect(reload).toHaveBeenCalledTimes(1);
++    });
++
++    it('the same import loading clears its record, so a later failure may reload again', async () => {
++        let ok = false;
++        const flaky = () => (ok ? Promise.resolve({ default: 'ok' }) : Promise.reject(chunkError()));
++        expect(await attempt(flaky)).toBe('reloaded');
++        ok = true;
++        expect(await attempt(flaky)).toEqual({ default: 'ok' });
++        ok = false;
++        expect(await attempt(flaky)).toBe('reloaded');
++        expect(reload).toHaveBeenCalledTimes(2);
++    });
++
++    it('a transient failure is retried once without a reload; other errors are rethrown as they are', async () => {
++        let calls = 0;
++        const blip = () => (++calls === 1 ? Promise.reject(chunkError()) : Promise.resolve({ default: 'ok' }));
++        expect(await attempt(blip)).toEqual({ default: 'ok' });
++        const broken = () => Promise.reject(new Error('module threw at load'));
++        expect(await attempt(broken)).toBeInstanceOf(Error);
++        expect(reload).not.toHaveBeenCalled();
++    });
++
++    it('an old tab\'s timestamp record counts as none', async () => {
++        sessionStorage.setItem('beeflow-chunk-reload', String(Date.now()));
++        expect(await attempt(() => Promise.reject(chunkError()))).toBe('reloaded');
++    });
++});
+diff --git a/agent-hub/src/utils/lazyWithReload.ts b/agent-hub/src/utils/lazyWithReload.ts
+index afc97a2b..286f0d85 100644
+--- a/agent-hub/src/utils/lazyWithReload.ts
++++ b/agent-hub/src/utils/lazyWithReload.ts
+@@ -14,9 +14,13 @@ import { logger } from './logger';
+ //   2. if the retry also fails with a chunk-load error, hard-reloads the
+ //      page once so the browser pulls the new index.html (with current
+ //      hashes) and tries again from a clean slate,
+-//   3. uses sessionStorage to break out of any reload loop — if the same
+-//      chunk fails twice in a single tab, we re-throw so the error boundary
+-//      can show a real message instead of reloading forever.
++//   3. uses sessionStorage to break out of any reload loop: the tab records
++//      WHICH import it reloaded for, and an import that still fails after its
++//      reload re-throws, so the error boundary can show a real message instead
++//      of reloading forever. The record of an import is cleared only when that
++//      same import has loaded; another chunk loading does not clear it, and
++//      giving up does not clear it either (that made a permanently missing
++//      chunk reload again on every second attempt).
+ type PropsOf<T> = T extends ComponentType<infer P> ? P : never;
+ 
+ const RELOAD_FLAG = 'beeflow-chunk-reload';
+@@ -37,24 +41,28 @@ const isChunkLoadError = (err: unknown) => {
+  * catalogue is slower than the component chunk, which same-origin never is
+  * by more than the difference in file size.
+  */
+-export function lazyWithI18n<T>(importer: () => Promise<{ default: T }>): ExoticComponent<PropsOf<T>>;
+-export function lazyWithI18n(importer: () => Promise<{ default: ComponentType }>): ExoticComponent {
+-    return lazy(() => Promise.all([importer(), ensureI18nDefaults()]).then(([m]) => m));
++export function lazyWithI18n<T>(importer: () => Promise<{ default: T }>, id?: string): ExoticComponent<PropsOf<T>>;
++export function lazyWithI18n(importer: () => Promise<{ default: ComponentType }>, id = importerId(importer)): ExoticComponent {
++    return lazy(() => Promise.all([importer(), ensureI18nDefaults()]).then(([m]) => m), id);
+ }
+ 
+-export function lazy<T>(importer: () => Promise<{ default: T }>): ExoticComponent<PropsOf<T>>;
+-export function lazy(importer: () => Promise<{ default: ComponentType }>): ExoticComponent {
+-    return reactLazy(() => importWithReload(importer));
++/**
++ * `id` names the import for the reload guard; a wrapper that loads more than the chunk passes
++ * the id of the chunk's own importer, since every wrapper has the same source text.
++ */
++export function lazy<T>(importer: () => Promise<{ default: T }>, id?: string): ExoticComponent<PropsOf<T>>;
++export function lazy(importer: () => Promise<{ default: ComponentType }>, id = importerId(importer)): ExoticComponent {
++    return reactLazy(() => importWithReload(importer, id));
+ }
+ 
+ /**
+  * The import behind `lazy`, for a module loaded outside React.lazy (a component that
+  * preloads its own chunk): the same retry, reload and loop guard.
+  */
+-export async function importWithReload<M>(importer: () => Promise<M>): Promise<M> {
++export async function importWithReload<M>(importer: () => Promise<M>, id = importerId(importer)): Promise<M> {
+     try {
+         const mod = await importer();
+-        try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('private mode', err); }
++        forgetReload(id);
+         return mod;
+     } catch (err) {
+         if (!isChunkLoadError(err)) throw err;
+@@ -63,20 +71,17 @@ export async function importWithReload<M>(importer: () => Promise<M>): Promise<M
+         try {
+             await new Promise(res => setTimeout(res, 250));
+             const mod = await importer();
+-            try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
++            forgetReload(id);
+             return mod;
+         } catch (retryErr) {
+             if (!isChunkLoadError(retryErr)) throw retryErr;
+ 
+             // Guard against an infinite reload loop on a genuinely broken
+-            // deploy: if we've already reloaded this tab once, give up.
+-            let alreadyReloaded = false;
+-            try { alreadyReloaded = !!sessionStorage.getItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
+-            if (alreadyReloaded) {
+-                try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
+-                throw retryErr;
+-            }
+-            try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); } catch (err) { logger.debug('ignore', err); }
++            // deploy: if this tab already reloaded for this import, give up
++            // (and keep the record, so the next attempt gives up too).
++            const reloaded = reloadedImports();
++            if (reloaded.includes(id)) throw retryErr;
++            writeReloaded([...reloaded, id]);
+             if (typeof window !== 'undefined') window.location.reload();
+             // Hang the Suspense promise so the user sees the existing
+             // fallback (not an error flash) while the reload runs.
+@@ -84,3 +89,32 @@ export async function importWithReload<M>(importer: () => Promise<M>): Promise<M
+         }
+     }
+ }
++
++/** The identity of an import across a reload: its source text names the chunk it loads. */
++export function importerId(importer: () => unknown): string {
++    return String(importer);
++}
++
++/** The imports this tab has reloaded for (an older tab's timestamp counts as none). */
++function reloadedImports(): string[] {
++    try {
++        const parsed: unknown = JSON.parse(sessionStorage.getItem(RELOAD_FLAG) || '[]');
++        return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
++    } catch (err) {
++        logger.debug('ignore', err);
++        return [];
++    }
++}
++
++function writeReloaded(ids: string[]): void {
++    try {
++        if (ids.length) sessionStorage.setItem(RELOAD_FLAG, JSON.stringify(ids));
++        else sessionStorage.removeItem(RELOAD_FLAG);
++    } catch (err) { logger.debug('private mode', err); }
++}
++
++/** This import loaded: a later failure of it may reload again. */
++function forgetReload(id: string): void {
++    const reloaded = reloadedImports();
++    if (reloaded.includes(id)) writeReloaded(reloaded.filter((x) => x !== id));
++}
+diff --git a/agent-hub/src/vite-env.d.ts b/agent-hub/src/vite-env.d.ts
+index 6c8c302e..369d483a 100644
+--- a/agent-hub/src/vite-env.d.ts
++++ b/agent-hub/src/vite-env.d.ts
+@@ -34,3 +34,12 @@ declare module 'virtual:cms-react-runtime' {
+     const runtime: string;
+     export default runtime;
+ }
++
++// The first-party module areas of this build (vite/beeflowModules.mjs). Imported by
++// src/moduleHost/registry.ts only.
++declare module 'virtual:beeflow/first-party' {
++    /** Hidden module ids (BEEFLOW_HIDE_MODULES), or ['all']. */
++    export const HIDE: readonly string[];
++    /** One row per area file `src/firstParty/<id>.<zone>.tsx` of a module that is not hidden. */
++    export const AREAS: ReadonlyArray<{ id: string; zone: string; load: () => Promise<{ default: unknown }> }>;
++}
+diff --git a/agent-hub/vite.config.js b/agent-hub/vite.config.js
+index ccdd24fa..ca1c94ef 100755
+--- a/agent-hub/vite.config.js
++++ b/agent-hub/vite.config.js
+@@ -4,6 +4,7 @@ import path from 'path'
+ import react from '@vitejs/plugin-react'
+ import { visualizer } from 'rollup-plugin-visualizer'
+ import { defineConfig, loadEnv } from 'vite'
++import { beeflowModules } from './vite/beeflowModules.mjs'
+ import { cmsReactRuntime } from './vite.cmsReactRuntime.mjs'
+ import { lucideEntryTest } from './vite.lucideChunks.mjs'
+ 
+@@ -175,6 +176,8 @@ export default defineConfig(({ mode }) => {
+             // `virtual:cms-react-runtime`: the self-hosted React of the CMS's
+             // react-component block, inlined into its sandboxed frame.
+             cmsReactRuntime(),
++            // The first-party module areas of this build (src/moduleHost); see its header.
++            beeflowModules(),
+             ...(enableAnalyzer ? [visualizer({
+                 filename: 'dist/stats.html',
+                 template: 'treemap',
+diff --git a/agent-hub/vite/beeflowModules.mjs b/agent-hub/vite/beeflowModules.mjs
+new file mode 100644
+index 00000000..1060297b
+--- /dev/null
++++ b/agent-hub/vite/beeflowModules.mjs
+@@ -0,0 +1,192 @@
++/**
++ * The build side of the module host (src/moduleHost): which first-party module areas this web
++ * client is built with, and the refusal of a hidden module's files. Used by `vite build`, the
++ * dev server and vitest alike (registered in vite.config.js). node:* only.
++ *
++ * (a) `virtual:beeflow/first-party` exports AREAS, one row per area file
++ *     `src/firstParty/<id>.<zone>.ts(x)` of every root (agent-hub/ and modules/<id>/frontend/),
++ *     `{ id, zone, load: () => import(<file>) }`, and HIDE, the hidden module ids (or 'all').
++ *     An area of the zone `public` is imported statically, with the public shell; every other
++ *     zone's area is its own chunk, loaded with the core boundary that hosts its keys
++ *     (src/moduleHost/lazyZone.ts) and never with the entry.
++ * (c) BEEFLOW_HIDE_MODULES=all|<id>,<id> leaves the hidden modules' areas out, and any import of
++ *     a hidden module's file (static, `import()`, `import.meta.glob`) fails the build with a
++ *     message that names the file, the module and the importer. A file in modules/<id>/frontend
++ *     belongs to <id>; a file still in agent-hub/ belongs to whoever scripts/module-map.json says
++ *     (read when the checkout has it; the agent-hub image does not, and there only module roots
++ *     can be hidden), with the semantics of server/modules/roots/rootSet.cjs.
++ * (e) Once a module root exists: the dev server may read it, React is deduplicated across roots,
++ *     and vitest and the dependency scan include its sources.
++ *
++ * Seams, for later slices of plan phase 2 (DESIGN.md A3):
++ * (b) `virtual:beeflow/en-namespaces` (the i18n chunk loaders over every root): slice W5.
++ * (d) resolving a request by TREE PATH over the roots (a moved file found at its old path from a
++ *     core importer): slice W7. Until then a module root holds only files no core file imports.
++ */
++
++import fs from 'node:fs';
++import path from 'node:path';
++import { pathToFileURL } from 'node:url';
++
++export const FIRST_PARTY_VIRTUAL = 'virtual:beeflow/first-party';
++const RESOLVED_VIRTUAL = `\0${FIRST_PARTY_VIRTUAL}`;
++export const AREA_ZONES = ['boot', 'public', 'hub', 'studio', 'admin', 'settings', 'docs', 'demo'];
++/** Zones whose area files are imported statically: they render with the entry, before any lazy boundary. */
++const STATIC_ZONES = new Set(['public']);
++const AREA_FILE = /^([A-Za-z][A-Za-z0-9_]*)\.([a-z]+)\.tsx?$/;
++
++const slash = (p) => p.split(path.sep).join('/');
++
++/** @param {string | undefined} value BEEFLOW_HIDE_MODULES */
++export function parseHide(value) {
++    return String(value || '').split(',').map((s) => s.trim()).filter(Boolean);
++}
++
++/** @param {string[]} hide */
++const isHidden = (hide, id) => !!id && (hide.includes('all') || hide.includes(id));
++
++/**
++ * The roots of the web client: agent-hub/ (id null) and every modules/<id>/frontend/ that exists.
++ * @param {{ hubDir: string, modulesDir: string }} dirs
++ * @returns {{ id: string | null, dir: string }[]}
++ */
++export function webRoots({ hubDir, modulesDir }) {
++    const roots = [{ id: null, dir: hubDir }];
++    if (!fs.existsSync(modulesDir)) return roots;
++    for (const e of fs.readdirSync(modulesDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
++        const dir = path.join(modulesDir, e.name, 'frontend');
++        if (e.isDirectory() && fs.existsSync(path.join(dir, 'src'))) roots.push({ id: e.name, dir });
++    }
++    return roots;
++}
++
++/**
++ * Every area file of every root, minus the hidden modules', sorted by module then zone.
++ * @param {{ id: string | null, dir: string }[]} roots
++ * @param {string[]} hide
++ * @returns {{ id: string, zone: string, file: string }[]}
++ */
++export function listAreas(roots, hide) {
++    const out = [];
++    for (const root of roots) {
++        const dir = path.join(root.dir, 'src', 'firstParty');
++        if (!fs.existsSync(dir)) continue;
++        for (const name of fs.readdirSync(dir).sort()) {
++            if (/\.(test|testkit|fixture)\.|\.d\.ts$|\.generated\./.test(name)) continue;
++            const m = AREA_FILE.exec(name);
++            if (!m) continue;
++            const [, id, zone] = m;
++            if (!AREA_ZONES.includes(zone)) throw new Error(`beeflow-modules: ${slash(path.join(dir, name))}: "${zone}" is no zone (${AREA_ZONES.join(', ')})`);
++            if (root.id && root.id !== id) throw new Error(`beeflow-modules: ${slash(path.join(dir, name))} is an area of "${id}" in the root of "${root.id}"`);
++            if (isHidden(hide, id)) continue;
++            out.push({ id, zone, file: path.join(dir, name) });
++        }
++    }
++    return out.sort((a, b) => a.id.localeCompare(b.id) || a.zone.localeCompare(b.zone));
++}
++
++/**
++ * The source of `virtual:beeflow/first-party`.
++ * @param {{ id: string, zone: string, file: string }[]} areas
++ * @param {string[]} hide
++ */
++export function renderFirstParty(areas, hide) {
++    const lines = ['// Generated by agent-hub/vite/beeflowModules.mjs: the area files of this build.'];
++    const rows = areas.map((a, i) => {
++        const spec = JSON.stringify(slash(a.file));
++        if (!STATIC_ZONES.has(a.zone)) return `    { id: ${JSON.stringify(a.id)}, zone: ${JSON.stringify(a.zone)}, load: () => import(${spec}) },`;
++        lines.push(`import * as area${i} from ${spec};`);
++        return `    { id: ${JSON.stringify(a.id)}, zone: ${JSON.stringify(a.zone)}, load: () => Promise.resolve(area${i}) },`;
++    });
++    return [...lines, `export const HIDE = ${JSON.stringify(hide)};`, 'export const AREAS = [', ...rows, '];', ''].join('\n');
++}
++
++/**
++ * Who owns a file of the web client: the module of the root it lies in, else the ownership map
++ * (`ownerOf('agent-hub', treePath)`), else nobody (the core). Files outside src/ and in
++ * node_modules belong to nobody.
++ * @param {{ id: string | null, dir: string }[]} roots
++ * @param {((pkg: string, treePath: string) => string | null) | null} mapOwner
++ */
++export function ownerResolver(roots, mapOwner) {
++    const cache = new Map();
++    return (file) => {
++        const clean = file.split('?')[0];
++        if (cache.has(clean)) return cache.get(clean);
++        let owner = null;
++        if (path.isAbsolute(clean) && !clean.includes(`${path.sep}node_modules${path.sep}`)) {
++            const root = [...roots].reverse().find((r) => clean.startsWith(r.dir + path.sep));
++            const treePath = root ? slash(path.relative(root.dir, clean)) : null;
++            if (root && treePath.startsWith('src/')) owner = root.id ?? (mapOwner ? mapOwner('agent-hub', treePath) : null);
++        }
++        cache.set(clean, owner);
++        return owner;
++    };
++}
++
++/** The message of a refused import. */
++export function hiddenImportMessage({ file, owner, importer, hubDir }) {
++    const rel = (p) => slash(path.relative(path.dirname(hubDir), p));
++    return `Cannot import ${rel(file)}: module "${owner}" is not present (BEEFLOW_HIDE_MODULES)` + (importer ? `; imported by ${rel(importer.split('?')[0])}` : '');
++}
++
++/**
++ * @param {{ hubDir?: string, repoDir?: string, env?: Record<string, string | undefined> }} [opts]
++ */
++export function beeflowModules({ hubDir = path.resolve(import.meta.dirname, '..'), repoDir = path.resolve(hubDir, '..'), env = process.env } = {}) {
++    const hide = parseHide(env.BEEFLOW_HIDE_MODULES);
++    const modulesDir = path.join(repoDir, 'modules');
++    const roots = webRoots({ hubDir, modulesDir });
++    const areaDirs = roots.map((r) => path.join(r.dir, 'src', 'firstParty'));
++    let ownerOf = null;
++
++    async function loadOwner() {
++        const lib = path.join(repoDir, 'scripts', 'module-map.mjs');
++        const map = fs.existsSync(lib) ? (await import(pathToFileURL(lib).href)).loadModuleMap(repoDir) : null;
++        ownerOf = ownerResolver(roots, map ? (pkg, p) => map.ownerOf(pkg, p) : null);
++    }
++
++    return {
++        name: 'beeflow-modules',
++        enforce: 'pre',
++        config() {
++            const moduleRoots = roots.filter((r) => r.id);
++            if (!moduleRoots.length) return null;
++            const srcs = moduleRoots.map((r) => slash(path.relative(hubDir, path.join(r.dir, 'src'))));
++            return {
++                server: { fs: { allow: moduleRoots.map((r) => r.dir) } },
++                resolve: { dedupe: ['react', 'react-dom'] },
++                optimizeDeps: { entries: srcs.map((s) => `${s}/**/*.{ts,tsx}`) },
++                test: { include: ['**/*.{test,spec}.?(c|m)[jt]s?(x)', ...srcs.map((s) => `${s}/**/*.{test,spec}.?(c|m)[jt]s?(x)`)] },
++            };
++        },
++        async buildStart() {
++            if (hide.length) await loadOwner();
++        },
++        async resolveId(source, importer, options) {
++            if (source === FIRST_PARTY_VIRTUAL) return RESOLVED_VIRTUAL;
++            if (!hide.length || source.startsWith('\0') || source.startsWith('virtual:')) return null;
++            if (importer && (importer.startsWith('\0') || importer.includes('/node_modules/'))) return null;
++            if (!ownerOf) await loadOwner();
++            const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
++            if (!resolved || resolved.external) return resolved;
++            const owner = ownerOf(resolved.id);
++            if (owner && isHidden(hide, owner)) this.error(hiddenImportMessage({ file: resolved.id.split('?')[0], owner, importer, hubDir }));
++            return resolved;
++        },
++        load(id) {
++            if (id !== RESOLVED_VIRTUAL) return null;
++            return renderFirstParty(listAreas(roots, hide), hide);
++        },
++        configureServer(server) {
++            const changed = (file) => {
++                if (!areaDirs.some((d) => file.startsWith(d + path.sep))) return;
++                const mod = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL);
++                if (mod) server.moduleGraph.invalidateModule(mod);
++                server.ws.send({ type: 'full-reload' });
++            };
++            server.watcher.on('add', changed);
++            server.watcher.on('unlink', changed);
++        },
++    };
++}
+diff --git a/agent-hub/vite/beeflowModules.test.ts b/agent-hub/vite/beeflowModules.test.ts
+new file mode 100644
+index 00000000..9e6d8f62
+--- /dev/null
++++ b/agent-hub/vite/beeflowModules.test.ts
+@@ -0,0 +1,122 @@
++// @vitest-environment node
++/**
++ * The build plugin of the module host (vite/beeflowModules.mjs), on made-up checkouts: the area
++ * list over every root, the hidden modules left out of it, and real `vite build`s that succeed
++ * without a hidden module's files and fail, naming the file, the module and the importer, when
++ * a static import, an `import()` or an `import.meta.glob` reaches one.
++ */
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import { build } from 'vite';
++import { afterAll, describe, expect, it } from 'vitest';
++import { beeflowModules, listAreas, ownerResolver, parseHide, renderFirstParty, webRoots } from './beeflowModules.mjs';
++
++const dirs: string[] = [];
++afterAll(() => { for (const d of dirs) fs.rmSync(d, { recursive: true, force: true }); });
++
++/** A checkout: agent-hub/ and modules/<id>/frontend/ with the given files (repo-relative). */
++function checkout(files: Record<string, string>): string {
++    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'beeflow-modules-'));
++    dirs.push(repo);
++    for (const [rel, text] of Object.entries(files)) {
++        fs.mkdirSync(path.dirname(path.join(repo, rel)), { recursive: true });
++        fs.writeFileSync(path.join(repo, rel), text);
++    }
++    return repo;
++}
++
++const AREA = "export default { id: 'learning', zone: 'boot' };\n";
++const BASE = {
++    'agent-hub/src/firstParty/cowork.hub.tsx': "export default { id: 'cowork', zone: 'hub' };\n",
++    'agent-hub/src/firstParty/cowork.public.tsx': "export default { id: 'cowork', zone: 'public' };\n",
++    'agent-hub/src/firstParty/cowork.hub.test.tsx': '',
++    'agent-hub/src/firstParty/cowork.i18n.generated.ts': '',
++    'modules/learning/frontend/src/firstParty/learning.boot.tsx': AREA,
++    'modules/learning/frontend/src/components/Lesson.ts': "export const LESSON = 'lesson-code';\n",
++    'modules/learning/frontend/src/components/Other.ts': "export const OTHER = 'other-code';\n",
++};
++
++describe('the area list', () => {
++    it('lists the area files of every root, sorted, tests and generated files left out', () => {
++        const repo = checkout(BASE);
++        const roots = webRoots({ hubDir: path.join(repo, 'agent-hub'), modulesDir: path.join(repo, 'modules') });
++        expect(roots.map((r) => r.id)).toEqual([null, 'learning']);
++        const areas = listAreas(roots, []);
++        expect(areas.map((a) => `${a.id}.${a.zone}`)).toEqual(['cowork.hub', 'cowork.public', 'learning.boot']);
++        expect(listAreas(roots, ['learning']).map((a) => a.id)).toEqual(['cowork', 'cowork']);
++        expect(listAreas(roots, ['all'])).toEqual([]);
++    });
++
++    it('the virtual module: public areas imported statically, every other zone its own chunk', () => {
++        const code = renderFirstParty([
++            { id: 'cowork', zone: 'hub', file: '/r/agent-hub/src/firstParty/cowork.hub.tsx' },
++            { id: 'cowork', zone: 'public', file: '/r/agent-hub/src/firstParty/cowork.public.tsx' },
++        ], ['learning']);
++        expect(code).toContain('import * as area1 from "/r/agent-hub/src/firstParty/cowork.public.tsx";');
++        expect(code).toContain('{ id: "cowork", zone: "hub", load: () => import("/r/agent-hub/src/firstParty/cowork.hub.tsx") },');
++        expect(code).toContain('export const HIDE = ["learning"];');
++    });
++
++    it('refuses an unknown zone and an area in another module\'s root', () => {
++        const bad = checkout({ 'agent-hub/src/firstParty/cowork.sidebar.tsx': '' });
++        expect(() => listAreas(webRoots({ hubDir: path.join(bad, 'agent-hub'), modulesDir: path.join(bad, 'modules') }), []))
++            .toThrow(/"sidebar" is no zone/);
++        const wrongRoot = checkout({ 'modules/learning/frontend/src/firstParty/cowork.hub.tsx': '' });
++        expect(() => listAreas(webRoots({ hubDir: path.join(wrongRoot, 'agent-hub'), modulesDir: path.join(wrongRoot, 'modules') }), []))
++            .toThrow(/area of "cowork" in the root of "learning"/);
++    });
++
++    it('owners: the module root, else the map for a core-root file under src/, else nobody', () => {
++        const roots = [{ id: null, dir: '/r/agent-hub' }, { id: 'learning', dir: '/r/modules/learning/frontend' }];
++        const ownerOf = ownerResolver(roots, (_pkg: string, p: string) => (p.startsWith('src/support/') ? 'support' : null));
++        expect(ownerOf('/r/modules/learning/frontend/src/x.ts')).toBe('learning');
++        expect(ownerOf('/r/agent-hub/src/support/Desk.tsx?v=1')).toBe('support');
++        expect(ownerOf('/r/agent-hub/src/App.tsx')).toBeNull();
++        expect(ownerOf('/r/agent-hub/node_modules/react/index.js')).toBeNull();
++        expect(ownerOf('/r/agent-hub/vite.config.js')).toBeNull();
++        expect(parseHide(' learning, cowork ,')).toEqual(['learning', 'cowork']);
++    });
++});
++
++/** Build a checkout's agent-hub/src/main.ts in memory with the plugin; the bundled module ids. */
++async function buildIt(repo: string, hide: string): Promise<string[]> {
++    const hubDir = path.join(repo, 'agent-hub');
++    const result = await build({
++        root: hubDir, configFile: false, logLevel: 'silent',
++        plugins: [beeflowModules({ hubDir, repoDir: repo, env: { BEEFLOW_HIDE_MODULES: hide } })],
++        build: { write: false, rolldownOptions: { input: path.join(hubDir, 'src', 'main.ts') } },
++    });
++    const outputs = (Array.isArray(result) ? result : [result]) as { output: { type: string; modules?: Record<string, unknown> }[] }[];
++    return outputs.flatMap((r) => r.output).flatMap((o) => (o.type === 'chunk' ? Object.keys(o.modules ?? {}) : []));
++}
++
++// An app build drops what the entry only exports: every main here does something at load.
++const MAIN = "import { AREAS, HIDE } from 'virtual:beeflow/first-party';\nPromise.all(AREAS.map((a) => a.load())).then((m) => console.log(HIDE, m));\n";
++const learningFiles = (ids: string[]) => ids.filter((id) => id.includes('/modules/learning/'));
++
++describe('hide mode in a real build', () => {
++    it('without BEEFLOW_HIDE_MODULES the learning area is built', async () => {
++        const repo = checkout({ ...BASE, 'agent-hub/src/main.ts': MAIN });
++        expect(learningFiles(await buildIt(repo, ''))).toEqual([expect.stringMatching(/learning\.boot\.tsx$/)]);
++    });
++
++    it('with learning hidden the build succeeds and holds no learning file', async () => {
++        const repo = checkout({ ...BASE, 'agent-hub/src/main.ts': MAIN });
++        const ids = await buildIt(repo, 'learning');
++        expect(ids.some((id) => id.endsWith('cowork.hub.tsx'))).toBe(true);
++        expect(learningFiles(ids)).toEqual([]);
++    });
++
++    it.each([
++        ['a static import', "import { LESSON } from '../../modules/learning/frontend/src/components/Lesson';\nconsole.log(LESSON);\n"],
++        ['an import()', "import('../../modules/learning/frontend/src/components/Lesson').then(console.log);\n"],
++        ['an import.meta.glob', "console.log(Object.values(import.meta.glob('../../modules/learning/frontend/src/components/*.ts')).map((f) => f()));\n"],
++    ])('%s of a hidden module\'s file fails the build, naming file, module and importer', async (_kind, main) => {
++        const repo = checkout({ ...BASE, 'agent-hub/src/main.ts': main });
++        await expect(buildIt(repo, 'learning')).rejects.toThrow(
++            /Cannot import modules\/learning\/frontend\/src\/components\/(Lesson|Other)\.ts: module "learning" is not present \(BEEFLOW_HIDE_MODULES\); imported by agent-hub\/src\/main\.ts/,
++        );
++        expect(learningFiles(await buildIt(repo, ''))).not.toEqual([]);
++    });
++});
+diff --git a/mobile/jest.resolver.js b/mobile/jest.resolver.js
+index 84595220..4bbba3b5 100644
+--- a/mobile/jest.resolver.js
++++ b/mobile/jest.resolver.js
+@@ -8,12 +8,25 @@
+  * happens to share the path would load silently. So an agent-hub file that mobile
+  * executes keeps relative imports, and this resolver says so when one does not.
+  * The list of those files is scripts/deep-imports.exclude.json.
++ *
++ * Second fence: the web client's module host (agent-hub/src/moduleHost, and the build's
++ * `virtual:beeflow/*` list it reads) exists only in a vite build. An agent-hub file that
++ * mobile executes may not reach it; this resolver names the file that tried.
+  */
+ /* global __dirname */
+ const path = require('path');
+ 
+ const AGENT_HUB_SRC = path.resolve(__dirname, '..', 'agent-hub', 'src') + path.sep;
+ const MOBILE_SRC = path.resolve(__dirname, 'src') + path.sep;
++const MODULE_HOST = path.join(AGENT_HUB_SRC, 'moduleHost') + path.sep;
++
++function moduleHostRefusal(from, request) {
++    const why =
++        `An agent-hub file that mobile executes (${path.relative(path.resolve(__dirname, '..'), from)}) imports the web client's module host (${request}), ` +
++        'which only a vite build has. Keep src/moduleHost out of the files mobile executes (scripts/deep-imports.exclude.json).';
++    console.error(why);
++    return new Error(why);
++}
+ 
+ module.exports = (request, options) => {
+     const from = options.basedir ? options.basedir + path.sep : '';
+@@ -25,5 +38,8 @@ module.exports = (request, options) => {
+         console.error(why);
+         throw new Error(why);
+     }
+-    return options.defaultResolver(request, options);
++    if (from.startsWith(AGENT_HUB_SRC) && request.startsWith('virtual:beeflow/')) throw moduleHostRefusal(options.basedir, request);
++    const resolved = options.defaultResolver(request, options);
++    if (from.startsWith(AGENT_HUB_SRC) && !from.startsWith(MODULE_HOST) && resolved.startsWith(MODULE_HOST)) throw moduleHostRefusal(options.basedir, request);
++    return resolved;
+ };
+diff --git a/package.json b/package.json
+index 8f015934..ec108af1 100644
+--- a/package.json
++++ b/package.json
+@@ -67,6 +67,7 @@
+     "lint:layering-ratchet": "node --test server/layering.test.js",
+     "lint:scc-ratchet": "node scripts/scc-ratchet.mjs server agent-hub mobile",
+     "lint:module-boundary-ratchet": "node scripts/module-boundary.mjs",
++    "lint:module-host-ids": "node scripts/gen-module-host-ids.mjs --check",
+     "lint:duplication": "node scripts/duplication-ratchet.mjs",
+     "lint:bundle": "node scripts/bundle-ratchet.mjs agent-hub",
+     "lint:entry-budget": "node scripts/entry-budget.mjs agent-hub",
+@@ -92,6 +93,7 @@
+     "gen:api-types": "node scripts/gen-api-types.mjs",
+     "gen:row-types": "node scripts/gen-row-types.mjs",
+     "gen:scripts-index": "node scripts/gen-scripts-index.mjs",
++    "gen:module-host-ids": "node scripts/gen-module-host-ids.mjs",
+     "modules:link": "node scripts/link-module-node-modules.mjs",
+     "count:source-text": "node scripts/source-text-tests.mjs server",
+     "check:fast": "node scripts/check-fast.mjs",
+diff --git a/scripts/README.md b/scripts/README.md
+index 6620b6e7..fad3b123 100644
+--- a/scripts/README.md
++++ b/scripts/README.md
+@@ -283,6 +283,7 @@ comment. A new script needs nothing here but a header whose first sentence says
+ | `gen-api-types.mjs` | gen-api-types — the request types of every server route, for agent-hub and mobile. |
+ | `gen-app-catalog.mjs` | Generate the web's copies of the App Studio catalog from the server spec (server/appStudio/componentSpecs.js), so nothing in agent-hub mirrors it by hand |
+ | `gen-i18n-defaults.mjs` | gen-i18n-defaults — write the frontend's English dictionary from the server's. |
++| `gen-module-host-ids.mjs` | Write agent-hub/src/moduleHost/ids.generated.ts (the first-party module ids the web client's module host knows) from scripts/module-map.json, or check that it is current. |
+ | `gen-routes-contract.mjs` | gen-routes-contract — server/auth/routes.contract.json from the server's own router. |
+ | `gen-row-types.mjs` | Generate server/types/rows.d.ts: one TypeScript interface per table, read from the `CREATE TABLE` / `ALTER TABLE ... ADD COLUMN` statements in the server sources (the stores create their own schema; there is no migration … |
+ | `gen-scripts-index.mjs` | Write the index of scripts/ at the end of scripts/README.md, or check that it is current. |
+diff --git a/scripts/gen-module-host-ids.mjs b/scripts/gen-module-host-ids.mjs
+new file mode 100644
+index 00000000..377d69b1
+--- /dev/null
++++ b/scripts/gen-module-host-ids.mjs
+@@ -0,0 +1,78 @@
++#!/usr/bin/env node
++/**
++ * Write agent-hub/src/moduleHost/ids.generated.ts (the first-party module ids the web client's
++ * module host knows) from scripts/module-map.json, or check that it is current.
++ *
++ * The web client asks a first-party module for its parts by key (`<id>:<Export>`,
++ * src/moduleHost/contract.ts); the type of `<id>` is this list, in the order of the map. The
++ * agent-hub image cannot read scripts/, so the list is a generated file in src, and
++ * `npm run lint:module-host-ids` (picked up by check:fast) fails when a module is added to or
++ * removed from the map without regenerating it.
++ *
++ *   node scripts/gen-module-host-ids.mjs            write the file when it differs
++ *   node scripts/gen-module-host-ids.mjs --check    exit 1 when it is stale; writes nothing
++ */
++
++import fs from 'node:fs';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++import { isEntryPoint } from './entry-point.mjs';
++
++const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
++export const IDS_OUT = 'agent-hub/src/moduleHost/ids.generated.ts';
++const MAP = 'scripts/module-map.json';
++
++/**
++ * The text of the generated file.
++ * @param {string[]} ids the module ids, in the order of the map
++ */
++export function renderIds(ids) {
++    return [
++        `// GENERATED from ${MAP} by scripts/gen-module-host-ids.mjs: do not edit.`,
++        '// The first-party module ids the module host knows (src/moduleHost/contract.ts), in the order of the map.',
++        'export const FIRST_PARTY_IDS = [',
++        ...ids.map((id) => `    '${id}',`),
++        '] as const;',
++        '',
++    ].join('\n');
++}
++
++/**
++ * @param {string} root
++ * @returns {string[]}
++ */
++function mapIds(root) {
++    const raw = JSON.parse(fs.readFileSync(path.join(root, MAP), 'utf8'));
++    return Object.keys(raw.modules || {});
++}
++
++/**
++ * @param {{ check?: boolean, root?: string, ids?: string[], log?: (line: string) => void, error?: (line: string) => void }} [opts]
++ * @returns {number} the exit code
++ */
++export function run({ check = false, root = ROOT, ids, log = console.log, error = console.error } = {}) {
++    const wanted = renderIds(ids || mapIds(root));
++    const file = path.join(root, IDS_OUT);
++    const current = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
++    if (current === wanted) {
++        log('gen-module-host-ids: 1 file up to date.');
++        return 0;
++    }
++    if (check) {
++        error(`gen-module-host-ids: ${IDS_OUT} is out of date with ${MAP}. Run \`npm run gen:module-host-ids\` and commit the result.`);
++        return 1;
++    }
++    fs.mkdirSync(path.dirname(file), { recursive: true });
++    fs.writeFileSync(file, wanted);
++    log(`gen-module-host-ids: wrote ${IDS_OUT}`);
++    return 0;
++}
++
++if (isEntryPoint(import.meta.url)) {
++    try {
++        process.exit(run({ check: process.argv.includes('--check') }));
++    } catch (e) {
++        console.error(`gen-module-host-ids: ${e.message}`);
++        process.exit(1);
++    }
++}
+diff --git a/scripts/gen-module-host-ids.test.mjs b/scripts/gen-module-host-ids.test.mjs
+new file mode 100644
+index 00000000..b24ada53
+--- /dev/null
++++ b/scripts/gen-module-host-ids.test.mjs
+@@ -0,0 +1,50 @@
++/**
++ * gen-module-host-ids: run() is a gate. --check names a stale or missing file and writes
++ * nothing, write mode makes --check clean again, and the file in the repository lists the ids
++ * of scripts/module-map.json today.
++ *
++ * Sandbox style: a throwaway tree under os.tmpdir() with a map of its own.
++ */
++
++import test from 'node:test';
++import assert from 'node:assert';
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import { IDS_OUT, renderIds, run } from './gen-module-host-ids.mjs';
++
++function sandbox(modules) {
++    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-module-host-ids-'));
++    fs.mkdirSync(path.join(root, 'scripts'));
++    fs.writeFileSync(path.join(root, 'scripts', 'module-map.json'), JSON.stringify({ modules }));
++    const lines = [];
++    return { root, lines, io: { root, log: (l) => lines.push(l), error: (l) => lines.push(l) }, file: path.join(root, IDS_OUT) };
++}
++
++test('the ids are written in the order of the map, as a const tuple', () => {
++    const text = renderIds(['b', 'a']);
++    assert.match(text, /^\/\/ GENERATED from scripts\/module-map\.json/);
++    assert.match(text, /export const FIRST_PARTY_IDS = \[\n {4}'b',\n {4}'a',\n\] as const;\n$/);
++});
++
++test('--check fails on a missing or stale file and writes nothing', (t) => {
++    const s = sandbox({ learning: {}, support: {} });
++    t.after(() => fs.rmSync(s.root, { recursive: true, force: true }));
++    assert.equal(run({ ...s.io, check: true }), 1);
++    assert.equal(fs.existsSync(s.file), false);
++    assert.match(s.lines.join('\n'), /out of date with scripts\/module-map\.json.*gen:module-host-ids/);
++
++    assert.equal(run({ ...s.io }), 0);
++    assert.equal(fs.readFileSync(s.file, 'utf8'), renderIds(['learning', 'support']));
++    assert.equal(run({ ...s.io, check: true }), 0);
++
++    // A module joined the map: the check names the file and leaves it alone.
++    fs.writeFileSync(path.join(s.root, 'scripts', 'module-map.json'), JSON.stringify({ modules: { learning: {}, support: {}, cms: {} } }));
++    assert.equal(run({ ...s.io, check: true }), 1);
++    assert.equal(fs.readFileSync(s.file, 'utf8'), renderIds(['learning', 'support']));
++});
++
++test('the file in the repository lists the ids of the map today', () => {
++    const lines = [];
++    assert.equal(run({ check: true, log: (l) => lines.push(l), error: (l) => lines.push(l) }), 0, lines.join('\n'));
++});
+diff --git a/scripts/module-map.json b/scripts/module-map.json
+index 6aefb228..e57490de 100644
+--- a/scripts/module-map.json
++++ b/scripts/module-map.json
+@@ -8,6 +8,7 @@
+     "agent-hub": {
+       "coreDir": "agent-hub",
+       "moduleDir": "frontend",
++      "areaGlob": "src/firstParty/<id>{,.*}.{ts,tsx}",
+       "imports": {
+         "style": "vite",
+         "alias": {
+@@ -69,7 +70,8 @@
+       ],
+       "agent-hub": [
+         "src/components/admin/Studio/Datatables/**",
+-        "src/i18n/en/datatables.generated.mjs"
++        "src/i18n/en/datatables.generated.mjs",
++        "src/firstParty/datatables{,.*}.{ts,tsx}"
+       ]
+     },
+     "automation": {
+@@ -212,7 +214,8 @@
+         "src/test/runLogCalls.ts",
+         "src/test/runTransport.ts",
+         "src/demo/fixtures/automations*",
+-        "src/i18n/en/{ai_step_checks,approvals,automationAgentBindings,automation_approval_expiry,automation_editor,automation_image_ai,automation_import,automation_run_checks,automation_tables,automation_testing,automation_webhook_log,automation_write_table,automations,code_step,flatten_node,forms,http_query}.generated.mjs"
++        "src/i18n/en/{ai_step_checks,approvals,automationAgentBindings,automation_approval_expiry,automation_editor,automation_image_ai,automation_import,automation_run_checks,automation_tables,automation_testing,automation_webhook_log,automation_write_table,automations,code_step,flatten_node,forms,http_query}.generated.mjs",
++        "src/firstParty/automation{,.*}.{ts,tsx}"
+       ]
+     },
+     "cowork": {
+@@ -269,7 +272,8 @@
+         "src/components/admin/security/guardrails/orgShield/parts/CoworkShieldToggle.tsx",
+         "src/components/shell/sidebar/useActiveCoworkCount.ts",
+         "src/api/queries/shellSidebar.ts",
+-        "src/i18n/en/{cowork,cowork_desks,cowork_detail,cowork_goals,cowork_habits,cowork_home,cowork_mobile,cowork_needs,cowork_overview,cowork_pages,cowork_panels,cowork_plan,cowork_policy,cowork_proposals,cowork_receipts,cowork_replay,cowork_resolver,cowork_review,cowork_shield,cowork_task,cowork_teamwork,cowork_templates,cowork_trail,cowork_wiring}.generated.mjs"
++        "src/i18n/en/{cowork,cowork_desks,cowork_detail,cowork_goals,cowork_habits,cowork_home,cowork_mobile,cowork_needs,cowork_overview,cowork_pages,cowork_panels,cowork_plan,cowork_policy,cowork_proposals,cowork_receipts,cowork_replay,cowork_resolver,cowork_review,cowork_shield,cowork_task,cowork_teamwork,cowork_templates,cowork_trail,cowork_wiring}.generated.mjs",
++        "src/firstParty/cowork{,.*}.{ts,tsx}"
+       ]
+     },
+     "apps": {
+@@ -362,7 +366,8 @@
+         "src/test/app*.ts",
+         "src/test/app*.tsx",
+         "src/demo/fixtures/appStudio*",
+-        "src/i18n/en/{app_studio,apps,studio_app_documents,studio_apps_aggregates,studio_apps_aichecks,studio_apps_assets,studio_apps_backdrop,studio_apps_bi,studio_apps_block,studio_apps_box,studio_apps_computed,studio_apps_connectorpost,studio_apps_css,studio_apps_dataread,studio_apps_dataset_params,studio_apps_device,studio_apps_di,studio_apps_dk,studio_apps_durable,studio_apps_dynamic_text,studio_apps_edit,studio_apps_expand,studio_apps_fieldtypes,studio_apps_filtertree,studio_apps_flow_control,studio_apps_flow_parallel,studio_apps_format,studio_apps_h2,studio_apps_h4,studio_apps_h5,studio_apps_hover,studio_apps_insp,studio_apps_layout,studio_apps_lk15,studio_apps_lk16,studio_apps_lk17,studio_apps_lk18,studio_apps_lk20,studio_apps_lk21a,studio_apps_lk22,studio_apps_more_options,studio_apps_paging,studio_apps_panels,studio_apps_plan_design,studio_apps_public,studio_apps_react_block,studio_apps_rowrules,studio_apps_runs,studio_apps_runtime,studio_apps_schedule,studio_apps_schema,studio_apps_sections,studio_apps_server_scope,studio_apps_step_code,studio_apps_step_document,studio_apps_step_fields,studio_apps_step_http,studio_apps_step_sanctions,studio_apps_surfaces,studio_apps_tab,studio_apps_tables,studio_apps_templates_builtin,studio_apps_text,studio_apps_tools,studio_apps_triggers,studio_apps_ui_steps,studio_apps_validate,studio_apps_validation,studio_apps_variables,studio_apps_w3a,studio_apps_w3d}.generated.mjs"
++        "src/i18n/en/{app_studio,apps,studio_app_documents,studio_apps_aggregates,studio_apps_aichecks,studio_apps_assets,studio_apps_backdrop,studio_apps_bi,studio_apps_block,studio_apps_box,studio_apps_computed,studio_apps_connectorpost,studio_apps_css,studio_apps_dataread,studio_apps_dataset_params,studio_apps_device,studio_apps_di,studio_apps_dk,studio_apps_durable,studio_apps_dynamic_text,studio_apps_edit,studio_apps_expand,studio_apps_fieldtypes,studio_apps_filtertree,studio_apps_flow_control,studio_apps_flow_parallel,studio_apps_format,studio_apps_h2,studio_apps_h4,studio_apps_h5,studio_apps_hover,studio_apps_insp,studio_apps_layout,studio_apps_lk15,studio_apps_lk16,studio_apps_lk17,studio_apps_lk18,studio_apps_lk20,studio_apps_lk21a,studio_apps_lk22,studio_apps_more_options,studio_apps_paging,studio_apps_panels,studio_apps_plan_design,studio_apps_public,studio_apps_react_block,studio_apps_rowrules,studio_apps_runs,studio_apps_runtime,studio_apps_schedule,studio_apps_schema,studio_apps_sections,studio_apps_server_scope,studio_apps_step_code,studio_apps_step_document,studio_apps_step_fields,studio_apps_step_http,studio_apps_step_sanctions,studio_apps_surfaces,studio_apps_tab,studio_apps_tables,studio_apps_templates_builtin,studio_apps_text,studio_apps_tools,studio_apps_triggers,studio_apps_ui_steps,studio_apps_validate,studio_apps_validation,studio_apps_variables,studio_apps_w3a,studio_apps_w3d}.generated.mjs",
++        "src/firstParty/apps{,.*}.{ts,tsx}"
+       ]
+     },
+     "playbooks": {
+@@ -388,7 +393,8 @@
+       ],
+       "agent-hub": [
+         "src/components/admin/Studio/Playbooks/**",
+-        "src/i18n/en/playbooks.generated.mjs"
++        "src/i18n/en/playbooks.generated.mjs",
++        "src/firstParty/playbooks{,.*}.{ts,tsx}"
+       ]
+     },
+     "compliance": {
+@@ -452,7 +458,8 @@
+         "src/pages/settings/PolicyAcknowledgements.tsx",
+         "src/demo/ComplianceDemo*",
+         "src/demo/fixtures/compliance*",
+-        "src/i18n/en/{compliance,compliance_layout,dsr_public}.generated.mjs"
++        "src/i18n/en/{compliance,compliance_layout,dsr_public}.generated.mjs",
++        "src/firstParty/compliance{,.*}.{ts,tsx}"
+       ]
+     },
+     "sanctions": {
+@@ -474,7 +481,8 @@
+       "agent-hub": [
+         "src/components/integrations/IntegrationsAdminPanel/SanctionsListsSection*",
+         "src/api/queries/sanctionsLists.ts",
+-        "src/i18n/en/sanctions.generated.mjs"
++        "src/i18n/en/sanctions.generated.mjs",
++        "src/firstParty/sanctions{,.*}.{ts,tsx}"
+       ]
+     },
+     "cms": {
+@@ -526,7 +534,8 @@
+         "src/api/queries/publicSite.ts",
+         "src/hooks/useCmsBuilderStream*",
+         "src/utils/cmsPublicRouting*",
+-        "src/i18n/en/{cms_blog,cms_redirects,cms_share,cms_site}.generated.mjs"
++        "src/i18n/en/{cms_blog,cms_redirects,cms_share,cms_site}.generated.mjs",
++        "src/firstParty/cms{,.*}.{ts,tsx}"
+       ]
+     },
+     "webpages": {
+@@ -584,7 +593,8 @@
+         "src/utils/composeWebpageDocument*",
+         "src/utils/computeWebpageDiff.ts",
+         "src/utils/downloadWebpageZip.ts",
+-        "src/i18n/en/webpages.generated.mjs"
++        "src/i18n/en/webpages.generated.mjs",
++        "src/firstParty/webpages{,.*}.{ts,tsx}"
+       ]
+     },
+     "notebooks": {
+@@ -627,7 +637,8 @@
+         "src/api/queries/chatNotebookCreate.ts",
+         "src/hooks/useChatEngine/sse/handlers/notebook*",
+         "src/demo/fixtures/notebooks*",
+-        "src/i18n/en/notebooks.generated.mjs"
++        "src/i18n/en/notebooks.generated.mjs",
++        "src/firstParty/notebooks{,.*}.{ts,tsx}"
+       ]
+     },
+     "templates": {
+@@ -652,7 +663,8 @@
+         "src/pages/templates/**",
+         "src/pages/TemplatesPage*",
+         "src/api/templatesApi.ts",
+-        "src/i18n/en/templates.generated.mjs"
++        "src/i18n/en/templates.generated.mjs",
++        "src/firstParty/templates{,.*}.{ts,tsx}"
+       ]
+     },
+     "meetingNotes": {
+@@ -737,7 +749,8 @@
+         "src/config/meetingNotesConfig.ts",
+         "src/utils/meetingImportJob*",
+         "src/demo/fixtures/meetingNotes*",
+-        "src/i18n/en/{meeting_notes,meetings,teams_setup,voiceprint}.generated.mjs"
++        "src/i18n/en/{meeting_notes,meetings,teams_setup,voiceprint}.generated.mjs",
++        "src/firstParty/meetingNotes{,.*}.{ts,tsx}"
+       ]
+     },
+     "support": {
+@@ -776,7 +789,8 @@
+         "src/api/queries/supportPanels.ts",
+         "src/pages/settings/HelpSupportSection*",
+         "src/demo/fixtures/support.ts",
+-        "src/i18n/en/support.generated.mjs"
++        "src/i18n/en/support.generated.mjs",
++        "src/firstParty/support{,.*}.{ts,tsx}"
+       ]
+     },
+     "learning": {
+@@ -832,7 +846,8 @@
+         "src/api/queries/learningReads.ts",
+         "src/api/queries/trainingGates.ts",
+         "src/hooks/useTrainingGates.ts",
+-        "src/i18n/en/{learn,training}.generated.mjs"
++        "src/i18n/en/{learn,training}.generated.mjs",
++        "src/firstParty/learning{,.*}.{ts,tsx}"
+       ]
+     },
+     "int_nextcloud": {
+@@ -854,7 +869,9 @@
+         "core/integrations/integrationTools.ncBinding.test.js",
+         "core/integrations/integrationTools.ncCapabilities.test.js"
+       ],
+-      "agent-hub": []
++      "agent-hub": [
++        "src/firstParty/int_nextcloud{,.*}.{ts,tsx}"
++      ]
+     },
+     "int_google": {
+       "name": "Google Workspace tools",
+@@ -894,7 +911,8 @@
+         "src/components/chat/MessageItem/{Calendar,Contacts,Keep}DraftCard.tsx",
+         "src/components/integrations/IntegrationsAdminPanel/GoogleMapsRow*",
+         "src/hooks/useGoogleWorkspacePicker*",
+-        "src/lib/googleOAuthPopup*"
++        "src/lib/googleOAuthPopup*",
++        "src/firstParty/int_google{,.*}.{ts,tsx}"
+       ]
+     },
+     "int_microsoft": {
+@@ -922,7 +940,8 @@
+       "agent-hub": [
+         "src/pages/settings/Microsoft365Integration*",
+         "src/api/microsoftOAuthPopup.ts",
+-        "src/api/queries/microsoft365.ts"
++        "src/api/queries/microsoft365.ts",
++        "src/firstParty/int_microsoft{,.*}.{ts,tsx}"
+       ]
+     },
+     "int_erp_nl": {
+@@ -956,7 +975,8 @@
+       ],
+       "agent-hub": [
+         "src/pages/settings/{Firebird,FrappeCrm,Nmbrs,Twoba,Vplan}Integration*",
+-        "src/i18n/en/twoba.generated.mjs"
++        "src/i18n/en/twoba.generated.mjs",
++        "src/firstParty/int_erp_nl{,.*}.{ts,tsx}"
+       ]
+     },
+     "int_saas": {
+@@ -1002,7 +1022,8 @@
+         "src/pages/settings/ScalewayBillingIntegration*",
+         "src/components/chat/GammaPreviewPanel*",
+         "src/components/chat/MessageItem/LinkedInDraftCard.tsx",
+-        "src/hooks/useChatEngine/sse/gammaPreview*"
++        "src/hooks/useChatEngine/sse/gammaPreview*",
++        "src/firstParty/int_saas{,.*}.{ts,tsx}"
+       ]
+     },
+     "custom_integrations": {
+@@ -1025,7 +1046,8 @@
+         "core/entitlements/capabilityRegistry.customIntegrations.test.js"
+       ],
+       "agent-hub": [
+-        "src/i18n/en/mcp_library.generated.mjs"
++        "src/i18n/en/mcp_library.generated.mjs",
++        "src/firstParty/custom_integrations{,.*}.{ts,tsx}"
+       ]
+     },
+     "mcp_server": {
+@@ -1048,7 +1070,9 @@
+         "firstParty/mcp_server{,.*}.{js,json}",
+         "testUtils/tenantFixtures/personal.mcpServer.js"
+       ],
+-      "agent-hub": []
++      "agent-hub": [
++        "src/firstParty/mcp_server{,.*}.{ts,tsx}"
++      ]
+     },
+     "projects": {
+       "name": "Projects",
+@@ -1116,7 +1140,8 @@
+         "src/pages/settings/AiParticipationSection*",
+         "src/authedApp/projectNavigation*",
+         "src/utils/projectRoutes*",
+-        "src/i18n/en/{project_activity,project_chat,project_collab,project_content,project_counts,project_home,project_members,project_participation,project_tasks,projects}.generated.mjs"
++        "src/i18n/en/{project_activity,project_chat,project_collab,project_content,project_counts,project_home,project_members,project_participation,project_tasks,projects}.generated.mjs",
++        "src/firstParty/projects{,.*}.{ts,tsx}"
+       ]
+     },
+     "billing_stripe": {
+@@ -1138,7 +1163,8 @@
+       "agent-hub": [
+         "src/components/admin/subscriptions/stripe/**",
+         "src/components/admin/subscriptions/promos/**",
+-        "src/components/billing/Invoice*"
++        "src/components/billing/Invoice*",
++        "src/firstParty/billing_stripe{,.*}.{ts,tsx}"
+       ]
+     }
+   },
+diff --git a/scripts/module-map.mjs b/scripts/module-map.mjs
+index 7253feae..f0cd8415 100644
+--- a/scripts/module-map.mjs
++++ b/scripts/module-map.mjs
+@@ -30,6 +30,8 @@
+  *   - A file that already sits in `modules/<id>/` is owned by <id>; --check fails when the
+  *     globs say otherwise.
+  *   - `requires` (hard, no cycle) and `uses` (soft) name other module ids.
++ *   - `packages.<pkg>.areaGlob` (web client: `src/firstParty/<id>{,.*}.{ts,tsx}`) is the glob of a
++ *     module's area files; every module lists it with its own id, and it may match nothing.
+  *   - `packages.<pkg>.imports` says how the scanner resolves that package's specifiers
+  *     (`{ "style": "vite", "alias": { "@/": "src/" } }` for the web client; default: like Node).
+  *
+@@ -222,6 +224,18 @@ export function loadModuleMap(repoRoot = DEFAULT_ROOT) {
+     };
+ }
+ 
++/**
++ * A package's area glob (`packages.<pkg>.areaGlob`, `<id>` standing for the module id): the
++ * files a module adds to a core host (the web client's `src/firstParty/<id>.<zone>.tsx`). Every
++ * module has it, and it may match no file yet: a module without an area file is valid.
++ * @param {{ areaGlob?: string }} spec
++ * @returns {((id: string) => string) | null}
++ */
++function areaGlobOf(spec) {
++    const template = spec?.areaGlob;
++    return template ? (id) => template.replace('<id>', id) : null;
++}
++
+ /**
+  * Everything wrong with a map: the lines --check prints.
+  * @param {ReturnType<typeof loadModuleMap>} map
+@@ -242,9 +256,16 @@ export function checkMap(map) {
+             if (f.conflict) problems.push(`${pkg}/${f.treePath}: owned by two modules (${f.conflict.join(', ')})`);
+             else if (f.root && f.mapped !== f.root) problems.push(`${pkg}/${f.treePath}: sits in modules/${f.root} but the map says ${f.mapped ?? 'core'}`);
+         }
++        const reserved = areaGlobOf(map.raw.packages[pkg]);
+         for (const g of map.allGlobs(pkg)) {
++            if (g.id && reserved && g.glob === reserved(g.id)) continue;
+             if (!files.some((f) => g.re.test(f.treePath))) problems.push(`${pkg}: glob "${g.glob}" of ${g.id ?? 'core'} matches no file`);
+         }
++        if (reserved) {
++            for (const id of ids) {
++                if (!map.globsOf(id, pkg).includes(reserved(id))) problems.push(`${pkg}: module ${id} lacks its area glob "${reserved(id)}"`);
++            }
++        }
+     }
+     return problems;
+ }
+diff --git a/scripts/module-map.test.mjs b/scripts/module-map.test.mjs
+index 4c825ecb..939e8c48 100644
+--- a/scripts/module-map.test.mjs
++++ b/scripts/module-map.test.mjs
+@@ -222,6 +222,20 @@ test('--check covers the web client: a glob that matches nothing, a file two mod
+     assert.match(problems, /agent-hub\/src\/a\/shared\.ts: owned by two modules \(a, b\)/);
+ });
+ 
++test('--check: the area glob of a module may match nothing, and every module must list it', () => {
++    const packages = { ...WEB, 'agent-hub': { ...WEB['agent-hub'], areaGlob: 'src/firstParty/<id>{,.*}.{ts,tsx}' } };
++    const map = fixture({
++        packages,
++        modules: {
++            a: webMod(['src/a/**', 'src/firstParty/a{,.*}.{ts,tsx}']),
++            b: webMod(['src/b/**']),
++        },
++    }, { 'agent-hub/src/a/x.tsx': '', 'agent-hub/src/b/y.tsx': '', 'agent-hub/src/firstParty/b.hub.tsx': '' });
++    assert.equal(map.ownerOf('agent-hub', 'src/firstParty/b.hub.tsx'), null, 'without its glob an area file is nobody\'s');
++    assert.equal(map.ownerOf('agent-hub', 'src/firstParty/a.hub.tsx'), 'a');
++    assert.deepEqual(checkMap(map), ['agent-hub: module b lacks its area glob "src/firstParty/b{,.*}.{ts,tsx}"']);
++});
++
+ test('web client edges: the alias, static and lazy core -> module edges counted apart, types left out', () => {
+     const map = fixture({
+         packages: WEB,
+diff --git a/scripts/roots-inventory.json b/scripts/roots-inventory.json
+index f98caabc..af748b92 100644
+--- a/scripts/roots-inventory.json
++++ b/scripts/roots-inventory.json
+@@ -700,6 +700,12 @@
+       "what": "unit test of gen-i18n-defaults.mjs",
+       "reason": "fixtures only (a temp directory with a copy of the resolver and en/index.js, and a module root beside it); it does not read the real tree"
+     },
++    {
++      "file": "scripts/gen-module-host-ids.mjs",
++      "status": "not-applicable",
++      "what": "writes agent-hub/src/moduleHost/ids.generated.ts (the module ids of scripts/module-map.json) and checks it",
++      "reason": "reads the map, not a package tree, and writes one core-owned file of the module host, which never moves to a module root"
++    },
+     {
+       "file": "scripts/gen-routes-contract.mjs",
+       "status": "pending",
+diff --git a/scripts/web-build-sources.mjs b/scripts/web-build-sources.mjs
+index a0dc2f62..35419397 100644
+--- a/scripts/web-build-sources.mjs
++++ b/scripts/web-build-sources.mjs
+@@ -17,6 +17,9 @@
+  *   node scripts/web-build-sources.mjs                    a summary on stdout
+  *   node scripts/web-build-sources.mjs --write <file>     the sorted list of tree paths
+  *   node scripts/web-build-sources.mjs --check <file>     exit 1 when the build has other sources than the list
++ *       --allow-additions <glob>                          (repeatable) with --check: a source the list lacks is
++ *                                                         fine when a glob matches it (`src/moduleHost/**`);
++ *                                                         a source the build lost always fails
+  *   node scripts/web-build-sources.mjs --report <file.md> the breakdown per owner (Markdown)
+  * The flags combine (one build). The first-paint set is the entry chunk and every
+  * chunk it imports statically (what dist/index.html loads before the app runs); the
+@@ -30,7 +33,7 @@ import path from 'node:path';
+ import { createRequire } from 'node:module';
+ import { fileURLToPath, pathToFileURL } from 'node:url';
+ import { locate } from './lib/roots.mjs';
+-import { loadModuleMap } from './module-map.mjs';
++import { globToRegExp, loadModuleMap } from './module-map.mjs';
+ 
+ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+ const HUB = path.join(ROOT, 'agent-hub');
+@@ -201,8 +204,22 @@ export function diffLists(expected, actual) {
+     return { missing: expected.filter((p) => !a.has(p)), added: actual.filter((p) => !e.has(p)) };
+ }
+ 
++/**
++ * A list diff where some additions are allowed: those a glob matches.
++ * @param {string[]} expected
++ * @param {string[]} actual
++ * @param {string[]} allowGlobs
++ */
++export function checkLists(expected, actual, allowGlobs = []) {
++    const allow = allowGlobs.map((g) => globToRegExp(g));
++    const { missing, added } = diffLists(expected, actual);
++    const allowed = added.filter((p) => allow.some((re) => re.test(p)));
++    return { missing, added: added.filter((p) => !allowed.includes(p)), allowed };
++}
++
+ async function main(argv) {
+     const flag = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
++    const flags = (name) => argv.flatMap((a, i) => (a === name && argv[i + 1] ? [argv[i + 1]] : []));
+     const map = loadModuleMap(ROOT);
+     const cache = new Map();
+     const place = (id) => {
+@@ -218,12 +235,13 @@ async function main(argv) {
+     if (report) fs.writeFileSync(report, `${renderReport(s, { date: new Date().toISOString().slice(0, 10), sources: list.length })}\n`);
+     const check = flag('--check');
+     if (check) {
+-        const { missing, added } = diffLists(fs.readFileSync(check, 'utf8').split('\n').filter(Boolean), list);
++        const { missing, added, allowed } = checkLists(fs.readFileSync(check, 'utf8').split('\n').filter(Boolean), list, flags('--allow-additions'));
+         if (missing.length || added.length) {
+             console.error([`the build's sources differ from ${check}:`, ...missing.map((p) => `  - ${p}`), ...added.map((p) => `  + ${p}`)].join('\n'));
+             return 1;
+         }
+-        console.log(`the build has the ${list.length} sources of ${check}`);
++        console.log(`the build has the ${list.length - allowed.length} sources of ${check}`
++            + (allowed.length ? `, plus ${allowed.length} allowed addition(s):\n${allowed.map((p) => `  + ${p}`).join('\n')}` : ''));
+     }
+     if (!write && !report && !check) {
+         console.log(`${list.length} first-party sources in ${s.chunks} chunks`);
+diff --git a/scripts/web-build-sources.test.mjs b/scripts/web-build-sources.test.mjs
+index ec33ead8..a402e541 100644
+--- a/scripts/web-build-sources.test.mjs
++++ b/scripts/web-build-sources.test.mjs
+@@ -1,7 +1,7 @@
+ // Unit tests of web-build-sources.mjs on a made-up bundle (the real build is run by the script itself, not here).
+ import { test } from 'node:test';
+ import assert from 'node:assert/strict';
+-import { bytesByOwner, diffLists, moduleShare, placeModule, renderReport, sourceList, staticClosure, summarize, THIRD_PARTY } from './web-build-sources.mjs';
++import { bytesByOwner, checkLists, diffLists, moduleShare, placeModule, renderReport, sourceList, staticClosure, summarize, THIRD_PARTY } from './web-build-sources.mjs';
+ 
+ const HUB = '/repo/agent-hub';
+ const MOD = '/repo/modules/cowork/frontend';
+@@ -68,3 +68,12 @@ test('a list diff names what is missing and what is new', () => {
+     assert.deepEqual(diffLists(['a', 'b'], ['b', 'c']), { missing: ['a'], added: ['c'] });
+     assert.deepEqual(diffLists(['a'], ['a']), { missing: [], added: [] });
+ });
++
++test('--allow-additions: an addition a glob matches is allowed, any other addition and every loss still fail', () => {
++    const globs = ['src/moduleHost/**', 'src/firstParty/*'];
++    assert.deepEqual(checkLists(['src/a.ts'], ['src/a.ts', 'src/moduleHost/registry.ts', 'src/firstParty/learning.boot.tsx'], globs),
++        { missing: [], added: [], allowed: ['src/moduleHost/registry.ts', 'src/firstParty/learning.boot.tsx'] });
++    assert.deepEqual(checkLists(['src/a.ts', 'src/b.ts'], ['src/a.ts', 'src/moduleHostile.ts', 'src/moduleHost/x.ts'], globs),
++        { missing: ['src/b.ts'], added: ['src/moduleHostile.ts'], allowed: ['src/moduleHost/x.ts'] });
++    assert.deepEqual(checkLists(['src/a.ts'], ['src/a.ts', 'src/moduleHost/x.ts']), { missing: [], added: ['src/moduleHost/x.ts'], allowed: [] });
++});
+diff --git a/server/i18n/defaults/en/module_host.js b/server/i18n/defaults/en/module_host.js
+new file mode 100644
+index 00000000..51ece026
+--- /dev/null
++++ b/server/i18n/defaults/en/module_host.js
+@@ -0,0 +1,14 @@
++// @typecheck strict
++// English GUI defaults — namespace "module_host": every key whose part before the first "." is "module_host".
++// Merged into GUI_DEFAULTS by ./index.js, which finds this file by itself (no list to edit). The frontend copy
++// (agent-hub/src/i18n/en-defaults.js) is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
++// Dutch: ../nl/module_host.json. The web client's module host (agent-hub/src/moduleHost): what a page of a first-party
++// module shows when the module is not installed on this server, or failed to load. No upgrade text.
++module.exports = {
++    "module_host.not_installed_title": "Not installed",
++    "module_host.not_installed_body": "This part of Bee Flow is not installed here.",
++    "module_host.back_to_app": "Back to Bee Flow",
++    "module_host.unavailable_title": "Not available right now",
++    "module_host.unavailable_body": "This part of Bee Flow could not be loaded. Reloading the page usually helps.",
++    "module_host.reload": "Reload the page",
++};
+diff --git a/server/i18n/defaults/nl/module_host.json b/server/i18n/defaults/nl/module_host.json
+new file mode 100644
+index 00000000..434d137d
+--- /dev/null
++++ b/server/i18n/defaults/nl/module_host.json
+@@ -0,0 +1,11 @@
++{
++  "translations": {
++    "module_host.not_installed_title": "Niet geïnstalleerd",
++    "module_host.not_installed_body": "Dit deel van Bee Flow is hier niet geïnstalleerd.",
++    "module_host.back_to_app": "Terug naar Bee Flow",
++    "module_host.unavailable_title": "Nu niet beschikbaar",
++    "module_host.unavailable_body": "Dit deel van Bee Flow kon niet worden geladen. De pagina opnieuw laden helpt meestal.",
++    "module_host.reload": "Pagina opnieuw laden"
++  },
++  "sameAsEnglish": []
++}

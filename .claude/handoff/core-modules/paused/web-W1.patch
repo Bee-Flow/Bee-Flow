@@ -1,0 +1,671 @@
+diff --git a/agent-hub/.module-boundary-ratchet.json b/agent-hub/.module-boundary-ratchet.json
+new file mode 100644
+index 00000000..076f6874
+--- /dev/null
++++ b/agent-hub/.module-boundary-ratchet.json
+@@ -0,0 +1,79 @@
++{
++  "_comment": "Highest number of core -> module static imports (static), core -> module lazy imports (i18n chunks left out) (lazy), core -> module i18n chunk loaders (i18n), core -> module type-only imports (typeOnly), undeclared module -> module import edges (undeclared) per module that agent-hub/ may still carry; a module not listed has budget 0. Lower it with `node scripts/module-boundary.mjs --pkg agent-hub --update` after cutting a dependency; raising one is a deliberate edit that belongs in a commit message with a reason.",
++  "_generated": "2026-11-27",
++  "static": {
++    "apps": 2,
++    "automation": 16,
++    "billing_stripe": 4,
++    "cms": 12,
++    "compliance": 8,
++    "cowork": 15,
++    "datatables": 6,
++    "int_erp_nl": 5,
++    "int_google": 9,
++    "int_microsoft": 2,
++    "int_saas": 6,
++    "learning": 6,
++    "meetingNotes": 12,
++    "notebooks": 16,
++    "projects": 47,
++    "sanctions": 1,
++    "support": 2,
++    "templates": 1,
++    "webpages": 3
++  },
++  "lazy": {
++    "apps": 6,
++    "automation": 12,
++    "cms": 2,
++    "compliance": 3,
++    "cowork": 2,
++    "datatables": 3,
++    "int_saas": 1,
++    "learning": 1,
++    "meetingNotes": 8,
++    "notebooks": 4,
++    "playbooks": 1,
++    "projects": 2,
++    "support": 2,
++    "templates": 1,
++    "webpages": 4
++  },
++  "i18n": {
++    "apps": 71,
++    "automation": 17,
++    "cms": 4,
++    "compliance": 3,
++    "cowork": 24,
++    "custom_integrations": 1,
++    "datatables": 1,
++    "int_erp_nl": 1,
++    "learning": 2,
++    "meetingNotes": 4,
++    "notebooks": 1,
++    "playbooks": 1,
++    "projects": 10,
++    "sanctions": 1,
++    "support": 1,
++    "templates": 1,
++    "webpages": 1
++  },
++  "typeOnly": {
++    "apps": 2,
++    "automation": 4,
++    "cms": 3,
++    "cowork": 10,
++    "int_google": 1,
++    "int_saas": 4,
++    "meetingNotes": 2,
++    "notebooks": 2,
++    "playbooks": 1,
++    "projects": 32,
++    "webpages": 7
++  },
++  "undeclared": {
++    "apps -> support": 2,
++    "datatables -> apps": 6,
++    "meetingNotes -> datatables": 4
++  }
++}
+diff --git a/package.json b/package.json
+index 8f015934..990071d1 100644
+--- a/package.json
++++ b/package.json
+@@ -66,7 +66,7 @@
+     "lint:scripts-index": "node scripts/gen-scripts-index.mjs --check",
+     "lint:layering-ratchet": "node --test server/layering.test.js",
+     "lint:scc-ratchet": "node scripts/scc-ratchet.mjs server agent-hub mobile",
+-    "lint:module-boundary-ratchet": "node scripts/module-boundary.mjs",
++    "lint:module-boundary-ratchet": "node scripts/module-boundary.mjs && node scripts/module-boundary.mjs --pkg agent-hub",
+     "lint:duplication": "node scripts/duplication-ratchet.mjs",
+     "lint:bundle": "node scripts/bundle-ratchet.mjs agent-hub",
+     "lint:entry-budget": "node scripts/entry-budget.mjs agent-hub",
+diff --git a/scripts/module-boundary.mjs b/scripts/module-boundary.mjs
+index b399e641..42fb6022 100644
+--- a/scripts/module-boundary.mjs
++++ b/scripts/module-boundary.mjs
+@@ -2,8 +2,8 @@
+ /**
+  * The module boundary ratchet: what the core still needs from the first-party modules may only go down, and a module may only use the modules it declares.
+  *
+- * Reads the ownership map (scripts/module-map.json through scripts/module-map.mjs) over the
+- * server tree, test files left out, and checks four rules:
++ * Reads the ownership map (scripts/module-map.json through scripts/module-map.mjs) over one
++ * package, test files left out. For the server (the default) it checks four rules:
+  *
+  *   1. core -> module import edges, per module: the run-time edges from a core-owned file into a
+  *      file owned by module X (module-map-edges.mjs: type-only references are not edges) may not
+@@ -19,9 +19,22 @@
+  *      lists it), no file the map gives to <id> is left under server/, and every file under
+  *      modules/<id>/server is owned by <id>. No budget.
+  *
+- *   node scripts/module-boundary.mjs            the gate
+- *   node scripts/module-boundary.mjs --list     every counted edge and lookup, by module, as file:line
+- *   node scripts/module-boundary.mjs --update   lower each budget to the measurement, drop the zeros
++ * With `--pkg agent-hub` the same ratchet holds the web client (agent-hub/, and later
++ * modules/<id>/frontend), budget in agent-hub/.module-boundary-ratchet.json, five sections per
++ * module, each may only go down:
++ *
++ *   static     core -> module run-time imports that are not a chunk boundary
++ *   lazy       core -> module `import()` and non-eager `import.meta.glob`, the i18n chunks left out
++ *   i18n       the lazy glob of src/i18n/enNamespaces.ts into a module's generated i18n chunks
++ *   typeOnly   core -> module type-only references (`import type`, `typeof import()`; scanTypeOnly
++ *              in module-map-edges.mjs), which the run-time edges leave out
++ *   undeclared module A -> module B run-time edges with B in neither `requires` nor `uses` of A,
++ *              keyed `A -> B` (rule 3 with a budget: the web map had such edges when the ratchet
++ *              started); `requires` still may not have a cycle, and rule 4 holds for frontend roots.
++ *
++ *   node scripts/module-boundary.mjs [--pkg agent-hub]            the gate
++ *   node scripts/module-boundary.mjs [--pkg agent-hub] --list     every counted edge and lookup, by module, as file:line
++ *   node scripts/module-boundary.mjs [--pkg agent-hub] --update   lower each budget to the measurement, drop the zeros
+  *
+  * `--update` never raises a budget; without a budget file it writes the measurement (the seed).
+  * Raising a budget is a deliberate edit that belongs in a commit message with a reason.
+@@ -33,20 +46,40 @@ import { fileURLToPath } from 'node:url';
+ import { isEntryPoint } from './entry-point.mjs';
+ import { createRoots } from './lib/roots.mjs';
+ import { isColocated, loadModuleMap, requiresCycle } from './module-map.mjs';
+-import { CODE_FILE, TYPE_FILE, maskSource, resolveSpecifier } from './module-map-edges.mjs';
++import { CODE_FILE, TYPE_FILE, maskSource, resolveSpecifier, typeOnlyEdges } from './module-map-edges.mjs';
+ 
+ const DEFAULT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+ export const BUDGET_REL = 'server/.module-boundary-ratchet.json';
+-const PKG = 'server';
+-/** The budgeted sections of the budget file, and how a line about them reads. */
++/** The budgeted sections of the server's budget file, and how a line about them reads. */
+ export const SECTIONS = Object.freeze({
+     coreEdges: 'core -> module import edges',
+     coreLookups: 'core featureModule() lookups of module files',
+ });
++/** The web client's sections (agent-hub/.module-boundary-ratchet.json). */
++export const WEB_SECTIONS = Object.freeze({
++    static: 'core -> module static imports',
++    lazy: 'core -> module lazy imports (i18n chunks left out)',
++    i18n: 'core -> module i18n chunk loaders',
++    typeOnly: 'core -> module type-only imports',
++    undeclared: 'undeclared module -> module import edges',
++});
++/** The file whose lazy glob loads the generated i18n chunks: its lazy edges are the `i18n` section. */
++export const I18N_LOADER = 'src/i18n/enNamespaces.ts';
++
++/**
++ * @typedef {{ pkg: string, budget: string, sections: Readonly<Record<string, string>>, budgetedUndeclared: boolean }} PackageSpec
++ *   per package: the budget file, its sections, and whether undeclared module -> module edges
++ *   are a budgeted section (agent-hub) or a plain failure (server)
++ */
++/** @type {Readonly<Record<string, PackageSpec>>} */
++export const PACKAGES = Object.freeze({
++    server: { pkg: 'server', budget: BUDGET_REL, sections: SECTIONS, budgetedUndeclared: false },
++    'agent-hub': { pkg: 'agent-hub', budget: 'agent-hub/.module-boundary-ratchet.json', sections: WEB_SECTIONS, budgetedUndeclared: true },
++});
+ 
+-/** @typedef {{ from: string, to: string, line: number, owner: string }} Hit  owner: the module the target belongs to */
+-/** @typedef {{ coreEdges: Record<string, Hit[]>, coreLookups: Record<string, Hit[]>, undeclared: string[], cycle: string[] | null, location: string[] }} Analysis */
+-/** @typedef {{ coreEdges?: Record<string, number>, coreLookups?: Record<string, number> }} Budget */
++/** @typedef {{ from: string, to: string, line: number, owner: string }} Hit  owner: the module the target belongs to (for `undeclared`: `A -> B`) */
++/** @typedef {Record<string, any> & { cycle: string[] | null, location: string[] }} Analysis  a Record<string, Hit[]> per section; `undeclared` lines for the server */
++/** @typedef {Record<string, Record<string, number>>} Budget */
+ 
+ /**
+  * @param {Hit[]} hits
+@@ -98,6 +131,18 @@ export function coreLookups(files) {
+     return hits;
+ }
+ 
++/**
++ * Is a module -> module edge declared (its target module in `requires` or `uses` of its source
++ * module)? An edge that touches the core or stays inside one module is.
++ * @param {{ fromOwner: string | null, toOwner: string | null }} e
++ * @param {Record<string, { requires?: string[], uses?: string[] }>} modules
++ */
++function isDeclared(e, modules) {
++    if (e.fromOwner === null || e.toOwner === null || e.fromOwner === e.toOwner) return true;
++    const mod = modules[e.fromOwner] || {};
++    return (mod.requires || []).includes(e.toOwner) || (mod.uses || []).includes(e.toOwner);
++}
++
+ /**
+  * Rule 3: module -> module edges whose target module is in neither `requires` nor `uses`.
+  * @param {{ from: string, to: string, line: number, fromOwner: string | null, toOwner: string | null }[]} edges
+@@ -105,62 +150,92 @@ export function coreLookups(files) {
+  * @returns {string[]}
+  */
+ export function undeclaredEdges(edges, modules) {
+-    const out = [];
+-    for (const e of edges) {
+-        if (e.fromOwner === null || e.toOwner === null || e.fromOwner === e.toOwner) continue;
+-        const mod = modules[e.fromOwner] || {};
+-        if ((mod.requires || []).includes(e.toOwner) || (mod.uses || []).includes(e.toOwner)) continue;
+-        out.push(`${e.from}:${e.line} -> ${e.to}  (${e.fromOwner} -> ${e.toOwner}: add "${e.toOwner}" to ${e.fromOwner}.requires or .uses in scripts/module-map.json, or cut the import)`);
+-    }
+-    return out;
++    return edges.filter((e) => !isDeclared(e, modules))
++        .map((e) => `${e.from}:${e.line} -> ${e.to}  (${e.fromOwner} -> ${e.toOwner}: add "${e.toOwner}" to ${e.fromOwner}.requires or .uses in scripts/module-map.json, or cut the import)`);
+ }
+ 
+ /**
+  * Rule 4: files on the wrong side of a module directory that exists.
+  * @param {{ treePath: string, root: string | null, mapped: string | null }[]} files
+- * @param {Set<string>} withRoot the ids that have a modules/<id>/server
++ * @param {Set<string>} withRoot the ids that have a modules/<id>/<moduleDir>
++ * @param {{ coreDir?: string, moduleDir?: string }} [dirs] the package's directories (default: the server's)
+  * @returns {string[]}
+  */
+-export function locationProblems(files, withRoot) {
++export function locationProblems(files, withRoot, { coreDir = 'server', moduleDir = 'server' } = {}) {
+     const out = [];
+     for (const f of files) {
+         if (f.root === null && f.mapped !== null && withRoot.has(f.mapped)) {
+-            out.push(`server/${f.treePath}: owned by ${f.mapped}, which has modules/${f.mapped}/server; move it there (git mv, same tree path)`);
++            out.push(`${coreDir}/${f.treePath}: owned by ${f.mapped}, which has modules/${f.mapped}/${moduleDir}; move it there (git mv, same tree path)`);
+         } else if (f.root !== null && f.mapped !== f.root) {
+-            out.push(`modules/${f.root}/server/${f.treePath}: the map gives it to ${f.mapped ?? 'core'}; move it back or change the globs`);
++            out.push(`modules/${f.root}/${moduleDir}/${f.treePath}: the map gives it to ${f.mapped ?? 'core'}; move it back or change the globs`);
+         }
+     }
+     return out;
+ }
+ 
+ /**
+- * Measure all four rules over one checkout.
++ * The web client's sections, from its run-time and its type-only edges.
++ * @param {ReturnType<typeof loadModuleMap>} map
++ * @param {string} pkg
++ * @returns {Record<string, Record<string, Hit[]>>}
++ */
++function webSections(map, pkg) {
++    const files = map.files(pkg);
++    const ownerByPath = new Map(files.map((f) => [f.treePath, f.owner]));
++    const edges = map.edges(pkg);
++    /** @param {{ from: string, to: string, line: number, toOwner: string | null }} e */
++    const toModule = (e) => ({ from: e.from, to: e.to, line: e.line, owner: /** @type {string} */ (e.toOwner) });
++    const core = edges.filter((e) => e.fromOwner === null && e.toOwner !== null);
++    const types = typeOnlyEdges(files.filter((f) => !isColocated(f.treePath)), map.raw.packages[pkg].imports)
++        .filter((e) => ownerByPath.get(e.from) === null && (ownerByPath.get(e.to) ?? null) !== null)
++        .map((e) => ({ ...e, owner: /** @type {string} */ (ownerByPath.get(e.to)) }));
++    const modules = map.raw.modules || {};
++    return {
++        static: byOwner(core.filter((e) => !e.lazy).map(toModule)),
++        lazy: byOwner(core.filter((e) => e.lazy && e.from !== I18N_LOADER).map(toModule)),
++        i18n: byOwner(core.filter((e) => e.lazy && e.from === I18N_LOADER).map(toModule)),
++        typeOnly: byOwner(types),
++        undeclared: byOwner(edges.filter((e) => !isDeclared(e, modules)).map((e) => ({ from: e.from, to: e.to, line: e.line, owner: `${e.fromOwner} -> ${e.toOwner}` }))),
++    };
++}
++
++/**
++ * Measure all rules over one checkout.
+  * @param {string} [repoRoot]
++ * @param {string} [pkg] `server` (default) or `agent-hub`
+  * @returns {Analysis}
+  */
+-export function analyze(repoRoot = DEFAULT_ROOT) {
++export function analyze(repoRoot = DEFAULT_ROOT, pkg = 'server') {
+     const map = loadModuleMap(repoRoot);
+-    const files = map.files(PKG);
+-    const edges = map.edges(PKG);
++    const spec = map.raw.packages[pkg];
++    const files = map.files(pkg);
++    const withRoot = new Set(createRoots({ repoRoot }).rootsOf(/** @type {any} */ (pkg)).map((r) => r.id).filter((id) => id !== null));
++    const common = {
++        cycle: requiresCycle(map.raw.modules || {}),
++        location: locationProblems(files, withRoot, spec),
++    };
++    if (pkg !== 'server') return { ...webSections(map, pkg), ...common };
++    const edges = map.edges(pkg);
+     const toCore = edges.filter((e) => e.fromOwner === null && e.toOwner !== null).map((e) => ({ from: e.from, to: e.to, line: e.line, owner: /** @type {string} */ (e.toOwner) }));
+-    const withRoot = new Set(createRoots({ repoRoot }).rootsOf(PKG).map((r) => r.id).filter((id) => id !== null));
+     return {
+         coreEdges: byOwner(toCore),
+         coreLookups: byOwner(coreLookups(files)),
+         undeclared: undeclaredEdges(edges, map.raw.modules || {}),
+-        cycle: requiresCycle(map.raw.modules || {}),
+-        location: locationProblems(files, withRoot),
++        ...common,
+     };
+ }
+ 
+ /**
+  * @param {Analysis} analysis
+- * @returns {{ coreEdges: Record<string, number>, coreLookups: Record<string, number> }} the counts, zeros left out
++ * @param {Readonly<Record<string, string>>} [sections] the package's sections (default: the server's)
++ * @returns {Record<string, Record<string, number>>} the counts per section, zeros left out
+  */
+-export function counts(analysis) {
+-    const out = { coreEdges: {}, coreLookups: {} };
+-    for (const section of Object.keys(SECTIONS)) {
+-        for (const [id, hits] of Object.entries(analysis[section])) if (hits.length) out[section][id] = hits.length;
++export function counts(analysis, sections = SECTIONS) {
++    /** @type {Record<string, Record<string, number>>} */
++    const out = {};
++    for (const section of Object.keys(sections)) {
++        out[section] = {};
++        for (const [id, hits] of Object.entries(analysis[section] || {})) if (hits.length) out[section][id] = hits.length;
+     }
+     return out;
+ }
+@@ -169,19 +244,22 @@ export function counts(analysis) {
+  * The budget --update writes: per module the lower of budget and measurement, zeros dropped.
+  * With no budget yet, the measurement.
+  * @param {Budget | null} existing
+- * @param {ReturnType<typeof counts>} measured
++ * @param {Record<string, Record<string, number>>} measured
++ * @param {PackageSpec} [spec] the package (default: the server)
+  */
+-export function nextBudget(existing, measured) {
++export function nextBudget(existing, measured, spec = PACKAGES.server) {
++    const names = Object.entries(spec.sections).map(([s, what]) => `${what} (${s})`).join(', ');
++    const flag = spec.pkg === 'server' ? '' : ` --pkg ${spec.pkg}`;
++    /** @type {Record<string, any>} */
+     const out = {
+-        _comment: `Highest number of ${SECTIONS.coreEdges} (coreEdges) and ${SECTIONS.coreLookups} (coreLookups) per module that server/ may still carry; a module not listed has budget 0. Lower it with \`node scripts/module-boundary.mjs --update\` after cutting a dependency; raising one is a deliberate edit that belongs in a commit message with a reason.`,
++        _comment: `Highest number of ${names} per module that ${spec.pkg}/ may still carry; a module not listed has budget 0. Lower it with \`node scripts/module-boundary.mjs${flag} --update\` after cutting a dependency; raising one is a deliberate edit that belongs in a commit message with a reason.`,
+         _generated: new Date().toISOString().slice(0, 10),
+-        coreEdges: {},
+-        coreLookups: {},
+     };
+-    for (const section of Object.keys(SECTIONS)) {
+-        const ids = new Set([...Object.keys(existing?.[section] || {}), ...Object.keys(measured[section])]);
++    for (const section of Object.keys(spec.sections)) {
++        out[section] = {};
++        const ids = new Set([...Object.keys(existing?.[section] || {}), ...Object.keys(measured[section] || {})]);
+         for (const id of [...ids].sort()) {
+-            const now = measured[section][id] || 0;
++            const now = measured[section]?.[id] || 0;
+             const n = existing ? Math.min(now, existing[section]?.[id] ?? 0) : now;
+             if (n > 0) out[section][id] = n;
+         }
+@@ -189,36 +267,42 @@ export function nextBudget(existing, measured) {
+     return out;
+ }
+ 
+-const sum = (record) => Object.values(record).reduce((s, n) => s + n, 0);
++/** @param {Record<string, number> | undefined} record */
++const sum = (record) => Object.values(record || {}).reduce((s, n) => s + n, 0);
++/** @param {Hit} h */
+ const hitLine = (h) => `    ${h.from}:${h.line} -> ${h.to}`;
+ 
+ /**
+  * The failures of the budgeted rules, each with every hit of that module.
+  * @param {Analysis} analysis
+  * @param {Budget} budget
++ * @param {PackageSpec} [spec] the package (default: the server)
+  * @returns {string[]}
+  */
+-export function overBudget(analysis, budget) {
++export function overBudget(analysis, budget, spec = PACKAGES.server) {
+     const out = [];
+-    for (const [section, what] of Object.entries(SECTIONS)) {
+-        for (const [id, hits] of Object.entries(analysis[section])) {
++    for (const [section, what] of Object.entries(spec.sections)) {
++        for (const [id, hits] of Object.entries(analysis[section] || {})) {
+             const allowed = budget[section]?.[id] ?? 0;
+             if (hits.length <= allowed) continue;
+-            out.push(`${PKG}: ${hits.length} ${what} into ${id}, budget is ${allowed} (${hits.length - allowed} over). The budget is a number, so these are all of them; the new one is among them:`, ...hits.map(hitLine));
++            out.push(`${spec.pkg}: ${hits.length} ${what} into ${id}, budget is ${allowed} (${hits.length - allowed} over). The budget is a number, so these are all of them; the new one is among them:`, ...hits.map(hitLine));
+         }
+     }
+     return out;
+ }
+ 
+-/** @param {Analysis} analysis */
+-function printList(analysis) {
+-    for (const [section, what] of Object.entries(SECTIONS)) {
+-        for (const [id, hits] of Object.entries(analysis[section])) {
++/**
++ * @param {Analysis} analysis
++ * @param {PackageSpec} spec
++ */
++function printList(analysis, spec) {
++    for (const [section, what] of Object.entries(spec.sections)) {
++        for (const [id, hits] of Object.entries(analysis[section] || {})) {
+             console.log(`${id}: ${hits.length} ${what}`);
+             for (const h of hits) console.log(hitLine(h));
+         }
+     }
+-    for (const line of analysis.undeclared) console.log(`undeclared: ${line}`);
++    if (!spec.budgetedUndeclared) for (const line of analysis.undeclared) console.log(`undeclared: ${line}`);
+     for (const line of analysis.location) console.log(`location: ${line}`);
+     console.log('');
+ }
+@@ -234,24 +318,28 @@ function readBudget(file) {
+ /**
+  * @param {Analysis} analysis
+  * @param {Budget} budget
++ * @param {PackageSpec} spec
+  * @returns {number} the exit code
+  */
+-function report(analysis, budget) {
+-    const failures = [...overBudget(analysis, budget)];
+-    if (analysis.undeclared.length) failures.push(`${PKG}: ${analysis.undeclared.length} module -> module import edge(s) not declared in scripts/module-map.json:`, ...analysis.undeclared.map((l) => `    ${l}`));
++function report(analysis, budget, spec) {
++    const { pkg } = spec;
++    const failures = [...overBudget(analysis, budget, spec)];
++    if (!spec.budgetedUndeclared && analysis.undeclared.length) failures.push(`${pkg}: ${analysis.undeclared.length} module -> module import edge(s) not declared in scripts/module-map.json:`, ...analysis.undeclared.map((/** @type {string} */ l) => `    ${l}`));
+     if (analysis.cycle) failures.push(`scripts/module-map.json: requires has a cycle: ${analysis.cycle.join(' -> ')}`);
+-    if (analysis.location.length) failures.push(`${PKG}: ${analysis.location.length} file(s) on the wrong side of a module directory:`, ...analysis.location.map((l) => `    ${l}`));
+-    const measured = counts(analysis);
++    if (analysis.location.length) failures.push(`${pkg}: ${analysis.location.length} file(s) on the wrong side of a module directory:`, ...analysis.location.map((l) => `    ${l}`));
++    const measured = counts(analysis, spec.sections);
+     if (failures.length) {
+-        console.error(`❌ ${PKG}: ${sum(measured.coreEdges)} ${SECTIONS.coreEdges}, ${sum(measured.coreLookups)} lookups, module boundary broken. Cut the dependency (an optional lookup, a port, or move the piece) rather than raising a budget (\`--list\` shows them all):`);
++        const summary = Object.entries(spec.sections).slice(0, 2).map(([s, what]) => `${sum(measured[s])} ${what}`).join(', ');
++        console.error(`❌ ${pkg}: ${summary}, module boundary broken. Cut the dependency (an optional lookup, a port, or move the piece) rather than raising a budget (\`--list\` shows them all):`);
+         for (const line of failures) console.error(line);
+         return 1;
+     }
+-    for (const [section, what] of Object.entries(SECTIONS)) {
++    const flag = pkg === 'server' ? '' : ` --pkg ${pkg}`;
++    for (const [section, what] of Object.entries(spec.sections)) {
+         const now = sum(measured[section]);
+-        const allowed = sum(budget[section] || {});
+-        if (now < allowed) console.log(`✅ ${PKG}: ${now} ${what}, under the budget of ${allowed}. Run \`node scripts/module-boundary.mjs --update\` to lower it.`);
+-        else console.log(`➖ ${PKG}: ${now} ${what}, at budget`);
++        const allowed = sum(budget[section]);
++        if (now < allowed) console.log(`✅ ${pkg}: ${now} ${what}, under the budget of ${allowed}. Run \`node scripts/module-boundary.mjs${flag} --update\` to lower it.`);
++        else console.log(`➖ ${pkg}: ${now} ${what}, at budget`);
+     }
+     return 0;
+ }
+@@ -262,20 +350,27 @@ function report(analysis, budget) {
+  * @returns {number} the exit code
+  */
+ export function main(argv, { repoRoot = DEFAULT_ROOT } = {}) {
+-    const analysis = analyze(repoRoot);
+-    const file = path.join(repoRoot, BUDGET_REL);
++    const at = Math.max(argv.indexOf('--pkg'), argv.indexOf('--package'));
++    const pkg = at >= 0 ? argv[at + 1] : 'server';
++    const spec = Object.hasOwn(PACKAGES, pkg) ? PACKAGES[pkg] : undefined;
++    if (!spec) {
++        console.error(`module-boundary: unknown package "${pkg}" (known: ${Object.keys(PACKAGES).join(', ')})`);
++        return 2;
++    }
++    const analysis = analyze(repoRoot, pkg);
++    const file = path.join(repoRoot, spec.budget);
+     const existing = readBudget(file);
+     if (argv.includes('--list')) {
+-        printList(analysis);
++        printList(analysis, spec);
+         if (!argv.includes('--update') && !existing) return 0;
+     }
+     if (argv.includes('--update') || !existing) {
+-        const next = nextBudget(existing, counts(analysis));
++        const next = nextBudget(existing, counts(analysis, spec.sections), spec);
+         fs.writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`);
+-        console.log(`Budget written to ${BUDGET_REL}: ${sum(next.coreEdges)} ${SECTIONS.coreEdges}, ${sum(next.coreLookups)} lookups`);
++        console.log(`Budget written to ${spec.budget}: ${Object.entries(spec.sections).map(([s, what]) => `${sum(next[s])} ${what}`).join(', ')}`);
+         return 0;
+     }
+-    return report(analysis, existing);
++    return report(analysis, existing, spec);
+ }
+ 
+ if (isEntryPoint(import.meta.url)) process.exit(main(process.argv.slice(2)));
+diff --git a/scripts/module-boundary.test.mjs b/scripts/module-boundary.test.mjs
+index 7308008a..0e01afcf 100644
+--- a/scripts/module-boundary.test.mjs
++++ b/scripts/module-boundary.test.mjs
+@@ -161,6 +161,71 @@ test('--update through main writes the lowered budget', () => {
+     assert.deepEqual(readBudget(dir).coreLookups, {});
+ });
+ 
++const WEB_PACKAGES = { 'agent-hub': { coreDir: 'agent-hub', moduleDir: 'frontend', imports: { style: 'vite', alias: { '@/': 'src/' } } } };
++const WEB_MODULES = { a: { requires: [], uses: [], 'agent-hub': ['src/a/**', 'src/i18n/en/a*.generated.mjs'] }, b: { requires: [], uses: [], 'agent-hub': ['src/b/**'] } };
++const WEB_FILES = {
++    'agent-hub/src/core/Shell.tsx': [
++        "import One from '@/a/One';",
++        "import type { T } from '@/a/types';",
++        "const Lazy = () => import('../a/Lazy');",
++        "type L = typeof import('@/a/Lazy');",
++        'export default function Shell() { return <One />; }',
++        '',
++    ].join('\n'),
++    'agent-hub/src/core/Shell.test.tsx': "import One from '@/a/One';\n",
++    'agent-hub/src/i18n/enNamespaces.ts': "export const L = import.meta.glob('./en/*.generated.mjs');\n",
++    'agent-hub/src/i18n/en/a.generated.mjs': 'export default {};\n',
++    'agent-hub/src/i18n/en/core.generated.mjs': 'export default {};\n',
++    'agent-hub/src/a/One.tsx': "import { y } from '@/b/y';\nexport default function One() { return y; }\n",
++    'agent-hub/src/a/types.ts': 'export interface T { a: string }\n',
++    'agent-hub/src/a/Lazy.tsx': 'export default 1;\n',
++    'agent-hub/src/b/y.ts': 'export const y = 1;\n',
++};
++
++/** A web-client checkout: only the agent-hub package. */
++function webFixture(modules = WEB_MODULES, files = WEB_FILES) {
++    const dir = fixture({}, files);
++    fs.writeFileSync(path.join(dir, 'scripts', 'module-map.json'), JSON.stringify({ packages: WEB_PACKAGES, modules, core: {} }));
++    return dir;
++}
++
++test('--pkg agent-hub: static, lazy, i18n, type-only and undeclared edges each in their section', () => {
++    const analysis = analyze(webFixture(), 'agent-hub');
++    const lines = (section) => Object.fromEntries(Object.entries(analysis[section]).map(([id, hits]) => [id, hits.map((h) => `${h.from}:${h.line} -> ${h.to}`)]));
++    assert.deepEqual(lines('static'), { a: ['src/core/Shell.tsx:1 -> src/a/One.tsx'] });
++    assert.deepEqual(lines('lazy'), { a: ['src/core/Shell.tsx:3 -> src/a/Lazy.tsx'] });
++    assert.deepEqual(lines('i18n'), { a: ['src/i18n/enNamespaces.ts:1 -> src/i18n/en/a.generated.mjs'] });
++    assert.deepEqual(lines('typeOnly'), { a: ['src/core/Shell.tsx:2 -> src/a/types.ts', 'src/core/Shell.tsx:4 -> src/a/Lazy.tsx'] });
++    assert.deepEqual(lines('undeclared'), { 'a -> b': ['src/a/One.tsx:1 -> src/b/y.ts'] });
++    assert.deepEqual(counts(analysis, PACKAGES['agent-hub'].sections), { static: { a: 1 }, lazy: { a: 1 }, i18n: { a: 1 }, typeOnly: { a: 2 }, undeclared: { 'a -> b': 1 } });
++});
++
++test('--pkg agent-hub: seeds its own budget file, holds it, and an undeclared edge over budget fails', () => {
++    const dir = webFixture();
++    assert.equal(run(dir, ['--pkg', 'agent-hub']).code, 0);
++    const budget = JSON.parse(fs.readFileSync(path.join(dir, PACKAGES['agent-hub'].budget), 'utf8'));
++    assert.deepEqual(budget.undeclared, { 'a -> b': 1 });
++    assert.equal(fs.existsSync(path.join(dir, BUDGET_REL)), false, 'the server budget is not touched');
++    assert.match(run(dir, ['--pkg', 'agent-hub']).text, /➖ agent-hub: 2 core -> module type-only imports, at budget/);
++    fs.writeFileSync(path.join(dir, PACKAGES['agent-hub'].budget), JSON.stringify({ ...budget, undeclared: {}, typeOnly: { a: 1 } }));
++    const { code, text } = run(dir, ['--pkg', 'agent-hub']);
++    assert.equal(code, 1);
++    assert.match(text, /1 undeclared module -> module import edges into a -> b, budget is 0/);
++    assert.match(text, /2 core -> module type-only imports into a, budget is 1/);
++    assert.equal(run(dir, ['--pkg', 'nope']).code, 2);
++});
++
++test('the committed web budget covers today\'s agent-hub tree, with no cycle or misplaced file', () => {
++    const budget = JSON.parse(fs.readFileSync(path.join(REPO, PACKAGES['agent-hub'].budget), 'utf8'));
++    const analysis = analyze(REPO, 'agent-hub');
++    const measured = counts(analysis, PACKAGES['agent-hub'].sections);
++    for (const section of Object.keys(PACKAGES['agent-hub'].sections)) {
++        for (const [id, n] of Object.entries(measured[section])) assert.ok(n <= (budget[section][id] ?? 0), `${section}.${id}: measured ${n}, budget ${budget[section][id] ?? 0}`);
++    }
++    assert.equal(analysis.cycle, null);
++    assert.deepEqual(analysis.location, []);
++});
++
+ test('the committed budget covers today\'s tree, and the tree has no undeclared edge, cycle or misplaced file', () => {
+     const budget = JSON.parse(fs.readFileSync(path.join(REPO, BUDGET_REL), 'utf8'));
+     const analysis = analyze(REPO);
+diff --git a/scripts/module-map-edges.mjs b/scripts/module-map-edges.mjs
+index e7cb2d12..a77108e6 100644
+--- a/scripts/module-map-edges.mjs
++++ b/scripts/module-map-edges.mjs
+@@ -285,6 +285,60 @@ function isRuntime(hit, code, strings, local) {
+     return !TYPE_MEMBER_AFTER.test(code.slice(close + 1, close + 40));
+ }
+ 
++/**
++ * The type-only references of a source file: the counterpart of scanSource, which leaves them
++ * out. `import type` / `export type ... from`, an import or re-export whose every named specifier
++ * is `type X` (and that binds no default or namespace), `typeof import('..')` and
++ * `import('..').T` in a type position. Comments and strings are masked first, so a JSDoc
++ * `@type {import('..').T}` is not counted.
++ * @param {string} src
++ * @param {{ local?: (spec: string) => boolean }} [opts] which specifiers name a file of the tree
++ * @returns {{ spec: string, line: number }[]}
++ */
++export function scanTypeOnly(src, opts = {}) {
++    const local = opts.local || isRelative;
++    const { code, strings } = maskSource(src);
++    /** @type {{ quote: number, at: number, kind: string }[]} */
++    const hits = [];
++    const add = (m, kind) => hits.push({ quote: m.index + m[0].length - 1, at: m.index, kind });
++    for (const m of code.matchAll(/(?<![\w$.])(?:import|export)\s+type\s+[\w$*{},\s]*?\bfrom\s*['"]/g)) add(m, 'declared');
++    for (const m of code.matchAll(/(?<![\w$.])(?:import|export)\s+(?!type\s)[\w$*{},\s]*?\bfrom\s*['"]/g)) add(m, 'static');
++    for (const m of code.matchAll(/(?<![\w$.])import\s*\(\s*['"`]/g)) add(m, 'dynamic');
++    const out = [];
++    for (const h of hits) {
++        const lit = strings.get(h.quote);
++        if (!lit || !local(lit.value)) continue;
++        if (h.kind !== 'declared' && isRuntime(h, code, strings, local)) continue;
++        if (h.kind === 'dynamic' && !/^\s*\)/.test(code.slice(lit.end))) continue;
++        out.push({ at: h.at, spec: lit.value, line: src.slice(0, h.at).split('\n').length });
++    }
++    return out.sort((a, b) => a.at - b.at).map(({ spec, line }) => ({ spec, line }));
++}
++
++/**
++ * Every type-only reference between files of a tree (scanTypeOnly per file, resolved like importEdges).
++ * @param {{ treePath: string, abs: string }[]} entries
++ * @param {ResolveOptions} [opts]
++ * @returns {{ from: string, to: string, line: number }[]}
++ */
++export function typeOnlyEdges(entries, opts = {}) {
++    const files = new Set(entries.map((e) => e.treePath));
++    const vite = opts.style === 'vite';
++    const scanOpts = vite ? { local: viteLocal(opts.alias || {}) } : {};
++    const edges = [];
++    for (const { treePath, abs } of entries) {
++        if (!(vite ? VITE_CODE_FILE : CODE_FILE).test(treePath) || TYPE_FILE.test(treePath)) continue;
++        let src;
++        try { src = fs.readFileSync(abs, 'utf8'); } catch { continue; }
++        if (!src.includes('type') && !src.includes('typeof')) continue;
++        for (const hit of scanTypeOnly(src, scanOpts)) {
++            const to = resolveSpecifier(treePath, hit.spec, files, opts);
++            if (to && to !== treePath) edges.push({ from: treePath, to, line: hit.line });
++        }
++    }
++    return edges;
++}
++
+ const EXT = ['.js', '.cjs', '.mjs', '.mts', '.cts', '.json'];
+ const TS_TWIN = { '.js': ['.mts', '.ts'], '.mjs': ['.mts'], '.cjs': ['.cts'] };
+ 
+diff --git a/scripts/module-map-edges.test.mjs b/scripts/module-map-edges.test.mjs
+index 946bf728..7c6fee6b 100644
+--- a/scripts/module-map-edges.test.mjs
++++ b/scripts/module-map-edges.test.mjs
+@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
+ import fs from 'node:fs';
+ import os from 'node:os';
+ import path from 'node:path';
+-import { importEdges, maskSource, resolveSpecifier, scanSource, viteLocal } from './module-map-edges.mjs';
++import { importEdges, maskSource, resolveSpecifier, scanSource, scanTypeOnly, typeOnlyEdges, viteLocal } from './module-map-edges.mjs';
+ 
+ const SOURCE = [
+     "import type { A } from './typeonly';",
+@@ -217,3 +217,37 @@ test('a package name or a scoped package is not an edge in the web client', () =
+     assert.equal(local('@shared/expr'), true);
+     assert.equal(scanSource("import x from '@/x';").length, 0, 'the server scanner keeps relative specifiers only');
+ });
++
++test('scanTypeOnly: the type-only forms scanSource leaves out, and nothing else', () => {
++    const local = viteLocal(VITE.alias);
++    const src = [
++        "import type { T } from '@/types';",
++        "import { type U, type V } from './types';",
++        "export type { W } from '@/types';",
++        "type X = typeof import('./lazyTypes');",
++        "type Y = import('./member').Thing;",
++        "import { type Z, value } from '@/mixed';",
++        "const later = () => import('./runtime');",
++        "/** @type {import('./jsdoc').T} */",
++        "const s = \"import type { Q } from './inString'\";",
++        "import def, { type R } from './withDefault';",
++    ].join('\n');
++    assert.deepEqual(scanTypeOnly(src, { local }), [
++        { spec: '@/types', line: 1 },
++        { spec: './types', line: 2 },
++        { spec: '@/types', line: 3 },
++        { spec: './lazyTypes', line: 4 },
++        { spec: './member', line: 5 },
++    ]);
++});
++
++test('typeOnlyEdges resolves like importEdges and never targets a .d.ts', () => {
++    const entries = viteTree({
++        'src/a.ts': "import type { T } from '@/types';\nimport type { D } from './decl';\ntype L = typeof import('./lazy');\n",
++        'src/types.ts': '',
++        'src/decl.d.ts': '',
++        'src/lazy.tsx': '',
++    });
++    assert.deepEqual(typeOnlyEdges(entries, VITE).map((e) => `${e.from}>${e.to}:${e.line}`), ['src/a.ts>src/types.ts:1', 'src/a.ts>src/lazy.tsx:3']);
++    assert.deepEqual(importEdges(entries, VITE), [], 'none of them is a run-time edge');
++});
