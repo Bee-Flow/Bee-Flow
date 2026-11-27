@@ -1,8 +1,9 @@
 // @typecheck strict
 /**
  * Tenant-isolation fixtures: what a person of org B makes for their own work
- * (a skill, a reusable Step, a Cowork schedule, a reminder, a notification,
- * an icon pack). What a fixture is and how the
+ * (a skill, a reminder, a notification, an icon pack, an integration
+ * connection; what a module adds is beside this file in `personal.<module>.js`).
+ * What a fixture is and how the
  * matrix drives it is in testUtils/tenantFixtures.js, which puts these in its
  * list. Each is the owner's, or shared inside org B only, so a member of org A
  * gets its 404 (or the 403 of a route that names what they may not do).
@@ -36,104 +37,6 @@ const FIXTURES = [
             'POST /api/skills/:id/test': { question: 'What must not be asked here?' },
         },
         orgAdminCaller: true,
-    },
-    {
-        // A reusable Step (an automation of kind block) of user B in org B (routes/step.js).
-        kind: 'step',
-        mount: '/api/step',
-        router: () => require('../../routes/step'),
-        create: async ({ orgId, userId, index }) => {
-            const step = await require('../../stores/automationStore').createStep({
-                userId, organizationId: orgId, title: `Step ${index}`, description: '',
-                definition: {
-                    schemaVersion: 2, trigger: { id: 'trg', type: 'trigger', kind: 'layer_input', params: [] },
-                    steps: [{ id: 'out', type: 'layer_output', fields: {} }], edges: [],
-                },
-            });
-            return present(step, 'createStep').id;
-        },
-        routes: [
-            'GET /api/step/:id', 'GET /api/step/:id/versions', 'PUT /api/step/:id', 'POST /api/step/:id/publish',
-            'POST /api/step/:id/test', 'PUT /api/step/:id/expose', 'PUT /api/step/:id/sharing', 'DELETE /api/step/:id',
-        ],
-        bodies: {
-            'PUT /api/step/:id': { title: 'A title that must not land here' },
-            'PUT /api/step/:id/expose': { exposeAsTool: true },
-            'PUT /api/step/:id/sharing': { isPublished: true, sharedGroups: [] },
-        },
-        orgAdminCaller: true,
-    },
-    {
-        // A Cowork schedule of user B (routes/cowork.js): the owner's alone.
-        kind: 'coworkSchedule',
-        mount: '/api/cowork',
-        router: () => require('../../routes/cowork'),
-        create: async ({ userId, index, outsiderId }) => {
-            const schedule = await require('../../stores/coworkStore').createSchedule({
-                userId, title: `Schedule ${index}`, prompt: 'Summarise the week.', repeatInterval: 'daily',
-                nextRunAt: new Date(Date.now() + 86_400_000).toISOString(),
-            });
-            const id = present(schedule, 'createSchedule').id;
-            // The use case would refuse this (the caller is not a colleague of the owner), so the row goes in by SQL: a
-            // share that names an outsider must still give the outsider nothing (stores/coworkShares.mts LIVE_SHARES).
-            if (outsiderId) await require('../../db').run(`INSERT INTO cowork_shares (schedule_id, user_id, role, added_by) VALUES ($1, $2, 'approver', $3)`, [id, outsiderId, userId]);
-            return id;
-        },
-        routes: [
-            'GET /api/cowork/:id', 'GET /api/cowork/:id/runs', 'GET /api/cowork/:id/stats', 'PUT /api/cowork/:id',
-            'POST /api/cowork/:id/run-now', 'POST /api/cowork/:id/toggle', 'POST /api/cowork/:id/runs/:runId/review',
-            'GET /api/cowork/:id/plan', 'PUT /api/cowork/:id/plan', 'POST /api/cowork/:id/plan/approve', 'DELETE /api/cowork/:id/plan',
-            'POST /api/cowork/:id/plan/try', 'GET /api/cowork/:id/plan/try/:tryId', 'GET /api/cowork/:id/runs/:runId/trace',
-            // Cowork fixing the wiring of a plan that is not approved: the owner's only (usecases/coworkPlanWiringRepair.mts).
-            'POST /api/cowork/:id/plan/fix-wiring',
-            'POST /api/cowork/:id/plan/make',
-            'GET /api/cowork/:id/plan/independence', 'PUT /api/cowork/:id/plan/independence',
-            'GET /api/cowork/:id/hand-over/colleagues', 'POST /api/cowork/:id/hand-over',
-            'GET /api/cowork/:id/start', 'PUT /api/cowork/:id/start',
-            'GET /api/cowork/:id/plan/trust', 'PUT /api/cowork/:id/plan/trust',
-            'GET /api/cowork/:id/routine', 'GET /api/cowork/:id/plan/try/:tryId/compare',
-            // Shared coworks: only the owner manages the shares, and only the owner and the people it is shared with
-            // see it; a member of another organisation gets nothing (usecases/coworkShares.mts).
-            'GET /api/cowork/:id/shares', 'PUT /api/cowork/:id/shares', 'GET /api/cowork/shared/:id',
-            // Run receipts: the owner's only (usecases/coworkReceipts.mts).
-            'GET /api/cowork/:id/receipts', 'GET /api/cowork/:id/runs/:runId/receipt',
-            // What the task remembers from one run to the next, and clearing it: the owner's only (usecases/coworkMemory.mts).
-            'GET /api/cowork/:id/memory', 'POST /api/cowork/:id/memory/clear', 'POST /api/cowork/:id/memory/restore',
-            // Replaying a changed plan on the item's past runs: the owner's only (usecases/coworkReplay.mts).
-            'POST /api/cowork/:id/plan/replay', 'GET /api/cowork/:id/plan/replay/:replayId',
-            // Saving as a template: only the owner saves their item (usecases/coworkTemplates.mts).
-            'POST /api/cowork/:id/save-as-template',
-            'GET /api/cowork/:id/audit',
-            // The goal and its check: the owner's only (usecases/coworkGoals.mts).
-            'GET /api/cowork/:id/goal', 'PUT /api/cowork/:id/goal', 'POST /api/cowork/:id/goal/check',
-            'POST /api/cowork/:id/goal/approve', 'DELETE /api/cowork/:id/goal',
-            // The desk the cowork is on: its owner's only (usecases/coworkDesks.mts).
-            'GET /api/cowork/:id/desk',
-            // What Cowork proposes to change in a plan, and "Undo": the owner's only (usecases/coworkProposals.mts).
-            'GET /api/cowork/:id/proposals', 'POST /api/cowork/:id/proposals', 'POST /api/cowork/:id/proposals/:proposalId/approve',
-            'POST /api/cowork/:id/proposals/:proposalId/dismiss', 'POST /api/cowork/:id/plan/restore',
-            // Letting the AI work it out every run, and its Undo: the owner's only (usecases/coworkSetup.mts).
-            'PUT /api/cowork/:id/setup',
-            'DELETE /api/cowork/:id',
-        ],
-        // The review and plan bodies are validated before the ownership check.
-        bodies: {
-            'POST /api/cowork/:id/runs/:runId/review': { action: 'not_needed' },
-            'PUT /api/cowork/:id/plan': { automationId: 'an-automation-of-the-caller' },
-            'POST /api/cowork/:id/plan/approve': { fingerprint: 'a'.repeat(64) },
-            'PUT /api/cowork/:id/plan/independence': { level: 'asks_everything' },
-            'POST /api/cowork/:id/hand-over': { toUserId: 'a-colleague' },
-            'PUT /api/cowork/:id/start': { kind: 'webhook' },
-            'PUT /api/cowork/:id/plan/trust': { stepId: 'send', recipient: '*', trusted: false },
-            'PUT /api/cowork/:id/shares': { shares: [] },
-            'PUT /api/cowork/:id/goal': { sentence: 'Every mail gets an answer within two working days', targetPercent: 95 },
-            'POST /api/cowork/:id/goal/approve': { fingerprint: 'a'.repeat(64) },
-            'POST /api/cowork/:id/proposals': { instruction: 'Shorten the summary' },
-            'POST /api/cowork/:id/proposals/:proposalId/approve': { fingerprint: 'a'.repeat(64) },
-            'POST /api/cowork/:id/plan/restore': { version: 1 },
-            'POST /api/cowork/:id/memory/restore': { ids: ['a-memory-of-the-owner'] },
-            'PUT /api/cowork/:id/setup': { mode: 'ai' },
-        },
     },
     {
         // A reminder of user B (routes/reminders.js): the owner's alone.
@@ -174,58 +77,6 @@ const FIXTURES = [
             'POST /api/icons/:id/bulk-generate', 'DELETE /api/icons/:id',
         ],
         params: { key: 'home' },
-    },
-    {
-        // An MCP access token of user B (routes/mcpTokens.js): switched and revoked under the caller's user id only.
-        kind: 'mcpToken',
-        mount: '/api/mcp-tokens',
-        router: () => require('../../routes/mcpTokens'),
-        create: async ({ orgId, userId, index }) => {
-            const { record } = await require('../../auth/mcpAccess/tokenStore').createToken({
-                userId, orgId, name: `Token ${index}`, scopes: { automations: { level: 'read' } }, ipAllowlist: null, expiresAt: null,
-            });
-            return /** @type {{ id: string }} */ (record).id;
-        },
-        routes: ['PATCH /api/mcp-tokens/:id', 'DELETE /api/mcp-tokens/:id'],
-        bodies: { 'PATCH /api/mcp-tokens/:id': { enabled: false } },
-    },
-    {
-        // A meeting-summary template of org B (routes/summaryTemplates.js): changed by an admin of org B only.
-        kind: 'summaryTemplate',
-        mount: '/api/summary-templates',
-        router: () => require('../../routes/summaryTemplates'),
-        create: async ({ orgId, userId, index }) => {
-            await require('./organisation').makeOwnerOrgAdmin(userId);
-            const tpl = await require('../../stores/summaryTemplateStore').create({
-                scope: 'org', name: `Summary ${index}`, prompt: 'Summarise the meeting.', organizationId: orgId, createdBy: userId,
-            });
-            return present(tpl, 'create summary template').id;
-        },
-        routes: ['PATCH /api/summary-templates/:id', 'DELETE /api/summary-templates/:id'],
-        bodies: { 'PATCH /api/summary-templates/:id': { name: 'A name that must not land here' } },
-        orgAdminCaller: true,
-    },
-    {
-        // A playbook of user B in org B (routes/playbooks): a member of org A gets the 403 of manage_apps on the
-        // writes and the playbook's 404 on the read; the admin of A, who holds manage_apps in A, the 404.
-        kind: 'playbook',
-        mount: '/api/playbooks',
-        router: () => require('../../routes/playbooks'),
-        create: async ({ orgId, userId, index }) => {
-            const pb = await require('../../stores/playbookStore').createPlaybook({
-                userId, organizationId: orgId, recipeId: 'invoice_tracker', title: `Playbook ${index}`,
-                options: { tableMode: 'new' }, phases: [{ key: 'table', status: 'ready' }], currentPhase: 'table',
-            });
-            return present(pb, 'createPlaybook').id;
-        },
-        params: { key: 'table' },
-        routes: [
-            'GET /api/playbooks/:id', 'PATCH /api/playbooks/:id', 'POST /api/playbooks/:id/phases/:key/access-plan',
-            'POST /api/playbooks/:id/phases/:key/register', 'POST /api/playbooks/:id/phases/:key/resolve-plan',
-            'POST /api/playbooks/:id/phases/:key/retention-preview', 'POST /api/playbooks/:id/phases/:key/retry',
-            'POST /api/playbooks/:id/phases/:key/run', 'POST /api/playbooks/:id/phases/:key/skip', 'DELETE /api/playbooks/:id',
-        ],
-        orgAdminCaller: true,
     },
     {
         // A named integration connection of user B in org B (routes/integrations/connections.js): its owner, or a

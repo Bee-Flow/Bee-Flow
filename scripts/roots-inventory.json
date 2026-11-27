@@ -1723,9 +1723,13 @@
     },
     {
       "file": "server/tenantIsolation.matrix.test.js",
-      "status": "not-applicable",
-      "what": "tenant isolation matrix",
-      "reason": "requires stores and fixtures through module resolution only; walks nothing"
+      "status": "root-aware",
+      "what": "tenant isolation matrix; the stores it initialises are those listTreeDir('stores') lists, its kinds come from testUtils/tenantFixtures.js (listTreeDir)"
+    },
+    {
+      "file": "server/testUtils/absentModuleRoutes.js",
+      "status": "root-aware",
+      "what": "the route sweep over the mount part files of every root (serverTree walkServerTree, hidden modules included) and the ownership map through repoPath('scripts', 'module-map.mjs')"
     },
     {
       "file": "server/testUtils/builderStreamHarness.js",
@@ -1814,6 +1818,11 @@
       "file": "server/testUtils/studioRunTables.js",
       "status": "root-aware",
       "what": "reads stores/studioAppData/<file> through treePath()"
+    },
+    {
+      "file": "server/testUtils/tenantFixtures.js",
+      "status": "root-aware",
+      "what": "the kind files of testUtils/tenantFixtures/ through listTreeDir, every root, a hidden module's left out"
     }
   ]
 }

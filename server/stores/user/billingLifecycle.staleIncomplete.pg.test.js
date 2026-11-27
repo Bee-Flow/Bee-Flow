@@ -14,7 +14,7 @@ process.env.NODE_ENV = 'test';
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { guardedPglitePool, STATUS_WRITE } = require('../../testUtils/stripeWebhookKit');
+const { guardedPglitePool, STATUS_WRITE } = require('../../testUtils/guardedPglitePool');
 
 const { pg, close, failWrites } = guardedPglitePool();
 const { initDB } = require('./schema');

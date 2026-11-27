@@ -55,6 +55,14 @@ async function tableNames() {
 let firstReport = null;
 let tablesAfterFirst = null;
 
+/** The tables of the cross-section that a first-party module's stores create, by module. */
+const MODULE_TABLES = {
+    automation: ['automations', 'automation_runs'],
+    cowork: ['cowork_schedules', 'cowork_runs'],
+    apps: ['studio_apps'],
+    support: ['support_threads'],
+};
+
 test('de ladder draait echt: nul fouten, en de bewezen-missende tabellen bestaan', async () => {
     firstReport = await runMigrations({ log: quiet });
 
@@ -69,11 +77,16 @@ test('de ladder draait echt: nul fouten, en de bewezen-missende tabellen bestaan
     // the empirical evidence, plus a cross-section through the fleet.
     for (const t of [
         'user_sessions', 'users', 'agents', 'agent_conversations', 'direct_conversations',
-        'integration_activity_log', 'automations', 'automation_runs',
-        'cowork_schedules', 'cowork_runs', 'notebook_sources', 'knowledge_bases',
-        'studio_apps', 'support_threads',
+        'integration_activity_log', 'notebook_sources', 'knowledge_bases',
     ]) {
         assert.ok(tablesAfterFirst.has(t), `tabel ontbreekt na migratie: ${t}`);
+    }
+    // The ladder runs the stores of the modules that are here (their composition's stores part): the
+    // cross-section of a module is checked where that module is loaded, in full mode every one of them.
+    const loaded = new Set(require('./modules/firstParty/loader').load().filter((m) => m.state === 'loaded').map((m) => m.id));
+    for (const [moduleId, tables] of Object.entries(MODULE_TABLES)) {
+        if (!loaded.has(moduleId)) continue;
+        for (const t of tables) assert.ok(tablesAfterFirst.has(t), `tabel ontbreekt na migratie: ${t} (module ${moduleId})`);
     }
 });
 
