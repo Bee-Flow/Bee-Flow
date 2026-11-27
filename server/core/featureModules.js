@@ -187,7 +187,14 @@ function featureModule(name) {
  * @returns {FeatureModuleMap[K] | null}
  */
 function optionalFeatureModule(name) {
-    const get = getters.get(name);
+    let get = getters.get(name);
+    if (!get) {
+        // A miss is only an answer once the modules have registered their names. The server and the
+        // test preload load boot/featureModules.js, which opens this channel; a script or the
+        // migration runner may not, and would otherwise see every module as absent.
+        require('../modules/firstParty/registrationChannels').ensureOpen('boot/featureModules');
+        get = getters.get(name);
+    }
     if (get) return get();
     assertProviderNotFailed('featureModules', name);
     return null;

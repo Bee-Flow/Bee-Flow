@@ -332,7 +332,9 @@ router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), requir
      * id collision.
      */
     try {
-        await require('../../stores/datatableStore').purgeUsageFor('kb', kb.id);
+        const datatables = await require('../../modules/firstParty/moduleData').moduleForDataDuty('datatables', 'stores/datatableStore',
+            { duty: 'drop the Used-by rows of a deleted knowledge base', whenDataPresent: 'warn' });
+        if (datatables) await datatables.purgeUsageFor('kb', kb.id);
     } catch (e) {
         log.warn('[KB] datatable usage purge failed:', /** @type {Error} */ (e).message);
     }

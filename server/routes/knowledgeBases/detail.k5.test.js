@@ -88,6 +88,9 @@ const MOCKS = {
     'multer': Object.assign(() => ({ any: () => mw, single: () => mw, array: () => mw }), { memoryStorage: () => ({}) }),
 };
 
+// The route asks the datatables module for its store by name: the same double under that name.
+require('../../core/featureModules').registerFeatureModules({ 'stores/datatableStore': () => MOCKS['../stores/datatableStore'] });
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:kb-detail-k5:${request}`;

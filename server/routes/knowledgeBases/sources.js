@@ -95,6 +95,29 @@ function parseDocFilters(req, sourceId) {
     };
 }
 
+/**
+ * The Used-by rows of the datatables module for one knowledge base, after one of its datatable
+ * sources is gone. Without the module and its data there are none.
+ * @param {string} kbId
+ * @param {{ config?: Record<string, any> | null }} source
+ * @param {string} userId
+ */
+async function reconcileDatatableUsage(kbId, source, userId) {
+    const { moduleForDataDuty } = require('../../modules/firstParty/moduleData');
+    const duty = /** @type {const} */ ({ duty: 'reconcile the Used-by rows after a datatable source is deleted', whenDataPresent: 'warn' });
+    const resolver = await moduleForDataDuty('datatables', 'core/automationRunner/datatableResolve', duty);
+    const kbDatatable = await moduleForDataDuty('datatables', 'core/kb/sources/datatable', duty);
+    if (!resolver || !kbDatatable) return;
+    const { askerContext } = require('../../core/kb/askerContext');
+    const asker = await askerContext(userId);
+    const resolved = await resolver.resolveDatatableForStep(/** @type {string} */ (source.config?.datatableId), { // as the source config stored it
+        userId,
+        orgId: [...asker.orgIds][0] || null,
+        userGroupIds: asker.userGroups,
+    }, { needed: 'viewer' });
+    await kbDatatable.reconcileUsage(kbId, resolved.scope);
+}
+
 // ── GET /:id/sources ────────────────────────────────────────────────
 
 router.get('/:id/sources', requireAuth, requireKbGrade('read'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
@@ -255,15 +278,7 @@ router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowle
     // exactly right, and handing it one source would erase its siblings.
     if (source.kind === 'datatable') {
         try {
-            const { resolveDatatableForStep } = require('../../core/automationRunner/datatableResolve');
-            const { askerContext } = require('../../core/kb/askerContext');
-            const asker = await askerContext(getUserId(req));
-            const resolved = await resolveDatatableForStep(/** @type {string} */ (source.config?.datatableId), { // as the source config stored it
-                userId: getUserId(req),
-                orgId: [...asker.orgIds][0] || null,
-                userGroupIds: asker.userGroups,
-            }, { needed: 'viewer' });
-            await require('../../core/kb/sources/datatable').reconcileUsage(kb.id, resolved.scope);
+            await reconcileDatatableUsage(kb.id, source, getUserId(req));
         } catch (e) {
             // The table may have been deleted first, which took its usage
             // rows with it. Nothing to reconcile, and nothing to report.

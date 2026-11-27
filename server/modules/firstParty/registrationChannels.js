@@ -84,6 +84,16 @@ function openChannel(name) {
     registerModules();
 }
 
+/**
+ * Open the channel `name` unless it is open: for a registry that fills itself on its first miss
+ * (core/featureModules.js), so a process that never loaded the core file that opens the channel
+ * (a script, the migration runner) still gets the modules' rows.
+ * @param {string} name
+ */
+function ensureOpen(name) {
+    if (!channelOf(name).open) openChannel(name);
+}
+
 /** Boot: keep registerModules() from running until releaseModuleRegistration(). */
 function holdModuleRegistration() {
     held += 1;
@@ -111,5 +121,5 @@ function _resetChannelsForTests() {
 }
 
 module.exports = {
-    contribute, openChannel, registerModules, holdModuleRegistration, releaseModuleRegistration, channelSummary, _resetChannelsForTests,
+    contribute, openChannel, ensureOpen, registerModules, holdModuleRegistration, releaseModuleRegistration, channelSummary, _resetChannelsForTests,
 };

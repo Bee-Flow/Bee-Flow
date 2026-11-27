@@ -8,6 +8,8 @@
 
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const {
     moduleForDataDuty, hasSchemaOf, unitsOf, ModuleDataPresentError,
@@ -24,13 +26,19 @@ const FROM_TREE = { from: 'tree' };
 /**
  * A world: the module's state, whether its file is in the tree, whether the ledger holds one
  * of its units (or throws), and what was asked.
- * @param {{ state?: string, inTree?: boolean, schema?: boolean | 'throws', noLedger?: boolean }} w
+ * @param {{ state?: string, inTree?: boolean, schema?: boolean | 'throws', noLedger?: boolean, registry?: false }} w
+ *   registry false: the registry does not know the name (it was never filled, or the name is not declared)
  */
 function world(w) {
     const seen = { queries: 0, warnings: /** @type {string[]} */ ([]), lookups: 0 };
     _setModuleDataDepsForTests({
         state: () => w.state || 'absent',
-        lookup: () => { seen.lookups++; if (w.state === 'failed') throw new ModuleFailedError('compliance', 'featureModules', NAME, 'boom'); return FROM_REGISTRY; },
+        lookup: () => {
+            seen.lookups++;
+            if (w.registry === false) return null;
+            if (w.state === 'failed') throw new ModuleFailedError('compliance', 'featureModules', NAME, 'boom');
+            return w.state === 'loaded' ? FROM_REGISTRY : null;
+        },
         treeModule: () => (w.inTree ? FROM_TREE : null),
         ledgerQuery: () => (w.noLedger ? null : async (/** @type {string} */ sql) => {
             seen.queries++;
@@ -59,11 +67,29 @@ test('row 2, failed: the lookup throws ModuleFailedError, for erasure and retent
     await assert.rejects(moduleForDataDuty('compliance', NAME, WARN), ModuleFailedError);
 });
 
-test('row 3, absent, file in the tree, schema held: the duty runs with the module file', async () => {
-    const seen = world({ inTree: true, schema: true });
+test('a present module is never skipped: the file itself when the registry does not know the name, an error without one', async () => {
+    const seen = world({ state: 'loaded', inTree: true, registry: false });
     assert.equal(await moduleForDataDuty('compliance', NAME, REFUSE), FROM_TREE);
     assert.equal(await moduleForDataDuty('compliance', NAME, WARN), FROM_TREE);
-    assert.equal(seen.lookups, 0);
+    assert.equal(seen.queries, 0);
+    world({ state: 'loaded', inTree: false, registry: false });
+    await assert.rejects(moduleForDataDuty('compliance', NAME, WARN), /module "compliance" is loaded but has no file "stores\/complianceStore"/);
+    world({ state: 'failed', inTree: true, registry: false });
+    await assert.rejects(moduleForDataDuty('compliance', NAME, REFUSE), ModuleFailedError);
+});
+
+test('row 3, absent, file in the tree, schema held: the duty runs with the module file', async () => {
+    world({ inTree: true, schema: true });
+    assert.equal(await moduleForDataDuty('compliance', NAME, REFUSE), FROM_TREE);
+    assert.equal(await moduleForDataDuty('compliance', NAME, WARN), FROM_TREE);
+});
+
+test('a name the registry holds is the answer whatever the state says: a test double of an absent module', async () => {
+    const seen = world({ inTree: false, schema: true });
+    const double = { double: true };
+    _setModuleDataDepsForTests({ lookup: () => double, state: () => 'absent' });
+    assert.equal(await moduleForDataDuty('compliance', NAME, REFUSE), double);
+    assert.equal(seen.queries, 0);
 });
 
 test('row 4, absent, file in the tree, no schema: skipped (null), nothing of the module is loaded', async () => {
@@ -151,4 +177,32 @@ test('the real sources: a file of the tree is required by its tree path; the reg
     } finally {
         registry._clearFeatureModulesForTests('tests/moduleDataProbe');
     }
+});
+
+/**
+ * What a process that loaded nothing but the resolver answers for one name: through the stores'
+ * lookup (no registry loaded) and through the core's (a registry nothing has filled yet).
+ * @param {Record<string, string>} edition
+ */
+function bareProcess(edition) {
+    const code = [
+        'const fromStores = require(process.argv[1]).lookupFeatureModule("compliance/events");',
+        'const fromCore = require(process.argv[2]).optionalFeatureModule("compliance/events");',
+        'process.stdout.write(JSON.stringify({ fromStores: fromStores && Object.keys(fromStores).length > 0, fromCore: fromCore && Object.keys(fromCore).length > 0 }));',
+    ].join('\n');
+    const SERVER = path.join(__dirname, '..', '..');
+    /** @type {NodeJS.ProcessEnv} */
+    const env = { ...process.env, ...edition };
+    for (const key of ['NODE_OPTIONS', 'NODE_TEST_CONTEXT']) delete env[key];
+    for (const key of ['BEEFLOW_HIDE_MODULES', 'BEEFLOW_EDITION', 'BEEFLOW_MODULES']) if (!(key in edition)) delete env[key];
+    const r = spawnSync(process.execPath, ['--require', path.join(SERVER, 'moduleRoots.cjs'), '-e', code,
+        path.join(__dirname, 'moduleData.js'), path.join(SERVER, 'core', 'featureModules.js')], { cwd: SERVER, env, encoding: 'utf8', timeout: 30_000 });
+    assert.equal(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+}
+
+test('the answer does not depend on the entry point: a bare process sees a loaded module, and an absent one as absent', () => {
+    assert.deepEqual(bareProcess({}), { fromStores: true, fromCore: true });
+    assert.deepEqual(bareProcess({ BEEFLOW_EDITION: 'core' }), { fromStores: null, fromCore: null });
+    assert.deepEqual(bareProcess({ BEEFLOW_HIDE_MODULES: 'all' }), { fromStores: null, fromCore: null });
 });

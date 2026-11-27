@@ -125,3 +125,19 @@ rule above.
 - `BEEFLOW_EDITION=core`: on a fresh database nothing of a module is created by an erasure;
   on a database with the modules' schema the erasure reaches the module data as it does
   today. Check one erasure path by hand in both and report what you saw.
+
+## As built (after review)
+
+- The registry is asked first: it holds a name only for a loaded module (or a test's double) and
+  throws for a failed one. Only when it does not answer is the module's state read.
+- A module that is LOADED always gets its duty done: when the registry does not know the name,
+  the module's file is required from the tree; a loaded module without that file is an error.
+  A duty on a present module is never skipped.
+- The answer does not depend on the entry point. `optionalFeatureModule` fills the registry with
+  the modules' names on its first miss (`registrationChannels.ensureOpen`), and the stores'
+  lookup (`moduleData.lookupFeatureModule`), which may not load the core registry, answers from
+  the loader's state when no registry is loaded. Before this, a script or the migration runner
+  that never loaded `boot/featureModules.js` saw every module as absent.
+- The projects of an account live in core tables, so the ledger cannot say whether the module
+  ever wrote any: `erasurePorts.projectTeardown()` refuses when the account owns a project and
+  the module's file is not in the tree.

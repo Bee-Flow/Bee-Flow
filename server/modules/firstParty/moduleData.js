@@ -19,15 +19,21 @@
  * which module owns each unit (core data, because the module may not be there to ask).
  *
  * The core's registry (core/featureModules.js) is read only when it is loaded, never loaded from
- * here: the platform layer does not require the core, and with no registry loaded no module has
- * registered a name, which is what the lookup would answer anyway. lookupFeatureModule is that
- * lookup on its own, for the stores' optional lookups that are not data duties.
+ * here: the platform layer does not require the core. Without it (a script that drives a store on
+ * its own) no name can be registered, so the answer comes from the loader's state: the file of a
+ * loaded module, null for an absent one. The answer never depends on which entry point the process
+ * started from. lookupFeatureModule is that lookup on its own, for the stores' optional lookups
+ * that are not data duties.
+ *
+ * A LOADED module's duty always reaches code: when the registry does not know the name, the
+ * module's file is required from the tree, and a loaded module without that file is an error,
+ * never a skipped duty.
  */
 
 'use strict';
 
 const fs = require('node:fs');
-const { moduleStateOf, assertProviderNotFailed } = require('./moduleState');
+const { moduleStateOf, providerOf, assertProviderNotFailed, ModuleFailedError } = require('./moduleState');
 const OWNERS = require('./migrationOwners.json');
 
 /** @typedef {import('../../core/featureModules').FeatureModuleMap} FeatureModuleMap */
@@ -57,8 +63,19 @@ class ModuleDataPresentError extends Error {
 }
 
 /**
+ * A module's state in this edition, with the loader's verdict in: the loader decides it once per
+ * process (cheap, it reads only the compositions), also in a process that never booted the server.
+ * @param {string} moduleId
+ */
+function stateOf(moduleId) {
+    require('./loader').load();
+    return moduleStateOf(moduleId);
+}
+
+/**
  * The core registry's answer for `name`, exactly optionalFeatureModule(name) when the registry is
- * loaded; without it nothing is registered, so only a failed provider can change the answer.
+ * loaded. Without it nothing can be registered: the file of the loaded module that declares the
+ * name, null when that module is absent, a ModuleFailedError when it failed.
  * @param {string} name
  * @returns {unknown}
  */
@@ -68,8 +85,9 @@ function registryLookup(name) {
     try { file = require.resolve(treePath('core', 'featureModules.js')); } catch { file = null; }
     const registry = file ? require.cache[file] : undefined;
     if (registry?.loaded) return registry.exports.optionalFeatureModule(name);
+    const owner = providerOf('featureModules', name) ?? (require('./loader').load(), providerOf('featureModules', name));
     assertProviderNotFailed('featureModules', name);
-    return null;
+    return owner !== null && moduleStateOf(owner) === 'loaded' ? treeModule(name) : null;
 }
 
 /**
@@ -122,7 +140,7 @@ async function ledgerHolds(units) {
 /** Overridable for the tests of this file (a ledger double, a tree double, a state double). */
 const deps = {
     /** @type {(moduleId: string) => string} */
-    state: moduleStateOf,
+    state: stateOf,
     /** @type {(name: string) => unknown} */
     lookup: registryLookup,
     /** @type {(name: string) => unknown} */
@@ -198,14 +216,33 @@ async function moduleForDataDuty(moduleId, name, opts) {
 }
 
 /**
- * The rows of the header's table, for moduleForDataDuty.
+ * A module that is not absent and whose name the registry did not answer: a failed module is an
+ * error, a loaded one gives its file. Never null: a duty on a present module is not skipped.
+ * @param {string} moduleId
+ * @param {string} name
+ * @param {string} state
+ * @returns {unknown}
+ */
+function presentModule(moduleId, name, state) {
+    if (state === 'failed') throw new ModuleFailedError(moduleId, 'featureModules', name, undefined);
+    const file = deps.treeModule(name);
+    if (!file) throw new Error(`moduleForDataDuty: module "${moduleId}" is loaded but has no file "${name}"`);
+    return file;
+}
+
+/**
+ * The rows of the header's table, for moduleForDataDuty. The registry is asked first: it holds a
+ * name only for a loaded module (or a test's double), and throws for a failed one.
  * @param {string} moduleId
  * @param {string} name
  * @param {DutyOptions} opts
  * @returns {Promise<unknown>}
  */
 async function dutyModule(moduleId, name, opts) {
-    if (deps.state(moduleId) !== 'absent') return deps.lookup(name);
+    const found = deps.lookup(name);
+    if (found) return found;
+    const state = deps.state(moduleId);
+    if (state !== 'absent') return presentModule(moduleId, name, state);
     let held;
     try {
         held = await hasSchemaOf(moduleId);
@@ -241,7 +278,7 @@ function _setModuleDataDepsForTests(next = {}) {
 /** Test seam: the default sources back, caches cleared. */
 function _resetModuleDataForTests() {
     _setModuleDataDepsForTests({
-        state: moduleStateOf, lookup: registryLookup, treeModule, ledgerQuery: defaultLedgerQuery,
+        state: stateOf, lookup: registryLookup, treeModule, ledgerQuery: defaultLedgerQuery,
         log: () => require('../../telemetry/log'), now: () => Date.now(),
     });
 }
