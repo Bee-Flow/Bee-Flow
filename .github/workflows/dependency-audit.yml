@@ -2,7 +2,8 @@
 #
 # Bee Flow ships an A.8.8 control that FAILS a customer's ISO readiness when a
 # critical or high Dependabot alert has been open past 30 days
-# (server/compliance/checks/iso27001/a8-8-vuln-mgmt.js). This repository ran no
+# (compliance/checks/iso27001/a8-8-vuln-mgmt.js in the server tree, that is
+# server/ or the compliance module's root). This repository ran no
 # dependency scanning of its own until this workflow. A supplier assessment by a
 # certified customer (A.5.19–A.5.22) would be right to raise that.
 #

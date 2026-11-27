@@ -41,3 +41,15 @@ test('a brace list in a ci.yml glob follows the file', () => {
     const p = [{ file: 'src/a/runtime/uiBits.jsx', target: 'src/a/runtime/uiBits.tsx' }];
     assert.equal(rewrite("- 'agent-hub/src/a/runtime/{resolve.ts,uiBits.jsx}'", '.github/workflows/ci.yml', p), "- 'agent-hub/src/a/runtime/{resolve.ts,uiBits.tsx}'");
 });
+
+test("ci.yml's root-aware form (core root and module roots) follows the file", () => {
+    const p = [{ file: 'src/a/runtime/uiBits.jsx', target: 'src/a/runtime/uiBits.tsx' }];
+    const roots = '{agent-hub,modules/*/frontend}';
+    assert.equal(rewrite(`- '${roots}/src/a/runtime/uiBits.jsx'`, '.github/workflows/ci.yml', p), `- '${roots}/src/a/runtime/uiBits.tsx'`);
+    assert.equal(
+        rewrite(`- '${roots}/src/a/runtime/{resolve.ts,uiBits.jsx}'`, '.github/workflows/ci.yml', p),
+        `- '${roots}/src/a/runtime/{resolve.ts,uiBits.tsx}'`,
+    );
+    // Another file in the same directory is left alone.
+    assert.equal(rewrite(`- '${roots}/src/a/runtime/{resolve.ts,other.jsx}'`, '.github/workflows/ci.yml', p), `- '${roots}/src/a/runtime/{resolve.ts,other.jsx}'`);
+});

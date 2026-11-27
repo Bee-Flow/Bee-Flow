@@ -35,9 +35,8 @@
     },
     {
       "file": ".github/workflows/ci.yml",
-      "status": "pending",
-      "what": "path filters of the changes job and working-directory server / agent-hub for every test and lint job (plan step 0.8)",
-      "group": "build-ci"
+      "status": "root-aware",
+      "what": "path filters of the changes job name {server,modules/*/server}/ and {agent-hub,modules/*/frontend}/ (plan step 0.8; check-server-manifest.mjs and mobile serverClosure/ciTriggers tests enforce it); test and lint jobs keep working-directory server / agent-hub, the core root the resolver extends"
     },
     {
       "file": ".github/workflows/connector-release.yml",
@@ -47,9 +46,8 @@
     },
     {
       "file": ".github/workflows/dependency-audit.yml",
-      "status": "pending",
-      "what": "names server/compliance/checks/iso27001/a8-8-vuln-mgmt.js, a file that can move with compliance",
-      "group": "build-ci"
+      "status": "root-aware",
+      "what": "no path filter (runs on every pull request); audits the package directories, and names the A.8.8 check by its tree path in a comment"
     },
     {
       "file": ".github/workflows/desktop-release.yml",
@@ -438,9 +436,8 @@
     },
     {
       "file": "scripts/check-server-manifest.mjs",
-      "status": "pending",
-      "what": "asserts the ci.yml mobile and server filters around server/** (modules/*/server/** joins them)",
-      "group": "build-ci"
+      "status": "root-aware",
+      "what": "asserts server/ and modules/ are CommonJS, mobile jest loads the server untransformed, and every server/ or agent-hub/ pattern of ci.yml's changes job names the module roots"
     },
     {
       "file": "scripts/check-server-manifest.test.mjs",
