@@ -11,6 +11,25 @@ transcription and summary pipeline. No bot joins the call. How the import works 
 is described on the [Microsoft 365 page](./microsoft.md#microsoft-teams-meeting-notes); this page is
 about getting there and about the tests that tell you what is still missing.
 
+## Who turns speech into text
+
+Bee Flow does, not Microsoft. The setup page says the same under **How a meeting becomes a note,
+and who turns speech into text**.
+
+1. **Teams records the meeting.** Someone presses record in Teams, or Bee Flow sets the meeting to
+   record automatically when that setting is on. No bot joins the call.
+2. **Bee Flow turns speech into text.** After the meeting Bee Flow fetches the recording, keeps
+   only the sound (the video is deleted at once) and transcribes it with the transcription service
+   chosen for Bee Flow under Admin dashboard, Platform services, Transcription. Teams transcription
+   does not have to be on.
+3. **Bee Flow writes the note.** The summary and the action items come from your own AI models.
+   Microsoft Copilot is not used.
+
+One exception: a meeting that was transcribed in Teams but **not recorded** is imported from the
+text Microsoft made, with the speakers' Teams names. That works only with the two transcript
+switches under [Teams settings](#4-teams-settings), and such a note has no audio. When a meeting
+has both a recording and a Teams transcript, Bee Flow uses the recording.
+
 ## What each member needs
 
 A member gets Teams meeting notes when all of this is true. The setup page shows the same list

@@ -1,5 +1,6 @@
 // Setting up Teams meeting notes for the organisation, top to bottom in the
 // order an organisation admin needs it:
+//   0. how a meeting becomes a note, and who turns speech into text;
 //   1. what a member needs (plan, access, Microsoft account and licence);
 //   2. the two ways Bee Flow can reach the meetings, each with its own action
 //      inside its card: the approval link for Microsoft under "members connect
@@ -20,6 +21,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import TeamsAppImportPanel from './TeamsAppImportPanel';
 import TeamsConnectionTest from './TeamsConnectionTest';
 import TeamsConsentLinkCard from './TeamsConsentLinkCard';
+import TeamsHowItWorksCard from './TeamsHowItWorksCard';
 import TeamsMembersOverview from './TeamsMembersOverview';
 import TeamsRequirementsCard from './TeamsRequirementsCard';
 import TeamsSetupGuide from './TeamsSetupGuide';
@@ -34,6 +36,7 @@ export default function TeamsSetupCards({ homeOrg }: TeamsSetupCardsProps) {
     if (!homeOrg) return <HomeOrgOnlyNotice />;
     return (
         <div className="flex flex-col gap-6">
+            <TeamsHowItWorksCard />
             <TeamsRequirementsCard />
             <TeamsSetupGuide consent={<TeamsConsentLinkCard embedded />} appImport={<TeamsAppImportPanel embedded />} />
             <section className="flex flex-col gap-2" aria-labelledby="teams-test-title">
