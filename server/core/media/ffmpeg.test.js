@@ -21,7 +21,6 @@ const {
 const { conditionArgs, repackArgs } = require('../voice/audioPreprocess');
 const { _decodeArgs: localDecodeArgs } = require('../voice/localWhisper');
 const { _internals: { decodeArgs: npuDecodeArgs } } = require('../voice/npuWhisper');
-const { _scalewayTranscodeArgs, _scalewaySplitArgs } = require('../meetingNotes/summaryHelpers');
 
 const SPEECH = ['-i', '/in/a b.webm', '-y', '-ac', '1', '-ar', '16000'];
 
@@ -33,13 +32,7 @@ const GOLDEN = {
     repack: ['-i', '/in/a.aac', '-y', '-acodec', 'copy', '-f', 'mp4', '-movflags', '+faststart', '/tmp/o.m4a'],
     f32: ['-i', '/in/a.webm', '-y', '-ac', '1', '-ar', '16000', '-acodec', 'pcm_f32le', '-f', 'f32le', '/tmp/o.f32'],
     npu: ['-i', '/in/a.webm', '-y', '-ac', '1', '-ar', '16000', '-acodec', 'pcm_s16le', '-f', 'wav', '/tmp/o.wav'],
-    mp3: ['-i', '/in/a.m4a', '-y', '-ac', '1', '-ar', '16000', '-f', 'mp3', '/tmp/o.mp3'],
-    split: [
-        '-i', '/in/a.m4a', '-y', '-ac', '1', '-ar', '16000',
-        '-f', 'segment', '-segment_time', '600', '-reset_timestamps', '1',
-        '-segment_list', '/tmp/d/list.csv', '-segment_list_type', 'csv',
-        '/tmp/d/chunk_%03d.mp3',
-    ],
+    // mp3 and split: the meeting notes' Scaleway path, ffmpeg.meetingNotes.test.js.
 };
 
 test('preprocessForStt arguments match the fluent-ffmpeg chain', () => {
@@ -62,11 +55,6 @@ test('asM4aIfAdts arguments match the fluent-ffmpeg chain', () => {
 test('local and NPU whisper decode arguments match the fluent-ffmpeg chain', () => {
     assert.deepStrictEqual(localDecodeArgs('/in/a.webm', '/tmp/o.f32'), GOLDEN.f32);
     assert.deepStrictEqual(npuDecodeArgs('/in/a.webm', '/tmp/o.wav'), GOLDEN.npu);
-});
-
-test('Scaleway transcode and split arguments match the fluent-ffmpeg chain', () => {
-    assert.deepStrictEqual(_scalewayTranscodeArgs('/in/a.m4a', '/tmp/o.mp3'), GOLDEN.mp3);
-    assert.deepStrictEqual(_scalewaySplitArgs('/in/a.m4a', '/tmp/d/list.csv', '/tmp/d/chunk_%03d.mp3', 600), GOLDEN.split);
 });
 
 test('buildAudioArgs omits what is not asked for', () => {

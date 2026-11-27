@@ -13,7 +13,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { NL_FIXES, DATA_SHA256, applyNl, up } = require('./add-nl-fix-english-2026-10-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const { english, catalogueFile } = require('../i18n/defaults/treeI18n.testkit');
+const GUI_DEFAULTS = english();
 
 test('every key exists in the English catalog and its Dutch differs from the English', () => {
     for (const [k, v] of Object.entries(NL_FIXES)) {
@@ -57,7 +59,7 @@ test('the migration is registered after the catalogues it corrects, or it never 
     for (const f of fs.readdirSync(__dirname)) {
         if (!/^(add|update)-nl-.*\.js$/.test(f) || f.endsWith('.test.js') || f.startsWith('add-nl-fix-english')) continue;
         let other;
-        try { other = require(path.join(__dirname, f)); } catch { continue; }
+        try { other = catalogueFile(f); } catch { continue; } // whole tree: i18n/defaults/treeI18n.testkit.js
         const keys = [...Object.keys(other?.NL_TRANSLATIONS ?? {}), ...(other?.SAME_AS_ENGLISH ?? [])];
         if (keys.some((k) => k in NL_FIXES)) owners.push(f.replace(/\.js$/, ''));
     }

@@ -22,13 +22,14 @@ const M2 = 'modules/m2/server';
 
 describe('with one root (today)', () => {
     test('dirEntries of a tree directory is the sorted plain read', () => {
-        const dir = path.join(SERVER, 'compliance', 'connectors');
+        // A core directory: in core mode (BEEFLOW_HIDE_MODULES) a module's files are absent from the tree.
+        const dir = path.join(SERVER, 'core', 'http');
         const want = fs.readdirSync(dir).sort().map((name) => ({ name, abs: path.join(dir, name) }));
         assert.deepStrictEqual(dirEntries(dir), want);
     });
 
     test('walkTreeFiles is the recursive read, keyed by the path below the directory', () => {
-        const dir = path.join(SERVER, 'appStudio', 'componentSpecs', 'keys');
+        const dir = path.join(SERVER, 'core', 'http');
         const got = [...walkTreeFiles(dir)];
         assert.ok(got.length > 0);
         for (const { rel, abs } of got) assert.strictEqual(abs, path.join(dir, ...rel.split('/')));

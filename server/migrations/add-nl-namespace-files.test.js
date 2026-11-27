@@ -19,6 +19,7 @@ const { NL_TRANSLATIONS, SAME_AS_ENGLISH, applyNl } = require('./add-nl-namespac
 const { loadNamespaceFiles, sourceHash } = require('../i18n/defaults/nl');
 const { checksumOf } = require('../boot/migrationChecksum');
 const { NL_TRANSLATIONS: LADDER, LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
+const { absentModule } = require('../boot/migrationLadder');
 
 /** sha256 of a migration file's bytes, optionally followed by more input. */
 function fileSha(/** @type {string} */ name, /** @type {string[]} */ ...more) {
@@ -31,7 +32,7 @@ test('it seeds exactly what the data files hold', () => {
     const loaded = loadNamespaceFiles();
     assert.deepStrictEqual({ ...NL_TRANSLATIONS }, loaded.translations);
     assert.deepStrictEqual([...SAME_AS_ENGLISH], loaded.sameAsEnglish);
-    assert.ok(NL_TRANSLATIONS['studio_apps_schema.newer_than_install'], 'the App Studio schema namespace is seeded');
+    // That the App Studio schema namespace is among them is the apps module's: add-nl-namespace-files.apps.test.js.
 });
 
 test('a blob without the keys gets all of them, a workspace\'s own wording is kept, a second run changes nothing', () => {
@@ -57,7 +58,8 @@ test('its ledger checksum covers the data files, so a new or changed file runs i
 
 test('every other entry\'s checksum is still the sha256 of its own file, so nothing already recorded runs again', () => {
     for (const name of [...LOOSE_MIGRATIONS, ...LADDER]) {
-        if (name === 'add-nl-namespace-files') continue;
+        // A name whose module is not here is never run by the ladder, nor its checksum read (boot/migrationLadder.js).
+        if (name === 'add-nl-namespace-files' || absentModule(name)) continue;
         assert.strictEqual(checksumOf(name), fileSha(name), name);
     }
 });

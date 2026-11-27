@@ -16,33 +16,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-process.env.NODE_ENV = 'test';
-process.env.SESSION_SECRET ??= 'ci-session-secret-value-at-least-32-chars-long';
-delete process.env.PII_SERVICE_URL;
-require('../../../testUtils/routeHarness').recordDb();
-
-const registry = require('./registry');
-const { ALL_PII_CATEGORY_IDS } = require('../piiDetection/categories');
+// The org with its two data types, and no guard (callSites.testkit.js).
+const { PROJ, CUST, TEXT, SHIELD } = require('./callSites.testkit').useCustomTypesFixture(test);
 const pii = require('../piiDetection');
-const { _resetLegacyRunner } = require('./legacyRunner');
-
-const PROJ = 'cdt_00000000a1';
-const CUST = 'cdt_00000000b2';
-const TYPES = [
-    { id: PROJ, name: 'Project code names', method: 'words', tokenKey: 'project_code', words: { values: ['Falcon'], caseSensitive: false, wholeWord: true } },
-    { id: CUST, name: 'Customer numbers', method: 'pattern', tokenKey: 'customer_number', pattern: { source: 'KL-\\d{5}', caseSensitive: false, engine: 're2' } },
-];
-const TEXT = 'Status of Falcon for customer KL-12345, please';
-const SHIELD = {
-    enabled: true, privacyScanEnabled: true, dlpEnabled: true, dlpScope: 'all', dlpMode: 'auto_redact',
-    piiDetectionAction: 'tokenize', privacyAction: 'redact', piiFailureMode: 'fail_open',
-    piiDetectionCategories: [...ALL_PII_CATEGORY_IDS, PROJ, CUST],
-    toolPiiPolicy: { external: { blockCategories: [CUST] }, internal: { blockCategories: [] } },
-    customTypesDigest: 'digest-1',
-};
-
-test.before(() => { registry._resetRegistry(); registry.syncOrg('org1', TYPES); });
-test.after(() => _resetLegacyRunner());
 
 const hidden = (s) => !s.includes('Falcon') && !s.includes('KL-12345');
 
@@ -78,19 +54,7 @@ test('chat DLP: found without a guard; fail_open redacts, fail_closed blocks', a
     assert.equal(closed.reason, 'guard_not_installed', 'no guard is still a scan failure for the policy');
 });
 
-test('automations: the same placeholders in a step\'s input', async () => {
-    const safety = require('../../automationRunner/safety');
-    const { createTokenVault } = require('../../automationRunner/tokenVault');
-    const ctx = { tokenVault: createTokenVault({}) };
-    const policy = {
-        shield: SHIELD, orgId: 'org1', piiEnabled: true, action: 'tokenize', regexRules: [], monitorIntegrations: true,
-        scope: { toolInput: true }, privacyScope: 'external', confidence: 0.7, categories: SHIELD.piiDetectionCategories,
-        failureMode: 'fail_open', largeInputPolicy: 'fail_open',
-    };
-    const r = await safety.guardToolInput({ body: TEXT }, policy, { organization_id: 'org1', step_id: 's1' }, 'live', ctx);
-    assert.equal(r.value.body, 'Status of [project_code_1] for customer [customer_number_1], please');
-    assert.equal(ctx.tokenVault.all()['[customer_number_1]'], 'KL-12345');
-});
+// An automation step's input (automationRunner/safety, the automation module's): callSites.automation.test.js.
 
 test('a composed prompt and an attachment: tokenised the same way', async () => {
     const { composeScan } = require('../../dlp/composeScan');

@@ -14,7 +14,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = require('./add-nl-builder-redesign-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 // The namespaces the builder redesign owns.
 //
@@ -45,7 +46,8 @@ const OWNED_PREFIXES = [
 const handoff5 = require('./add-nl-builder-handoff5-translations');
 const fixes = require('./add-nl-builder-fixes-2026-10');
 const mapping = require('./add-nl-builder-mapping-translations');
-const testing = require('./add-nl-automation-testing-translations');
+// The automation module's own catalogue: read from the whole tree (i18n/defaults/treeI18n.testkit.js).
+const testing = require('../i18n/defaults/treeI18n.testkit').catalogue('add-nl-automation-testing-translations');
 // The mapping panel's sample chips (2026-11-04) did the same; their Dutch ships
 // in add-nl-hardcoded-automation-builder-2026-10 (data file).
 const hardcoded = require('./add-nl-hardcoded-automation-builder-2026-10-translations');

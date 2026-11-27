@@ -12,7 +12,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { NL_REWORDED, applyNl } = require('./update-nl-automation-wording-2026-11');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 /** The catalogue that shipped each key's old Dutch. */
 const SHIPPED_BY = {
@@ -23,6 +24,8 @@ const SHIPPED_BY = {
     'automations.library.deleteTitle': 'add-nl-builder-handoff5-translations',
     'automations.repeating.personalData': 'add-nl-repeating-work-translations',
 };
+/** Those catalogues, read from the whole tree: two of them are the automation module's. */
+const SHIPPED = require('../i18n/defaults/treeI18n.testkit').catalogues([...new Set(Object.values(SHIPPED_BY))]);
 const placeholders = (s) => [...String(s).matchAll(/\{([a-z_]+)\}/gi)].map((m) => m[1]).sort();
 
 test('the reworded keys are exactly the six whose English changed, and each exists in English', () => {
@@ -32,7 +35,7 @@ test('the reworded keys are exactly the six whose English changed, and each exis
 
 test('`was` is the Dutch that shipped, so existing installs match it', () => {
     for (const [key, { was }] of Object.entries(NL_REWORDED)) {
-        const shipped = require(`./${SHIPPED_BY[key]}`).NL_TRANSLATIONS[key];
+        const shipped = SHIPPED[SHIPPED_BY[key]].NL_TRANSLATIONS[key];
         assert.ok(shipped && was.includes(shipped), `${key}: shipped ${JSON.stringify(shipped)}`);
     }
 });

@@ -13,7 +13,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { NL_TRANSLATIONS, SAME_AS_ENGLISH, DATA_SHA256, applyNl } = require('./add-nl-admin-studio-4a-2026-11-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const { english, catalogueFile } = require('../i18n/defaults/treeI18n.testkit');
+const GUI_DEFAULTS = english();
 
 // The keys this round added.
 const OWNED_KEYS = new Set([
@@ -192,7 +194,7 @@ test('no other Dutch catalogue seeds these keys', () => {
     for (const f of fs.readdirSync(__dirname)) {
         if (!/^(add|update)-nl-.*\.js$/.test(f) || f.endsWith('.test.js') || f === 'add-nl-admin-studio-4a-2026-11-translations.js') continue;
         let other;
-        try { other = require(path.join(__dirname, f)).NL_TRANSLATIONS; } catch { continue; }
+        try { other = catalogueFile(f).NL_TRANSLATIONS; } catch { continue; } // whole tree: i18n/defaults/treeI18n.testkit.js
         if (!other || typeof other !== 'object') continue;
         for (const k of Object.keys(other)) if (mine.has(k)) clashes.push(`${f}: ${k}`);
     }

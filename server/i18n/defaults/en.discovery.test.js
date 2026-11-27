@@ -17,6 +17,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const { listTreeDir } = require('../../moduleRoots.cjs');
 const { i18nTreeFixture } = require('./treeFixture.testkit.js');
@@ -82,10 +83,8 @@ test('the listed namespaces keep their place: their keys come first, the discove
     assert.deepStrictEqual([...DISCOVERED_NAMESPACES], [...DISCOVERED_NAMESPACES].sort());
 });
 
-test('the App Studio schema namespace is found without a NAMESPACES entry', () => {
-    assert.ok(DISCOVERED_NAMESPACES.includes('studio_apps_schema'));
-    assert.ok(GUI_DEFAULTS['studio_apps_schema.newer_than_install']);
-});
+// That the App Studio schema namespace (the apps module's) is found without a NAMESPACES entry is
+// checked in en.discovery.apps.test.js.
 
 // -- Namespace files in more than one root (server/moduleRoots.cjs) ----------
 // A module keeps its namespace files in modules/<id>/server/i18n/defaults/en/.
@@ -135,6 +134,24 @@ test('a file in a module root meets the same guards: a bad name, a key in the wr
     }
 });
 
+/**
+ * The pinned namespaces whose file no root of this checkout holds. In core mode
+ * (BEEFLOW_HIDE_MODULES) the hidden modules' namespaces are skipped by design, so the checkout
+ * is read in a child process with every module visible; otherwise this process's answer.
+ * @returns {string[]}
+ */
+function skippedInCheckout() {
+    if (!process.env.BEEFLOW_HIDE_MODULES) return [...SKIPPED_NAMESPACES];
+    const env = { ...process.env };
+    for (const key of ['BEEFLOW_HIDE_MODULES', 'NODE_TEST_CONTEXT']) delete env[key];
+    const server = path.resolve(__dirname, '..', '..');
+    const r = spawnSync(process.execPath, ['--require', path.join(server, 'moduleRoots.cjs'), '-e',
+        "process.stdout.write(JSON.stringify(require('./i18n/defaults/en/index.js').SKIPPED_NAMESPACES));"],
+    { cwd: server, env, encoding: 'utf8', timeout: 60_000 });
+    assert.strictEqual(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout);
+}
+
 test('in this checkout no pinned namespace is skipped', () => {
-    assert.deepStrictEqual([...SKIPPED_NAMESPACES], []);
+    assert.deepStrictEqual(skippedInCheckout(), []);
 });

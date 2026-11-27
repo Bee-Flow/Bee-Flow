@@ -8,8 +8,12 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const { NL_TRANSLATIONS, SAME_AS_ENGLISH, MAP_PATH } = require('./add-nl-compliance-center-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+// Its tables are read from the whole tree too: SAME_AS_ENGLISH is computed against the dictionary
+// while the catalogue loads, so in core mode (no compliance namespace) a plain require differs.
+const { english, catalogue } = require('../i18n/defaults/treeI18n.testkit');
+const { NL_TRANSLATIONS, SAME_AS_ENGLISH, MAP_PATH } = catalogue('add-nl-compliance-center-translations');
+const GUI_DEFAULTS = english();
 
 // The families the redesign owns. Every English key under one of these must
 // have Dutch (or be declared identical) — the direction that decides whether

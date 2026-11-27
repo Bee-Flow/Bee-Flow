@@ -26,6 +26,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { listTreeDir, treePath, toTreePath } = require('../../moduleRoots.cjs');
 
 // Lock holders outside jobs/ that export their key (tree paths).
@@ -49,8 +51,33 @@ function lockExports() {
     return found;
 }
 
+/**
+ * lockExports() over the WHOLE tree: the key space is shared by every module, so in core mode
+ * (BEEFLOW_HIDE_MODULES, where a hidden module's files do not load) the same function runs in a
+ * child process with every module visible; otherwise in this process.
+ * @returns {{ where: string, value: unknown }[]}
+ */
+function treeLockExports() {
+    if (!process.env.BEEFLOW_HIDE_MODULES) return lockExports();
+    const server = path.resolve(__dirname, '..', '..');
+    const code = [
+        "const assert = require('node:assert');",
+        "const { listTreeDir, treePath, toTreePath } = require(process.argv[1]);",
+        `const OUTSIDE_JOBS = ${JSON.stringify(OUTSIDE_JOBS)};`,
+        lockExports.toString(),
+        'process.stdout.write(`\\n@@result@@${JSON.stringify(lockExports())}`);',
+        'process.exit(0);', // a job file may hold a timer
+    ].join('\n');
+    const env = { ...process.env };
+    for (const key of ['BEEFLOW_HIDE_MODULES', 'NODE_TEST_CONTEXT']) delete env[key];
+    const r = spawnSync(process.execPath, ['--require', path.join(server, 'moduleRoots.cjs'), '-e', code, path.join(server, 'moduleRoots.cjs')],
+        { cwd: server, env, encoding: 'utf8', timeout: 120_000, maxBuffer: 16 * 1024 * 1024 });
+    assert.strictEqual(r.status, 0, r.stderr);
+    return JSON.parse(r.stdout.slice(r.stdout.lastIndexOf('@@result@@') + '@@result@@'.length)); // after anything a file logged
+}
+
 test('every exported advisory-lock key and name is used by exactly one module', () => {
-    const found = lockExports();
+    const found = treeLockExports();
     // The known exports, so a rename that drops one out of the scan is noticed.
     assert.ok(found.length >= 10, `expected at least 10 exported locks, found ${found.length}`);
     for (const { where, value } of found) {
