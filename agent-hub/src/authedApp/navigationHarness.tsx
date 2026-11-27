@@ -93,6 +93,7 @@ function fakeServer(user: SessionUser | null) {
  */
 function boot(url: string, { user = ADMIN }: BootOptions = {}) {
     window.localStorage.clear();
+    if (user) window.localStorage.setItem('cowork.2.view.' + user.id, 'orb');
     window.sessionStorage.clear();
     // A history entry of our own below the first page, so Back from that page
     // lands somewhere this test owns rather than on the previous test's.
