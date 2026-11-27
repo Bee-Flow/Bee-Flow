@@ -101,16 +101,26 @@ describe('CoworkPage', () => {
             expect(screen.getByRole('button', {name: /Read the Meeting Notes source table/})).toBeInTheDocument();
             expect(screen.getByRole('button', {name: /Show the digest in Cowork/})).toBeInTheDocument();
             until(() => screen.queryByText('Weekly digest', {exact:true}));
-            until(() => screen.queryByText('Waiting for Noor to accept'));
+            until(() => screen.queryByText('You · Weekly digest'));
             until(() => screen.queryByText('Accepted · Starts after the weekly digest'));
-            until(() => screen.queryByText('Pilot questions · Noor, with Alex as stand-in'));
             until(() => screen.queryByRole('button', {name: 'Chat only'}));
+            expect(screen.queryByRole('button', {name: 'Skip intro'})).toBeNull();
         } finally { vi.useRealTimers(); }
         await user.click(screen.getByRole('button', {name: 'Chat only'}));
         first.unmount();
         renderWithClient(<CoworkPage user={viewer}/>);
         expect(await screen.findByRole('textbox', {name: /Ask Bee/})).toBeInTheDocument();
         expect(document.querySelector('.cowork-orb')).toBeNull();
+    });
+    it('lets a new account skip the introduction straight to the view choice', async () => {
+        const user = userEvent.setup();
+        localStorage.removeItem('cowork.2.view.skip-test');
+        serve();
+        renderWithClient(<CoworkPage user={{id: 'skip-test'}} />);
+        expect(screen.getByText('Introducing Cowork 2.0')).toBeInTheDocument();
+        await user.click(await screen.findByRole('button', {name: 'Skip intro'}));
+        expect(screen.getByRole('button', {name: 'Chat only'})).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Read aloud'})).toBeNull();
     });
     it('opens with Bee and a focused input ready for a keyboard request', async () => {
         serve();

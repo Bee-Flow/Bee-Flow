@@ -216,22 +216,19 @@
 .cowork-story-paper { padding: .85rem 1.15rem; background: var(--bg-card); border-inline-start: 2px solid var(--border-default); }
 @media (prefers-reduced-motion: no-preference) {
     .cowork-story-caption .cowork-intro-line { animation: none; }
-    .cowork-story-caption span { animation: cowork-story-phrase .85s ease-out backwards; }
-    .cowork-story-evidence > div { animation: cowork-intro-speak .85s .55s ease-out backwards; }
-    .cowork-story-evidence .cowork-step-rail li { transition: opacity .7s; }
+    .cowork-story-caption span { animation: cowork-story-phrase .6s cubic-bezier(.2, .7, .2, 1) backwards; }
+    .cowork-story-evidence > div { animation: cowork-intro-speak .6s .25s cubic-bezier(.2, .7, .2, 1) backwards; }
+    .cowork-story-evidence .cowork-step-rail li { transition: opacity .45s ease; }
     .cowork-story-evidence .cowork-step-rail li:not([aria-current]) { opacity: .65; }
-    @keyframes cowork-story-phrase { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: blur(0); } }
+    @keyframes cowork-story-phrase { from { opacity: 0; filter: blur(3px); transform: translateY(.3rem); } to { opacity: 1; filter: blur(0); transform: none; } }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .cowork-intro-stage { transition: opacity .55s ease; }
-    .cowork-intro-stage[data-leaving="true"] { opacity: .13; }
+    .cowork-intro-stage { transition: opacity .3s ease, transform .3s ease, filter .3s ease; }
+    .cowork-intro-stage[data-leaving="true"] { opacity: 0; transform: translateY(-.3rem); filter: blur(2px); }
 }
 
 .cowork-intro-orb { width: 100%; }
-.cowork-intro-orb[data-event="status_failed"] { --cowork-event-color: var(--error); }
-.cowork-intro-orb[data-event="status_needs"] { --cowork-event-color: var(--warning); }
-.cowork-intro-orb[data-event="status_done"] { --cowork-event-color: var(--success); }
 .cowork-intro-desk { display: grid; gap: .4rem; padding: .9rem 1.15rem; border-radius: var(--radius-md); background: var(--bg-card); }
 .cowork-intro-desk :is(strong, div, small) { display: flex; align-items: center; gap: .6rem; }
 .cowork-intro-desk strong { margin-bottom: .35rem; }
