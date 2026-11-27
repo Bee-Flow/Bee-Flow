@@ -110,6 +110,17 @@ async function applyCreateSla(thread) {
 
 /** What follows an AI reply to a new ticket: the mail, the escalation and resolution notices, the bell. */
 function afterAiReply(result, { thread, userId, requesterEmail, requesterName, subject, requesterUrl, skipOutboundEmail }) {
+    if (result.sent === false) {
+        // AI replies are set to "draft for staff": the reply is an internal
+        // note, so the customer gets no mail and no notice; staff get a heads-up.
+        notifyStaff({
+            title: `AI draft ready: ${subject}`,
+            message: 'The AI wrote a draft reply for staff to review.',
+            threadId: thread.id,
+        }).catch((e) => bestEffort('routes/support/threadCreate:afterAiReply#draft', e));
+        _emit('thread_updated', { threadId: thread.id });
+        return;
+    }
     if (!skipOutboundEmail) {
         sendOrNotifyStaff(
             sendAiReplyEmail,

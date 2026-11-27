@@ -138,6 +138,23 @@ row under Platform services in the whole-server block.
 | Configure a custom domain (white-label) | [Organisation settings](organisation-settings.md) → Branding (Full tier) |
 | Lock Studio so users can't create their own agents | [Organisation settings](organisation-settings.md) → Studio policy |
 | See how many people use AI and where it goes | [Usage & adoption](usage-and-adoption.md) |
+| Stop the AI from reading or answering support messages | [Support inbox: AI replies](#support-inbox-ai-replies) |
+
+## Support inbox: AI replies
+
+The company support inbox (**Admin dashboard → Whole server → Operations → Support inbox →
+Settings → AI behaviour**) collects the messages from the website contact form and the
+tickets people open in the app. **AI replies** decides what the AI does with them:
+
+| Setting | What happens |
+|---------|--------------|
+| **Answer automatically** (default) | The support agent answers the customer, searching the knowledge bases it was given, and hands the ticket to staff when it is not confident. |
+| **Draft for staff** | The agent writes a reply as an internal note that only staff see. Nothing is sent to the customer until a staff member replies. |
+| **Off** | No message text goes to an AI model: no reply, no knowledge-base search, no automatic tags. The ticket goes straight to staff with the note "AI replies are off for this inbox", and staff are notified as usual. |
+
+Only a platform admin can change it. The setting is for this company inbox only; a mailbox
+inbox in the Support studio keeps its own reply mode. The **Test reply** preview on the Agent
+page still asks the model, with the text you type there.
 
 ## Admin audit trail
 

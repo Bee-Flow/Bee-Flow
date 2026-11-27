@@ -103,6 +103,7 @@ No request schema.
 | `kbIds` | array of string |  |  |
 | `v2Enabled` | boolean |  |  |
 | `autoResolveThreshold` | number |  | min 0; max 1 |
+| `replyMode` | one of `"off"`, `"draft"`, `"auto"` |  |  |
 
 ## `csat`
 
