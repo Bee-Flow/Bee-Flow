@@ -51,6 +51,7 @@ const {
 } = require('../skills/skillStructure');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { optionalFeatureModule } = require('../featureModules');
 const { keepUsableSkills, keepActivatableSkills } = require('../skills/agentOnlySkills.mts');
 const { injectionSkills } = require('../skills/injectionSkills.mts');
 
@@ -448,7 +449,8 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
     let automationStore = null;
     let automationRunner = null;
     try {
-        automationStore = require('../../stores/automationStore');
+        // Without the automation module a linked skill injects its text, as when the runner is missing.
+        automationStore = optionalFeatureModule('stores/automationStore');
         const executeAutomation = require('./automationExecutorPort').getAutomationExecutor();
         automationRunner = executeAutomation ? { executeAutomation } : null;
     } catch (err) { fallback('core/tools/skillInjection:executeActivateSkill', err); /* automation runtime not available — skill→automation links will be skipped */ }

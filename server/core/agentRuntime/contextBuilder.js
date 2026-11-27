@@ -3,7 +3,7 @@ const { processSystemPrompt } = require('../llm/promptUtils');
 const { nowLine } = require('../llm/clock');
 const { buildSkillInjection } = require('../tools/skillInjection');
 const log = require('../../telemetry/log');
-const { noteStaticSkills } = require('../cowork/runActivity.mts');
+const { optionalFeatureModule } = require('../featureModules');
 const {
     toolHintSection, scheduleSection, scheduleCoverageSection, houseStyleSection,
     notebookSections, sidePanelSections, STRICT_KNOWLEDGE_PREAMBLE,
@@ -15,7 +15,7 @@ const { buildToolHint } = require('../integrations/integrationTools');
 const SECTION_DEPS = {
     buildToolHint,
     memoryStore: () => require('../../stores/memoryStore'),
-    sidePanelWebpageContext: () => require('../webpages/sidePanelWebpageContext'),
+    sidePanelWebpageContext: () => optionalFeatureModule('core/webpages/sidePanelWebpageContext'),
     sidePanelDocumentContext: () => require('../documents/sidePanelDocumentContext'),
 };
 
@@ -140,7 +140,7 @@ async function injectSkills({ agent, tools, userId, messageMetadata, forceDynami
 
 /**
  * A Cowork run records which skills took part (core/cowork/runActivity.mts): the static ones are the merged ids the
- * injection did not treat as dynamic, in merged order, as many as it injected.
+ * injection did not treat as dynamic, in merged order, as many as it injected. Without cowork there is no run.
  * @param {import('./chatStream/turnState').MessageMetadata} messageMetadata
  * @param {{ staticCount: number, dynamicSkillIds: string[] }} skillInjection
  * @param {string[]} askedIds the attached ids, then the session ids
@@ -149,7 +149,7 @@ function noteStaticSkillsOfRun(messageMetadata, skillInjection, askedIds) {
     if (!(skillInjection.staticCount > 0) || !messageMetadata) return;
     const dynamic = new Set(skillInjection.dynamicSkillIds);
     const merged = [...new Set(askedIds)];
-    noteStaticSkills(messageMetadata.coworkRun, merged.filter((id) => !dynamic.has(id)).slice(0, skillInjection.staticCount));
+    optionalFeatureModule('core/cowork/runActivity')?.noteStaticSkills(messageMetadata.coworkRun, merged.filter((id) => !dynamic.has(id)).slice(0, skillInjection.staticCount));
 }
 
 module.exports = { buildSystemPrompt };

@@ -90,6 +90,8 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const router = require('./conversationRoutes');
 test.after(() => { Module._resolveFilename = originalResolve; });
+// The route asks for the notebooks module by name (core/featureModules.js): the same stub answers there.
+require('../../../core/featureModules').registerFeatureModules({ 'integrations/workspaceTools': () => MOCKS['../../../integrations/workspaceTools'] });
 
 // A schema refusal travels as an error to the terminal handler, so the harness
 // has to be an app with one.

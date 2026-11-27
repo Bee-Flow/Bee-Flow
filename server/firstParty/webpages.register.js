@@ -14,6 +14,10 @@ function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // documents, webpages, KB
         'services/webpageSnapshot': () => require('../services/webpageSnapshot'),
+        'core/webpages/sidePanelWebpageContext': () => require('../core/webpages/sidePanelWebpageContext'),
+        'integrations/webpageBuilderTools': () => require('../integrations/webpageBuilderTools'),
+        'integrations/webpageDbTools': () => require('../integrations/webpageDbTools'),
+        'integrations/webpagePlanTool': () => require('../integrations/webpagePlanTool'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

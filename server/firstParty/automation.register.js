@@ -29,6 +29,10 @@ function registerFeatureModules() {
         'automation/portability': () => require('../automation/portability'),
         'automation/datatableUsage': () => require('../automation/datatableUsage'),
         'automation/validate': () => require('../automation/validate'),
+        'stores/automationStore': () => require('../stores/automationStore'),
+        'core/runEventBus': () => require('../core/runEventBus'),
+        'automation/agentBinding': () => require('../automation/agentBinding'),
+        'automation/access': () => require('../automation/access'),
     });
 }
 

@@ -13,6 +13,7 @@ const { contribute } = require('../modules/firstParty/registrationChannels');
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'core/tools/datatableTools': () => require('../core/tools/datatableTools'),
     }));
     // The live-datatable listeners (stores/datatableStore/liveChanges.js, this module's): the
     // knowledge-source arm, public webpage snapshots and the cowork items that start on a table.

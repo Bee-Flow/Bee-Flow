@@ -10,10 +10,8 @@
 
 const agentStore = require('../../../stores/agentStore');
 const configStore = require('../../../stores/configStore');
-const { WORKSPACE_TOOLS } = require('../../../integrations/workspaceTools');
-const { BUILDER_TOOLS } = require('../../../integrations/webpageBuilderTools');
 const { DOCUMENT_TOOLS } = require('../../../integrations/documentBuilderTools');
-const { WEBPAGE_DB_TOOLS } = require('../../../integrations/webpageDbTools');
+const { optionalFeatureModule } = require('../../../core/featureModules');
 const { buildDirectChatToolStack } = require('../../../core/tools/directChatToolStack');
 const { emitPhase, emitPhaseEnd } = require('../../../core/agentRuntime/phaseEvents');
 const { hasPermission } = require('../../../auth/permissions');
@@ -116,8 +114,8 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
             },
         });
 
-        // ─── Built-in: set_ai_task tool ────────────────────────────
-        directChatTools.push({
+        // ─── Built-in: set_ai_task tool (with cowork, whose schedule it writes) ──
+        if (optionalFeatureModule('stores/coworkStore')) directChatTools.push({
             type: 'function',
             function: {
                 name: 'set_ai_task',
@@ -150,11 +148,13 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
         // the toolset, the model cannot call it.
         const notebooksEnabled = (await configStore.getConfig('feature_notebooks_enabled')) !== false;
         const { hasCapability } = require('../../../core/entitlements/entitlements');
-        const canUseNotebooks = notebooksEnabled
+        // Without the notebooks module there are no notebook tools to offer.
+        const workspaceTools = optionalFeatureModule('integrations/workspaceTools');
+        const canUseNotebooks = !!workspaceTools && notebooksEnabled
             && await hasCapability('notebooks', { userId, orgId: req.session?.user?.organizationId || req.session?.user?.orgId || null, session: req.session, req })
             && await hasPermission(userId, 'use_notebooks', req.session);
         if (!userSimpleMode && canUseNotebooks) {
-            for (const wsTool of WORKSPACE_TOOLS) {
+            for (const wsTool of workspaceTools.WORKSPACE_TOOLS) {
                 if (!directChatTools.find(t => t.function.name === wsTool.function.name)) {
                     directChatTools.push(wsTool);
                 }
@@ -177,11 +177,14 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
 
         // ─── Built-in: webpage builder tools (gated on webpages beta) ─
         let webpageBetaEnabled = false;
+        // Without the webpages module there are no builder tools to offer.
+        const webpageBuilderTools = optionalFeatureModule('integrations/webpageBuilderTools');
+        const webpageDbTools = optionalFeatureModule('integrations/webpageDbTools');
         try {
             const { userHasBetaFeature: userHasWebpagesBetaForBuilder } = require('../../../core/entitlements/betaFeatures');
-            webpageBetaEnabled = !userSimpleMode && await userHasWebpagesBetaForBuilder(userId, 'webpages', req.session);
+            webpageBetaEnabled = !userSimpleMode && !!webpageBuilderTools && await userHasWebpagesBetaForBuilder(userId, 'webpages', req.session);
             if (webpageBetaEnabled) {
-                for (const tool of BUILDER_TOOLS) {
+                for (const tool of webpageBuilderTools.BUILDER_TOOLS) {
                     if (!directChatTools.find(t => t.function.name === tool.function.name)) {
                         directChatTools.push(tool);
                     }
@@ -189,7 +192,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
                 // DB tools — the editor binds webpageId via the request URL, but
                 // direct chat can target any webpage in the same turn, so we
                 // require webpageId as an explicit arg on each call.
-                for (const tool of WEBPAGE_DB_TOOLS) {
+                for (const tool of webpageDbTools.WEBPAGE_DB_TOOLS) {
                     if (directChatTools.find(t => t.function.name === tool.function.name)) continue;
                     const params = tool.function.parameters || { type: 'object', properties: {}, required: [] };
                     const directTool = {

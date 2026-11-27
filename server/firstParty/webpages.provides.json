@@ -1,5 +1,9 @@
 {
   "featureModules": [
-    "services/webpageSnapshot"
+    "services/webpageSnapshot",
+    "core/webpages/sidePanelWebpageContext",
+    "integrations/webpageBuilderTools",
+    "integrations/webpageDbTools",
+    "integrations/webpagePlanTool"
   ]
 }

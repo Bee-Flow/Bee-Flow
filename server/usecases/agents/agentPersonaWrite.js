@@ -10,6 +10,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 // ── Structured role (A1c) ───────────────────────────────────────────
 //
@@ -17,6 +18,13 @@ const log = require('../../telemetry/log');
 // validation it has to run BEFORE: a persona can add an automation grant to
 // `config.tools`, and a grant that skips `normaliseToolsConfig` is a grant
 // nothing clamped.
+
+/** The automation store and its agent tools, or null without the automation module. */
+function automationModules() {
+    const automationStore = optionalFeatureModule('stores/automationStore');
+    const agentCallable = optionalFeatureModule('automation/agentCallableTools');
+    return automationStore && agentCallable ? { automationStore, agentCallable } : null;
+}
 
 /**
  * Is this an automation the AGENT'S OWNER may hand off to? Returns the verified
@@ -46,13 +54,13 @@ const log = require('../../telemetry/log');
 async function verifyHandoffAutomation(agent, automationId, opts = {}) {
     if (!automationId || !agent || !agent.owner_id) return null;
     try {
-        const automationStore = require('../../stores/automationStore');
-        const automation = await automationStore.getAutomation(automationId);
+        const automationParts = automationModules();
+        if (!automationParts) return null;
+        const automation = await automationParts.automationStore.getAutomation(automationId);
         if (!automation) return null;
         if (automation.userId !== agent.owner_id) return null;
         if (!automation.isActive) return null;
-        const { automationToTool } = require('../../automation/agentCallableTools');
-        const tool = automationToTool(automation);
+        const tool = automationParts.agentCallable.automationToTool(automation);
         const label = tool && tool.function && tool.function.name;
         if (!label) return null;
         if (!(await ensureHandoffBinding(agent, automation, opts))) return null;
@@ -81,15 +89,17 @@ async function verifyHandoffAutomation(agent, automationId, opts = {}) {
  * A new agent has no id yet, so nothing can be bound for it: link it after the
  * first save.
  * @param {AgentRow} agent
- * @param {agentBinding.AutomationRow} automation
+ * @param {import('../../automation/agentBinding').AutomationRow} automation
  * @param {HandoffOpts} [opts]
  */
 async function ensureHandoffBinding(agent, automation, { actorId = null, session = null, newSelection = false } = {}) {
     if (!agent.id) return false;
-    const automationStore = require('../../stores/automationStore');
+    const automationStore = optionalFeatureModule('stores/automationStore');
+    if (!automationStore) return false;
     if (await automationStore.hasAgentBinding(automation.id, agent.id)) return true;
     if (!newSelection || !actorId) return false;
-    const agentBinding = require('../../automation/agentBinding');
+    const agentBinding = optionalFeatureModule('automation/agentBinding');
+    if (!agentBinding) return false;
     const current = await automationStore.listBindingsForAutomation(automation.id);
     await agentBinding.setAgentBindings({
         automation,
@@ -151,7 +161,10 @@ async function resolvePersonaWrite(agent, rawPersona, config, opts = {}) {
     }
 
     let handoff = null;
-    if (persona.unknown.mode === 'handoff' && persona.unknown.automationId) {
+    // Without the automation module a hand-off can be neither checked nor performed: the stored automation id
+    // stays as it is (nothing is dropped, its binding is untouched) and the prompt carries no hand-off line.
+    const automationPresent = !!optionalFeatureModule('stores/automationStore');
+    if (automationPresent && persona.unknown.mode === 'handoff' && persona.unknown.automationId) {
         const storedUnknown = agent && agent.persona !== undefined && agent.persona !== null
             ? personaPrompt.normalisePersona(agent.persona).persona.unknown
             : null;

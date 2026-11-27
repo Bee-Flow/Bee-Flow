@@ -12,6 +12,8 @@ const { makeReadAgentConversation } = require('./sharedThreadRead');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { optionalFeatureModule } = require('../../core/featureModules');
+const { HttpError } = require('../../core/http/errors');
 
 require('../../stores/userStore');
 require('../../stores/usageStore');
@@ -156,12 +158,13 @@ router.get('/:id/conversations/:convId/workspace', async (req, res) => {
     // them to real values. Mirror of directChat.js workspace GET.
     const { restoreTokens } = require('../../core/privacy/piiDetection');
     const _convMap = await require('../../core/dlp/dlpRunner').getConversationTokenMapAsync(req.params.convId);
-    const { resolveWorkspaceContent } = require('../../integrations/workspaceTools');
-    const content = await resolveWorkspaceContent({
+    // Without the notebooks module a linked notebook cannot be read: the conversation's own stored content is shown.
+    const workspaceTools = optionalFeatureModule('integrations/workspaceTools');
+    const content = workspaceTools ? await workspaceTools.resolveWorkspaceContent({
         notebookId: conversation.workspace_notebook_id,
         userId,
         fallbackContent: conversation.workspace_content,
-    });
+    }) : (conversation.workspace_content || '');
     res.json({
         content: restoreTokens(content, _convMap),
         notebookId: conversation.workspace_notebook_id || null,
@@ -184,7 +187,9 @@ router.put('/:id/conversations/:convId/workspace', validate({ body: WorkspaceBod
     // A NEW link needs edit rights on the notebook: the chat's notebook
     // tools write through it (integrations/workspaceTools.js).
     if (notebookId && notebookId !== conversation.workspace_notebook_id) {
-        const refusal = await require('../../integrations/workspaceTools').notebookLinkRefusal(notebookId, userId);
+        const workspaceTools = optionalFeatureModule('integrations/workspaceTools');
+        if (!workspaceTools) throw new HttpError(409, 'module_absent', 'Notebooks are not available on this installation, so none can be linked.');
+        const refusal = await workspaceTools.notebookLinkRefusal(notebookId, userId);
         if (refusal) return res.status(refusal.status).json({ error: refusal.error });
     }
     await agentStore.updateConversationWorkspace(req.params.convId, content || '', notebookId !== undefined ? notebookId : null);

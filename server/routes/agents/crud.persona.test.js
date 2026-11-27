@@ -133,6 +133,10 @@ Module._resolveFilename = function (request, parent, ...rest) {
 const router = require('./crud');
 const { resolvePersonaWrite, verifyHandoffAutomation } = router;
 test.after(() => { Module._resolveFilename = originalResolve; });
+// The persona write asks for the automation module by name (core/featureModules.js): the same stubs answer there.
+require('../../core/featureModules').registerFeatureModules(Object.fromEntries(
+    ['stores/automationStore', 'automation/agentBinding', 'automation/agentCallableTools'].map((name) => [name, () => CRUD_MOCKS[`../../${name}`]]),
+));
 
 function resetFx() {
     fx.userId = 'owner';
@@ -518,4 +522,20 @@ test('a request that sends no persona is untouched by the rule', async () => {
     const { systemPrompt, opts } = lastUpdate();
     assert.strictEqual(systemPrompt, 'edited by hand');
     assert.strictEqual(opts.persona, undefined);
+});
+
+test('without the automation module a hand-off is neither checked nor dropped: the stored id stays, nothing is bound', async () => {
+    const featureModules = require('../../core/featureModules');
+    const store = featureModules._featureModuleGetter('stores/automationStore');
+    featureModules._clearFeatureModulesForTests('stores/automationStore');
+    try {
+        fx.automations['auto-1'] = CALLABLE();
+        const r = await resolvePersonaWrite(AGENT(), HANDOFF, { enabledIntegrations: [] }, { actorId: 'owner' });
+        assert.strictEqual(r.persona.unknown.automationId, 'auto-1');
+        assert.deepStrictEqual(fx.bindCalls, []);
+        assert.ok(!r.warnings.some(w => /auto-1/.test(w)), 'nothing was dropped, so nothing is reported as dropped');
+        assert.ok(!/hand it over with/.test(r.systemPrompt), 'and the prompt promises no hand-off it cannot perform');
+    } finally {
+        featureModules.registerFeatureModules({ 'stores/automationStore': store });
+    }
 });

@@ -97,6 +97,9 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const { validateAgentConfigReferences, applyConfigValidation } = require('./crud');
 test.after(() => { Module._resolveFilename = originalResolve; });
+// toolPolicy/appIndex.js asks for the registry by name (core/featureModules.js): the same stub answers there,
+// or the index would be built from the real registry and the integrations this installation happens to have.
+require('../../core/featureModules').registerFeatureModules({ 'automation/toolRegistry': () => POLICY_MOCKS['../../../automation/toolRegistry'] });
 
 const AGENT = { id: 'a1', owner_id: 'owner', organization_id: null };
 

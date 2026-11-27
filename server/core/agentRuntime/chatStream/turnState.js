@@ -124,10 +124,10 @@ function createTurnLoopState() {
  * entitlement + use_notebooks permission pass, so this mirrors the tool gate
  * exactly without re-running the checks. `workspaceTools` loads
  * integrations/workspaceTools (handed in: it sits in the server's large
- * import cycle, which this module stays out of).
+ * import cycle, which this module stays out of); null without the notebooks module.
  */
 /**
- * @param {{ messageMetadata: MessageMetadata, tools: ToolDef[], conversation: ConversationRow, userId: string, workspaceTools: () => typeof import('../../../integrations/workspaceTools') }} opts
+ * @param {{ messageMetadata: MessageMetadata, tools: ToolDef[], conversation: ConversationRow, userId: string, workspaceTools: () => typeof import('../../../integrations/workspaceTools') | null }} opts
  */
 async function seedNotebookFromEditor({ messageMetadata, tools, conversation, userId, workspaceTools }) {
     const _seedNbContent = messageMetadata?.notebookspaceContent;
@@ -135,8 +135,10 @@ async function seedNotebookFromEditor({ messageMetadata, tools, conversation, us
         t.function?.name === 'notebook_read' || t.function?.name === 'notebook_write');
     if (!_hasNotebookTools || typeof _seedNbContent !== 'string' || _seedNbContent.trim() === '' || !conversation?.id) return;
     try {
-        const { syncClientWorkspaceContent } = workspaceTools();
-        const _seedRes = await syncClientWorkspaceContent(conversation.id, userId, _seedNbContent);
+        // Without the notebooks module there is no notebook to seed.
+        const notebookTools = workspaceTools();
+        if (!notebookTools) return;
+        const _seedRes = await notebookTools.syncClientWorkspaceContent(conversation.id, userId, _seedNbContent);
         if (_seedRes?.seeded) log.info(`[AgentRuntime] Seeded notebook from live editor content (${_seedNbContent.length} chars, ${_seedRes.reason})`);
     } catch (e) {
         log.warn('[AgentRuntime] notebook seed-on-entry failed:', e.message);

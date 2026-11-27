@@ -266,9 +266,19 @@ function finishFill({ db, contract }: Deps): Handler {
     };
 }
 
+/** Without the projects module there is no project to file into: no targets, no folders, and filing says why. */
+const NO_PROJECTS = 'Projects are not available on this installation.';
+const ABSENT_FILING: DocumentFiling = {
+    targets: async () => [],
+    fileDocument: async () => ({ ok: false, error: NO_PROJECTS }),
+    folders: async () => [],
+    placeInFolder: async () => ({ ok: false, error: NO_PROJECTS }),
+};
+
 const realFiling = (): DocumentFiling => {
-    const { featureModule } = nodeRequire('../core/featureModules.js') as { featureModule: (name: string) => unknown };
-    return (featureModule('projects/documentFiling') as { documentFiling: DocumentFiling }).documentFiling;
+    const { optionalFeatureModule } = nodeRequire('../core/featureModules.js') as { optionalFeatureModule: (name: string) => unknown };
+    const filing = optionalFeatureModule('projects/documentFiling') as { documentFiling: DocumentFiling } | null;
+    return filing ? filing.documentFiling : ABSENT_FILING;
 };
 
 /** The handlers on a store (and contract code) of the caller's choosing: the seam the tests use. */

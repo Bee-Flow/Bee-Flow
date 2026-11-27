@@ -10,7 +10,11 @@
     "automation/approvalNotify",
     "automation/portability",
     "automation/datatableUsage",
-    "automation/validate"
+    "automation/validate",
+    "stores/automationStore",
+    "core/runEventBus",
+    "automation/agentBinding",
+    "automation/access"
   ],
   "runnerPorts": [
     "approvals",

@@ -11,7 +11,7 @@
 const log = require('../../../telemetry/log');
 const configStore = require('../../../stores/configStore');
 const { toolSetFingerprint } = require('../../../core/llm/promptCacheStability');
-const { syncClientWorkspaceContent } = require('../../../integrations/workspaceTools');
+const { optionalFeatureModule } = require('../../../core/featureModules');
 const { buildTokenPreservationAddendum } = require('../../../core/dlp/tokenPreservationPrompt');
 const {
     layoutVolatile: layoutVolatileBlock,
@@ -78,8 +78,11 @@ function addTokenPreservationAddendum(turn) {
  */
 async function seedNotebook(turn, notebookspaceContent) {
     if (!(turn.canUseNotebooks && typeof notebookspaceContent === 'string' && notebookspaceContent.trim() !== '' && turn.convId)) return;
+    // Without the notebooks module there is no notebook to seed (canUseNotebooks is then false as well).
+    const workspaceTools = optionalFeatureModule('integrations/workspaceTools');
+    if (!workspaceTools) return;
     try {
-        const seedRes = await syncClientWorkspaceContent(turn.convId, turn.userId, notebookspaceContent);
+        const seedRes = await workspaceTools.syncClientWorkspaceContent(turn.convId, turn.userId, notebookspaceContent);
         if (seedRes?.seeded) log.info(`[DirectChat] Seeded notebook from live editor content (${notebookspaceContent.length} chars, ${seedRes.reason})`);
     } catch (e) {
         log.warn('[DirectChat] notebook seed-on-entry failed:', /** @type {Error} */ (e).message);

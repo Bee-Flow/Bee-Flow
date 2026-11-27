@@ -39,6 +39,7 @@
 
 const { emitProjectEvent } = require('./projectFeed');
 const log = require('../../telemetry/log');
+const { optionalFeatureModule } = require('../featureModules');
 
 // A Map, not an object literal: a plain-object lookup resolves up the prototype
 // chain, so an event typed 'constructor' would match truthily and emit garbage.
@@ -82,7 +83,10 @@ function _remember(runId, ctx) {
 async function _lookup(automationId) {
     if (!automationId) return { projectId: null, title: '' };
     try {
-        const automation = await require('../../stores/automationStore').getAutomation(automationId);
+        // Without the automation module there is no automation to place in a project.
+        const automationStore = optionalFeatureModule('stores/automationStore');
+        if (!automationStore) return { projectId: null, title: '' };
+        const automation = await automationStore.getAutomation(automationId);
         return { projectId: automation?.projectId || null, title: automation?.title || '' };
     } catch (err) {
         log.warn('[ProjectFeed] could not resolve a run\'s project:', /** @type {Error} */ (err).message);
@@ -156,7 +160,10 @@ async function _handle(event) {
 function start() {
     if (_started) return;
     _started = true;
-    const { onAny } = require('../runEventBus');
+    // Without the automation module nothing runs, so there is nothing to bridge.
+    const runEventBus = optionalFeatureModule('core/runEventBus');
+    if (!runEventBus) return;
+    const { onAny } = runEventBus;
     // The bus is synchronous and does not await handlers, so an async handler
     // that rejected would surface as an unhandled rejection. Swallow here.
     _detach = onAny((/** @type {RunEvent} */ event) => {

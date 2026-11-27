@@ -83,6 +83,9 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const router = require('./conversations');
 test.after(() => { Module._resolveFilename = originalResolve; });
+// The route asks for the notebooks module by name (core/featureModules.js): the same stub answers there.
+const featureModules = require('../../core/featureModules');
+featureModules.registerFeatureModules({ 'integrations/workspaceTools': () => MOCKS['../../integrations/workspaceTools'] });
 
 const { dispatcher } = require('../../testUtils/routeHarness');
 
@@ -176,4 +179,16 @@ test('linking a notebook the caller cannot change is refused, and nothing is lin
     const linked = await dispatch({ method: 'PUT', url: '/a1/conversations/c1/workspace', body: { content: 'x', notebookId: 'nb-mine' } });
     assert.strictEqual(linked.statusCode, 200);
     assert.deepStrictEqual(touched.find(t => t.what === 'updateConversationWorkspace').args, ['c1', 'x', 'nb-mine']);
+});
+
+test('without the notebooks module a new notebook link is refused as module_absent, and nothing is linked', async () => {
+    const stub = featureModules._featureModuleGetter('integrations/workspaceTools');
+    featureModules._clearFeatureModulesForTests('integrations/workspaceTools');
+    try {
+        const refused = await dispatch({ method: 'PUT', url: '/a1/conversations/c1/workspace', body: { content: 'x', notebookId: 'nb-mine' } });
+        assert.strictEqual(refused.statusCode, 409);
+        assert.strictEqual(touched.find(t => t.what === 'updateConversationWorkspace'), undefined);
+    } finally {
+        featureModules.registerFeatureModules({ 'integrations/workspaceTools': stub });
+    }
 });
