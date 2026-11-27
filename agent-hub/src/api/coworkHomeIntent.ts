@@ -7,7 +7,7 @@ interface HomeReply {action: HomeAction; answer: string; indices: number[]; sect
 
 interface HomeQuestion {message: string; titles: string[]; tier: string; previous: string}
 
-export async function locateCoworkRequest({message, titles, tier, previous}: HomeQuestion, signal: AbortSignal, partial: (answer: string) => void) {
+async function locateCoworkRequest({message, titles, tier, previous}: HomeQuestion, signal: AbortSignal, partial: (answer: string) => void) {
     const response = await apiRequest('POST /api/cowork/home/intent', {
         body: {message, titles: titles.slice(0, 100).map(title => title.slice(0, 200)), tier, previous: previous.slice(-4000)}, init: {signal, headers: {Accept: 'text/event-stream'}},
     });

@@ -1,3 +1,4 @@
+import { useCoworkMode } from '../coworkDisplayMode';
 import { teamworkRequest } from '../coworkTeamworkRequest';
 import CoworkOperationReview, { type TaskOperation } from './CoworkOperationReview';
 import type { CoworkGlobalDestination } from '@/api/coworkProposals';
@@ -321,7 +322,8 @@ function GuidedTask({ onGone, back, item, facts, view, saved, setView, onAdvance
 
 function useTaskNavigation(panel: CoworkSheetPanelProps['panel']) {
     const initial = panel.kind === 'task' && panel.focus === 'steps' ? 'steps' : 'result';
-    const [advanced, setAdvanced] = useState(false);
+    const mode = useCoworkMode();
+    const [advanced, setAdvanced] = useState(mode === 'advanced');
     const [tab, setTab] = useState<TaskTab>(initial);
     const [view, choose] = useState<OrbView>(panel.kind === 'task' && panel.focus === 'review' ? 'review' : 'overview');
     const [saved, setSaved] = useState(false);

@@ -195,3 +195,13 @@
         background: var(--bg-primary);
     }
 }
+
+.cowork-intro { flex: 1; min-height: 0; overflow: auto; text-align: center; align-content: safe center; padding: 1rem; }
+.cowork-intro .cowork-orb { width: min(34vh, 20rem, 85%); margin-inline: auto; }
+.cowork-intro-line { max-width: 37rem; margin: .75rem auto; font-size: clamp(1.1rem, 2vw, 1.5rem); line-height: 1.35; }
+.cowork-intro-sample { max-width: 25rem; margin: 1rem auto; text-align: start; }
+.cowork-intro-controls { display: flex; justify-content: center; flex-wrap: wrap; align-items: center; gap: .75rem; }
+@media (prefers-reduced-motion: no-preference) {
+    .cowork-intro-line { animation: cowork-intro-speak .48s ease-out both; }
+    @keyframes cowork-intro-speak { from { opacity: 0; transform: translateY(.2rem); } to { opacity: 1; transform: none; } }
+}

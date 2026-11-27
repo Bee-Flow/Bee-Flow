@@ -4,7 +4,7 @@
 // The network is the seam (a recording fetch); no module is mocked.
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import { EntitlementsProvider } from '../licensing/EntitlementsContext';
@@ -77,7 +77,27 @@ async function openDashboard() {
     await userEvent.setup().click(screen.getByRole('button', {name: 'Advanced'}));
 }
 
+beforeEach(() => { localStorage.setItem('cowork.2.view.u1', 'orb'); });
+
 describe('CoworkPage', () => {
+    it('introduces a new account with sample steps, then remembers its chat-only choice', async () => {
+        const user = userEvent.setup();
+        const viewer = {id: 'tour-test'};
+        localStorage.removeItem('cowork.2.view.tour-test');
+        serve();
+        const first = renderWithClient(<CoworkPage user={viewer} />);
+        await user.click(screen.getByRole('button', {name: 'Continue'}));
+        await user.click(screen.getByRole('button', {name: /Write the weekly digest/}));
+        expect(screen.getByRole('status')).toHaveTextContent('decisions');
+        await user.click(screen.getByRole('button', {name: 'Continue'}));
+        expect(await screen.findByText('Weekly digest')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', {name: 'Continue'}));
+        await user.click(screen.getByRole('button', {name: 'Chat only'}));
+        first.unmount();
+        renderWithClient(<CoworkPage user={viewer}/>);
+        expect(await screen.findByRole('textbox', {name: /Ask Bee/})).toBeInTheDocument();
+        expect(document.querySelector('.cowork-orb')).toBeNull();
+    });
     it('opens with Bee and a focused input ready for a keyboard request', async () => {
         serve();
         renderWithClient(<CoworkPage />);

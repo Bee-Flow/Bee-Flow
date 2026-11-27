@@ -1,3 +1,4 @@
+import { useCoworkMode } from './coworkDisplayMode';
 import { advanceLayers, updatePattern } from './coworkOrbPattern';
 import CoworkOrbSources, { type OrbWork } from './CoworkOrbSources';
 import type { NeuralGlyph } from './coworkOrbGlyph';
@@ -25,7 +26,8 @@ export const HasTaskOrb = createContext(false);
 
 export default function CoworkOrb(props: OrbProps) {
     const anchored = useContext(HasTaskOrb);
-    return anchored ? null : <AnimatedOrb {...props} />;
+    const mode = useCoworkMode();
+    return anchored || mode === 'chat' ? null : <AnimatedOrb {...props} />;
 }
 
 function AnimatedOrb({ tone = 'thinking', activity, work }: OrbProps) {

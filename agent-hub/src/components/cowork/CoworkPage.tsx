@@ -13,6 +13,8 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { Settings } from 'lucide-react';
 import { beeTransition } from './beeTransition';
+import CoworkIntroduction from './CoworkIntroduction';
+import { DisplayMode, rememberMode, savedMode, useCoworkMode, type CoworkMode } from './coworkDisplayMode';
 import CoworkHome from './CoworkHome';
 import { GuidedPanelContext, PanelFocusContext } from './panels/panelGuidance';
 import CoworkPageFrame from './CoworkPageFrame';
@@ -103,11 +105,27 @@ function inheritTeamTask(next: CoworkSheetPanel, current: CoworkSheetPanel | nul
     return {...next, request: {...next.request, itemId: next.request.itemId ?? current.request?.itemId}};
 }
 
-export default function CoworkPage({ user = null, initialCoworkId = null, onNavigate }: CoworkPageProps) {
+export default function CoworkPage(props: CoworkPageProps) {
+    const key = props.user?.id ? 'cowork.2.view.' + props.user.id : '';
+    return <CoworkEntry key={key} storageKey={key} {...props} />;
+}
+
+function CoworkEntry({storageKey, ...props}: CoworkPageProps & {storageKey: string}) {
+    const [mode, setMode] = useState(() => storageKey ? savedMode(storageKey) : 'orb');
+    function choose(value: CoworkMode) {
+        rememberMode(storageKey, value);
+        setMode(value);
+    }
+    if (!mode) return <CoworkIntroduction choose={choose} />;
+    return <DisplayMode.Provider value={mode}><CoworkWorkspace {...props} chooseView={() => setMode(null)} /></DisplayMode.Provider>;
+}
+
+function CoworkWorkspace({ user = null, initialCoworkId = null, onNavigate, chooseView }: CoworkPageProps & {chooseView: () => void}) {
     const { t } = useTranslation();
     const [page, setPage] = usePageOfAddress(initialCoworkId);
     const [seed, setSeed] = useState<ComposerSeed | null>(null);
-    const [dashboard, setDashboard] = useState(false);
+    const mode = useCoworkMode();
+    const [dashboard, setDashboard] = useState(mode === 'advanced');
     const label = usePageLabel(page);
     const { scroller, fallback, remember, pressed } = useHomePlace(page ? pageSegment(page) : null);
 
@@ -168,6 +186,7 @@ export default function CoworkPage({ user = null, initialCoworkId = null, onNavi
                                 {pageName('org', t)}
                             </button>
                         )}
+                        <button type="button" className={LINK_INLINE} onClick={chooseView}>{t('cowork_home.intro.view', 'Default view')}</button>
                         <button type="button" className={ICON_BUTTON} aria-label={pageName('settings', t)} title={pageName('settings', t)} onClick={() => open({ kind: 'settings' })} data-testid="cowork-preferences">
                             <Settings aria-hidden="true" size={16} />
                         </button>

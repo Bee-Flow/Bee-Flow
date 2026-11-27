@@ -1,3 +1,4 @@
+import { useCoworkMode } from '../coworkDisplayMode';
 /**
  * A task someone else shared with the reader, opened as a page (`kind: 'shared'` of ../coworkSheetPanels.ts): read
  * only. Its status, name, when it runs, "Shared by …" with what the reader may do, its latest result and its earlier runs (server
@@ -94,7 +95,8 @@ function SharedReadingActions({ advanced, setAdvanced, hasRuns, tab, setTab }: P
 function SharedWorkspace({ itemId, panel, user, open, close, fillComposer }: CoworkSheetPanelProps & { itemId: string }) {
     const { t } = useTranslation();
     const [tab, setTab] = useState<TaskTab>('result');
-    const [advanced, setAdvanced] = useState(false);
+    const mode = useCoworkMode();
+    const [advanced, setAdvanced] = useState(mode === 'advanced');
     const content = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => {
         if (content.current) content.current.scrollTop = 0;

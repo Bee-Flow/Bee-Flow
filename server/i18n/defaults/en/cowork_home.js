@@ -3,6 +3,22 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_home.intro.start": "Hi, I’m Bee. Tell me what you need. Let me show you a weekly meeting digest.",
+    "cowork_home.intro.steps": "I turn your request into steps and test them. Select a step to see what it does.",
+    "cowork_home.intro.result": "Here’s the result. You can ask me to change the summary, share it or open another task.",
+    "cowork_home.intro.choose": "How would you like to use Cowork?",
+    "cowork_home.intro.collect": "Collect meeting notes",
+    "cowork_home.intro.write": "Write the weekly digest",
+    "cowork_home.intro.example": "Cowork 2.0 · Interactive example",
+    "cowork_home.intro.read_hint": "I found two example meeting notes from last week.",
+    "cowork_home.intro.write_hint": "I group the decisions and list who owns each action.",
+    "cowork_home.intro.digest": "### Weekly digest\n\n- **Decision** — Start the pilot on Monday.\n- **Action** — Alex will share the checklist on Friday.",
+    "cowork_home.intro.next": "Continue",
+    "cowork_home.intro.skip": "Choose my view",
+    "cowork_home.intro.listen": "Read aloud",
+    "cowork_home.intro.orb": "Chat with the orb",
+    "cowork_home.intro.chat": "Chat only",
+    "cowork_home.intro.view": "Default view",
     "cowork_home.dialog.no_shared": "Nobody has shared a task with you yet.",
     "cowork_home.dialog.no_tasks": "You have no tasks yet. What would you like me to do?",
     "cowork_home.dialog.other_draft": "Finish or cancel this draft before starting another task.",
