@@ -164,6 +164,10 @@ const { assertProviderNotFailed } = require('../modules/firstParty/moduleState')
  *   'routes/ai/config/frappeCrmTestRoute': typeof import('../routes/ai/config/frappeCrmTestRoute.mts'),
  *   'routes/ai/config/twobaTestRoute': typeof import('../routes/ai/config/twobaTestRoute.mts'),
  *   'usecases/ai/config/scalewayBillingFields': typeof import('../usecases/ai/config/scalewayBillingFields'),
+ *   'stores/automationStore/agentBindingsSweep': typeof import('../stores/automationStore/agentBindingsSweep'),
+ *   'stores/transcription/accountErasure': typeof import('../stores/transcription/accountErasure'),
+ *   'stores/webpage/accountErasure': typeof import('../stores/webpage/accountErasure'),
+ *   'stores/studioApp/accountErasure': typeof import('../stores/studioApp/accountErasure'),
  * }} FeatureModuleMap
  */
 

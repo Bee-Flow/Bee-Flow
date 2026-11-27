@@ -36,6 +36,7 @@ function registerFeatureModules() {
         'core/runEventBus': () => require('../core/runEventBus'),
         'automation/agentBinding': () => require('../automation/agentBinding'),
         'automation/access': () => require('../automation/access'),
+        'stores/automationStore/agentBindingsSweep': () => require('../stores/automationStore/agentBindingsSweep'),
     });
 }
 

@@ -231,6 +231,63 @@ const ERASURE_COVERAGE = Object.freeze({
 });
 
 /**
+ * The tables above, and the other tables the organisation cascade names (orgErasure.js,
+ * organizations.js), that a first-party module creates, keyed by that module: the owner, in
+ * scripts/module-map.json, of the file that creates the table. With the module absent a statement
+ * about one of them runs only when this database holds the module's schema
+ * (modules/firstParty/moduleData.js moduleDataHere); a table not listed here is the core's.
+ * moduleTables.test.js holds this against the tree.
+ * @type {Readonly<Record<string, readonly string[]>>}
+ */
+const MODULE_TABLES = Object.freeze({
+    apps: ['apps', 'studio_app_action_runs', 'studio_app_action_tests', 'studio_app_attachments', 'studio_app_connector_sync',
+        'studio_app_data_meta', 'studio_app_dataset_files', 'studio_app_datasets', 'studio_app_email_log', 'studio_app_members',
+        'studio_app_public_pages', 'studio_app_record_events', 'studio_app_templates', 'studio_app_triggers', 'studio_app_versions',
+        'studio_apps'],
+    automation: ['automation_agent_bindings', 'automation_alert_rules', 'automation_approval_deliveries', 'automation_approvals',
+        'automation_caller_notices', 'automation_event_subscriptions', 'automation_evolutions', 'automation_folders',
+        'automation_form_scenarios', 'automation_golden_runs', 'automation_imports', 'automation_notification_events',
+        'automation_runs', 'automation_schedules', 'automation_shares', 'automation_templates', 'automation_test_cases',
+        'automation_usage', 'automations'],
+    compliance: ['compliance_custom_frameworks', 'compliance_incidents', 'dsr_requests', 'isms_acknowledgements', 'isms_documents',
+        'iso_audits', 'iso_management_reviews', 'iso_nonconformities', 'iso_objectives', 'iso_obligations', 'iso_risk_treatments',
+        'iso_risks', 'iso_soa_entries', 'project_hint_dismissals'],
+    cowork: ['ai_tasks', 'cowork_daily_mail', 'cowork_desk_follows', 'cowork_desk_roles', 'cowork_desks', 'cowork_goal_results',
+        'cowork_goals', 'cowork_habit_offers', 'cowork_habit_signals', 'cowork_proposal_attempts', 'cowork_proposals',
+        'cowork_replay_events', 'cowork_replays', 'cowork_runs', 'cowork_schedules', 'cowork_shares', 'cowork_templates'],
+    custom_integrations: ['org_custom_integration_versions', 'org_custom_integrations'],
+    datatables: ['automation_datatable_usage', 'datatable_grants', 'datatable_models', 'datatables'],
+    meetingNotes: ['gmeet_import_jobs', 'meeting_prefs', 'summary_templates', 'teams_import_jobs', 'transcriptions'],
+    playbooks: ['playbooks'],
+    support: ['support_canned_responses', 'support_inboxes', 'support_messages', 'support_threads'],
+    templates: ['word_templates'],
+    webpages: ['webpage_public_shares', 'webpage_versions', 'webpages'],
+});
+
+/** @type {ReadonlyMap<string, string>} table -> module id */
+const MODULE_OF_TABLE = new Map(Object.entries(MODULE_TABLES).flatMap(([moduleId, tables]) => tables.map((t) => [t, moduleId])));
+
+/**
+ * The first-party module whose table this is, or null for a core table.
+ * @param {string} table
+ * @returns {string | null}
+ */
+function moduleOfTable(table) {
+    return MODULE_OF_TABLE.get(table) ?? null;
+}
+
+/**
+ * Must an erasure statement about `table` run? A core table's: yes. A module's: when that module
+ * is here, or its schema is in this database (moduleDataHere); never decided by a missing table.
+ * @param {string} table
+ * @returns {Promise<boolean>}
+ */
+async function erasesTable(table) {
+    const moduleId = moduleOfTable(table);
+    return moduleId === null || require('../../modules/firstParty/moduleData').moduleDataHere(moduleId);
+}
+
+/**
  * The entries of one mode, as `[table, entry]` pairs in map order.
  * @template {Coverage['mode']} M
  * @param {M} mode
@@ -241,4 +298,4 @@ function entriesOf(mode) {
         Object.entries(ERASURE_COVERAGE).filter(([, c]) => c.mode === mode));
 }
 
-module.exports = { ERASURE_COVERAGE, entriesOf };
+module.exports = { ERASURE_COVERAGE, MODULE_TABLES, moduleOfTable, erasesTable, entriesOf };

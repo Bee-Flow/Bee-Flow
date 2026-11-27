@@ -206,3 +206,21 @@ test('the answer does not depend on the entry point: a bare process sees a loade
     assert.deepEqual(bareProcess({ BEEFLOW_EDITION: 'core' }), { fromStores: null, fromCore: null });
     assert.deepEqual(bareProcess({ BEEFLOW_HIDE_MODULES: 'all' }), { fromStores: null, fromCore: null });
 });
+
+test('moduleDataHere: a present module yes without asking the ledger; an absent one by its schema; an unreadable ledger yes', async () => {
+    const { moduleDataHere } = require('./moduleData');
+    let seen = world({ state: 'loaded', schema: false });
+    assert.equal(await moduleDataHere('compliance'), true);
+    assert.equal(seen.queries, 0);
+    world({ state: 'failed', schema: false });
+    assert.equal(await moduleDataHere('compliance'), true);
+    world({ state: 'absent', schema: true });
+    assert.equal(await moduleDataHere('compliance'), true);
+    world({ state: 'absent', schema: false });
+    assert.equal(await moduleDataHere('compliance'), false);
+    world({ state: 'absent', noLedger: true });
+    assert.equal(await moduleDataHere('compliance'), false);
+    seen = world({ state: 'absent', schema: 'throws' });
+    assert.equal(await moduleDataHere('compliance'), true, 'cannot tell: the statement runs (fail closed)');
+    assert.equal(seen.warnings.length, 0);
+});

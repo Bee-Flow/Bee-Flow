@@ -8,8 +8,10 @@
  *
  * Every function takes deleteUser's `step(name, fn)`: one table or store per
  * step, so a failure is reported by name and the other tables still run. A
- * table an install does not have is not a failure (step() reads
- * isMissingTable). Each step is idempotent, so a reported-incomplete erasure
+ * table of a module runs only while that module is here or its schema is in
+ * this database (erasureCoverage.js erasesTable), so an edition that leaves the
+ * module out still erases its rows and a core install never asks for a table
+ * it does not have. Each step is idempotent, so a reported-incomplete erasure
  * can simply be retried.
  *
  * Table and column names come from erasureCoverage.js, a frozen map in this
@@ -22,7 +24,7 @@
 const { run, getAll } = require('../../db');
 const log = require('../../telemetry/log');
 const { isMissingTable } = require('../../utils/isMissingTable');
-const { entriesOf } = require('./erasureCoverage');
+const { entriesOf, erasesTable } = require('./erasureCoverage');
 
 /** @typedef {(name: string, fn: () => Promise<unknown>) => Promise<void>} Step */
 /** @typedef {import('./erasurePorts').ErasurePorts['content']} ContentPort */
@@ -63,6 +65,7 @@ async function eraseConversations(userId, step) {
  */
 async function eraseOwnedRows(userId, step) {
     for (const [table, { column, detach }] of entriesOf('deleted')) {
+        if (!await erasesTable(table)) continue;
         await step(table, async () => {
             await run(`DELETE FROM ${ident(table)} WHERE ${ident(column)} = $1`, [userId]);
             // A second author column on the same table (an organisation
@@ -81,6 +84,7 @@ async function eraseOwnedRows(userId, step) {
  */
 async function detachRecordRefs(userId, step) {
     for (const [table, { column }] of entriesOf('detached')) {
+        if (!await erasesTable(table)) continue;
         await step(table, async () => {
             for (const col of column.split(',')) {
                 await run(`UPDATE ${ident(table)} SET ${ident(col)} = NULL WHERE ${ident(col)} = $1`, [userId]);
@@ -106,6 +110,7 @@ async function detachRecordRefs(userId, step) {
  */
 async function reassignRecordRefs(userId, step, oldestOrgAdmin) {
     for (const [table, entry] of entriesOf('reassigned')) {
+        if (!await erasesTable(table)) continue;
         await step(table, async () => {
             const col = ident(entry.column);
             if ('via' in entry) {
@@ -140,6 +145,7 @@ async function reassignRecordRefs(userId, step, oldestOrgAdmin) {
  * @param {Step} step
  */
 async function anonymiseSupportThreads(userId, step) {
+    if (!await erasesTable('support_threads')) return;
     await step('support_threads', () => run(
         `UPDATE support_threads
             SET requester_user_id = NULL, requester_email = '', requester_name = NULL,

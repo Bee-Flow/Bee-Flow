@@ -27,6 +27,7 @@ function register() {
         'appStudio/approvalWaits': () => require('../appStudio/approvalWaits.mts'),
         'appStudio/mcpBuilder': () => require('../appStudio/mcpBuilder'),
         'appStudio/mailboxIdentity': () => require('../appStudio/mailboxIdentity'),
+        'stores/studioApp/accountErasure': () => require('../stores/studioApp/accountErasure'),
     }));
 }
 

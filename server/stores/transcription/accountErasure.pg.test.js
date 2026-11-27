@@ -1,28 +1,29 @@
 'use strict';
 
 /**
- * projects/accountContentErasure.js: erasing meeting notes also arms the
- * meeting_tag knowledge sources watching their tags, in every refresh mode,
- * so a colleague's knowledge base drops the erased summaries at its next tick
- * instead of answering from them until its next scheduled pass. The arm is
- * best-effort: a failing kb store never fails the erasure.
- * Real stores on PGlite; the one failure is a swap on the store object.
+ * stores/transcription/accountErasure.js (the meeting notes' part of the
+ * `content` erasure port, projects/accountContentErasure.js): erasing meeting
+ * notes also arms the meeting_tag knowledge sources watching their tags, in
+ * every refresh mode, so a colleague's knowledge base drops the erased
+ * summaries at its next tick instead of answering from them until its next
+ * scheduled pass. The arm is best-effort: a failing kb store never fails the
+ * erasure. Real stores on PGlite; the one failure is a swap on the store object.
  *
- * Run: cd server && node --test projects/accountContentErasure.pg.test.js
+ * Run: cd server && node --test stores/transcription/accountErasure.pg.test.js
  */
 
 const { test, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
-const { usePglitePool } = require('../testUtils/pglitePool');
-const { makeSwaps } = require('../testUtils/swaps');
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const { makeSwaps } = require('../../testUtils/swaps');
 
 const { pg, close } = usePglitePool();
-const transcriptCrypto = require('../stores/transcriptCrypto');
-const transcriptionStore = require('../stores/transcriptionStore');
-const kbStore = require('../stores/knowledgeBases');
-const sourcesStore = require('../stores/kbSources');
-const { eraseTranscriptions, eraseOrgTranscriptions } = require('./accountContentErasure');
+const transcriptCrypto = require('../transcriptCrypto');
+const transcriptionStore = require('../transcriptionStore');
+const kbStore = require('../knowledgeBases');
+const sourcesStore = require('../kbSources');
+const { eraseTranscriptions, eraseOrgTranscriptions } = require('./accountErasure');
 
 const fileSwaps = makeSwaps();
 const testSwaps = makeSwaps();

@@ -8,6 +8,7 @@
     "integrations/webpagePlanTool",
     "auth/webpagePreviewToken",
     "stores/webpageStore",
-    "core/webpages/webpageUsageSync"
+    "core/webpages/webpageUsageSync",
+    "stores/webpage/accountErasure"
   ]
 }

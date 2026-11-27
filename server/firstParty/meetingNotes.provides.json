@@ -3,7 +3,8 @@
     "stores/transcriptionStore",
     "stores/transcriptCrypto",
     "routes/transcriptions/shared",
-    "routes/teamsProviderTest"
+    "routes/teamsProviderTest",
+    "stores/transcription/accountErasure"
   ],
   "runnerPorts": [
     "meetingImports"

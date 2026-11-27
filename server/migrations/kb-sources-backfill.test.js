@@ -105,6 +105,9 @@ test('an unknown future source_type still gets a legacy source instead of being 
 
 // ── The migration against a recording fake database ─────────────────
 
+/** The automation module's data is here (a double for moduleDataHere('automation')). */
+const HERE = async () => true;
+
 function makeDb({ existingSources = [], automationKbIds = ['11111111-2222-3333-4444-555555555555'] } = {}) {
     const writes = [];
     let nextId = 1;
@@ -149,7 +152,7 @@ function makeDb({ existingSources = [], automationKbIds = ['11111111-2222-3333-4
 test('--dry-run writes NOTHING and still reports the full plan', async () => {
     const db = makeDb();
     const logs = [];
-    const stats = await up({ dryRun: true, db, log: (m) => logs.push(m) });
+    const stats = await up({ automationData: HERE, dryRun: true, db, log: (m) => logs.push(m) });
 
     assert.strictEqual(db.writes.length, 0, 'a dry run must not issue a single write');
     assert.strictEqual(stats.knowledgeBases, 1);
@@ -160,7 +163,7 @@ test('--dry-run writes NOTHING and still reports the full plan', async () => {
 
 test('a live run creates the sources, assigns the documents and fixes both columns', async () => {
     const db = makeDb();
-    const stats = await up({ db, log: () => {} });
+    const stats = await up({ automationData: HERE, db, log: () => {} });
 
     assert.strictEqual(db.created.length, 9);
     const kinds = db.created.map(c => c.kind).sort();
@@ -186,7 +189,7 @@ test('re-running finds the existing sources instead of creating a second set', a
         { id: 's-wp', kbId: 'kb-1', kind: 'legacy', config: { sourceType: 'webpage_source' } },
     ];
     const db = makeDb({ existingSources });
-    const stats = await up({ db, log: () => {} });
+    const stats = await up({ automationData: HERE, db, log: () => {} });
 
     assert.strictEqual(stats.sourcesCreated, 0, 'nothing new on a second pass');
     assert.strictEqual(stats.sourcesReused, 9);
@@ -209,7 +212,7 @@ test("only KBs the automations actually name are widened, and they are logged", 
     const ids = ['11111111-2222-3333-4444-555555555555', 'not-a-uuid'];
     const db = makeDb({ automationKbIds: ids });
     const logs = [];
-    const stats = await up({ db, log: (m) => logs.push(m) });
+    const stats = await up({ automationData: HERE, db, log: (m) => logs.push(m) });
 
     assert.deepStrictEqual(stats.automationKbIds, ['11111111-2222-3333-4444-555555555555'],
         'a non-uuid value from a definition never reaches the UPDATE');
@@ -222,8 +225,17 @@ test('a missing kb_sources table stops the migration instead of half-applying it
     const db = makeDb();
     db.getOne = async (sql) => (/to_regclass/.test(sql) ? { t: null } : { ok: 1 });
     const logs = [];
-    const stats = await up({ db, log: (m) => logs.push(m) });
+    const stats = await up({ automationData: HERE, db, log: (m) => logs.push(m) });
     assert.strictEqual(db.writes.length, 0);
     assert.strictEqual(stats.knowledgeBases, 0);
     assert.ok(logs.some(l => /not present yet/.test(l)));
+});
+
+test('without the automation module and its schema the automations are not scanned', async () => {
+    // The double answers the automations scan with one knowledge base id: none here means no scan.
+    const db = makeDb();
+    const stats = await up({ automationData: async () => false, db, log: () => {} });
+    assert.deepStrictEqual(stats.automationKbIds, []);
+    assert.strictEqual(stats.aiStepFromAutomations, 0);
+    assert.ok(stats.sourcesCreated > 0, 'the core part still runs');
 });
