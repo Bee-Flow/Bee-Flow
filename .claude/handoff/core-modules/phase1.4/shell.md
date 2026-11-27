@@ -1,0 +1,122 @@
+# Work list: shell
+
+Generated from `node scripts/module-boundary.mjs --list` and the core-mode run of the core tests.
+
+## Core -> module import edges (46 in 22 files)
+
+- `boot/gates.js`
+  - line 30 -> `learning/requireTraining.js` (learning)
+- `boot/startupJobs.js`
+  - line 45 -> `appStudio/approvalWaits.mts` (apps)
+- `boot/startupTasks.js`
+  - line 110 -> `auth/certificateToken.js` (learning)
+  - line 117 -> `auth/webpagePreviewToken.js` (webpages)
+- `core/integrations/integrationLogging.js`
+  - line 40 -> `stores/orgCustomIntegrationStore.js` (custom_integrations)
+- `core/integrations/integrationTools.js`
+  - line 39 -> `stores/webpageStore.js` (webpages)
+  - line 43 -> `core/customIntegrations/mcpLibrary/gate.js` (custom_integrations)
+  - line 44 -> `stores/orgCustomIntegrationStore.js` (custom_integrations)
+  - line 71 -> `core/tools/datatableTools.js` (datatables)
+- `index.js`
+  - line 231 -> `legal/legalStore.js` (compliance)
+- `integrations/officeDestination.js`
+  - line 32 -> `integrations/msGraphClient.js` (int_microsoft)
+- `integrations/officeFileDelivery.js`
+  - line 72 -> `integrations/nextcloudClient.js` (int_nextcloud)
+  - line 73 -> `integrations/nextcloudFiles/webdav.js` (int_nextcloud)
+- `integrations/toolFamilies.js`
+  - line 68 -> `integrations/nextcloudToolFamily.js` (int_nextcloud)
+- `legal/documentRegistry.js`
+  - line 55 -> `legal/legalStore.js` (compliance)
+- `modules/hostApi.js`
+  - line 116 -> `stores/webpageStore.js` (webpages)
+  - line 254 -> `core/webpages/webpageUsageSync.js` (webpages)
+- `routes/memory.js`
+  - line 600 -> `compliance/dataPortability/stampExport.js` (compliance)
+- `routes/orgPrivacyShield.js`
+  - line 572 -> `compliance/events.js` (compliance)
+- `routes/studio/attention.js`
+  - line 107 -> `projects/completeness.js` (projects)
+  - line 131 -> `stores/studioAppStore.js` (apps)
+  - line 132 -> `stores/automationStore.js` (automation)
+  - line 140 -> `projects/summary.js` (projects)
+  - line 147 -> `routes/projects.js` (projects)
+  - line 148 -> `projects/completeness.js` (projects)
+- `routes/studio/attentionChecks.js`
+  - line 67 -> `projects/completeness.js` (projects)
+- `routes/studio/counts.js`
+  - line 87 -> `auth/datatableAccess.js` (datatables)
+  - line 88 -> `stores/automationStore/core.js` (automation)
+  - line 89 -> `stores/automationStore.js` (automation)
+  - line 90 -> `stores/datatableStore.js` (datatables)
+  - line 91 -> `stores/studioAppStore.js` (apps)
+  - line 92 -> `stores/playbookStore.js` (playbooks)
+  - line 93 -> `stores/webpageStore.js` (webpages)
+  - line 98 -> `routes/transcriptions/shared.js` (meetingNotes)
+- `routes/studio/search.js`
+  - line 95 -> `auth/datatableAccess.js` (datatables)
+  - line 96 -> `stores/automationStore/core.js` (automation)
+  - line 97 -> `stores/datatableStore.js` (datatables)
+  - line 98 -> `stores/studioAppStore.js` (apps)
+  - line 99 -> `stores/webpageStore.js` (webpages)
+  - line 104 -> `routes/transcriptions/shared.js` (meetingNotes)
+- `routes/studioDocuments.js`
+  - line 757 -> `compliance/marking.js` (compliance)
+  - line 783 -> `compliance/marking.js` (compliance)
+- `routes/studioDocuments/notebooks.js`
+  - line 35 -> `usecases/notebookArchive.mts` (notebooks)
+- `routes/webhooks/ncEvents.js`
+  - line 49 -> `stores/automationStore/webhookPolicy.mts` (automation)
+- `routes/wellKnown.js`
+  - line 265 -> `stores/complianceStore.js` (compliance)
+- `shared/appDefinition/schemaEnvelope.mjs`
+  - line 8 -> `shared/appDefinition/schemaVersion.mjs` (apps)
+
+## featureModule() lookups of module files, by name (2): make them optionalFeatureModule
+
+- `core/integrations/integrationTools.js:66` -> `automation/agentCallableTools.js` (automation)
+- `core/integrations/integrationTools.js:45` -> `integrations/customIntegrationRunner.js` (custom_integrations)
+
+## Core test files that fail with every module hidden (40)
+
+- `boot/bootChain.characterisation.test.js`
+- `boot/schemaLedger.integration.test.js`
+- `core/integrations/integrationClients.test.js`
+- `core/integrations/integrationTools.agentAutomations.test.js`
+- `core/integrations/integrationTools.characterisation.test.js`
+- `core/integrations/integrationTools.coworkApps.test.js`
+- `core/integrations/integrationTools.extraApps.test.js`
+- `core/integrations/integrationTools.n8nGrants.test.js`
+- `core/integrations/integrationTools.ncBinding.test.js`
+- `core/integrations/integrationTools.ncCapabilities.test.js`
+- `core/integrations/integrationTools.notebooks.test.js`
+- `core/integrations/integrationTools.outlookMultiProvider.test.js`
+- `core/integrations/integrationTools.permittedApps.test.js`
+- `core/integrations/integrationTools.webpagesGate.test.js`
+- `core/integrations/ncScopeGuard.test.js`
+- `integrations/agentSearchTools.test.js`
+- `integrations/spreadsheetTools.test.js`
+- `integrations/toolFamilies.sharedMailbox.test.js`
+- `integrations/toolFamilies.test.js`
+- `integrations/wordDocumentTools.test.js`
+- `routes/ai.notebookGate.test.js`
+- `routes/memory.authz.test.js`
+- `routes/memory.guards.test.js`
+- `routes/studio/attention.test.js`
+- `routes/studio/attention.validation.test.js`
+- `routes/studio/attentionChecks.test.js`
+- `routes/studio/counts.test.js`
+- `routes/studio/search.test.js`
+- `routes/studioDocuments.editing.test.js`
+- `routes/studioDocuments.houseStyleDeck.test.js`
+- `routes/studioDocuments.permissions.test.js`
+- `routes/studioDocuments.project.test.js`
+- `routes/studioDocuments.test.js`
+- `routes/studioDocuments.validation.test.js`
+- `routes/studioDocuments/notebooks.test.js`
+- `routes/usageAdoption.authz.test.js`
+- `routes/webhooks/ncEvents.rateLimit.test.js`
+- `routes/webhooks/ncEvents.validation.test.js`
+- `routes/writeGates.test.js`
+- `shared/expr/engine.test.mjs`

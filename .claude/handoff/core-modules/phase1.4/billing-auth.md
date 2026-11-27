@@ -1,0 +1,91 @@
+# Work list: billing-auth
+
+Generated from `node scripts/module-boundary.mjs --list` and the core-mode run of the core tests.
+
+## Core -> module import edges (46 in 19 files)
+
+- `auth/accountProvisioning.js`
+  - line 667 -> `services/trialService.js` (billing_stripe)
+- `auth/admin/featureAccessRoutes.js`
+  - line 346 -> `core/customIntegrations/featureFlag.js` (custom_integrations)
+  - line 348 -> `stores/orgCustomIntegrationStore.js` (custom_integrations)
+- `auth/admin/orgRoutes.js`
+  - line 547 -> `services/stripeService.js` (billing_stripe)
+- `auth/automationAuth.js`
+  - line 362 -> `stores/coworkStore.js` (cowork)
+- `auth/decryptAudit.js`
+  - line 79 -> `compliance/events.js` (compliance)
+- `auth/oauth/shared.js`
+  - line 41 -> `stores/coworkStore.js` (cowork)
+- `auth/oauth/ssoConfigRoutes.js`
+  - line 386 -> `routes/teamsProviderTest.mts` (meetingNotes)
+- `core/entitlements/capabilityRegistry.js`
+  - line 74 -> `stores/orgCustomIntegrationStore.js` (custom_integrations)
+  - line 278 -> `stores/lib/customIntegrationSource.js` (custom_integrations)
+- `core/entitlements/chatMonitoringFlag.js`
+  - line 59 -> `stores/complianceStore.js` (compliance)
+  - line 60 -> `stores/dpiaStore.js` (compliance)
+- `routes/ai/config/instanceConfig.js`
+  - line 238 -> `services/stripeService.js` (billing_stripe)
+- `routes/ai/config/integrations.js`
+  - line 87 -> `integrations/n8nTools.js` (int_saas)
+  - line 91 -> `routes/ai/config/n8nOrg.mts` (int_saas)
+  - line 92 -> `usecases/ai/config/n8nKeyPairing.mts` (int_saas)
+  - line 221 -> `integrations/n8nHttp.js` (int_saas)
+  - line 265 -> `routes/ai/config/firebirdTestRoute.js` (int_erp_nl)
+  - line 265 -> `routes/ai/config/frappeCrmTestRoute.mts` (int_erp_nl)
+  - line 265 -> `routes/ai/config/twobaTestRoute.mts` (int_erp_nl)
+  - line 643 -> `integrations/mcpRegistryClient.js` (custom_integrations)
+- `routes/ai/config/userSettings.js`
+  - line 45 -> `integrations/afasTools.js` (int_erp_nl)
+  - line 46 -> `integrations/nmbrsTools.js` (int_erp_nl)
+  - line 48 -> `integrations/vplanTools.js` (int_erp_nl)
+  - line 49 -> `usecases/ai/config/firebirdFields.js` (int_erp_nl)
+  - line 50 -> `usecases/ai/config/frappeCrmFields.mts` (int_erp_nl)
+  - line 52 -> `integrations/scalewayBillingTools.js` (int_saas)
+  - line 53 -> `learning/progressValidation.js` (learning)
+  - line 54 -> `learning/certificates.js` (learning)
+- `routes/integrations/connections.js`
+  - line 365 -> `appStudio/mailboxIdentity.js` (apps)
+- `routes/subscriptions/consumerAccount.js`
+  - line 122 -> `services/trialService.js` (billing_stripe)
+- `routes/subscriptions/lifecycle.js`
+  - line 85 -> `services/stripeService.js` (billing_stripe)
+  - line 203 -> `services/stripeService.js` (billing_stripe)
+  - line 243 -> `services/stripeService.js` (billing_stripe)
+  - line 258 -> `services/stripeService.js` (billing_stripe)
+  - line 286 -> `services/stripeService.js` (billing_stripe)
+  - line 312 -> `services/stripeService.js` (billing_stripe)
+  - line 382 -> `services/stripeService.js` (billing_stripe)
+  - line 403 -> `services/stripeService.js` (billing_stripe)
+- `routes/subscriptions/orgSubscriptions.js`
+  - line 388 -> `services/trialService.js` (billing_stripe)
+- `routes/subscriptions/plans.js`
+  - line 152 -> `services/stripeService.js` (billing_stripe)
+  - line 224 -> `services/stripeService.js` (billing_stripe)
+  - line 278 -> `services/stripeService.js` (billing_stripe)
+- `routes/subscriptions/platformConfig.js`
+  - line 100 -> `services/trialService.js` (billing_stripe)
+  - line 107 -> `services/trialService.js` (billing_stripe)
+- `usecases/integrations/orgIntegrationAvailability.mts`
+  - line 133 -> `stores/githubSyncStore.js` (int_saas)
+
+## Core test files that fail with every module hidden (17)
+
+- `auth/accessRegistry.drift.test.js`
+- `auth/accessRegistry.sweep.test.js`
+- `auth/oauth/shared.test.js`
+- `auth/oauth/ssoConfigRoutes.microsoftTest.test.js`
+- `auth/permissionsOrgGates.orgChoice.test.js`
+- `auth/sessionShapes.contract.test.js`
+- `core/entitlements/capabilityRegistry.customIntegrations.test.js`
+- `routes/ai/config/instanceConfig.save.characterisation.test.js`
+- `routes/ai/config/integrations.firebirdTest.test.js`
+- `routes/ai/config/integrations.frappeCrmTest.test.js`
+- `routes/ai/config/integrations.n8nScope.test.js`
+- `routes/ai/config/integrations.twobaTest.test.js`
+- `routes/ai/config/integrations.validation.test.js`
+- `routes/ai/config/userSettings.validation.test.js`
+- `routes/integrations/connections.test.js`
+- `routes/subscriptions/lifecycle.failedWrite.pg.test.js`
+- `usecases/integrations/orgIntegrationAvailability.test.js`

@@ -1,0 +1,183 @@
+# Work list: kits-scripts
+
+Generated from `node scripts/module-boundary.mjs --list` and the core-mode run of the core tests.
+
+## Core -> module import edges (143 in 24 files)
+
+- `scripts/assistantInstall.js`
+  - line 30 -> `jobs/datatableChangePorts.js` (datatables)
+  - line 31 -> `stores/datatableStore.js` (datatables)
+  - line 32 -> `stores/datatableDbStore.js` (datatables)
+  - line 33 -> `core/dataEngine/queryCompiler.js` (datatables)
+  - line 34 -> `auth/datatableAccess.js` (datatables)
+  - line 35 -> `core/dataEngine/dataModel/migrationPlan.js` (datatables)
+  - line 36 -> `core/dataEngine/dataModel/ddl.js` (datatables)
+  - line 37 -> `core/dataEngine/dataModel/datatableFields.js` (datatables)
+  - line 38 -> `core/dataEngine/datatableLimits.js` (datatables)
+  - line 242 -> `stores/automationStore.js` (automation)
+- `scripts/backfillSavedAudioKeys.js`
+  - line 51 -> `core/meetingNotes/savedAudioStore.js` (meetingNotes)
+  - line 52 -> `jobs/savedAudioBackfill.js` (meetingNotes)
+- `scripts/deleteOrgs.js`
+  - line 46 -> `jobs/datatableChangePorts.js` (datatables)
+- `scripts/genComplianceDemoCatalog.js`
+  - line 28 -> `compliance/checks/index.js` (compliance)
+  - line 29 -> `compliance/registry.js` (compliance)
+  - line 30 -> `compliance/frameworks.js` (compliance)
+  - line 31 -> `compliance/iso/controls.js` (compliance)
+  - line 32 -> `compliance/connectors/index.js` (compliance)
+- `scripts/migrateStudioAppsToPg.js`
+  - line 50 -> `core/dataEngine/computedDialect.js` (datatables)
+  - line 132 -> `appStudio/dataModel.js` (apps)
+- `scripts/playbook-compliance-dry-run.js`
+  - line 40 -> `stores/datatableStore.js` (datatables)
+  - line 41 -> `auth/datatableAccess.js` (datatables)
+  - line 42 -> `core/dataEngine/datatableRuntime.js` (datatables)
+  - line 43 -> `stores/automationStore.js` (automation)
+  - line 44 -> `stores/studioAppStore.js` (apps)
+  - line 45 -> `compliance/frameworkPolicy.js` (compliance)
+  - line 46 -> `compliance/frameworks.js` (compliance)
+  - line 48 -> `playbooks/phases/complianceFacts.js` (playbooks)
+  - line 49 -> `playbooks/phases/compliancePhase.js` (playbooks)
+- `scripts/print-playbook-briefs.js`
+  - line 21 -> `playbooks/recipes/invoiceTracker.js` (playbooks)
+- `scripts/template-to-file.js`
+  - line 47 -> `appStudio/templatePortability.js` (apps)
+  - line 48 -> `appStudio/templates.js` (apps)
+- `scripts/test-automation-e2e.js`
+  - line 24 -> `automation/validate.js` (automation)
+  - line 25 -> `automation/expr.js` (automation)
+  - line 26 -> `automation/bind.js` (automation)
+  - line 27 -> `automation/summarise.js` (automation)
+  - line 28 -> `automation/cron.js` (automation)
+  - line 121 -> `automation/outputSchemas.js` (automation)
+  - line 135 -> `automation/builderTools.js` (automation)
+  - line 157 -> `automation/builderTools.js` (automation)
+  - line 168 -> `automation/shapeCache.js` (automation)
+  - line 188 -> `stores/automationStore.js` (automation)
+  - line 247 -> `core/automationRunner.js` (automation)
+- `testUtils/aiAnswerCacheKit.js`
+  - line 69 -> `core/automationRunner/toolMemo.js` (automation)
+- `testUtils/aiStepHarness.js`
+  - line 53 -> `core/automationRunner/execAi.js` (automation)
+- `testUtils/stripeWebhookKit.js`
+  - line 61 -> `services/stripeService.js` (billing_stripe)
+  - line 76 -> `routes/stripe/webhook.js` (billing_stripe)
+- `testUtils/tenantFixtures.js`
+  - line 126 -> `routes/webpages/index.js` (webpages)
+  - line 128 -> `stores/webpageStore.js` (webpages)
+  - line 178 -> `routes/datatables/index.js` (datatables)
+  - line 180 -> `stores/datatableStore.js` (datatables)
+  - line 209 -> `routes/notebooks.js` (notebooks)
+  - line 209 -> `routes/notebookExport.js` (notebooks)
+- `testUtils/tenantFixtures/automation.js`
+  - line 14 -> `stores/automationStore.js` (automation)
+  - line 42 -> `routes/automation.js` (automation)
+  - line 110 -> `routes/automation.js` (automation)
+  - line 132 -> `routes/automation.js` (automation)
+  - line 154 -> `routes/ai/automationBuilder.js` (automation)
+  - line 168 -> `routes/automation.js` (automation)
+  - line 182 -> `routes/automation.js` (automation)
+  - line 195 -> `routes/automation.js` (automation)
+  - line 210 -> `routes/automation.js` (automation)
+- `testUtils/tenantFixtures/compliance.js`
+  - line 41 -> `routes/compliance/dpia.js` (compliance)
+  - line 52 -> `routes/compliance/aiAct.js` (compliance)
+  - line 67 -> `routes/compliance/projectRegistrations.js` (compliance)
+  - line 84 -> `routes/compliance/incidents.js` (compliance)
+  - line 101 -> `routes/compliance/isoProcess.js` (compliance)
+  - line 115 -> `routes/compliance/isoProcess.js` (compliance)
+  - line 128 -> `routes/compliance/isoProcess.js` (compliance)
+  - line 140 -> `routes/compliance/isoProcess.js` (compliance)
+  - line 152 -> `routes/compliance/isoProcess.js` (compliance)
+  - line 165 -> `routes/compliance/customFrameworks.js` (compliance)
+  - line 183 -> `routes/compliance/customFrameworks.js` (compliance)
+  - line 199 -> `routes/dsr.js` (compliance)
+- `testUtils/tenantFixtures/coworkDesks.js`
+  - line 18 -> `routes/cowork.js` (cowork)
+  - line 20 -> `stores/coworkDesks.mts` (cowork)
+  - line 22 -> `stores/coworkStore.js` (cowork)
+- `testUtils/tenantFixtures/coworkTemplates.js`
+  - line 16 -> `routes/cowork.js` (cowork)
+  - line 18 -> `stores/coworkTemplates.mts` (cowork)
+- `testUtils/tenantFixtures/meetings.js`
+  - line 20 -> `routes/transcriptions.js` (meetingNotes)
+  - line 22 -> `stores/transcriptionStore.js` (meetingNotes)
+- `testUtils/tenantFixtures/orgSettings.js`
+  - line 48 -> `routes/coworkShieldSettings.js` (cowork)
+  - line 53 -> `routes/coworkPolicyRoutes.js` (cowork)
+  - line 83 -> `routes/aiParticipation.js` (projects)
+  - line 88 -> `routes/orgCollab.js` (projects)
+  - line 93 -> `routes/orgAutomationImageAi.mts` (automation)
+  - line 132 -> `routes/orgIntegrations/builder.js` (custom_integrations)
+  - line 144 -> `routes/talkNotesSettings.js` (meetingNotes)
+  - line 148 -> `routes/gmeetNotesSettings.js` (meetingNotes)
+  - line 151 -> `routes/teamsNotesSettings.js` (meetingNotes)
+  - line 154 -> `routes/voiceprints.js` (meetingNotes)
+- `testUtils/tenantFixtures/organisation.js`
+  - line 27 -> `routes/compliance/kbQueryLog.js` (compliance)
+- `testUtils/tenantFixtures/personal.js`
+  - line 44 -> `routes/step.js` (automation)
+  - line 46 -> `stores/automationStore.js` (automation)
+  - line 70 -> `routes/cowork.js` (cowork)
+  - line 72 -> `stores/coworkStore.js` (cowork)
+  - line 182 -> `routes/mcpTokens.js` (mcp_server)
+  - line 196 -> `routes/summaryTemplates.js` (meetingNotes)
+  - line 199 -> `stores/summaryTemplateStore.js` (meetingNotes)
+  - line 213 -> `routes/playbooks/index.js` (playbooks)
+  - line 215 -> `stores/playbookStore.js` (playbooks)
+- `testUtils/tenantFixtures/projects.js`
+  - line 37 -> `routes/projects.js` (projects)
+  - line 101 -> `routes/projects.js` (projects)
+  - line 130 -> `routes/solutionStages.js` (projects)
+  - line 145 -> `routes/projects.js` (projects)
+- `testUtils/tenantFixtures/studioApps.js`
+  - line 19 -> `routes/studioAppData.js` (apps)
+  - line 21 -> `stores/studioAppStore.js` (apps)
+  - line 47 -> `routes/studioAppsRun.js` (apps)
+  - line 49 -> `stores/studioAppStore.js` (apps)
+  - line 70 -> `routes/studioAppFiles.js` (apps)
+  - line 70 -> `routes/studioAppAssets.mts` (apps)
+  - line 74 -> `stores/studioAppStore.js` (apps)
+  - line 90 -> `routes/studioApps/runLog.js` (apps)
+  - line 92 -> `stores/studioAppStore.js` (apps)
+  - line 103 -> `routes/studioApps/triggers.js` (apps)
+  - line 105 -> `stores/studioAppStore.js` (apps)
+  - line 120 -> `routes/studioApps/aiCapabilities.js` (apps)
+  - line 122 -> `stores/studioAppStore.js` (apps)
+  - line 137 -> `routes/studioApps/triggers.js` (apps)
+  - line 138 -> `routes/studioAppWebhook.mts` (apps)
+  - line 142 -> `stores/studioAppStore.js` (apps)
+  - line 158 -> `routes/studioApps.js` (apps)
+  - line 159 -> `routes/studioAppsRun.js` (apps)
+  - line 160 -> `routes/studioAppData.js` (apps)
+  - line 161 -> `routes/studioAppConnectors.js` (apps)
+  - line 162 -> `routes/studioAppFiles.js` (apps)
+  - line 162 -> `routes/studioAppAssets.mts` (apps)
+  - line 163 -> `routes/studioAppDatasets.js` (apps)
+  - line 164 -> `routes/studioAppBrowse.js` (apps)
+  - line 164 -> `routes/studioAppDocuments.js` (apps)
+  - line 166 -> `stores/studioAppStore.js` (apps)
+  - line 211 -> `appStudio/componentSpecs.js` (apps)
+  - line 221 -> `routes/studioApps.js` (apps)
+  - line 223 -> `stores/studioAppTemplateStore.js` (apps)
+  - line 240 -> `routes/ai/appStudioBuilder.js` (apps)
+  - line 242 -> `stores/studioAppStore.js` (apps)
+- `testUtils/tenantFixtures/support.js`
+  - line 26 -> `routes/supportInbox.js` (support)
+  - line 36 -> `stores/supportInboxStore.js` (support)
+  - line 67 -> `stores/supportStore.js` (support)
+  - line 88 -> `stores/supportStore.js` (support)
+  - line 101 -> `stores/supportStore.js` (support)
+  - line 113 -> `routes/support.js` (support)
+  - line 115 -> `stores/supportStore.js` (support)
+
+## Core test files that fail with every module hidden (7)
+
+- `migrateDb.erasure.integration.test.js`
+- `migrateDb.integration.test.js`
+- `routes.contract.test.js`
+- `scripts/content/beeflowSite.test.js`
+- `scripts/migrateStudioAppsToPg.test.js`
+- `scripts/template-to-file.test.js`
+- `testUtils/compositionText.test.js`
