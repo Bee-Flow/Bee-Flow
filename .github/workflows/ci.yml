@@ -342,6 +342,8 @@ jobs:
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
               - 'scripts/prefetch-node-headers.sh'
+              # server-core: the boot check, and the ownership map its --scope core reads
+              - 'scripts/{core-boot-check.mjs,module-map.json}'
             # The server side of the agent-hub tests is their transitive
             # require graph, not only the files they name: a whole directory
             # where the tests list it or load most of it, single files where
@@ -1000,6 +1002,54 @@ jobs:
       # test values itself.
       - name: Tests against Postgres
         run: npm run test:postgres
+
+  # The core stands without its modules. The boundary ratchet catches the next
+  # import from a core file into a module; this catches a core file that needs a
+  # module's TABLE, or a boot step that needs a module. With every module's files
+  # absent (BEEFLOW_HIDE_MODULES=all) and with them present but not loaded
+  # (BEEFLOW_EDITION=core): schema on an empty database twice, boot, probe
+  # /api/ready and a few routes, SIGTERM (scripts/core-boot-check.mjs). Then the
+  # core's own tests with every module hidden; until the list in
+  # .claude/handoff/core-modules/round2/failing-core-tests.txt is empty that
+  # step is red.
+  server-core:
+    name: Server core without modules
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: beeflow
+          POSTGRES_DB: beeflow_core
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U beeflow -d beeflow_core"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/npm-install
+        with:
+          directory: server
+      # The script gives the server its own throwaway secrets and passes nothing
+      # else of this environment but PATH and HOME.
+      - name: Core start, every module's files absent
+        run: node scripts/core-boot-check.mjs --database postgresql://beeflow@127.0.0.1:5432/beeflow_core --hide-modules all --expect-tables 138
+      - name: A second empty database
+        run: psql -h 127.0.0.1 -U beeflow -d beeflow_core -c 'CREATE DATABASE beeflow_core_edition'
+      - name: Core start, edition core (the modules' files present, not loaded)
+        run: node scripts/core-boot-check.mjs --database postgresql://beeflow@127.0.0.1:5432/beeflow_core_edition --edition core --port 3198
+      - name: Core tests with every module hidden
+        if: github.event.pull_request.draft != true
+        working-directory: server
+        continue-on-error: false
+        run: node scripts/run-tests.mjs --scope core --hide-modules all
 
   # The one job that emits "Server tests". It is not a matrix: it waits for the
   # checks, the three shards and the merged coverage, and fails on anything but
@@ -1957,7 +2007,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, server-checks, server-shard, server-coverage, server-journeys, server-postgres, frontend, frontend-typecheck, frontend-build, mobile, mobile-bundle, python-lint, python-tests, guard, guard-model-eval-shard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, docs, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
+    needs: [changes, server, server-checks, server-shard, server-coverage, server-journeys, server-postgres, server-core, frontend, frontend-typecheck, frontend-build, mobile, mobile-bundle, python-lint, python-tests, guard, guard-model-eval-shard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, docs, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

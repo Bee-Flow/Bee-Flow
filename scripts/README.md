@@ -265,6 +265,7 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `complexity-tail-ratchet.mjs` | Complexity tail ratchet — the number of functions above a cyclomatic complexity of 40 may only go down. |
 | `console-to-log.mjs` | Codemod: console.* -> the package's structured logger. |
 | `container-release-gate.mjs` | Container release gate: fail when the scan of an immutable image reports a high or critical finding that no valid exception with a dated reachability review covers. |
+| `core-boot-check.mjs` | Prove that an edition of the server starts: schema on an empty database, boot, probe, stop. |
 | `count-ratchet.mjs` | Count ratchets — for the metrics that are a pattern in the source. |
 | `coverage-ratchet.mjs` | Coverage ratchet — the floor under each suite's line coverage, which may only rise. |
 | `deep-imports.mjs` | Deep relative imports in agent-hub/src -> the `@/` alias. |
