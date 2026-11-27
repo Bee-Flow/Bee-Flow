@@ -54,3 +54,10 @@ it('lets a newcomer step ahead and back, skip to the choice and watch the story 
     await user.click(await screen.findByRole('button', {name: 'Advanced'}));
     expect(choose).toHaveBeenCalledWith('advanced');
 });
+
+it('opens on the choice for someone who saw the story and only wants another view', () => {
+    render(<CoworkIntroduction choose={vi.fn()} atChoice />);
+    expect(screen.getByRole('button', {name: 'Chat only'})).toBeInTheDocument();
+    expect(screen.queryByText(/Hi, I’m Bee\./)).toBeNull();
+    expect(screen.getByRole('button', {name: 'Watch the intro again'})).toBeInTheDocument();
+});

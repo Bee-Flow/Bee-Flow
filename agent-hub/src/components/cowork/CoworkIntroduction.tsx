@@ -34,9 +34,9 @@ function evidenceOf(beat?: IntroBeat) {
 }
 
 /** The tour's clock. Bee moves on by herself; Back and Next only choose where to, and the scene on screen leaves first. */
-function useTour(story: IntroBeat[]) {
+function useTour(story: IntroBeat[], atChoice: boolean) {
     const reduced = useReducedMotion();
-    const [scene, setScene] = useState(0);
+    const [scene, setScene] = useState(atChoice ? story.length : 0);
     const [next, setNext] = useState<number | null>(null);
     const [visible, setVisible] = useState(!document.hidden);
     useEffect(() => {
@@ -61,10 +61,11 @@ function useTour(story: IntroBeat[]) {
     return {scene, beat, leaving: next !== null, upcoming: next === null ? beat : story[next], go, skip};
 }
 
-export default function CoworkIntroduction({ choose }: {choose: (mode: CoworkMode) => void}) {
+/** `atChoice` opens on the choice itself: for someone who saw the tour and only wants another view. */
+export default function CoworkIntroduction({ choose, atChoice = false }: {choose: (mode: CoworkMode) => void; atChoice?: boolean}) {
     const { t } = useTranslation();
     const story = coworkIntroStory(t);
-    const {scene, beat, leaving, upcoming, go, skip} = useTour(story);
+    const {scene, beat, leaving, upcoming, go, skip} = useTour(story, atChoice);
     const stage = useRef<HTMLDivElement>(null);
     const asked = useRef(false);
     const finished = !beat;

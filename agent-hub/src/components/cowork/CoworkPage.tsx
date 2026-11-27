@@ -28,6 +28,7 @@ import { administersOrg } from './coworkViewer';
 import useCoworkList from './useCoworkList';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { CoworkPageProps } from '@/api/cowork.types';
+import { saveCoworkView, useSavedCoworkView } from '@/api/queries/coworkView';
 
 /** The page's name for a screen reader: a task's title, else the kind's own name. */
 function usePageLabel(page: CoworkSheetPanel | null): string {
@@ -110,14 +111,22 @@ export default function CoworkPage(props: CoworkPageProps) {
     return <CoworkEntry key={key} storageKey={key} {...props} />;
 }
 
+// The introduction plays once per person: the chosen view is kept on the server (and in this browser, so a known
+// person opens without a round trip). Only someone with no view in either place sees it, or someone who asks to choose again.
 function CoworkEntry({storageKey, ...props}: CoworkPageProps & {storageKey: string}) {
     const [mode, setMode] = useState(() => storageKey ? savedMode(storageKey) : 'orb');
+    const [replay, setReplay] = useState(false);
+    const stored = useSavedCoworkView(!!storageKey && !mode);
     function choose(value: CoworkMode) {
         rememberMode(storageKey, value);
+        void saveCoworkView(value);
+        setReplay(false);
         setMode(value);
     }
-    if (!mode) return <CoworkIntroduction choose={choose} />;
-    return <DisplayMode.Provider value={mode}><CoworkWorkspace {...props} chooseView={() => setMode(null)} /></DisplayMode.Provider>;
+    const known = mode ?? (replay || stored.data === 'intro' ? null : stored.data);
+    if (!known && !replay && stored.isPending) return null;
+    if (!known) return <CoworkIntroduction choose={choose} atChoice={replay} />;
+    return <DisplayMode.Provider value={known}><CoworkWorkspace {...props} chooseView={() => { setReplay(true); setMode(null); }} /></DisplayMode.Provider>;
 }
 
 function CoworkWorkspace({ user = null, initialCoworkId = null, onNavigate, chooseView }: CoworkPageProps & {chooseView: () => void}) {

@@ -88,18 +88,18 @@ describe('CoworkPage', () => {
         vi.useFakeTimers();
         const first = renderWithClient(<CoworkPage user={viewer} />);
         try {
+            // The server is asked first whether this person already saw the introduction.
+            for (let tick = 0; tick < 20 && !screen.queryByText('Introducing Cowork 2.0'); tick++) await act(() => vi.advanceTimersByTimeAsync(0));
             expect(screen.queryByRole('button', {name: 'Chat only'})).toBeNull();
             const advance = () => { act(() => vi.advanceTimersByTime(30000)); };
             const until = (appears: () => HTMLElement | null) => {
                 for (let scene = 0; scene < 35 && !appears(); scene++) advance();
                 expect(appears()).toBeInTheDocument();
             };
-            until(() => screen.queryByRole('button', {name: /Find a meeting in Meeting Notes/}));
-            until(() => document.querySelector('li[aria-current="step"]')?.textContent?.includes('Retrieve the selected Meeting Notes record') ? screen.queryByRole('button', {name: /Retrieve the selected Meeting Notes record/}) : null);
-            until(() => screen.queryByRole('button', {name: /Calculate last week/}));
-            expect(screen.getByRole('button', {name: /Calculate last week/}).closest('li')).toHaveAttribute('aria-current', 'step');
-            expect(screen.getByRole('button', {name: /Read the Meeting Notes source table/})).toBeInTheDocument();
-            expect(screen.getByRole('button', {name: /Show the digest in Cowork/})).toBeInTheDocument();
+            until(() => screen.queryByRole('button', {name: /Look back one week/}));
+            expect(screen.getByRole('button', {name: /Look back one week/}).closest('li')).toHaveAttribute('aria-current', 'step');
+            expect(screen.getByRole('button', {name: /Read the meeting notes/})).toBeInTheDocument();
+            expect(screen.getByRole('button', {name: /Have it ready for you/})).toBeInTheDocument();
             until(() => screen.queryByText('Weekly digest', {exact:true}));
             until(() => screen.queryByText('You · Weekly digest'));
             until(() => screen.queryByText('Accepted · Starts after the weekly digest'));
@@ -117,10 +117,28 @@ describe('CoworkPage', () => {
         localStorage.removeItem('cowork.2.view.skip-test');
         serve();
         renderWithClient(<CoworkPage user={{id: 'skip-test'}} />);
-        expect(screen.getByText('Introducing Cowork 2.0')).toBeInTheDocument();
-        await user.click(await screen.findByRole('button', {name: 'Skip intro'}));
+        expect(await screen.findByText('Introducing Cowork 2.0')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', {name: 'Skip intro'}));
         expect(screen.getByRole('button', {name: 'Chat only'})).toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Read aloud'})).toBeNull();
+    });
+    it('claims the introduction on the server the first time, so it never plays twice', async () => {
+        localStorage.removeItem('cowork.2.view.first-test');
+        serve();
+        renderWithClient(<CoworkPage user={{id: 'first-test'}} />);
+        expect(await screen.findByText('Introducing Cowork 2.0')).toBeInTheDocument();
+        const saves = calls.filter((c) => path(c) === '/ai/user-settings' && c.method === 'POST');
+        expect(saves.map((c) => c.body)).toEqual([{coworkView: 'orb'}]);
+    });
+    it('skips the introduction for a person whose view is stored on the server', async () => {
+        localStorage.removeItem('cowork.2.view.known-test');
+        calls = stubRecordingFetch(({url}) => new URL(url, 'http://x').pathname === '/ai/user-settings'
+            ? jsonResponse({coworkView: 'chat'}) : jsonResponse({}));
+        renderWithClient(<CoworkPage user={{id: 'known-test'}} />);
+        expect(await screen.findByRole('textbox', {name: /Ask Bee/})).toBeInTheDocument();
+        expect(screen.queryByText('Introducing Cowork 2.0')).toBeNull();
+        expect(document.querySelector('.cowork-orb')).toBeNull();
+        expect(calls.some((c) => c.method === 'POST' && path(c) === '/ai/user-settings')).toBe(false);
     });
     it('opens with Bee and a focused input ready for a keyboard request', async () => {
         serve();
