@@ -19,4 +19,4 @@ window.fetch = async (input, options) => {
     const data = p.includes('/strings/nl') ? words : p.endsWith('/locales') ? [{code:'nl'}] : p.endsWith('/cowork') ? {schedules:[]} : {};
     return Response.json(data);
 };
-createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient()}><TranslationProvider><CoworkPage user={{id:'preview'}} /><a href="?start=1" style={{position:"fixed",bottom:12,right:18,fontSize:13}}>Demo opnieuw starten</a></TranslationProvider></QueryClientProvider>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={new QueryClient()}><TranslationProvider><CoworkPage user={{id:'preview'}} /><a href="?start=1" style={{position:"fixed",bottom:12,right:18,fontSize:13}}>Demo opnieuw starten</a></TranslationProvider></QueryClientProvider></React.StrictMode>);
