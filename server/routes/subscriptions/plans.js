@@ -2,6 +2,8 @@
 /**
  * Subscription plan CRUD — the admin Plans editor plus the manual Stripe sync.
  * Super-admin only; the gate sits on the parent router in routes/subscriptions.js.
+ * The Stripe service belongs to the module "billing_stripe": without it every
+ * Stripe step takes the branch of a Stripe that is not enabled.
  */
 
 const express = require('express');
@@ -14,6 +16,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 const router = express.Router();
 
@@ -149,8 +152,8 @@ router.post('/plans', validate({ body: CreatePlanBody }), async (req, res) => {
         const isPayg = plan.billing_model === 'metered';
         if (isPayg || plan.price > 0) {
             try {
-                const stripeService = require('../../services/stripeService');
-                if (await stripeService.isEnabled()) {
+                const stripeService = optionalFeatureModule('services/stripeService');
+                if (stripeService && await stripeService.isEnabled()) {
                     const result = /** @type {{ productId: string, priceId: string, meterId?: string, meterEventName?: string }} */ (isPayg
                         ? await stripeService.syncPaygPlanToStripe(plan)
                         : await stripeService.syncPlanToStripe(plan));
@@ -221,8 +224,8 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (/** @type {i
         const needsPaygSync = isPayg && (nameChanged || intervalChanged || currencyChanged || billingModelChanged || !updated.stripe_price_id);
         if (needsFixedSync || needsPaygSync) {
             try {
-                const stripeService = require('../../services/stripeService');
-                if (await stripeService.isEnabled()) {
+                const stripeService = optionalFeatureModule('services/stripeService');
+                if (stripeService && await stripeService.isEnabled()) {
                     const result = /** @type {{ productId: string, priceId: string, meterId?: string, meterEventName?: string }} */ (isPayg
                         ? await stripeService.syncPaygPlanToStripe(updated)
                         : await stripeService.syncPlanToStripe(updated));
@@ -275,8 +278,8 @@ router.delete('/plans/:id', async (/** @type {import('express').Request<{ id: st
 
 // POST /api/subscriptions/plans/:id/sync-stripe — Manually sync a plan to Stripe
 router.post('/plans/:id/sync-stripe', validate({ body: bodyOf({}, 'Syncing a plan to Stripe') }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const stripeService = require('../../services/stripeService');
-    if (!(await stripeService.isEnabled())) {
+    const stripeService = optionalFeatureModule('services/stripeService');
+    if (!stripeService || !(await stripeService.isEnabled())) {
         return res.status(400).json({ error: 'Stripe is not enabled. Configure Stripe in the Stripe settings tab first.' });
     }
 

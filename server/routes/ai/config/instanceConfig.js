@@ -227,7 +227,7 @@ router.get('/config', requireAuth, async (req, res) => {
  * only changes NEW checkouts: when it goes from off to on, the existing
  * active and trialing subscriptions are backfilled in the background
  * (idempotent; switching off and on again runs it again). The previous value
- * is read before the new one is written.
+ * is read before the new one is written. Without the module "billing_stripe" only the switch is stored.
  * @param {unknown} enabled
  */
 async function switchStripeTax(enabled) {
@@ -235,8 +235,8 @@ async function switchStripeTax(enabled) {
     try { taxWasEnabled = !!(await configStore.getConfig('stripe_tax_enabled')); } catch (err) { fallback('routes/ai/config/instanceConfig:anon', err); /* treat as off */ }
     await configStore.setConfig('stripe_tax_enabled', enabled ? 'true' : '');
     if (enabled && !taxWasEnabled) {
-        const stripeService = require('../../../services/stripeService');
-        stripeService.enableAutomaticTaxForExistingSubscriptions()
+        const stripeService = require('../../../core/featureModules').optionalFeatureModule('services/stripeService');
+        stripeService?.enableAutomaticTaxForExistingSubscriptions()
             .then(r => log.info(`[Config] Stripe Tax enabled — backfill updated=${r.updated} skipped=${r.skipped}`))
             .catch(e => log.warn('[Config] Stripe Tax backfill failed:', e.message));
     }

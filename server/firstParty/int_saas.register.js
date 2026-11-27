@@ -98,6 +98,9 @@ function registerToolsets() {
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'integrations/n8nTools': () => require('../integrations/n8nTools'),
+        'integrations/n8nHttp': () => require('../integrations/n8nHttp'),
+        'stores/githubSyncStore': () => require('../stores/githubSyncStore'),
     }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', registerToolsets);

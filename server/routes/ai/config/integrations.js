@@ -83,11 +83,11 @@ const RegistryQuery = queryOf({
 }, 'The MCP registry search');
 
 // ─── n8n Integration Config (Org-Level) ───────────────────────
-
-const { listActiveWebhookWorkflows, fetchWorkflowById } = require('../../../integrations/n8nTools');
-
-// The organisation an n8n route works on (the caller's, or a platform admin's
-// `?orgId`) and the org-admin gate of the admin routes: ./n8nOrg.mts.
+// n8n itself (integrations/n8n*) belongs to the module "int_saas": without it there is no n8n to talk to.
+const { optionalFeatureModule } = require('../../../core/featureModules');
+/** @template {'integrations/n8nTools' | 'integrations/n8nHttp'} K @param {K} name */
+const n8nOrAbsent = (name) => optionalFeatureModule(name) || (() => { throw new HttpError(409, 'module_absent', 'n8n needs the SaaS integrations module, which is not installed here.'); })();
+// The organisation an n8n route works on (the caller's, or a platform admin's `?orgId`) and the org-admin gate of the admin routes: ./n8nOrg.mts.
 const { getN8nOrgId: getOrgId, requireOrgAdminForN8n } = require('./n8nOrg.mts');
 const { n8nTestTarget, urlChangeDropsKey, N8N_KEY_NEEDED } = require('../../../usecases/ai/config/n8nKeyPairing.mts');
 
@@ -187,7 +187,7 @@ router.get('/n8n/workflows', requireOrgAdminForN8n, async (req, res) => {
         return res.status(400).json({ error: 'n8n URL and API key must be configured first' });
     }
 
-    const workflows = await listActiveWebhookWorkflows(n8nUrl, apiKey);
+    const workflows = await n8nOrAbsent('integrations/n8nTools').listActiveWebhookWorkflows(n8nUrl, apiKey);
     res.json({ workflows });
 });
 
@@ -210,7 +210,7 @@ router.get('/n8n/workflow/:workflowId', requireOrgAdminForN8n, async (req, res) 
         return res.status(400).json({ error: 'n8n URL and API key must be configured first' });
     }
 
-    const workflow = await fetchWorkflowById(n8nUrl, apiKey, req.params.workflowId);
+    const workflow = await n8nOrAbsent('integrations/n8nTools').fetchWorkflowById(n8nUrl, apiKey, req.params.workflowId);
     res.json({ workflow });
 });
 
@@ -218,7 +218,7 @@ router.get('/n8n/workflow/:workflowId', requireOrgAdminForN8n, async (req, res) 
 // Accepts optional { n8nUrl, apiKey } to test unsaved values from the config form;
 // the stored key is only sent to the stored address (./n8nKeyPairing.mts).
 router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }), async (req, res) => {
-    const { n8nFetch } = require('../../../integrations/n8nHttp');
+    const { n8nFetch } = n8nOrAbsent('integrations/n8nHttp');
     try {
         const orgId = req.orgId;
         const target = n8nTestTarget(req.body || {}, await configStore.getConfig(`n8n_url_org_${orgId}`));

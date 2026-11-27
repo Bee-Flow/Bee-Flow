@@ -79,6 +79,13 @@ const MOCKS = {
 };
 
 let orgAllowsSensitive = false;
+// The route asks the module "learning" for these by name (core/featureModules.js), not by a
+// require string: the same stand-ins, registered under those names.
+require('../../../core/featureModules').registerFeatureModules({
+    'learning/progressValidation': () => MOCKS['../../../learning/progressValidation'],
+    'learning/certificates': () => MOCKS['../../../learning/certificates'],
+});
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:user-settings-validation:${request}`;
@@ -230,6 +237,20 @@ test('a too-large learning blob is refused before the other fields are written',
     const res = await post({ simpleMode: true, learningProgress: { lesson: 'x'.repeat(2000) } });
     assert.strictEqual(res.statusCode, 400);
     assert.deepStrictEqual(touched, []);
+});
+
+test('without the module "learning" learning progress is refused (409) before anything is written', async () => {
+    const featureModules = require('../../../core/featureModules');
+    const getter = featureModules._featureModuleGetter('learning/progressValidation');
+    featureModules._clearFeatureModulesForTests('learning/progressValidation');
+    try {
+        const res = await post({ simpleMode: true, learningProgress: { lesson: { completedAt: 'x' } } });
+        assert.strictEqual(res.statusCode, 409);
+        assert.strictEqual(res.body.code, 'module_absent');
+        assert.deepStrictEqual(touched, []);
+    } finally {
+        if (getter) featureModules.registerFeatureModules({ 'learning/progressValidation': getter });
+    }
 });
 
 test('disconnect still clears with empty strings', async () => {

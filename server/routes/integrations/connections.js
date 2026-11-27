@@ -358,12 +358,12 @@ router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (
             // runtime itself consults first (mailboxIdentity's ladder). A
             // pre-flight that only read the new store told those users to
             // "Connect gmail" above an app whose data was loading fine.
-            // Lazy require: this route must stay loadable where the
-            // appStudio layer is mocked away (its own tests).
+            // Looked up when used: the ladder lives in the module "apps"; without
+            // it nothing can read the legacy layer, as when the lookup fails.
             let legacyOk = false;
             try {
-                const { viewerHasIntegration } = require('../../appStudio/mailboxIdentity');
-                legacyOk = await viewerHasIntegration(provider, { userId, orgId });
+                const mailboxIdentity = require('../../core/featureModules').optionalFeatureModule('appStudio/mailboxIdentity');
+                legacyOk = mailboxIdentity ? await mailboxIdentity.viewerHasIntegration(provider, { userId, orgId }) : false;
             } catch (err) { fallback('routes/integrations/connections:anon', err); /* no legacy layer → the connection really is missing */ }
             if (!legacyOk) requiresConnection.push({ provider });
         }

@@ -53,6 +53,10 @@ const MOCKS = {
     '../../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
 };
 
+// The route asks the module "billing_stripe" for this service by name (usecases/subscriptions/billingModule.js,
+// core/featureModules.js), not by a require string: the same stand-in, registered under that name.
+require('../../core/featureModules').registerFeatureModules({ 'services/stripeService': () => MOCKS['../../services/stripeService'] });
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:subscriptions-lifecycle-validation:${request}`;
@@ -144,4 +148,18 @@ test('reactivate on a consumer account takes no body either', async () => {
     const res = await dispatch({ method: 'POST', url: '/consumer/u1/reactivate', body: undefined });
     assert.strictEqual(res.statusCode, 409, 'this fixture is not scheduled to cancel');
     assert.deepStrictEqual(touched, []);
+});
+
+test('without the module "billing_stripe" a lifecycle action is refused with module_absent, and nothing is written', async () => {
+    const featureModules = require('../../core/featureModules');
+    const getter = featureModules._featureModuleGetter('services/stripeService');
+    featureModules._clearFeatureModulesForTests('services/stripeService');
+    try {
+        const res = await dispatch({ method: 'POST', url: '/orgs/orgA/cancel', body: undefined });
+        assert.strictEqual(res.statusCode, 409);
+        assert.strictEqual(res.body.code, 'module_absent');
+        assert.deepStrictEqual(touched, []);
+    } finally {
+        if (getter) featureModules.registerFeatureModules({ 'services/stripeService': getter });
+    }
 });

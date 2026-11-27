@@ -51,6 +51,10 @@ const MOCKS = {
     '../../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
 };
 
+// The route asks the module "billing_stripe" for this service by name (usecases/subscriptions/billingModule.js,
+// core/featureModules.js), not by a require string: the same stand-in, registered under that name.
+require('../../core/featureModules').registerFeatureModules({ 'services/trialService': () => MOCKS['../../services/trialService'] });
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:subscriptions-orgsubscriptions-validation:${request}`;

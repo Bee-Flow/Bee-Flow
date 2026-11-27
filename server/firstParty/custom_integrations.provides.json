@@ -1,6 +1,8 @@
 {
   "featureModules": [
-    "integrations/customIntegrationRunner"
+    "integrations/customIntegrationRunner",
+    "core/customIntegrations/featureFlag",
+    "stores/orgCustomIntegrationStore"
   ],
   "runnerPorts": [
     "customIntegrations"

@@ -1,3 +1,6 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "learning/certificates",
+    "learning/progressValidation"
+  ]
 }

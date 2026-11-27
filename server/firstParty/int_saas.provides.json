@@ -1,5 +1,9 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "integrations/n8nTools",
+    "integrations/n8nHttp",
+    "stores/githubSyncStore"
+  ],
   "integrationClients": [
     "github",
     "youtrack"

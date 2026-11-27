@@ -1,8 +1,7 @@
 // @typecheck strict
 /**
  * Org subscriptions — listing every org's subscription, one org's subscription
- * with its billing/usage view and plan pickers, the admin assign/update write,
- * and starting the one-time trial.
+ * with its billing/usage view and plan pickers, the admin assign/update write, and starting the one-time trial.
  */
 
 const express = require('express');
@@ -10,6 +9,7 @@ const userStore = require('../../stores/userStore');
 const usageStore = require('../../stores/usageStore');
 const { isNcOrg, filterNcOnlyPlans } = require('../../auth/ncAudience');
 const { getAdminId } = require('./shared');
+const { billingModule } = require('../../usecases/subscriptions/billingModule');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -385,7 +385,7 @@ router.post('/orgs/:orgId/start-trial', validate({ body: StartTrialBody }), asyn
         const orgId = req.params.orgId;
         const { plan_id } = req.body;
 
-        const trialService = require('../../services/trialService');
+        const trialService = billingModule('services/trialService', () => new Error('Stripe is not enabled')); // absent: as Stripe not enabled
         const sub = await trialService.startOrgTrial(orgId, plan_id, { changedBy: getAdminId(req) });
         res.json(sub);
     } catch (e) {

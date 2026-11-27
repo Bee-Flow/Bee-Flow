@@ -19,6 +19,7 @@ function register() {
         'appStudio/portabilityReport': () => require('../appStudio/portabilityReport.mts'),
         'appStudio/automationUsageSync': () => require('../appStudio/automationUsageSync'),
         'appStudio/triggers/deploySync': () => require('../appStudio/triggers/deploySync.mts'),
+        'appStudio/mailboxIdentity': () => require('../appStudio/mailboxIdentity'),
     }));
 }
 

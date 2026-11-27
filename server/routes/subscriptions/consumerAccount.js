@@ -8,6 +8,7 @@ const express = require('express');
 const userStore = require('../../stores/userStore');
 const usageStore = require('../../stores/usageStore');
 const { getAdminId } = require('./shared');
+const { billingModule } = require('../../usecases/subscriptions/billingModule');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -119,7 +120,8 @@ router.post('/consumer/:userId/start-trial', validate({ body: StartTrialBody }),
         const userId = /** @type {string} */ (req.params.userId);
         const { plan_id } = req.body;
 
-        const trialService = require('../../services/trialService');
+        // Absent module "billing_stripe": the answer of a Stripe that is not enabled.
+        const trialService = billingModule('services/trialService', () => new Error('Stripe is not enabled'));
         const sub = await trialService.startConsumerTrial(userId, plan_id, { changedBy: getAdminId(req) });
         res.json(sub);
     } catch (e) {

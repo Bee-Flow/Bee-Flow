@@ -130,7 +130,12 @@ const REAL: Required<Omit<AvailabilityDeps, 'env'>> = {
     },
     ncScopeDoc: async (orgId) => (nodeRequire('../../core/integrations/ncScope.js') as { getOrgScopeDoc(id: string): Promise<{ integrations?: Record<string, { mode?: string }> } | null> }).getOrgScopeDoc(orgId),
     azureSyncBinding: () => (nodeRequire('../../integrations/azureGroupSync.js') as { getSyncBinding(): Promise<{ syncOrganizationId?: unknown; syncTenantId?: unknown } | null> }).getSyncBinding(),
-    githubSyncConfig: (orgId) => (nodeRequire('../../stores/githubSyncStore.js') as { getOrgSyncConfig(id: string): Promise<{ repoOwner?: string; repoName?: string } | null> }).getOrgSyncConfig(orgId),
+    // GitHub sync belongs to the module "int_saas": without it there is no sync config (null, as unconfigured).
+    githubSyncConfig: async (orgId) => {
+        const { optionalFeatureModule } = nodeRequire('../../core/featureModules.js') as { optionalFeatureModule(name: 'stores/githubSyncStore'): { getOrgSyncConfig(id: string): Promise<{ repoOwner?: string; repoName?: string } | null> } | null };
+        const store = optionalFeatureModule('stores/githubSyncStore');
+        return store ? store.getOrgSyncConfig(orgId) : null;
+    },
 };
 
 const { HttpError } = nodeRequire('../../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };

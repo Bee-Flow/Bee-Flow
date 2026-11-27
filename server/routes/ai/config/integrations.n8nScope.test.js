@@ -72,6 +72,13 @@ const MOCKS = {
     '../../../license/middleware': { requireFeature: () => (_req, _res, next) => next() },
 };
 
+// The router asks the module "int_saas" for n8n by name (core/featureModules.js), not by a
+// require string: the same stand-ins, registered under those names.
+require('../../../core/featureModules').registerFeatureModules({
+    'integrations/n8nHttp': () => MOCKS['../../../integrations/n8nHttp'],
+    'integrations/n8nTools': () => MOCKS['../../../integrations/n8nTools'],
+});
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:n8n-scope:${request}`;

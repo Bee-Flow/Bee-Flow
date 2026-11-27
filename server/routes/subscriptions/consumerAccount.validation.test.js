@@ -37,6 +37,10 @@ const MOCKS = {
     },
 };
 
+// The route asks the module "billing_stripe" for this service by name (usecases/subscriptions/billingModule.js,
+// core/featureModules.js), not by a require string: the same stand-in, registered under that name.
+require('../../core/featureModules').registerFeatureModules({ 'services/trialService': () => MOCKS['../../services/trialService'] });
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:subscriptions-consumeraccount-validation:${request}`;
@@ -103,4 +107,19 @@ test('a real plan_id still starts the trial', async () => {
     const res = await dispatch({ method: 'POST', url: '/consumer/u1/start-trial', body: { plan_id: 'p1' } });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched.find((t) => t.what === 'startConsumerTrial').args, ['u1', 'p1']);
+});
+
+test('without the module "billing_stripe" a trial is refused as when Stripe is not enabled', async () => {
+    const featureModules = require('../../core/featureModules');
+    const getter = featureModules._featureModuleGetter('services/trialService');
+    featureModules._clearFeatureModulesForTests('services/trialService');
+    try {
+        touched.length = 0;
+        const res = await dispatch({ method: 'POST', url: '/consumer/u1/start-trial', body: { plan_id: 'p1' } });
+        assert.strictEqual(res.statusCode, 400);
+        assert.strictEqual(res.body.error, 'Stripe is not enabled');
+        assert.deepStrictEqual(touched, []);
+    } finally {
+        if (getter) featureModules.registerFeatureModules({ 'services/trialService': getter });
+    }
 });

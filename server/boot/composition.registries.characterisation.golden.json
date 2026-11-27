@@ -34,7 +34,18 @@
     "appStudio/triggers/deploySync",
     "agents/memory/extractor",
     "projects/chatModel",
-    "projects/documentFiling"
+    "projects/documentFiling",
+    "services/stripeService",
+    "services/trialService",
+    "routes/teamsProviderTest",
+    "core/customIntegrations/featureFlag",
+    "stores/orgCustomIntegrationStore",
+    "learning/certificates",
+    "learning/progressValidation",
+    "integrations/n8nTools",
+    "integrations/n8nHttp",
+    "appStudio/mailboxIdentity",
+    "stores/githubSyncStore"
   ],
   "toolFamilies": [
     {"name":"custom_integration","order":0},

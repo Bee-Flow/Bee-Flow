@@ -80,6 +80,17 @@ const { assertProviderNotFailed } = require('../modules/firstParty/moduleState')
  *   'appStudio/triggers/deploySync': typeof import('../appStudio/triggers/deploySync.mts'),
  *   'agents/memory/extractor': typeof import('../agents/memory/extractor'),
  *   'projects/chatModel': typeof import('../projects/chatModel'),
+ *   'services/stripeService': typeof import('../services/stripeService'),
+ *   'services/trialService': typeof import('../services/trialService'),
+ *   'routes/teamsProviderTest': typeof import('../routes/teamsProviderTest.mts'),
+ *   'core/customIntegrations/featureFlag': typeof import('../core/customIntegrations/featureFlag'),
+ *   'stores/orgCustomIntegrationStore': typeof import('../stores/orgCustomIntegrationStore'),
+ *   'learning/certificates': typeof import('../learning/certificates'),
+ *   'learning/progressValidation': typeof import('../learning/progressValidation'),
+ *   'integrations/n8nTools': typeof import('../integrations/n8nTools'),
+ *   'integrations/n8nHttp': typeof import('../integrations/n8nHttp'),
+ *   'appStudio/mailboxIdentity': typeof import('../appStudio/mailboxIdentity'),
+ *   'stores/githubSyncStore': typeof import('../stores/githubSyncStore'),
  * }} FeatureModuleMap
  */
 

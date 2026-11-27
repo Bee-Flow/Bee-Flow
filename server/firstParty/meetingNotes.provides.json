@@ -1,5 +1,7 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "routes/teamsProviderTest"
+  ],
   "runnerPorts": [
     "meetingImports"
   ]
