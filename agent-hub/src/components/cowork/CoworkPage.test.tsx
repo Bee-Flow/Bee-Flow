@@ -2,7 +2,7 @@
 // Admin rules each as a full page in its place (./coworkSheetPanels.ts), never as a layer over it. A page says so in
 // the address, takes the focus to its heading, and gives it back to what opened it; the address decides on Back.
 // The network is the seam (a recording fetch); no module is mocked.
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
@@ -85,13 +85,27 @@ describe('CoworkPage', () => {
         const viewer = {id: 'tour-test'};
         localStorage.removeItem('cowork.2.view.tour-test');
         serve();
+        vi.useFakeTimers();
         const first = renderWithClient(<CoworkPage user={viewer} />);
-        await user.click(screen.getByRole('button', {name: 'Continue'}));
-        await user.click(screen.getByRole('button', {name: /Write the weekly digest/}));
-        expect(screen.getByRole('status')).toHaveTextContent('decisions');
-        await user.click(screen.getByRole('button', {name: 'Continue'}));
-        expect(await screen.findByText('Weekly digest')).toBeInTheDocument();
-        await user.click(screen.getByRole('button', {name: 'Continue'}));
+        try {
+            expect(screen.queryByRole('button', {name: 'Chat only'})).toBeNull();
+            const advance = () => { act(() => vi.advanceTimersByTime(30000)); };
+            const until = (appears: () => HTMLElement | null) => {
+                for (let scene = 0; scene < 35 && !appears(); scene++) advance();
+                expect(appears()).toBeInTheDocument();
+            };
+            until(() => screen.queryByRole('button', {name: /Find a meeting in Meeting Notes/}));
+            until(() => document.querySelector('li[aria-current="step"]')?.textContent?.includes('Retrieve the selected Meeting Notes record') ? screen.queryByRole('button', {name: /Retrieve the selected Meeting Notes record/}) : null);
+            until(() => screen.queryByRole('button', {name: /Calculate last week/}));
+            expect(screen.getByRole('button', {name: /Calculate last week/}).closest('li')).toHaveAttribute('aria-current', 'step');
+            expect(screen.getByRole('button', {name: /Read the Meeting Notes source table/})).toBeInTheDocument();
+            expect(screen.getByRole('button', {name: /Show the digest in Cowork/})).toBeInTheDocument();
+            until(() => screen.queryByText('Weekly digest', {exact:true}));
+            until(() => screen.queryByText('Waiting for Noor to accept'));
+            until(() => screen.queryByText('Accepted · Starts after the weekly digest'));
+            until(() => screen.queryByText('Pilot questions · Noor, with Alex as stand-in'));
+            until(() => screen.queryByRole('button', {name: 'Chat only'}));
+        } finally { vi.useRealTimers(); }
         await user.click(screen.getByRole('button', {name: 'Chat only'}));
         first.unmount();
         renderWithClient(<CoworkPage user={viewer}/>);

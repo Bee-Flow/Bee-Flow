@@ -1,61 +1,109 @@
 import { useEffect, useState } from 'react';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { introPlan } from './coworkIntroPlan';
+import { coworkIntroStory } from './coworkIntroStory';
+import type { OrbStep } from '@/api/coworkPlan.types';
 import { useTranslation } from '@/hooks/useTranslation';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
+import CoworkIntroDesk from './CoworkIntroDesk';
 import CoworkOrb from './CoworkOrb';
 import CoworkStepRail from './task/CoworkStepRail';
-import type { TaskStep } from './task/coworkTaskModel';
 import type { CoworkMode } from './coworkDisplayMode';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, LINK_INLINE } from './coworkUi';
 
-const actions = ['creating', 'testing', 'rest'] as const;
+
+type Beat = ReturnType<typeof coworkIntroStory>[number];
+const focusedStep: Record<string, string> = {
+    integrations: 'pick', fetch_note: 'fetch', store_note: 'store', plan: 'period', glyphs: 'read', signal: 'clean', try: 'check', fix: 'check',
+    digest: 'write', edit: 'write', approve: 'result', status_done: 'result',
+};
+
+function orbWork(beat: Beat | undefined, flow: OrbStep[]) {
+    const active = beat && focusedStep[beat.id];
+    const focus = flow.findIndex(step => step.id === active);
+    return {apps: beat?.id === 'integrations' ? ['meeting-notes'] : undefined,
+        flow: active ? flow : undefined, focus, action: beat?.action ?? 'rest' as const};
+}
+
+function orbTone(beat?: Beat) {
+    switch (beat?.id) {
+        case 'orb': case 'signal': case 'digest': return 'thinking';
+        case 'fix': case 'repair_tone': return 'repair';
+        case 'try': case 'glyphs': case 'handoff': return 'executing';
+        default: return 'rest';
+    }
+}
 
 export default function CoworkIntroduction({ choose }: {choose: (mode: CoworkMode) => void}) {
     const { t, locale } = useTranslation();
     const [scene, setScene] = useState(0);
-    const [selected, select] = useState('collect');
+    const [leaving, setLeaving] = useState(false);
     const [listen, setListen] = useState(false);
-    const reducedMotion = useReducedMotion();
-    const [interacting, setInteracting] = useState(false);
+    const [visible, setVisible] = useState(!document.hidden);
     useEffect(() => {
-        if (scene >= 3 || reducedMotion || listen || interacting) return;
-        const timer = window.setTimeout(() => setScene(scene + 1), 10000);
-        return () => window.clearTimeout(timer);
-    }, [scene, reducedMotion, listen, interacting]);
-    const messages = [
-        t('cowork_home.intro.start', 'Hi, I’m Bee. Tell me what you need. Let me show you a weekly meeting digest.'),
-        t('cowork_home.intro.steps', 'I turn your request into steps and test them. Select a step to see what it does.'),
-        t('cowork_home.intro.result', 'Here’s the result. You can ask me to change the summary, share it or open another task.'),
-        t('cowork_home.intro.choose', 'How would you like to use Cowork?'),
-    ];
-    const message = messages[scene];
+        const update = () => setVisible(!document.hidden);
+        document.addEventListener('visibilitychange', update);
+        return () => document.removeEventListener('visibilitychange', update);
+    }, []);
+    const story = coworkIntroStory(t);
+    const beat = story[scene];
+    const finished = !beat;
+    const message = beat?.line ?? t('cowork_home.intro.choose', 'How would you like to use Cowork?');
+    const readingTime = 1500 + message.split(/\s+/).length * 258 + (beat?.sample.length ?? 0) * 29;
     useEffect(() => {
-        if (!listen || !window.speechSynthesis) return;
-        const speech = new SpeechSynthesisUtterance(message);
-        speech.lang = locale;
-        window.speechSynthesis.speak(speech);
-        return () => window.speechSynthesis.cancel();
-    }, [listen, message, locale]);
-    const sample = {helper: false, changed: false, to: null, app: null, integrationId: null};
-    const steps: TaskStep[] = [
-        {...sample, id: 'collect', sort: 'read', title: t('cowork_home.intro.collect', 'Collect meeting notes')},
-        {...sample, id: 'write', sort: 'ai', title: t('cowork_home.intro.write', 'Write the weekly digest')},
-    ];
-    return <main className="cowork-intro" onFocus={() => setInteracting(true)}>
+        if (!visible || finished) return;
+        let disposed = false;
+        const next = () => {
+            if (disposed) return;
+            setLeaving(true);
+            timer = window.setTimeout(() => { setLeaving(false); setScene(scene + 1); }, 550);
+        };
+        const speak = listen && window.speechSynthesis;
+        let timer = window.setTimeout(next, speak ? Math.max(16000, readingTime * 3) : readingTime);
+        if (speak) {
+            const speech = new SpeechSynthesisUtterance(message);
+            speech.lang = locale;
+            speech.onend = () => {
+                if (disposed) return;
+                window.clearTimeout(timer);
+                timer = window.setTimeout(next, 1400 + (beat?.sample.length ?? 0) * 29);
+            };
+            speak.speak(speech);
+        }
+        return () => { disposed = true; window.clearTimeout(timer); if (speak) speak.cancel(); };
+    }, [scene, visible, finished, listen, message, locale, readingTime, beat?.sample]);
+    const {flow, steps} = introPlan(t, ['integrations', 'fetch_note', 'store_note'].includes(beat?.id ?? ''));
+    const active = beat && focusedStep[beat.id];
+    const work = orbWork(beat, flow);
+    return <main className="cowork-intro cowork-intro-guided">
         <small>{t('cowork_home.intro.example', 'Cowork 2.0 · Interactive example')}</small>
-        <CoworkOrb work={{action: actions[scene] ?? 'rest'}} tone={scene === 1 ? 'executing' : 'rest'} />
-        <h1 key={scene} className="cowork-intro-line" aria-live="polite">{message}</h1>
-        {scene === 1 && <div className="cowork-intro-sample"><CoworkStepRail steps={steps} selected={[selected]} toggle={select} t={t}/>
-            <p role="status">{selected === 'collect' ? t('cowork_home.intro.read_hint', 'I found two example meeting notes from last week.') : t('cowork_home.intro.write_hint', 'I group the decisions and list who owns each action.')}</p></div>}
-        {scene === 2 && <div className="cowork-intro-sample"><MarkdownRenderer content={t('cowork_home.intro.digest', '### Weekly digest\n\n- **Decision** — Start the pilot on Monday.\n- **Action** — Alex will share the checklist on Friday.')} /></div>}
-        {scene < 3 ? <div className="cowork-intro-controls">
-            <button className={BUTTON_PRIMARY} onClick={() => setScene(scene + 1)}>{t('cowork_home.intro.next', 'Continue')}</button>
-            <button className={LINK_INLINE} onClick={() => setScene(3)}>{t('cowork_home.intro.skip', 'Choose my view')}</button>
-            {'speechSynthesis' in window && <button className={LINK_INLINE} aria-pressed={listen} onClick={() => setListen(!listen)}>{t('cowork_home.intro.listen', 'Read aloud')}</button>}
-        </div> : <div className="cowork-intro-controls">
+        <div className={'cowork-orb-workspace cowork-intro-workspace' + (active ? ' has-steps' : '')}>
+          <div className="cowork-intro-orb" data-event={beat?.id}><CoworkOrb work={work} tone={orbTone(beat)} /></div>
+          {active && <div className="cowork-workspace-steps"><CoworkStepRail steps={steps} active={active} t={t}/></div>}
+        </div>
+        <StoryStage {...{beat, scene, message, leaving, choose}} />
+        {!finished && 'speechSynthesis' in window && <button className={LINK_INLINE} aria-pressed={listen} onClick={() => setListen(!listen)}>{t('cowork_home.intro.listen', 'Read aloud')}</button>}
+    </main>;
+}
+
+function StoryStage({beat, scene, message, leaving, choose}: {
+    beat?: Beat; scene: number; message: string; leaving: boolean; choose: (mode: CoworkMode) => void;
+}) {
+    const {t} = useTranslation();
+    const sceneId = beat?.id;
+    const desk = sceneId === 'teamwork' || sceneId === 'desk' || sceneId === 'invite' || sceneId === 'handoff' || sceneId === 'cover';
+    return <div className="cowork-intro-stage" data-leaving={leaving} aria-live="polite">
+          <div key={scene} className="cowork-story-caption">
+            <h1 className="cowork-intro-line">{message.split(/(?<=[.!?])\s+/).map((phrase, index) =>
+                <span key={index} style={{animationDelay: index * 850 + 'ms'}}>{phrase}{' '}</span>)}</h1>
+          </div>
+          <div className="cowork-story-evidence">
+            {desk && <CoworkIntroDesk scene={sceneId === 'teamwork' ? 'desk' : sceneId}/>}
+            {beat?.sample && <div key={beat.id} className="cowork-intro-sample cowork-story-paper"><MarkdownRenderer content={beat.sample} /></div>}
+            {!beat && <div className="cowork-intro-controls">
             <button className={BUTTON_PRIMARY} onClick={() => choose('orb')}>{t('cowork_home.intro.orb', 'Chat with the orb')}</button>
             <button className={BUTTON_SECONDARY} onClick={() => choose('chat')}>{t('cowork_home.intro.chat', 'Chat only')}</button>
             <button className={BUTTON_SECONDARY} onClick={() => choose('advanced')}>{t('cowork_overview.advanced', 'Advanced')}</button>
-        </div>}
-    </main>;
+            </div>}
+          </div>
+        </div>;
 }

@@ -18,7 +18,7 @@ automations, and letting a task ask you first needs one with approvals. See [Tie
 
 ## Start
 
-On your first visit, Bee demonstrates a weekly digest using example data. You can select a step, read the sample result, or jump straight to **Choose my view**. Select **Chat with the orb**, **Chat only**, or **Advanced**. Cowork remembers your choice for this account in this browser. To change it later, open **Advanced** and select **Default view**.
+On your first visit, Bee demonstrates a weekly digest using example data. Bee walks through the steps and shows the sample result automatically. Select **Chat with the orb**, **Chat only**, or **Advanced**. Cowork remembers your choice for this account in this browser. To change it later, open **Advanced** and select **Default view**.
 
 1. Open **Cowork** and tell Bee what should happen and when. You can also ask Bee to show your tasks or find a template.
 2. Bee asks for any missing details and shows the current step while it sets up and tests the task. If you request delivery, you can review the recipients.

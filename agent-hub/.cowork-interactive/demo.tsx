@@ -1,0 +1,22 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {TranslationProvider} from '../src/hooks/useTranslation';
+import CoworkPage from '../src/components/cowork/CoworkPage';
+import '../src/index.css';
+import '../src/tailwind-utilities.css';
+import '../src/themes.css';
+import '../src/app.css';
+const dictionaries = import.meta.glob('../../server/i18n/defaults/nl/*.json', { eager: true, import: 'default' });
+const words = Object.assign({}, ...Object.values(dictionaries).map((d: any) => d.translations));
+localStorage.setItem('beeflow_locale','nl');
+if (new URLSearchParams(location.search).has('start')) localStorage.removeItem('cowork.2.view.preview');
+const realFetch = window.fetch.bind(window);
+window.fetch = async (input, options) => {
+    const url = new URL(input instanceof Request ? input.url : String(input), location.href);
+    if (url.origin === location.origin && !url.pathname.startsWith('/api/') && !url.pathname.startsWith('/ai/')) return realFetch(input, options);
+    const p = url.pathname;
+    const data = p.includes('/strings/nl') ? words : p.endsWith('/locales') ? [{code:'nl'}] : p.endsWith('/cowork') ? {schedules:[]} : {};
+    return Response.json(data);
+};
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient()}><TranslationProvider><CoworkPage user={{id:'preview'}} /><a href="?start=1" style={{position:"fixed",bottom:12,right:18,fontSize:13}}>Demo opnieuw starten</a></TranslationProvider></QueryClientProvider>);

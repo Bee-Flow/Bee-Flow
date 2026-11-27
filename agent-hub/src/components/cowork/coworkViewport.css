@@ -205,3 +205,41 @@
     .cowork-intro-line { animation: cowork-intro-speak .48s ease-out both; }
     @keyframes cowork-intro-speak { from { opacity: 0; transform: translateY(.2rem); } to { opacity: 1; transform: none; } }
 }
+
+.cowork-intro-guided { display: flex; flex-direction: column; align-items: center; justify-content: safe center; }
+.cowork-intro-stage { width: min(100%, 42rem); min-height: 15rem; }
+.cowork-intro-guided > small { margin-bottom: .5rem; }
+.cowork-intro-guided > button { margin-block-end: -2.25rem; }
+
+.cowork-story-caption { min-height: 5.5rem; }
+.cowork-intro-stage { min-height: min(23rem, 43vh); }
+.cowork-story-paper { padding: .85rem 1.15rem; background: var(--bg-card); border-inline-start: 2px solid var(--border-default); }
+@media (prefers-reduced-motion: no-preference) {
+    .cowork-story-caption .cowork-intro-line { animation: none; }
+    .cowork-story-caption span { animation: cowork-story-phrase .85s ease-out backwards; }
+    .cowork-story-evidence > div { animation: cowork-intro-speak .85s .55s ease-out backwards; }
+    .cowork-story-evidence .cowork-step-rail li { transition: opacity .7s; }
+    .cowork-story-evidence .cowork-step-rail li:not([aria-current]) { opacity: .65; }
+    @keyframes cowork-story-phrase { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: blur(0); } }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .cowork-intro-stage { transition: opacity .55s ease; }
+    .cowork-intro-stage[data-leaving="true"] { opacity: .13; }
+}
+
+.cowork-intro-orb { width: 100%; }
+.cowork-intro-orb[data-event="status_failed"] { --cowork-event-color: var(--error); }
+.cowork-intro-orb[data-event="status_needs"] { --cowork-event-color: var(--warning); }
+.cowork-intro-orb[data-event="status_done"] { --cowork-event-color: var(--success); }
+.cowork-intro-desk { display: grid; gap: .4rem; padding: .9rem 1.15rem; border-radius: var(--radius-md); background: var(--bg-card); }
+.cowork-intro-desk :is(strong, div, small) { display: flex; align-items: center; gap: .6rem; }
+.cowork-intro-desk strong { margin-bottom: .35rem; }
+.cowork-intro-desk small { color: var(--text-secondary); }
+
+.cowork-intro-guided { container-type: inline-size; }
+.cowork-intro-workspace { width: min(100%, 72rem); flex: none; }
+.cowork-intro-workspace .cowork-workspace-steps { text-align: start; }
+@container (max-width: 35.99rem) {
+    .cowork-intro-workspace.has-steps { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: .5rem; }
+}
