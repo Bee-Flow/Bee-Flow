@@ -50,6 +50,8 @@ const kbSourcesStore = require('../../../stores/kbSources');
 const kbStore = require('../../../stores/knowledgeBases');
 const { nextRunFor } = require('../../scheduling/nextRun');
 const cloudFolder = require('./cloudFolder.mts');
+const { optionalFeatureModule } = require('../../featureModules');
+const { absentModuleOf, assertKindPresent } = require('./moduleKinds');
 
 /**
  * A mapped kb_sources row; `config` is the parsed jsonb column, whose keys depend on the kind.
@@ -84,13 +86,17 @@ const cloudFolder = require('./cloudFolder.mts');
  *   precheck?(source: KbSource, ctx: SyncCtx, deps: SyncDeps): Promise<{ changed: boolean, cursor?: unknown }> }} SourceAdapter
  */
 
-/** @type {Record<string, SourceAdapter>} */
+/**
+ * Every kind, in the engine's order. `null`: the adapter is a module's own file, asked for by
+ * name (./moduleKinds.js); a core adapter whose kind needs a module is listed there too.
+ * @type {Record<string, SourceAdapter | null>}
+ */
 const ADAPTERS = {
-    webpage: require('./webpage'),
+    webpage: null,
     upload: require('./upload'),
     text: require('./text'),
     meeting_tag: require('./meetingTag'),
-    datatable: require('./datatable'),
+    datatable: null,
     cloud_folder: cloudFolder,
 };
 const log = require('../../../telemetry/log');
@@ -98,14 +104,22 @@ const { removeUnseenDocuments, labelDocuments } = require('./syncFinish');
 const { runPrecheck, saveCursor } = require('./precheck');
 const { syncItem, recordTableVersion } = require('./syncItem');
 
-/** Kinds this engine can refresh today. K7–K10 register theirs here. */
+/** Kinds this engine can refresh today: the ones whose module is here. K7–K10 register theirs here. */
 function supportedKinds() {
-    return Object.keys(ADAPTERS);
+    return Object.keys(ADAPTERS).filter((kind) => !absentModuleOf(kind));
 }
 
-/** @param {string} kind */
+/**
+ * The code of a kind: a core adapter, or the module's own adapter file while its module is here.
+ * @param {string} kind
+ */
 function adapterFor(kind) {
-    return ADAPTERS[kind] || null;
+    if (!Object.hasOwn(ADAPTERS, kind)) return null;
+    const own = ADAPTERS[kind];
+    if (own) return own;
+    if (absentModuleOf(kind)) return null;
+    if (kind === 'webpage') return /** @type {SourceAdapter} */ (optionalFeatureModule('core/kb/sources/webpage'));
+    return /** @type {SourceAdapter} */ (optionalFeatureModule('core/kb/sources/datatable'));
 }
 
 /** Default cadence when a scheduled source names no interval of its own. */
@@ -253,6 +267,9 @@ async function syncSource(source, opts = {}) {
     // be driven through it before it is registered.
     const adapter = opts.adapter || adapterFor(source.kind);
     if (!adapter) {
+        // A kind whose module is not here: the pass fails like any pass that could not run, so
+        // the source keeps its row, shows why, and refreshes on a later pass once the module is back.
+        assertKindPresent(source.kind);
         // A kind whose engine has not landed yet (K7–K10) must not be
         // rescheduled in a tight loop; say so once and stand down.
         return { ...counts, skipped: 'kind_unsupported', nextRefreshAt: null };

@@ -13,6 +13,8 @@ const { contribute } = require('../modules/firstParty/registrationChannels');
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'stores/dpiaStore': () => require('../stores/dpiaStore'),
+        'compliance/kbQueryLogEvidence': () => require('../compliance/kbQueryLogEvidence'),
     }));
     // core/automationRunner/documentMarking (Art. 50(2)): core owns the port,
     // compliance owns the policy. Without it a generated document renders

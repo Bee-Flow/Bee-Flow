@@ -173,10 +173,7 @@ test('the kind refreshes after a meeting by default', async () => {
     assert.ok(adapter.supportsModes.includes('manual'));
 });
 
-test('it is registered, or the engine stands down on every refresh', async () => {
-    const { supportedKinds } = require('./index');
-    assert.ok(supportedKinds().includes('meeting_tag'));
-});
+// That the engine lists the kind while the meetings are here: meetingTag.meetingNotes.test.js.
 
 // ── A tag larger than one read ──────────────────────────────────────
 

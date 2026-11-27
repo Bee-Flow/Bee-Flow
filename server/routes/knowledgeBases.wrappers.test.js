@@ -148,6 +148,11 @@ MOCK_IDS['../../../stores/kbSources'] = MOCK_IDS['../stores/kbSources'];
 // routes still call them, so the stubs still have to reach them.
 const STUBBED_PARENT = /(routes[\\/]knowledgeBases(\.js|[\\/][^\\/]+\.js)|core[\\/]kb[\\/](fetchGuard|sources[\\/]ensureSource)\.js)$/;
 
+// The core asks for the n8n client by name (core/featureModules.js): the same double answers there.
+require('../core/featureModules').registerFeatureModules({
+    'integrations/n8nTools': () => MOCKS['../integrations/n8nTools'],
+});
+
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     if (parent && STUBBED_PARENT.test(parent.filename)

@@ -36,8 +36,14 @@ export const worksCouncilReasons = (): readonly string[] => vocab().WORKS_COUNCI
 
 export type DpiaLookup = (orgId: string, dpiaId: string) => Promise<boolean>;
 
-const defaultDpiaLookup: DpiaLookup = async (orgId, dpiaId) =>
-    !!(await nodeRequire('../../../stores/dpiaStore').getByIdForOrg(orgId, dpiaId));
+type DpiaStore = { getByIdForOrg: (orgId: string, dpiaId: string) => Promise<unknown> };
+const { optionalFeatureModule } = nodeRequire('../../featureModules.js') as { optionalFeatureModule: (name: string) => DpiaStore | null };
+
+// The DPIA register is the compliance module's: without it no DPIA id names one here.
+const defaultDpiaLookup: DpiaLookup = async (orgId, dpiaId) => {
+    const dpiaStore = optionalFeatureModule('stores/dpiaStore');
+    return !!dpiaStore && !!(await dpiaStore.getByIdForOrg(orgId, dpiaId));
+};
 
 /**
  * Check what the caller sent. `missing` names every field that is absent or not allowed, so the

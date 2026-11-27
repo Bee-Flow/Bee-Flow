@@ -1,5 +1,6 @@
 {
   "featureModules": [
-    "services/webpageSnapshot"
+    "services/webpageSnapshot",
+    "core/kb/sources/webpage"
   ]
 }

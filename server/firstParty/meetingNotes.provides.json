@@ -1,5 +1,7 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "stores/transcriptionStore"
+  ],
   "runnerPorts": [
     "meetingImports"
   ]

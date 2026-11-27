@@ -19,6 +19,7 @@ const { requireAuth, requirePermission } = require('../../auth');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 const PROVIDERS = /** @type {const} */ (['nextcloud_files', 'onedrive', 'google_drive']);
 const PROVIDER_TEXT = `provider is one of: ${PROVIDERS.join(', ')}.`;
@@ -35,12 +36,17 @@ const BrowseQuery = z.object({
 const access = () => require('./cloudAccess');
 /**
  * The spreadsheet linker's per-user bucket, resolved per request so the provider
- * clients load lazily.
+ * clients load lazily. Without the datatables module there is no storage layer to
+ * spare (browsing itself answers 409 module_absent), so there is no bucket either.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-const storageLimiter = (req, res, next) => require('../../core/dataEngine/sources/spreadsheetFile/linkRelink').storageLimiter(req, res, next);
+const storageLimiter = (req, res, next) => {
+    const relink = optionalFeatureModule('core/dataEngine/sources/spreadsheetFile/linkRelink');
+    if (!relink) return next();
+    return relink.storageLimiter(req, res, next);
+};
 
 router.get('/cloud/providers', requireAuth, requirePermission('manage_knowledge'), async (req, res) => {
     res.json({ providers: await access().providerStatuses(req) });

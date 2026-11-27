@@ -16,6 +16,8 @@ const { ingestDocument } = require('../../core/kb/kbIngestionHelpers');
 const { getUserId, requireKbGrade, kbAccessOf, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { optionalFeatureModule } = require('../../core/featureModules');
+const { moduleAbsentError } = require('../../core/kb/sources/moduleKinds');
 
 const WORKFLOW_TEXT = 'A workflow id is required — which n8n workflow to read.';
 const MODE_TEXT = 'mode is "data" (run the webhook) or "definition" (the flow itself).';
@@ -79,7 +81,9 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
         }
 
         // Fetch the full workflow definition from n8n
-        const { fetchWorkflowById, triggerWebhookWorkflow } = require('../../integrations/n8nTools');
+        const n8nTools = optionalFeatureModule('integrations/n8nTools');
+        if (!n8nTools) return next(moduleAbsentError('int_saas', 'Importing an n8n workflow'));
+        const { fetchWorkflowById, triggerWebhookWorkflow } = n8nTools;
         const workflow = /** @type {{ name?: string, nodes?: Array<{ type?: string, parameters?: { path?: string, httpMethod?: string } }> } | null} */ (await fetchWorkflowById(n8nUrl, n8nApiKey, workflowId));
 
         if (!workflow || !workflow.nodes) {

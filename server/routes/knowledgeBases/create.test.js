@@ -98,6 +98,10 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
     MOCK_IDS[request.replace(/^\.\.\//, '../../')] = mockId;
     require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
 }
+// The core asks for the meetings store by name (core/featureModules.js): the same double answers there.
+require('../../core/featureModules').registerFeatureModules({
+    'stores/transcriptionStore': () => MOCKS['../stores/transcriptionStore'],
+});
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     // Also the shared gate and the org resolution it leans on: those run

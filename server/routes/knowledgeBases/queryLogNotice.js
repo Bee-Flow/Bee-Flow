@@ -28,7 +28,7 @@ const { showsNames } = require('../../core/kb/queryLog/askers.mts');
 const { fallback } = require('../../utils/bestEffort');
 const queryLogStore = require('../../stores/kb/queryLog/index.mts');
 const orgViews = require('../../stores/kb/queryLog/orgViews.mts');
-const dpiaStore = require('../../stores/dpiaStore');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 /** @typedef {{ id: string, name: string, organization_id?: string | null, query_log_show_names?: boolean | null, query_log_retention_days?: number | null }} KbRow */
 
@@ -114,6 +114,9 @@ router.get('/query-log/dpias', requireAuth, requireLicenseFeature(FEATURE), vali
     const orgId = [...(orgIds || [])][0] ?? null;
     const mayManage = !!orgId && ((await hasPermission(userId, 'manage_knowledge', req.session)) || (await orgViews.userOwnsKbInOrg(orgId, userId)));
     if (!orgId || !mayManage) throw new HttpError(404, 'not_found', 'Not found');
+    // The DPIA register is the compliance module's: without it there is no DPIA to pick.
+    const dpiaStore = optionalFeatureModule('stores/dpiaStore');
+    if (!dpiaStore) return res.json({ dpias: [] });
     const rows = await dpiaStore.listForOrgNamed(orgId);
     res.json({
         dpias: rows.map((/** @type {{ id: number | string, agent_id: string, title?: string | null, approved_at?: string | null, expires_at?: string | null }} */ r) => ({

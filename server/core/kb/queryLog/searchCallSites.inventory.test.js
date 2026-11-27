@@ -10,19 +10,23 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { roots } = require('../../../moduleRoots.cjs');
-const { treeFile } = require('../../../testUtils/serverTree');
+const { treeFile, walkServerTree } = require('../../../testUtils/serverTree');
 
-const { scanSearchCallSites } = require('./searchCallSites.scan.mts');
+const { scanSearchCallSites, SKIP_DIRS, keepFile } = require('./searchCallSites.scan.mts');
 const { CHANNELS } = require('../../../stores/kb/queryLog/vocab.mts');
 const inventory = require('./searchCallSites.inventory.json');
 
 /**
  * The call sites of every root of the tree (server/ and each modules/<id>/server), as tree
- * paths: a caller that moved to a module is still in the inventory under the same file.
+ * paths: a caller that moved to a module is still in the inventory under the same file, and a
+ * module hidden in core mode is still read (testUtils/serverTree.js: the walk sees every file).
  */
 function scanTree() {
-    return [...new Set(roots().flatMap((root) => scanSearchCallSites(root.dir)))].sort();
+    const files = walkServerTree({
+        skipDirs: [...SKIP_DIRS],
+        filter: (_treePath, entry) => entry.isDirectory() || keepFile(entry.name),
+    }).map((f) => ({ rel: f.treePath, abs: f.abs }));
+    return [...new Set(scanSearchCallSites(files))].sort();
 }
 // Package 2 (the channel hooks) flips this to true: every entry with a channel must then be hooked.
 const REQUIRE_HOOKED = true;

@@ -18,6 +18,7 @@ const {
     sourceForApi, maxSourcesFor, refreshPatchFor,
 } = require('./sourcePolicy');
 const { fallback } = require('../../utils/bestEffort');
+const { assertKindPresent, moduleFile } = require('../../core/kb/sources/moduleKinds');
 
 /**
  * Fetch a page for a webpage source.
@@ -160,7 +161,7 @@ async function createMeetingTagSource(res, { kb, name, cfg, userId, refreshPatch
     const asker = await askerContext(userId);
     let visible = [];
     try {
-        visible = await require('../../stores/transcriptionStore')
+        visible = await moduleFile('stores/transcriptionStore', 'meetingNotes', 'A meeting-tag source')
             .listByTag(tag, userId, { orgIds: [...asker.orgIds], userGroupIds: asker.userGroups, limit: 1 });
     } catch (e) {
         log.warn('[KB] meeting tag probe failed:', /** @type {Error} */ (e).message);
@@ -200,7 +201,7 @@ async function createDatatableSource(res, { kb, name, cfg, userId, refreshPatch 
     const asker = await askerContext(userId);
     let resolved;
     try {
-        const { resolveDatatableForStep } = require('../../core/automationRunner/datatableResolve');
+        const { resolveDatatableForStep } = moduleFile('core/automationRunner/datatableResolve', 'datatables', 'A datatable source');
         resolved = await resolveDatatableForStep(datatableId, {
             userId,
             orgId: [...asker.orgIds][0] || null,
@@ -214,7 +215,7 @@ async function createDatatableSource(res, { kb, name, cfg, userId, refreshPatch 
             code: 'datatable_not_available',
         });
     }
-    const { pickColumns } = require('../../core/kb/sources/datatable');
+    const { pickColumns } = moduleFile('core/kb/sources/datatable', 'datatables', 'A datatable source');
     const columns = pickColumns({ columns: cfg.columns }, resolved.tableMeta);
     // A column the table does not have is no title at all: the name is only
     // meaningful against the live table, so the check is here.
@@ -233,7 +234,7 @@ async function createDatatableSource(res, { kb, name, cfg, userId, refreshPatch 
     });
     // So the table's own "Used by" names this knowledge base, and deleting
     // the table asks first. Best-effort by design.
-    await require('../../core/kb/sources/datatable')
+    await moduleFile('core/kb/sources/datatable', 'datatables', 'A datatable source')
         .reconcileUsage(kb.id, resolved.scope);
     return res.status(201).json({ source: await sourceForApi(source) });
 }
@@ -358,6 +359,8 @@ async function createSource(/** @type {import('express').Request} */ req, /** @t
                 availableKinds: CREATABLE_KINDS,
             });
         }
+        // A kind whose module is not here cannot be made (the client should not offer it).
+        assertKindPresent(kind);
         if (!(await assertUnderSourceLimit(res, kb, req))) return;
 
         const args = { kb, name, cfg: config, userId: getUserId(req), refreshPatch: refreshPatchFor(refresh, kind), req };

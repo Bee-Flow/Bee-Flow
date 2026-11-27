@@ -1,6 +1,7 @@
 // @typecheck strict
 'use strict';
 const log = require('../../telemetry/log');
+const { optionalFeatureModule } = require('../featureModules');
 
 /**
  * ── THE ID IS A CLAIM ABOUT A MEETING (M4) ──────────────────────────
@@ -43,7 +44,10 @@ async function checkTranscriptOriginVisible(transcriptionId, userId) {
     const { askerContext } = require('./askerContext');
     const asker = await askerContext(userId);
     try {
-        const visible = await require('../../stores/transcriptionStore').canReadTranscription(
+        // Without the meetingNotes module there are no meetings here: the claim names nothing
+        // this writer can see, which is the same answer as for a meeting that does not exist.
+        const transcriptions = optionalFeatureModule('stores/transcriptionStore');
+        const visible = transcriptions && await transcriptions.canReadTranscription(
             transcriptionId,
             userId,
             // Geen `isSuperAdmin`. Zie de kop: die vlag zou de poort openen in

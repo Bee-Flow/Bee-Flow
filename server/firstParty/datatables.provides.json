@@ -1,3 +1,22 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "core/kb/sources/datatable",
+    "core/dataEngine/sources/spreadsheetFile/linkerAuth",
+    "core/dataEngine/sources/spreadsheetFile/providers/index",
+    "core/dataEngine/sources/spreadsheetFile/providers/documents",
+    "core/dataEngine/sources/spreadsheetFile/linkBrowse",
+    "core/dataEngine/sources/spreadsheetFile/linkRelink",
+    "auth/datatableAccess",
+    "core/automationRunner/datatableResolve",
+    "stores/datatableStore",
+    "stores/datatableDbStore",
+    "core/dataEngine/datatableRuntime",
+    "core/dataEngine/provisionManagedTable",
+    "core/dataEngine/dataModel/managedTables",
+    "core/dataEngine/datatableLimits",
+    "core/dataEngine/sources/spreadsheetFile/formats/index",
+    "core/dataEngine/sources/spreadsheetFile/formats/csv",
+    "core/dataEngine/sources/spreadsheetFile/formats/sheetjs",
+    "core/dataEngine/sources/spreadsheetFile/cells"
+  ]
 }
