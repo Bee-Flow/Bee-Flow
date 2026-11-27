@@ -28,6 +28,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { walkServerTree } = require('../testUtils/serverTree');
 
 const SERVER = path.join(__dirname, '..');
 const AUTH = __dirname;
@@ -82,32 +83,27 @@ test('requiring auth/index.js loads no auth route file', () => {
 });
 
 test('only server/index.js requires auth/router.js (plus the lazy getter)', () => {
-    const SKIP = new Set(['node_modules', 'migrations', 'assets', 'prompts']);
-    const target = path.join(AUTH, 'router.js');
+    // Every root of the tree (server/ and each modules/<id>/server), by tree path.
+    const files = walkServerTree({
+        skipDirs: ['migrations', 'assets', 'prompts'],
+        controlFiles: true,
+        filter: (_rel, e) => !e.name.startsWith('.')
+            && (e.isDirectory() || (/\.(c|m)?js$/.test(e.name) && !/\.test\.(c|m)?js$/.test(e.name))),
+    });
     const importers = [];
-    const walk = (dir) => {
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (e.name.startsWith('.')) continue;
-            const full = path.join(dir, e.name);
-            if (e.isDirectory()) { if (!SKIP.has(e.name)) walk(full); continue; }
-            if (!/\.(c|m)?js$/.test(e.name) || /\.test\.(c|m)?js$/.test(e.name)) continue;
-            const src = fs.readFileSync(full, 'utf8');
-            for (const m of src.matchAll(/require\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
-                const resolved = path.resolve(path.dirname(full), m[1]);
-                if (resolved === target || `${resolved}.js` === target) {
-                    importers.push(path.relative(SERVER, full));
-                }
-            }
+    for (const { treePath: rel, abs } of files) {
+        for (const m of fs.readFileSync(abs, 'utf8').matchAll(/require\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
+            const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(rel), m[1]));
+            if (resolved === 'auth/router.js' || resolved === 'auth/router') importers.push(rel);
         }
-    };
-    walk(SERVER);
+    }
     // The end-to-end journeys rebuild the composition root (index.js cannot be
     // required in a test process: it binds a port and starts timers), so their
     // test kits mount auth/router.js the way index.js does. They are test
     // tooling, never loaded by the server; only journeys/*.testkit.js qualifies.
-    const isJourneyKit = (rel) => rel.startsWith(`journeys${path.sep}`) && /\.testkit\.(c|m)?js$/.test(rel);
+    const isJourneyKit = (rel) => rel.startsWith('journeys/') && /\.testkit\.(c|m)?js$/.test(rel);
     const production = [...new Set(importers)].filter((rel) => !isJourneyKit(rel));
-    assert.deepStrictEqual(production.sort(), [path.join('auth', 'index.js'), 'index.js'],
+    assert.deepStrictEqual(production.sort(), ['auth/index.js', 'index.js'],
         'auth/router.js is the /auth HTTP surface: only the composition root (server/index.js) mounts it; '
         + 'auth/index.js may reach it only through its lazy `router` getter');
 });

@@ -1392,9 +1392,8 @@
     },
     {
       "file": "server/importPaths.test.js",
-      "status": "pending",
-      "what": "walks server/ and checks every relative require resolves (must resolve across roots)",
-      "group": "server-tree-tests"
+      "status": "root-aware",
+      "what": "walks every root (testUtils/serverTree.js) and checks every relative require resolves in some root, as the resolver resolves it"
     },
     {
       "file": "server/index.errorHandler.test.js",
@@ -1410,9 +1409,8 @@
     },
     {
       "file": "server/layering.test.js",
-      "status": "pending",
-      "what": "walks every top-level entry of server/ and counts cross-layer requires",
-      "group": "server-tree-tests"
+      "status": "root-aware",
+      "what": "walks every root (testUtils/serverTree.js); a file's unit is the first segment of its tree path, so a moved file keeps its layer; the top-level classification covers every root"
     },
     {
       "file": "server/migrateDb.erasure.integration.test.js",
@@ -1732,9 +1730,8 @@
     },
     {
       "file": "server/testUtils/builderStreamHarness.js",
-      "status": "pending",
-      "what": "stub keys from require.resolve(path.join(server, rel)) (plan: confirm in the dress rehearsal)",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "stub keys are require.resolve of an absolute path under server/; the resolver (required here too, for a bare node --test) finds the tree path in the root that holds it"
     },
     {
       "file": "server/testUtils/compositionText.js",
@@ -1748,9 +1745,8 @@
     },
     {
       "file": "server/testUtils/crudRouteStubs.js",
-      "status": "pending",
-      "what": "stub keys from path.join(server, rel)",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "stub keys path.join(server, rel) go through preloadStubs (require.resolve); the resolver, required here too, finds the tree path in the root that holds it"
     },
     {
       "file": "server/testUtils/moduleRootsFixture.testkit.js",
@@ -1765,27 +1761,29 @@
     },
     {
       "file": "server/testUtils/pgliteLadderDb.js",
-      "status": "pending",
-      "what": "stub key path.join(server, 'db.js') and migration paths",
-      "group": "test-kits"
+      "status": "not-applicable",
+      "what": "stub key path.join(server, 'db.js'); runs the real migrateDb ladder",
+      "reason": "db.js is core and never moves; the ladder it runs is migrateDb's own, which resolves through the tree"
     },
     {
       "file": "server/testUtils/pgliteTemplate.js",
-      "status": "pending",
-      "what": "sha256 over every non-test file of server/ for the template cache ladder",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "sha256 over every non-test source file of every root (walkServerTree, core first then modules by id) for the template cache key; with one root the hash is the plain walk of server/ (pgliteTemplate.test.js), core mode has a key of its own"
+    },
+    {
+      "file": "server/testUtils/pgliteTemplate.test.js",
+      "status": "root-aware",
+      "what": "checks that the template source hash with one root equals the plain walk of server/, and differs from it once module roots exist"
     },
     {
       "file": "server/testUtils/requireEdges.js",
-      "status": "pending",
-      "what": "walks the production files under server/ and reads their requires as text",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "walks the production files of every root (walkServerTree) and reads their requires as text, by tree path"
     },
     {
       "file": "server/testUtils/routeContractObserve.js",
-      "status": "pending",
-      "what": "reads index.js and the files it mounts as text relative to server/",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "reads index.js and the files it mounts by tree path from whichever root holds them (treeFile); a fixture server dir is read as one directory"
     },
     {
       "file": "server/testUtils/routeHandlers.js",
@@ -1795,21 +1793,28 @@
     },
     {
       "file": "server/testUtils/runnerIdentityStubs.js",
-      "status": "pending",
-      "what": "stub keys from path.join(server, rel)",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "stub keys path.join(server, rel) go through preloadStubs (require.resolve); the resolver, required here too, finds the tree path in the root that holds it"
+    },
+    {
+      "file": "server/testUtils/serverTree.js",
+      "status": "root-aware",
+      "what": "the shared walk of the whole-tree guard tests and kits: walkServerTree over every root (moduleRoots.cjs roots()), treeFile, readTreeFile, requestPlaces; fails when a root yields nothing"
+    },
+    {
+      "file": "server/testUtils/serverTree.test.js",
+      "status": "root-aware",
+      "what": "checks the walk against a plain walk of server/ and, in a temp tree with a second root, that it and the kits on it (requireEdges, the template hash, a stub key) see the moved files"
     },
     {
       "file": "server/testUtils/stubServer.js",
-      "status": "pending",
-      "what": "stub keys from path.join(server, rel)",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "stub keys path.join(server, rel) go through preloadStubs (require.resolve); the resolver, required here too, finds the tree path in the root that holds it"
     },
     {
       "file": "server/testUtils/studioRunTables.js",
-      "status": "pending",
-      "what": "reads stores/studioAppData/<file> as text by a hand-made path",
-      "group": "test-kits"
+      "status": "root-aware",
+      "what": "reads stores/studioAppData/<file> through treePath()"
     }
   ]
 }

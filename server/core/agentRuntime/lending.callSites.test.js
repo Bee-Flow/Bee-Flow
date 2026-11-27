@@ -25,35 +25,23 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const path = require('node:path');
+const { treeJsFiles } = require('../../testUtils/serverTree');
 
-const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 const SKIP_DIRS = new Set(['node_modules', '.git', 'data', 'coverage', 'dist', 'uploads', 'public']);
 
 const RESOLVE_RE = /resolveEffectiveIdentity\s*\(/;
 const AGENT_SCOPED_RE = /resourceType:\s*'agent'/;
 const GATE_RE = /mayLendOwnerConnection/;
 
-function walk(/** @type {string} */ dir, /** @type {string[]} */ out = []) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-            if (SKIP_DIRS.has(entry.name)) continue;
-            walk(path.join(dir, entry.name), out);
-        } else if (entry.isFile() && entry.name.endsWith('.js') && !entry.name.endsWith('.test.js')) {
-            out.push(path.join(dir, entry.name));
-        }
-    }
-    return out;
-}
-
 test('every agent-scoped lending call site consults the actAs gate', () => {
     const offenders = [];
     let sites = 0;
-    for (const file of walk(SERVER_ROOT)) {
-        const src = fs.readFileSync(file, 'utf8');
+    // Every root of the tree (server/ and each modules/<id>/server), by tree path.
+    for (const file of treeJsFiles({ skipDirs: [...SKIP_DIRS] })) {
+        const src = fs.readFileSync(file.abs, 'utf8');
         if (!RESOLVE_RE.test(src) || !AGENT_SCOPED_RE.test(src)) continue;
         sites++;
-        if (!GATE_RE.test(src)) offenders.push(path.relative(SERVER_ROOT, file));
+        if (!GATE_RE.test(src)) offenders.push(file.treePath);
     }
 
     assert.equal(offenders.length, 0,

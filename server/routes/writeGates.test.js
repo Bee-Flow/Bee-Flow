@@ -26,32 +26,28 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
-const path = require('node:path');
+const { walkServerTree, treeFile, readTreeFile } = require('../testUtils/serverTree');
 
-const SERVER = path.resolve(__dirname, '..');
-const read = (rel) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
+// Tree paths: read from whichever root holds them (server/ or a modules/<id>/server).
+const read = (rel) => readTreeFile(rel);
 
 /**
  * The source a router declares its routes in — one file, or, when the router
- * is a FOLDER whose parts register onto one router, every .js under it.
+ * is a FOLDER whose parts register onto one router, every .js under it, in
+ * every root (a folder may be split over the core and a module).
  *
  * RECURSIVE on purpose. A one-level scan stops seeing a part the moment it
  * moves into a subfolder, and this test would keep passing while proving
  * nothing about the routes it no longer reads.
  */
 function readRouter(rel) {
-    const full = path.join(SERVER, rel);
-    if (fs.statSync(full).isFile()) return fs.readFileSync(full, 'utf8');
-    const parts = [];
-    const walk = (dir) => {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-            const child = path.join(dir, entry.name);
-            if (entry.isDirectory()) { walk(child); continue; }
-            if (entry.name.endsWith('.js') && !entry.name.includes('.test.')) parts.push(fs.readFileSync(child, 'utf8'));
-        }
-    };
-    walk(full);
-    assert.ok(parts.length, `${rel} holds no route source — did the router move?`);
+    const file = treeFile(rel);
+    if (file) return fs.readFileSync(file, 'utf8');
+    const parts = walkServerTree({
+        under: rel,
+        filter: (_p, entry) => entry.isDirectory() || (entry.name.endsWith('.js') && !entry.name.includes('.test.')),
+    }).map((f) => fs.readFileSync(f.abs, 'utf8'));
+    assert.ok(parts.length, `${rel} holds no route source in any root — did the router move?`);
     return parts.join('\n');
 }
 

@@ -13,7 +13,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { PGlite } = require('@electric-sql/pglite');
-const { newPglite, templateFile, readVerified, writeAtomic } = require('./pgliteTemplate');
+const crypto = require('node:crypto');
+const { newPglite, templateFile, readVerified, writeAtomic, sourceHash } = require('./pgliteTemplate');
+const { roots } = require('../moduleRoots.cjs');
 
 const FINGERPRINT = `SELECT current_database() AS db, version() AS v, current_setting('TimeZone') AS tz,
     current_setting('server_encoding') AS enc, (SELECT string_agg(datname || ':' || datcollate, ',' ORDER BY datname) FROM pg_database) AS databases,
@@ -94,6 +96,25 @@ test('the ladder key follows the server source, the empty key does not', () => {
     assert.match(path.basename(ladder), /^ladder-[0-9a-f]{20}\.tgz$/);
     assert.match(path.basename(templateFile('empty')), /^empty-[0-9a-f]{20}\.tgz$/);
     assert.strictEqual(templateFile('ladder'), ladder, 'stable for an unchanged tree');
+});
+
+test('with only the core root the source hash is the plain walk of server/ (no cached template is invalidated)', () => {
+    // The walk sourceHash() did before it covered every root, kept here as the reference.
+    const SERVER = path.join(__dirname, '..');
+    const h = crypto.createHash('sha256');
+    const walk = (/** @type {string} */ dir) => {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+            const p = path.join(dir, e.name);
+            if (e.isDirectory()) { if (!['node_modules', '.git', 'coverage', 'dist', 'journeys'].includes(e.name)) walk(p); continue; }
+            if (e.isFile() && /\.(c|m)?js$|\.mts$|\.ts$|\.json$|\.sql$|\.md$|\.txt$/.test(e.name) && !/\.test\./.test(e.name)) {
+                h.update(path.relative(SERVER, p)).update('\0').update(fs.readFileSync(p));
+            }
+        }
+    };
+    walk(SERVER);
+    const coreOnly = h.digest('hex');
+    if (roots().length === 1) assert.strictEqual(sourceHash(), coreOnly);
+    else assert.notStrictEqual(sourceHash(), coreOnly, 'the module roots are part of the hash');
 });
 
 test('writeAtomic keeps a fresh template of another key (a parallel test process may be reading it) and drops a stale one', () => {

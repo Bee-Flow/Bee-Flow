@@ -26,27 +26,24 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const fs = require('node:fs');
-const path = require('node:path');
+const { listTreeDir, treePath, toTreePath } = require('../../moduleRoots.cjs');
 
-const SERVER = path.join(__dirname, '..', '..');
-const JOBS = path.join(SERVER, 'jobs');
-// Lock holders outside jobs/ that export their key.
+// Lock holders outside jobs/ that export their key (tree paths).
 const OUTSIDE_JOBS = [
     'compliance/scheduler.js',
     'core/automationRunner/scheduler/gmeetImportTick.js',
 ];
 
 function lockExports() {
-    const files = fs.readdirSync(JOBS)
-        .filter((f) => f.endsWith('.js') && !f.endsWith('.test.js'))
-        .map((f) => path.join(JOBS, f))
-        .concat(OUTSIDE_JOBS.map((f) => path.join(SERVER, f)));
+    // jobs/ of every root (a job moves with its module), plus the holders outside it.
+    const jobs = listTreeDir('jobs').filter((e) => e.name.endsWith('.js') && !e.name.endsWith('.test.js'));
+    assert.ok(jobs.some((e) => e.moduleId === null), 'no job file found in the core root: the listing is blind');
+    const files = jobs.map((e) => e.abs).concat(OUTSIDE_JOBS.map((f) => treePath(f)));
     const found = [];
     for (const file of files) {
         const mod = require(file);
         for (const [name, value] of Object.entries(mod || {})) {
-            if (/LOCK_(KEY|NAME)$/.test(name)) found.push({ where: `${path.relative(SERVER, file)}#${name}`, value });
+            if (/LOCK_(KEY|NAME)$/.test(name)) found.push({ where: `${toTreePath(file)}#${name}`, value });
         }
     }
     return found;

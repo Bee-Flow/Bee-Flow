@@ -37,6 +37,7 @@ const path = require('node:path');
 
 const registry = require('./accessRegistry');
 const featureMap = require('../license/featureMap');
+const { treeFile } = require('../testUtils/serverTree');
 
 const SERVER = path.resolve(__dirname, '..');
 
@@ -255,7 +256,7 @@ describe('8. what the drift test cannot verify, a named test does', () => {
             if (!entry.rbac) continue; // no permission claim → nothing to verify
             assert.ok(entry.verifiedBy, `${id} declares an rbac list this test cannot verify; name the authz test in verifiedBy`);
             assert.ok(
-                fs.existsSync(path.join(SERVER, entry.verifiedBy)),
+                treeFile(entry.verifiedBy) !== null, // a tree path: the test may sit in a module root
                 `${id}: verifiedBy points at ${entry.verifiedBy}, which does not exist`,
             );
         }

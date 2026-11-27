@@ -33,12 +33,11 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const path = require('node:path');
 
 const registry = require('./accessRegistry');
 const { parseSurface, sweepSurface } = require('../testUtils/routeSurfaceSweep');
 
-const SERVER = path.resolve(__dirname, '..');
+const { treeFile } = require('../testUtils/serverTree');
 
 // The deliberately open routes live in auth/openRoutes.js so routes.contract.test.js
 // reads the same list; this test keeps the name it always used.
@@ -72,11 +71,10 @@ const GEPIND_ONGEGATE = new Map([
 const redenVan = (v) => (typeof v === 'string' ? v : v.reden);
 
 // ── De echte sweep ───────────────────────────────────────────────────────────
+// A tree path, read from whichever root holds it (a router that moved to modules/<id>/server too).
 const readSource = (rel) => {
-    try {
-        const p = path.join(SERVER, rel);
-        return fs.statSync(p).isFile() ? fs.readFileSync(p, 'utf8') : null;
-    } catch (_) { return null; }
+    const p = treeFile(rel);
+    return p ? fs.readFileSync(p, 'utf8') : null;
 };
 const isTriaged = (p) => registry.triagedPrefixes.some((pre) => p === pre || p.startsWith(`${pre}/`));
 
@@ -152,8 +150,8 @@ test('elke bewijs-claim klopt nog', () => {
     for (const [key, v] of [...BEWUST_OPEN, ...GEPIND_ONGEGATE]) {
         if (typeof v === 'string') continue;
         const { file, marker } = v.bewijs;
-        const p = path.join(SERVER, file);
-        assert.ok(fs.existsSync(p), `${key}: bewijs wijst naar een verdwenen bestand: ${file}`);
+        const p = treeFile(file);
+        assert.ok(p, `${key}: bewijs wijst naar een verdwenen bestand: ${file}`);
         assert.ok(fs.readFileSync(p, 'utf8').includes(marker),
             `${key}: ${file} bevat "${marker}" niet meer — de claim is vals, herbeoordeel de entry`);
     }

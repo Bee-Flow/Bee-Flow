@@ -19,6 +19,7 @@ const path = require('node:path');
 const { listFiles, loadNamespaceFiles, sourceHash, NL_DIR } = require('.');
 const { GUI_DEFAULTS, LISTED_NAMESPACES, DISCOVERED_NAMESPACES } = require('../en');
 const { i18nTreeFixture } = require('../treeFixture.testkit.js');
+const { roots, hiddenOwner } = require('../../../moduleRoots.cjs');
 
 /** @param {Record<string, unknown>} files name -> JSON value, or a string written as is */
 function tempDir(files) {
@@ -89,9 +90,14 @@ test('the real files load, and each one belongs to an English namespace', () => 
     }
 });
 
-test('without a directory the loader reads the tree, which here is this directory', () => {
-    assert.deepStrictEqual(listFiles(), listFiles(NL_DIR));
-    assert.strictEqual(sourceHash(), sourceHash(NL_DIR));
+test('without a directory the loader reads the tree: nl/ of every root, merged by name', () => {
+    const holders = roots().map((r) => path.join(r.dir, 'i18n', 'defaults', 'nl')).filter((d) => fs.existsSync(d));
+    assert.ok(holders.includes(NL_DIR), 'the core root holds the Dutch files');
+    const expected = [...new Set(holders.flatMap((d) => listFiles(d).filter((name) => !hiddenOwner(path.join(d, name)))))].sort();
+    assert.ok(expected.length > 0, 'no Dutch file found in any root: the listing is blind');
+    assert.deepStrictEqual(listFiles(), expected);
+    // With the core root alone the tree is this directory, hash and all.
+    if (holders.length === 1 && !process.env.BEEFLOW_HIDE_MODULES) assert.strictEqual(sourceHash(), sourceHash(NL_DIR));
 });
 
 // -- Data files in more than one root (server/moduleRoots.cjs) ---------------

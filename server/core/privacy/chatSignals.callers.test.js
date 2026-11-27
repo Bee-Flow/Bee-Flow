@@ -45,7 +45,7 @@ const ALLOWED = new Map([
     ['routes/ai/directChat/swarmTurn.js -> routes/ai/directChat/chatSignalsTurn', 'the Swarm tier of direct chat (unscanned)'],
 ]);
 
-/** Areas that carry messages between people, as path prefixes relative to server/. */
+/** Areas that carry messages between people, as tree path prefixes (requireEdges walks every root). */
 const BETWEEN_PEOPLE = [
     'routes/projects/', 'projects/', 'routes/support', 'services/support',
     'integrations/nextcloudTalk', 'routes/nextcloudTaskProcessing.js',

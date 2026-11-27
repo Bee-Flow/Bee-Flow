@@ -22,11 +22,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const path = require('node:path');
+const { walkServerTree } = require('../testUtils/serverTree');
 
 const { stripComments } = require('../testUtils/routeSurfaceSweep');
 
-const SERVER = path.resolve(__dirname, '..');
 const shape = require('./sessionShape.json');
 
 // `session.key = value` and `req.session.key = value`; `==` and `=>` are not assignments.
@@ -34,17 +33,15 @@ const ASSIGN = /\bsession\s*\.\s*([A-Za-z_$][\w$]*)\s*=(?![=>])/g;
 // A method patched onto the session object (establishSession.js suppressSessionPersistence).
 const FUNCTION_RHS = /^\s*(?:async\s*)?(?:\(|function\b|[\w$]+\s*=>)/;
 
+/** The source files of every root of the tree (server/ and each modules/<id>/server), test support left out. */
 function sourceFiles() {
-    const out = [];
-    (function walk(dir) {
-        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-            if (e.name === 'node_modules' || e.name === 'coverage') continue;
-            const p = path.join(dir, e.name);
-            if (e.isDirectory()) walk(p);
-            else if (/\.(?:js|mts|cjs)$/.test(e.name) && !/\.test\./.test(e.name) && !p.includes(`${path.sep}testUtils${path.sep}`)) out.push(p);
-        }
-    })(SERVER);
-    return out;
+    return walkServerTree({
+        controlFiles: true,
+        filter: (rel, e) => {
+            if (e.isDirectory()) return e.name !== 'testUtils';
+            return /\.(?:js|mts|cjs)$/.test(e.name) && !/\.test\./.test(e.name);
+        },
+    });
 }
 
 /** The brace-balanced text after `= {`, or '' when the right-hand side is not an object literal. */
@@ -83,11 +80,10 @@ function literalKeys(obj) {
 }
 
 const writes = [];
-for (const file of sourceFiles()) {
-    const text = fs.readFileSync(file, 'utf8');
+for (const { treePath: rel, abs } of sourceFiles()) {
+    const text = fs.readFileSync(abs, 'utf8');
     if (!text.includes('session.') && !text.includes('session .')) continue;
     const code = stripComments(text);
-    const rel = path.relative(SERVER, file).split(path.sep).join('/');
     for (const m of code.matchAll(ASSIGN)) {
         const rhsStart = m.index + m[0].length;
         const rhs = code.slice(rhsStart, rhsStart + 80);

@@ -13,6 +13,10 @@
 const path = require('path');
 const { preloadStubs } = require('./stubRequire');
 
+// `rel` is a tree path: preloadStubs resolves the absolute path, and the resolver (installed
+// here too, for a bare `node --test`) finds it in whichever root holds it after a module moved.
+require('../moduleRoots.cjs');
+
 const SERVER = path.join(__dirname, '..');
 
 function serverStubber() {

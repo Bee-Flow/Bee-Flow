@@ -24,20 +24,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
-const path = require('path');
+const { listTreeDir } = require('../../moduleRoots.cjs');
+const { treeJsFiles, treeFile, readTreeFile } = require('../../testUtils/serverTree');
 
-const SERVER_ROOT = path.resolve(__dirname, '..', '..');
-const SKIP_DIRS = new Set(['node_modules', 'data', 'uploads', '.git']);
-
-function walkJs(/** @type {string} */ dir, /** @type {string[]} */ out = []) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue;
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) walkJs(full, out);
-        else if (entry.name.endsWith('.js')) out.push(full);
-    }
-    return out;
-}
+const SKIP_DIRS = ['data', 'uploads'];
 
 /** Strip comments so a mention in prose is not mistaken for a call. */
 function stripComments(/** @type {string} */ src) {
@@ -51,32 +41,27 @@ function stripComments(/** @type {string} */ src) {
  * once" is a property of that whole directory, not of the mounter file.
  */
 function directChatSource() {
-    const files = [path.join(SERVER_ROOT, 'routes', 'ai', 'directChat.js')];
-    // The route bodies, and the use cases they call (usecases/ keeps the sub-folder).
-    for (const dir of [path.join(SERVER_ROOT, 'routes', 'ai', 'directChat'), path.join(SERVER_ROOT, 'usecases', 'ai', 'directChat')]) {
-        if (!fs.existsSync(dir)) continue;
-        for (const name of fs.readdirSync(dir).sort()) {
-            if (name.endsWith('.js') && !name.endsWith('.test.js')) files.push(path.join(dir, name));
+    const files = [readTreeFile('routes/ai/directChat.js')];
+    // The route bodies, and the use cases they call (usecases/ keeps the sub-folder), in every root.
+    for (const dir of ['routes/ai/directChat', 'usecases/ai/directChat']) {
+        for (const entry of listTreeDir(dir)) {
+            if (entry.name.endsWith('.js') && !entry.name.endsWith('.test.js')) files.push(fs.readFileSync(entry.abs, 'utf8'));
         }
     }
-    return stripComments(files.map(f => fs.readFileSync(f, 'utf8')).join('\n'));
+    return stripComments(files.join('\n'));
 }
 
 test('the retired extractor is gone', () => {
-    assert.strictEqual(
-        fs.existsSync(path.join(SERVER_ROOT, 'core', 'memoryExtractor.js')),
-        false,
-        'core/memoryExtractor.js must stay deleted',
-    );
+    assert.strictEqual(treeFile('core/memoryExtractor.js'), null, 'core/memoryExtractor.js must stay deleted');
 });
 
-test('nothing in server/ requires the retired extractor', () => {
+test('nothing in the server tree (every root) requires the retired extractor', () => {
     const offenders = [];
-    for (const file of walkJs(SERVER_ROOT)) {
-        if (file.endsWith('singleExtractor.test.js')) continue;
-        const src = stripComments(fs.readFileSync(file, 'utf8'));
+    for (const file of treeJsFiles({ skipDirs: SKIP_DIRS, tests: true, dotNames: false })) {
+        if (file.treePath.endsWith('singleExtractor.test.js')) continue;
+        const src = stripComments(fs.readFileSync(file.abs, 'utf8'));
         if (/require\(\s*['"][^'"]*core\/memoryExtractor['"]\s*\)/.test(src)) {
-            offenders.push(path.relative(SERVER_ROOT, file));
+            offenders.push(file.treePath);
         }
     }
     assert.deepStrictEqual(offenders, [], 'no module may require the retired extractor');

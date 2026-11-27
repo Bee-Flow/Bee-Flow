@@ -18,17 +18,23 @@ const rc = require('../auth/routeContract');
 const registry = require('../auth/accessRegistry');
 const { OPEN_ROUTES, OPEN_ROUTES_WALK_ONLY } = require('../auth/openRoutes');
 const { parseSurface } = require('./routeSurfaceSweep');
+const { treeFile } = require('./serverTree');
 
 const SERVER = path.resolve(__dirname, '..');
 // Next to the registry it extends: auth/accessRegistry.js is the hand-written
 // overlay, this file the generated class per route.
 const CONTRACT_REL = 'auth/routes.contract.json';
 
-/** @param {string} server */
+/**
+ * The source of a tree path. For the real server that is every root (a router that moved to
+ * modules/<id>/server keeps its tree path); another `server` (a fixture) is read as one directory.
+ * @param {string} server
+ */
 function readSourceFrom(server) {
     return (/** @type {string} */ rel) => {
         try {
-            const p = path.join(server, rel);
+            const p = server === SERVER ? treeFile(rel) : path.join(server, rel);
+            if (!p) return null;
             return fs.statSync(p).isFile() ? fs.readFileSync(p, 'utf8') : null;
         } catch (_) { return null; }
     };
