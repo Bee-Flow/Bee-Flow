@@ -43,7 +43,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const { pool } = require('../db');
 require('../projects/erasurePorts'); // deleteOrganization erases users through these ports
-require('../jobs/datatableChangePorts'); // datatable deletes notify their listeners through these
+require('../modules/firstParty/moduleData').moduleFileInTree('jobs/datatableChangePorts'); // datatable deletes notify their listeners through these: the datatables module's ports, loaded when its code is here
 const userStore = require('../stores/userStore');
 // Seat sync, plan and trial ports (stores/user/*Port*.js), as the server installs them at boot.
 require('../boot/lateBoundPorts');
