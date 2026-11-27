@@ -1004,7 +1004,10 @@
       "routes/projects/notebookGate.js",
       "shared/appDefinition/schemaEnvelope.mjs",
       "stores/voiceprintStore.js",
-      "stores/kbSourcesMeetingArm.js"
+      "stores/kbSourcesMeetingArm.js",
+      "shared/appDefinition/schemaVersion.mjs",
+      "shared/appDefinition/schemaVersionQuery.mjs",
+      "stores/automationStore/webhookPolicy.mts"
     ],
     "agent-hub": [
       "src/components/projects/workspace/chat/ime.ts"

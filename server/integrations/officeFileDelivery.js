@@ -27,6 +27,7 @@
 const crypto = require('crypto');
 const log = require('../telemetry/log');
 const { destinationPath, uploadToOneDrive } = require('./officeDestination');
+const { optionalIntegrationClient } = require('../core/integrations/integrationClients');
 
 const FILE_TOOLS = {
     create_word_document: {
@@ -69,8 +70,11 @@ function isOfficeFileTool(toolName) {
  * or { error }.
  */
 async function uploadToNextcloud(built, ctx, path) {
-    const ncClient = require('./nextcloudClient');
-    const { uploadBinaryFile } = require('./nextcloudFiles/webdav');
+    const ncClient = optionalIntegrationClient('nextcloud');
+    const webdav = optionalIntegrationClient('nextcloudWebdav');
+    // Without module int_nextcloud: the answer of a Nextcloud that is not connected.
+    if (!ncClient || !webdav) return { error: 'Nextcloud is not connected.' };
+    const { uploadBinaryFile } = webdav;
     let auth;
     try {
         auth = await ncClient.resolveAuth(ctx.session, ctx.userId);

@@ -29,6 +29,9 @@ function registerFeatureModules() {
         'automation/portability': () => require('../automation/portability'),
         'automation/datatableUsage': () => require('../automation/datatableUsage'),
         'automation/validate': () => require('../automation/validate'),
+        'automation/mcpBuilder': () => require('../automation/mcpBuilder'),
+        'stores/automationStore/core': () => require('../stores/automationStore/core'),
+        'stores/automationStore': () => require('../stores/automationStore'),
     });
 }
 

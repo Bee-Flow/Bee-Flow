@@ -754,9 +754,9 @@ router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (r
 /** AI Act Art. 50(2) marking for a download, or null when the org marks nothing. */
 async function markingFor(req) {
     try {
-        const { resolveMarking } = require('../compliance/marking');
+        const compliance = require('../core/featureModules').optionalFeatureModule('compliance/marking'); // null without module compliance: unmarked
         const orgId = req.session.connectorOrgId || req.session.user.organizationId || null;
-        return orgId ? await resolveMarking(orgId, { provider: 'document' }) : null;
+        return orgId && compliance ? await compliance.resolveMarking(orgId, { provider: 'document' }) : null;
     } catch (e) {
         log.warn('[StudioDocuments] Marking lookup failed, rendering unmarked:', /** @type {Error} */ (e).message);
         return null;
@@ -780,9 +780,9 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
         // stamps nothing — so this is one call, not a branch.
         let marking = null;
         try {
-            const { resolveMarking } = require('../compliance/marking');
+            const compliance = require('../core/featureModules').optionalFeatureModule('compliance/marking'); // null without module compliance: unmarked
             const orgId = req.session.connectorOrgId || req.session.user.organizationId || null;
-            if (orgId) marking = await resolveMarking(orgId, { provider: 'document' });
+            if (orgId && compliance) marking = await compliance.resolveMarking(orgId, { provider: 'document' });
         } catch (e) {
             log.warn('[StudioDocuments] Marking lookup failed, rendering unmarked:', /** @type {Error} */ (e).message);
         }

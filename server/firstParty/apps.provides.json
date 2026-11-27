@@ -4,6 +4,9 @@
     "appStudio/appAssets",
     "appStudio/portabilityReport",
     "appStudio/automationUsageSync",
-    "appStudio/triggers/deploySync"
+    "appStudio/triggers/deploySync",
+    "appStudio/approvalWaits",
+    "appStudio/mcpBuilder",
+    "stores/studioAppStore"
   ]
 }

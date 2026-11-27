@@ -1,5 +1,7 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "integrations/nextcloudToolFamily"
+  ],
   "integrationClients": [
     "nextcloud",
     "nextcloudWebdav",

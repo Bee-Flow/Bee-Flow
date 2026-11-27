@@ -19,6 +19,9 @@ function register() {
         'appStudio/portabilityReport': () => require('../appStudio/portabilityReport.mts'),
         'appStudio/automationUsageSync': () => require('../appStudio/automationUsageSync'),
         'appStudio/triggers/deploySync': () => require('../appStudio/triggers/deploySync.mts'),
+        'appStudio/approvalWaits': () => require('../appStudio/approvalWaits.mts'),
+        'appStudio/mcpBuilder': () => require('../appStudio/mcpBuilder'),
+        'stores/studioAppStore': () => require('../stores/studioAppStore'),
     }));
 }
 

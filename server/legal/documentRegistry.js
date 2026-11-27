@@ -52,8 +52,9 @@ const OPTIONAL_CONSENTS_DEFAULT = [
 function optionalConsents() {
     let ov = null;
     try {
-        const legalStore = require('./legalStore');
-        if (legalStore.isLoaded()) ov = legalStore.getOptionalOverride();
+        // Module compliance's store, by name: without it there is no override, only the defaults.
+        const legalStore = require('../core/featureModules').optionalFeatureModule('legal/legalStore');
+        if (legalStore && legalStore.isLoaded()) ov = legalStore.getOptionalOverride();
     } catch (err) { fallback('legal/documentRegistry:optionalConsents', err); /* fall back to defaults */ }
     if (!Array.isArray(ov) || !ov.length) return OPTIONAL_CONSENTS_DEFAULT.map(c => ({ ...c }));
     /** @type {Record<string, OptionalConsent>} */

@@ -13,6 +13,7 @@ const { contribute } = require('../modules/firstParty/registrationChannels');
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'stores/playbookStore': () => require('../stores/playbookStore'),
     }));
 }
 

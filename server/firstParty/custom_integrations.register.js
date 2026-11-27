@@ -46,6 +46,8 @@ function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // chat turn, tasks, custom integrations, KB
         'integrations/customIntegrationRunner': () => require('../integrations/customIntegrationRunner'),
+        'core/customIntegrations/mcpLibrary/gate': () => require('../core/customIntegrations/mcpLibrary/gate'),
+        'stores/orgCustomIntegrationStore': () => require('../stores/orgCustomIntegrationStore'),
     }));
     contribute('integrations/toolFamilies', () => {
         // `parseName` gives core's progressive disclosure the cint_<slug>_<tool> grammar.

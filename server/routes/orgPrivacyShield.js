@@ -569,8 +569,8 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
     // DLP posture changed — re-run the Art-32 DLP compliance check now
     // instead of waiting for the 6-hour sweep. Fire-and-forget.
     try {
-        const events = require('../compliance/events');
-        events.emit(events.EVENTS.DLP_CONFIG_CHANGED, { orgId });
+        const events = require('../core/featureModules').optionalFeatureModule('compliance/events'); // null without module compliance
+        if (events) events.emit(events.EVENTS.DLP_CONFIG_CHANGED, { orgId });
     } catch (err) { bestEffort('routes/orgPrivacyShield:anon#2', err); /* compliance bus is best-effort */ }
 
     // NOTE: we used to copy this org's PII / Azure / severity settings into

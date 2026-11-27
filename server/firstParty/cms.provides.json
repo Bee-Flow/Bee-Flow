@@ -1,3 +1,5 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "cms/mcp/index"
+  ]
 }

@@ -4,7 +4,8 @@
  * present, requireTraining is exactly learning's function (the recorded chains do not
  * change); with learning absent (core mode), a factory whose middleware passes every request.
  * Each case runs in a child process: the gates' files reach stores that log and keep timers,
- * and the absent case needs BEEFLOW_HIDE_MODULES=learning.
+ * and the absent case needs BEEFLOW_HIDE_MODULES=learning. The child registers the modules' names
+ * first (testUtils/registerFeatures.js), as index.js does before it builds the gates.
  *
  * Run: cd server && node --test boot/gates.test.js
  */
@@ -28,7 +29,7 @@ function inChild(hide, code) {
     const env = { ...process.env, BEEFLOW_HIDE_MODULES: hide };
     delete env.NODE_TEST_CONTEXT;
     const script = `let result;\n${code}\nprocess.stdout.write('\\n${MARK}' + JSON.stringify(result) + '\\n'); process.exit(0);`;
-    const r = spawnSync(process.execPath, ['--require', path.join(SERVER, 'moduleRoots.cjs'), '-e', script], { cwd: SERVER, env, encoding: 'utf8', timeout: 60_000 });
+    const r = spawnSync(process.execPath, ['--require', path.join(SERVER, 'moduleRoots.cjs'), '--require', path.join(SERVER, 'testUtils/registerFeatures.js'), '-e', script], { cwd: SERVER, env, encoding: 'utf8', timeout: 60_000 });
     assert.equal(r.status, 0, r.stderr);
     const line = r.stdout.split('\n').find((l) => l.startsWith(MARK));
     assert.ok(line, r.stdout);

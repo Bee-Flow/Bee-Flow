@@ -14,7 +14,7 @@ const { IMAGE_GEN_TOOLS } = require('../tools/imageGenTool');
 const { VIDEO_GEN_TOOLS } = require('../tools/videoGenTool');
 const { ELEVENLABS_TOOLS } = require('../tools/elevenLabsTools');
 const log = require('../../telemetry/log');
-const { featureModule } = require('../featureModules');
+const { featureModule, optionalFeatureModule } = require('../featureModules');
 const { userHasBetaFeature } = require('../entitlements/betaFeatures');
 const { createWebpageToolsAllowed } = require('./integrationAppPolicy');
 const { createRuntimeAppGate } = require('./runtimeAppGate');
@@ -34,15 +34,25 @@ const {
 // their dependencies are handed in here (lint:scc-ratchet). Getters keep the
 // lazy requires lazy; module objects are passed whole so a patched method
 // (tests) is seen at call time, exactly as before the split.
+// A first-party module's collaborators are looked up by name (core/featureModules.js). Without
+// the module they answer what their caller already does when there is nothing: no web page
+// access, no runnable custom integration, no datatable tool, no agent-callable automation or
+// Step. (The slug lookups behind a cint_ tool are never reached: no such tool is offered.)
+const ABSENT = {
+    webpageStore: { userHasAnyWebpageAccess: async () => false },
+    mcpLibraryGate: { loadRunGate: async () => ({ anyRunnable: false, isRunnable: () => false }) },
+    datatableTools: { buildDatatableTools: async () => [] },
+    agentCallableTools: { getAgentCallableTools: async () => [], getStepToolsForUser: async () => [] },
+};
 const lazy = {
     userStore: () => require('../../stores/userStore'),
-    webpageStore: () => require('../../stores/webpageStore'),
+    webpageStore: () => optionalFeatureModule('stores/webpageStore') || ABSENT.webpageStore,
     entitlements: () => require('../entitlements/entitlements'),
     capabilityRegistry: () => require('../entitlements/capabilityRegistry'),
     mcpManager: () => require('../mcpManager'),
-    mcpLibraryGate: () => require('../customIntegrations/mcpLibrary/gate'),
-    orgCustomIntegrationStore: () => require('../../stores/orgCustomIntegrationStore'),
-    customIntegrationRunner: () => featureModule('integrations/customIntegrationRunner'),
+    mcpLibraryGate: () => optionalFeatureModule('core/customIntegrations/mcpLibrary/gate') || ABSENT.mcpLibraryGate,
+    orgCustomIntegrationStore: () => optionalFeatureModule('stores/orgCustomIntegrationStore'),
+    customIntegrationRunner: () => optionalFeatureModule('integrations/customIntegrationRunner'),
 };
 const webpageToolsAllowed = createWebpageToolsAllowed({ userHasBetaFeature, lazy });
 const resolveRuntimeAppGate = createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActiveSet, lazy });
@@ -63,12 +73,12 @@ const CORE_GROUP_DEPS = {
     googleSessionHydration: () => require('../../auth/googleSessionHydration'),
     microsoftSessionHydration: () => require('../../auth/microsoftSessionHydration'),
     pwtRunner: () => featureModule('services/pwtRunner'),
-    agentCallableTools: () => featureModule('automation/agentCallableTools'),
+    agentCallableTools: () => optionalFeatureModule('automation/agentCallableTools') || ABSENT.agentCallableTools,
     connectionResolution: () => require('./connectionResolution'),
     integrationConnectionStore: () => require('../../stores/integrationConnectionStore'),
     automationCredentialStore: () => require('../../stores/automationCredentialStore'),
     entitlements: () => require('../entitlements/entitlements'),
-    datatableTools: () => require('../tools/datatableTools'),
+    datatableTools: () => optionalFeatureModule('core/tools/datatableTools') || ABSENT.datatableTools,
     userStore: () => require('../../stores/userStore'),
     ncScope: () => require('./ncScope'),
     toolPolicy: () => require('../agentRuntime/toolPolicy'),

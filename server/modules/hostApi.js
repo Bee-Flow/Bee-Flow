@@ -25,6 +25,7 @@ const ssrfGuard = require('../utils/ssrfGuard');
 const { isPrivateTarget } = require('../utils/isPrivateTarget');
 const log = require('../telemetry/log');
 const telemetryLog = require('../telemetry/log');
+const { optionalFeatureModule } = require('../core/featureModules');
 
 // v1 → v2 was purely ADDITIVE (db.getClient/tx, ai, usage, limits, storage,
 // webpages, net). v3 introduces the PERMISSION MANIFEST: an mv2 module
@@ -113,7 +114,8 @@ function providers() { return _providers || (_providers = require('../core/provi
 function usageStore() { return _usageStore || (_usageStore = require('../stores/usageStore')); }
 function limitsModule() { return _limits || (_limits = require('../core/entitlements/limits')); }
 function storageStore() { return _storageStore || (_storageStore = require('../stores/storageStore')); }
-function webpageStore() { return _webpageStore || (_webpageStore = require('../stores/webpageStore')); }
+function webpageStore() { return _webpageStore || (_webpageStore = optionalFeatureModule('stores/webpageStore') || webpagesAbsent()); }
+/** @returns {never} */ function webpagesAbsent() { throw new (require('../core/http/errors').HttpError)(409, 'module_absent', 'Publishing a web page needs the Webpages module, which this installation does not have.'); }
 
 /**
  * Per-request capability gate for a remote module. Unknown capability id (a
@@ -225,11 +227,9 @@ async function dbTx(fn) {
 }
 
 /**
- * Persist a rendered page as a Webpage so it lands in the user's Webpages list
- * and can be viewed/shared like any other page. Encapsulates the exact 3-call
- * webpageStore sequence a module needs to publish a report page
- * (createWebpage → writeSlot(html)+writeSlot(css) → updateWebpageMetadata with
- * the returned sha/size) so a module never touches webpageStore internals.
+ * Persist a rendered page as a Webpage (the user's Webpages list): the exact 3-call webpageStore sequence
+ * (createWebpage → writeSlot(html)+writeSlot(css) → updateWebpageMetadata with the returned sha/size), so a
+ * module never touches webpageStore internals. Throws module_absent (409) when module webpages is not here.
  * @param {{ userId?: string, name?: string, description?: string, html?: string, css?: string,
  *          icon?: string, accentColor?: string, tagline?: string }} [fields]
  * @returns {Promise<string>} the new webpage id.
@@ -250,8 +250,8 @@ async function persistWebpage({ userId, name, description, html, css, icon, acce
     await wps.updateWebpageMetadata(webpageId, userId, meta);
     // A report page placed by a module also belongs in the
     // dependents index: it carries plain html and can therefore contain `bf-*` elements.
-    // Debounced and detached — a module does not wait for it.
-    require('../core/webpages/webpageUsageSync').reconcileWebpageUsageDetached(webpageId);
+    // Debounced and detached — a module does not wait for it. (Module webpages, present: its store was.)
+    optionalFeatureModule('core/webpages/webpageUsageSync')?.reconcileWebpageUsageDetached(webpageId);
     return webpageId;
 }
 

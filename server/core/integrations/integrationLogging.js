@@ -31,13 +31,15 @@
 const { encodeCategories } = require('../privacy/piiCategories');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { optionalFeatureModule } = require('../featureModules');
 
 // Stores, lazily required (each one opens the DB pool when loaded). Tests
 // swap them through __setDepsForTests instead of reaching into the module cache.
 const DEFAULT_DEPS = {
     activityStore: () => require('../../stores/integrationActivityStore'),
     configStore: () => require('../../stores/configStore'),
-    customIntegrationStore: () => require('../../stores/orgCustomIntegrationStore'),
+    // Module custom_integrations' store, by name: null when that module is absent (no such integration).
+    customIntegrationStore: () => optionalFeatureModule('stores/orgCustomIntegrationStore'),
     userStore: () => require('../../stores/userStore'),
 };
 let _deps = { ...DEFAULT_DEPS };
@@ -81,7 +83,8 @@ async function _resolveCustomIntegration(toolName) {
     if (hit && Date.now() - hit.at < CTX_TTL_MS) return hit.value;
     let value = null;
     try {
-        const integration = await _deps.customIntegrationStore().getBySlug(slug);
+        const store = _deps.customIntegrationStore();
+        const integration = store ? await store.getBySlug(slug) : null;
         if (integration) {
             const def = integration.activatedDefinition || integration.definition || {};
             const baseUrl = integration.kind === 'mcp_remote'

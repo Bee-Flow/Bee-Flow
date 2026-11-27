@@ -228,7 +228,7 @@ storageStore.init().then(ok => {
 // Load the admin override for the optional-consent catalog into the in-memory
 // cache the synchronous consent registry reads from. The store belongs to module
 // compliance: without it there is no override to load.
-const legalStore = require('./boot/optionalModuleFile').optionalModuleFile(() => require('./legal/legalStore'));
+const legalStore = require('./core/featureModules').optionalFeatureModule('legal/legalStore');
 if (legalStore) {
     legalStore.refresh()
         .then(() => log.info('[Server] Consent overrides loaded'))

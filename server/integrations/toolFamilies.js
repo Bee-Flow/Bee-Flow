@@ -64,12 +64,7 @@ function documentOrgId({ orgId, session }) {
  * @returns {((name: string, args: ToolArgs, ctx: ToolCtx) => Promise<unknown>) | null}
  */
 function checkedNextcloudTool() {
-    try {
-        return require('./nextcloudToolFamily').executeCheckedNextcloudTool;
-    } catch (err) {
-        if (/** @type {NodeJS.ErrnoException} */ (err).code !== 'MODULE_NOT_FOUND') throw err;
-        return null;
-    }
+    return require('../core/featureModules').optionalFeatureModule('integrations/nextcloudToolFamily')?.executeCheckedNextcloudTool ?? null;
 }
 
 // ─── Presentations (.pptx) ─────────────────────────────────────

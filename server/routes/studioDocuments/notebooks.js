@@ -32,7 +32,11 @@ const { notFound, conflict } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
-const { archiveOwnNotebook, realNotebookLifecycle } = require('../../usecases/notebookArchive.mts');
+const { optionalFeatureModule } = require('../../core/featureModules');
+/** usecases/notebookArchive.mts (module notebooks), by name. Every route here sits behind requireNotebooks, which refuses while that module is not active. */
+const notebookArchive = () => optionalFeatureModule('usecases/notebookArchive') || notebooksAbsent();
+/** @returns {never} */
+function notebooksAbsent() { throw new (require('../../core/http/errors').HttpError)(404, 'module_absent', 'Notebooks are not available on this installation.'); }
 
 const FOLDER_TEXT = 'folderId is the id of one of your document folders, or null for none.';
 const CATEGORY_TEXT = 'categories is a list of up to 30 short names.';
@@ -59,7 +63,7 @@ function makeNotebookLibraryRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const library = () => deps.library || require('../../stores/notebookLibrary');
     const documents = () => deps.documents || require('../../stores/documentStore');
-    const lifecycle = () => deps.lifecycle || realNotebookLifecycle();
+    const lifecycle = () => deps.lifecycle || notebookArchive().realNotebookLifecycle();
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
     /** @type {Middleware | null} */
     let boundGate = null;
@@ -89,7 +93,7 @@ function makeNotebookLibraryRouter(deps = {}) {
 
     router.post('/notebooks/:id/archive', requireAuth, requireNotebooks, validate({ body: Empty('Archiving a notebook') }), async (/** @type {IdReq} */ req, res) => {
         // Folded back from co-editing first, task links dropped after (usecases/notebookArchive.mts).
-        if (!await archiveOwnNotebook(sessionUser(req).id, req.params.id, { library: library(), lifecycle: lifecycle() })) {
+        if (!await notebookArchive().archiveOwnNotebook(sessionUser(req).id, req.params.id, { library: library(), lifecycle: lifecycle() })) {
             throw notFound('notebook_not_found', 'Notebook not found');
         }
         res.json({ success: true });
