@@ -5,97 +5,36 @@
  * step-by-step code had already run, and checks that nothing of the first
  * write remains:
  *
- *   support message + the thread's clock      public-share view + its counter
- *   usage rows + the "indexed" marker         skill activations + last_used_at
- *   custom-check import + framework stamp     workflow folder / workflow + shares
+ *   skill activations + last_used_at          workflow folder / workflow + shares
  *   agent category + its agents               KB category + its bases
  *   a KB's move to another organisation + the purge of the old organisation's query log
  *   PII vault entries + counters              query-log acknowledgements + rows
- *   app dataset + its cache
+ *
+ * The cases of a module's store sit beside this file, one per module
+ * (storeWrites.atomic.<module>.pg.test.js: support, webpages, automation,
+ * compliance, apps); the set-up is testUtils/refuseWrites.js.
  *
  * Run: cd server && node --require ./testUtils/registerFeatures.js --test stores/storeWrites.atomic.pg.test.js
  */
 
 'use strict';
 
-const { test, before, after } = require('node:test');
+const { test, before } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
-const { ladderPglite } = require('../testUtils/pgliteTemplate');
-const { usePglitePool } = require('../testUtils/pglitePool');
+const { useRefusingPglite } = require('../testUtils/refuseWrites');
 
-const { pg, close } = usePglitePool(ladderPglite());
-const supportStore = require('./supportStore');
-const shareStore = require('./webpagePublicShareStore');
-const usageStore = require('./automationUsageStore');
+const { pg, refuse, count, REFUSED, setUp } = useRefusingPglite();
 const skillActivations = require('./skillActivations');
-const customFrameworkStore = require('./customFrameworkStore');
 const workflowStore = require('./workflowStore');
 const agentCategories = require('./agent/agentCategories');
 const { initDB: initAgents } = require('./agent/initSchema');
 const knowledgeBases = require('./knowledgeBases');
 const piiVaultStore = require('./piiVaultStore');
 const queryLog = require('./kb/queryLog/index.mts');
-const studioAppData = require('./studioAppDataStore');
-const { initDB: initStudioApps } = require('./studioApp/schema');
 
-const REFUSED = 'refused';
-
-/** A trigger on `table` that raises for the rows `when` picks (a condition on NEW or OLD). */
-async function refuse(table, timing, when) {
-    const name = `refuse_${table}_${timing.split(' ')[1].toLowerCase()}`;
-    await pg.exec(`
-        CREATE TRIGGER ${name} ${timing} ON ${table}
-            FOR EACH ROW WHEN (${when}) EXECUTE FUNCTION refuse_write();
-    `);
-}
-
-before(async () => {
-    for (const init of [supportStore.initDB, shareStore.initDB, usageStore.initDB, skillActivations.initDB,
-        customFrameworkStore.initDB, workflowStore.initDB, initAgents, knowledgeBases.initDB, piiVaultStore.initDB,
-        initStudioApps, () => studioAppData.ready]) await init();
-    await pg.exec(`
-        CREATE FUNCTION refuse_write() RETURNS trigger LANGUAGE plpgsql AS $$
-        BEGIN
-            RAISE EXCEPTION 'write refused';
-        END $$;
-    `);
-});
-after(close);
-
-const count = async (sql, params = []) => Number((await pg.query(sql, params)).rows[0].n);
-
-test('appendMessage: a failing thread update leaves no message', async () => {
-    const thread = await supportStore.createThread({ requesterEmail: 'requester@example.test', source: 'in_app', subject: REFUSED });
-    await refuse('support_threads', 'BEFORE UPDATE', `NEW.subject = '${REFUSED}'`);
-    await assert.rejects(() => supportStore.appendMessage({ threadId: thread.id, authorKind: 'requester', body: 'hello' }), /write refused/);
-    assert.strictEqual(await count('SELECT COUNT(*)::int AS n FROM support_messages WHERE thread_id = $1', [thread.id]), 0);
-    // An internal note does not move the clock, so it lands.
-    assert.ok(await supportStore.appendMessage({ threadId: thread.id, authorKind: 'staff', body: 'note', internalNote: true }));
-});
-
-test('recordView: a failing counter update leaves no view row', async () => {
-    await pg.query(`INSERT INTO webpages (id, user_id, name) VALUES ('wp-share', 'u1', 'p')`);
-    await pg.query(`INSERT INTO webpage_public_shares (id, webpage_id, created_by, token_hash, snapshot_prefix, access_mode)
-                    VALUES ('sh-refused', 'wp-share', 'u1', 'th-1', 'p/', 'public'), ('sh-ok', 'wp-share', 'u1', 'th-2', 'q/', 'public')`);
-    await refuse('webpage_public_shares', 'BEFORE UPDATE', `NEW.id = 'sh-refused'`);
-    await assert.rejects(() => shareStore.recordView('sh-refused', { ip: '192.0.2.1' }), /write refused/);
-    assert.strictEqual(await count(`SELECT COUNT(*)::int AS n FROM webpage_public_share_views WHERE share_id = 'sh-refused'`), 0);
-    await shareStore.recordView('sh-ok', { ip: '192.0.2.1' });
-    assert.strictEqual(await count(`SELECT view_count::int AS n FROM webpage_public_shares WHERE id = 'sh-ok'`), 1);
-});
-
-test('purgeUsageForConsumer: a failing marker delete keeps the usage rows', async () => {
-    for (const id of [REFUSED, 'app-ok']) {
-        await pg.query(`INSERT INTO automation_usage (automation_id, consumer_kind, consumer_id, ref_id, owner_user_id) VALUES ('a1', 'app', $1, 'r1', 'u1')`, [id]);
-        await pg.query(`INSERT INTO automation_usage_indexed (consumer_kind, consumer_id) VALUES ('app', $1)`, [id]);
-    }
-    await refuse('automation_usage_indexed', 'BEFORE DELETE', `OLD.consumer_id = '${REFUSED}'`);
-    await assert.rejects(() => usageStore.purgeUsageForConsumer('app', REFUSED), /write refused/);
-    assert.strictEqual(await count(`SELECT COUNT(*)::int AS n FROM automation_usage WHERE consumer_id = $1`, [REFUSED]), 1);
-    assert.strictEqual(await usageStore.purgeUsageForConsumer('app', 'app-ok'), 1);
-    assert.strictEqual(await count(`SELECT COUNT(*)::int AS n FROM automation_usage_indexed WHERE consumer_id = 'app-ok'`), 0);
-});
+before(() => setUp([skillActivations.initDB, workflowStore.initDB, initAgents,
+    knowledgeBases.initDB, piiVaultStore.initDB]));
 
 test('recordActivations: a failing last_used_at stamp leaves no activation row', async () => {
     await pg.query(`INSERT INTO skills (id, org_id, user_id, name) VALUES ('sk-refused', 'o1', 'u1', 'S'), ('sk-ok', 'o1', 'u1', 'T')`);
@@ -104,13 +43,6 @@ test('recordActivations: a failing last_used_at stamp leaves no activation row',
     assert.strictEqual(await count(`SELECT COUNT(*)::int AS n FROM skill_activations WHERE skill_id = 'sk-refused'`), 0);
     assert.strictEqual(await skillActivations.recordActivations({ skillIds: ['sk-ok'], conversationId: 'c1' }), 1);
     assert.strictEqual(await count(`SELECT COUNT(*)::int AS n FROM skills WHERE id = 'sk-ok' AND last_used_at IS NOT NULL`), 1);
-});
-
-test('upsertChecks: a failing framework stamp imports no check', async () => {
-    const fw = await customFrameworkStore.createFramework('org-1', { code: 'RF', name: REFUSED });
-    await refuse('compliance_custom_frameworks', 'BEFORE UPDATE', `NEW.name = '${REFUSED}'`);
-    await assert.rejects(() => customFrameworkStore.upsertChecks('org-1', fw.id, [{ ref: 'A.1', title: 'One' }, { ref: 'A.2', title: 'Two' }]), /write refused/);
-    assert.strictEqual(await count('SELECT COUNT(*)::int AS n FROM compliance_custom_checks WHERE framework_id = $1', [fw.id]), 0);
 });
 
 test('deleteFolder and deleteWorkflow: a failing last delete keeps the workflows and the shares', async () => {
@@ -199,13 +131,4 @@ test('deleteForKb: a failing row delete keeps the acknowledgements', async () =>
     assert.strictEqual(await count('SELECT COUNT(*)::int AS n FROM kb_query_log_ack WHERE kb_id = $1', [kb.id]), 1);
     await queryLog.deleteForKb(kb.id);
     assert.strictEqual(await count('SELECT COUNT(*)::int AS n FROM kb_query_log_ack WHERE kb_id = $1', [kb.id]), 0);
-});
-
-test('deleteDataset: a failing dataset delete keeps its cache', async () => {
-    await pg.query(`INSERT INTO studio_apps (id, user_id) VALUES ('app-1', 'u1')`);
-    await pg.query(`INSERT INTO studio_app_datasets (id, app_id, owner_user_id, name) VALUES ('ds-1', 'app-1', 'u1', $1)`, [REFUSED]);
-    await pg.query(`INSERT INTO studio_app_dataset_cache (id, dataset_id, viewer_scope_key, params_hash) VALUES ('c-1', 'ds-1', 'v', 'h')`);
-    await refuse('studio_app_datasets', 'BEFORE DELETE', `OLD.name = '${REFUSED}'`);
-    await assert.rejects(() => studioAppData.deleteDataset('ds-1', 'app-1', 'u1'), /write refused/);
-    assert.strictEqual(await count(`SELECT COUNT(*)::int AS n FROM studio_app_dataset_cache WHERE dataset_id = 'ds-1'`), 1);
 });

@@ -21,14 +21,87 @@
  */
 
 const Module = /** @type {typeof import('module') & { _resolveFilename: (request: string, parent: NodeJS.Module | null | undefined, ...rest: unknown[]) => string }} */ (require('module'));
-const { registerFeatureModules, _featureModuleGetter, _clearFeatureModulesForTests } = require('../core/featureModules');
+const fs = require('node:fs');
+const path = require('node:path');
+const { fileURLToPath } = require('node:url');
+const { hasFeatureModule } = require('../core/featureModules');
+const { stubFeatureModule } = require('./featureDouble');
+const { ROOTS, readDir, toTreePath } = require('../modules/roots/rootSet.cjs');
 const log = require('../telemetry/log');
 
-// A key that names a feature module core (or another feature) looks up by name
-// (core/featureModules.js) is stubbed there too: the caller no longer
-// `require`s it by that string, so the resolve hook alone would never see the
-// call. Same stub, same meaning.
-const FEATURE_KEY = /^(?:\.\.?\/)+((?:integrations|services|automation|agents|projects|appStudio)\/[\w/.-]+?)(?:\.js|\.mts)?$/;
+// A key that names a feature module the code under test looks up by name
+// (core/featureModules.js, moduleData.lookupFeatureModule) is stubbed there too:
+// the caller no longer `require`s it by that string, so the resolve hook alone
+// would never see the call. Same stub, same meaning. The name is the tree path
+// the key points at, without its extension, and it is mirrored only when it is a
+// feature-module name: one registered now, or one a first-party module provides
+// (firstParty/<id>.provides.json, read in every root, hidden or not: in core mode
+// a module's names are not registered, and a double registered under one makes
+// the "present" path of the code under test testable).
+const EXTENSION = /\.(?:js|mts|cjs)$/;
+
+/** @type {Set<string> | null} */
+let providedNames = null;
+
+/** Every feature-module name a first-party module provides, from the provides files of every root. */
+function providedFeatureNames() {
+    if (providedNames) return providedNames;
+    const names = new Set();
+    for (const root of ROOTS) {
+        const dir = path.join(root.dir, 'firstParty');
+        for (const entry of readDir(dir)) {
+            if (!entry.name.endsWith('.provides.json')) continue;
+            const provides = JSON.parse(fs.readFileSync(path.join(dir, entry.name), 'utf8'));
+            for (const name of provides.featureModules || []) names.add(name);
+        }
+    }
+    providedNames = names;
+    return names;
+}
+
+/** @param {string} name */
+function isFeatureName(name) {
+    return hasFeatureModule(name) || providedFeatureNames().has(name);
+}
+
+/**
+ * The tree path of the directory of the file that called installResolveStub (the test), or
+ * null when it lies outside every root.
+ * @returns {string | null}
+ */
+function callerTreeDir() {
+    const stack = new Error().stack?.split('\n') ?? [];
+    for (const line of stack.slice(1)) {
+        const m = /\(?((?:file:\/\/)?\/[^():]+):\d+:\d+\)?$/.exec(line.trim());
+        if (!m) continue;
+        const file = m[1].startsWith('file://') ? fileURLToPath(m[1]) : m[1];
+        if (file === __filename) continue;
+        return toTreePath(path.dirname(file));
+    }
+    return null;
+}
+
+/**
+ * The feature-module name a stub key stands for, or null. The key is a require string as
+ * written in the module under test, which sits beside its test: it is resolved against the
+ * test's directory. A key copied from a deeper file climbs out of the tree from there; it
+ * then names the tree path after its leading `./` and `../` (the old pattern's reading).
+ * @param {string} request
+ * @param {string | null} fromDir tree path of the test's directory
+ * @returns {string | null}
+ */
+function featureNameOf(request, fromDir) {
+    if (!request.startsWith('./') && !request.startsWith('../')) return null;
+    const bare = request.replace(EXTENSION, '');
+    /** @type {string[]} */
+    const candidates = [];
+    if (fromDir !== null) {
+        const resolved = path.posix.normalize(path.posix.join(fromDir, bare));
+        if (resolved !== '..' && !resolved.startsWith('../')) candidates.push(resolved);
+    }
+    candidates.push(bare.replace(/^(?:\.\.?\/)+/, ''));
+    return candidates.find(isFeatureName) ?? null;
+}
 
 /**
  * Redirect the given require requests to in-memory stub exports.
@@ -57,12 +130,12 @@ function installResolveStub(map) {
         return original.call(this, request, parent, ...rest);
     };
 
-    const featureStubs = [];
+    /** @type {Array<() => void>} */
+    const featureRestores = [];
+    const fromDir = callerTreeDir();
     for (const [request, exportsObj] of Object.entries(map)) {
-        const name = FEATURE_KEY.exec(request)?.[1];
-        if (!name) continue;
-        featureStubs.push([name, _featureModuleGetter(name)]);
-        registerFeatureModules({ [name]: () => exportsObj });
+        const name = featureNameOf(request, fromDir);
+        if (name) featureRestores.push(stubFeatureModule(name, exportsObj));
     }
 
     let restored = false;
@@ -70,10 +143,8 @@ function installResolveStub(map) {
         if (restored) return;
         restored = true;
         Module._resolveFilename = original;
-        for (const [name, previous] of featureStubs) {
-            if (previous) registerFeatureModules({ [name]: previous });
-            else _clearFeatureModulesForTests(name);
-        }
+        // Last first: two spellings of one file stub one name twice, and the first holds the real getter.
+        for (const undo of featureRestores.reverse()) undo();
         for (const id of idFor.values()) delete require.cache[id];
     };
 }

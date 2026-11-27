@@ -1,9 +1,10 @@
 // @typecheck strict
 /**
- * Tenant-isolation fixtures: a Studio document, a spreadsheet and a library
- * folder (routes/studioDocuments.js and the routers it mounts). What a fixture
- * is and how the matrix drives it is in testUtils/tenantFixtures.js, which
- * puts these in its list.
+ * Tenant-isolation fixtures: a Studio document and a library folder
+ * (routes/studioDocuments.js and the routers it mounts). A spreadsheet keeps
+ * its cells in a data table (module "datatables"): studioDocuments.datatables.js.
+ * What a fixture is and how the matrix drives it is in
+ * testUtils/tenantFixtures.js, which puts these in its list.
  *
  * Every read of a document checks ownership or same-organisation sharing in
  * SQL (documentStore accessSql), so a member of org A gets the document's 404;
@@ -105,33 +106,6 @@ const FIXTURES = [
             return doc.id;
         },
         routes: ['POST /api/studio-documents/:id/unarchive'],
-    },
-    {
-        // A spreadsheet of org B: its cells sit in a sheet table of the owner, the document is its door.
-        kind: 'studioSheet',
-        mount: '/api/studio-documents',
-        router: () => require('../../routes/studioDocuments'),
-        create: async ({ orgId, userId, index }) => {
-            const cells = require('../../core/documents/sheetCells');
-            const documentStore = require('../../stores/documentStore');
-            const name = `Sheet ${index}`;
-            const table = await cells.createSheetTable({ ownerUserId: userId, name });
-            const doc = await documentStore.createDocument({
-                userId, organizationId: orgId, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', sheetTableId: table.id,
-            });
-            return doc.id;
-        },
-        routes: [
-            'GET /api/studio-documents/:id/sheet', 'PATCH /api/studio-documents/:id/sheet',
-            'GET /api/studio-documents/:id/sheet.csv', 'GET /api/studio-documents/:id/sheet.xlsx',
-            'POST /api/studio-documents/:id/sheet/tabs', 'PATCH /api/studio-documents/:id/sheet/tabs/:tabId',
-            'DELETE /api/studio-documents/:id/sheet/tabs/:tabId', 'POST /api/studio-documents/:id/sheet/assistant',
-        ],
-        bodies: {
-            'PATCH /api/studio-documents/:id/sheet': { cells: { A1: NO_TEXT } },
-            'PATCH /api/studio-documents/:id/sheet/tabs/:tabId': { name: 'Matrix tab' },
-            'POST /api/studio-documents/:id/sheet/assistant': { message: 'A change that must not land here.' },
-        },
     },
     {
         // A library folder of user B: folders are their owner's, so a member of org A deletes nothing.

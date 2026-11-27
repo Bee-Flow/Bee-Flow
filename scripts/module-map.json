@@ -65,7 +65,8 @@
         "core/kb/sources/cloudFolder.datatables.test.js",
         "core/tools/toolDispatcher.datatableIdentity.test.js",
         "stores/user/organizations.datatables.test.js",
-        "migrations/add-nl-datatable-quota-translations.js"
+        "migrations/add-nl-datatable-quota-translations.js",
+        "testUtils/tenantFixtures/studioDocuments.datatables.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Datatables/**",
@@ -170,7 +171,9 @@
         "mcpServers/tuya/events.automation.test.js",
         "utils/nextcloudErrorClassifier.automation.test.js",
         "utils/stepErrorInfo.js",
-        "utils/stepErrorTexts.mts"
+        "utils/stepErrorTexts.mts",
+        "stores/skillStore.structured.automation.test.js",
+        "stores/storeWrites.atomic.automation.pg.test.js"
       ],
       "agent-hub": [
         "src/components/automation/**",
@@ -339,7 +342,9 @@
         "migrations/add-nl-app-studio-documents-2026-10-translations.js",
         "migrations/add-nl-namespace-files.apps.test.js",
         "core/findings/finding.apps.test.js",
-        "i18n/defaults/en.discovery.apps.test.js"
+        "i18n/defaults/en.discovery.apps.test.js",
+        "stores/sharedGroups.failClosed.apps.test.js",
+        "stores/storeWrites.atomic.apps.pg.test.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/AppStudio/**",
@@ -441,7 +446,8 @@
         "migrations/update-nl-legal-register-2026-10.js",
         "migrations/data/legal-register-2026-10-nl.json",
         "i18n/defaults/en.legal-wording.test.js",
-        "core/automationRunner/documentMarking.compliance.test.js"
+        "core/automationRunner/documentMarking.compliance.test.js",
+        "stores/storeWrites.atomic.compliance.pg.test.js"
       ],
       "agent-hub": [
         "src/components/admin/compliance/**",
@@ -569,7 +575,8 @@
         "core/kb/queryLog/channels.webpages.pg.test.js",
         "routes/knowledgeBases/sources.webpages.test.js",
         "core/integrations/integrationTools.webpagesGate.test.js",
-        "core/providers/claude.repairTurn.test.js"
+        "core/providers/claude.repairTurn.test.js",
+        "stores/storeWrites.atomic.webpages.pg.test.js"
       ],
       "agent-hub": [
         "src/components/webpages/**",
@@ -715,7 +722,8 @@
         "core/meetingNotes/teamsAppImport/settings.test.js",
         "migrations/add-nl-meeting-import-translations-2026-10.js",
         "migrations/add-nl-teams-setup-2026-11-translations.js",
-        "core/media/ffmpeg.meetingNotes.test.js"
+        "core/media/ffmpeg.meetingNotes.test.js",
+        "projects/accountContentErasure.pg.test.js"
       ],
       "agent-hub": [
         "src/pages/meeting-notes/**",
@@ -765,7 +773,8 @@
         "i18n/defaults/en/support.js",
         "migrations/support-audit-log-backfill-2026-06{,.*}.js",
         "firstParty/support{,.*}.{js,json}",
-        "testUtils/tenantFixtures/support.js"
+        "testUtils/tenantFixtures/support.js",
+        "stores/storeWrites.atomic.support.pg.test.js"
       ],
       "agent-hub": [
         "src/components/support/**",
@@ -991,7 +1000,8 @@
         "auth/permissionsOrgGates.orgChoice.int_saas.test.js",
         "core/integrations/integrationTools.n8nGrants.test.js",
         "core/integrations/integrationTools.extraApps.test.js",
-        "core/integrations/integrationTools.coworkApps.test.js"
+        "core/integrations/integrationTools.coworkApps.test.js",
+        "stores/agent/conversationStatePort.int_saas.test.js"
       ],
       "agent-hub": [
         "src/components/integrations/github/**",

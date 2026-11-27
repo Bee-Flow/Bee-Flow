@@ -38,6 +38,7 @@ const path = require('node:path');
 const registry = require('./accessRegistry');
 const featureMap = require('../license/featureMap');
 const { treeFile } = require('../testUtils/serverTree');
+const { routesOfAbsentModules, moduleGatesOfAbsentModules } = require('../testUtils/absentModuleRoutes');
 
 const SERVER = path.resolve(__dirname, '..');
 
@@ -231,9 +232,13 @@ describe('7. license/featureMap describes real mounts', () => {
     // intentional, so the check is bidirectional rather than one-way.
     const isReserved = (entry) => /not yet mounted/i.test(entry?.notes || '');
 
+    // A key whose routes belong to a first-party module that is not loaded here (core mode, an
+    // edition without it) is not mounted because its module is absent, not because it is stale.
+    const ofAbsentModule = (key) => routesOfAbsentModules([`GET ${key}`]).size > 0;
+
     test('every non-reserved featureMap key is a mounted path', () => {
         const missing = Object.entries(featureMap)
-            .filter(([k, entry]) => !isReserved(entry) && !isMounted(k))
+            .filter(([k, entry]) => !isReserved(entry) && !isMounted(k) && !ofAbsentModule(k))
             .map(([k]) => k);
         assert.deepEqual(missing, [], `featureMap describes paths that are not mounted (add "Not yet mounted." to notes if that is deliberate): ${missing.join(', ')}`);
     });
@@ -365,13 +370,19 @@ describe('10. every optional module owns at least one module-gated route', () =>
     const moduleGateIds = new Set(
         walk.routes.flatMap((r) => gatesOf(r).filter((g) => g.axis === 'module').map((g) => g.id)),
     );
+    // A catalog module whose gated routes all belong to a first-party module that is not loaded
+    // here (core mode, an edition without it) gates nothing in this process's walk. The floor
+    // holds for the catalog modules whose routes are here.
+    let gatedInAbsent;
+    const gatedInAbsentModule = (id) => (gatedInAbsent ??= moduleGatesOfAbsentModules()).has(id);
 
     test('the walk sees module gates at all', () => {
-        assert.ok(moduleGateIds.size > 0, 'no module gates in the walk — routeWalk or tagGate has gone stale');
+        const here = listModules().map((m) => m.id).filter((id) => !gatedInAbsentModule(id));
+        assert.ok(moduleGateIds.size > 0 || here.length === 0, 'no module gates in the walk — routeWalk or tagGate has gone stale');
     });
 
     test('each catalog module gates something', () => {
-        const orphans = listModules().map((m) => m.id).filter((id) => !moduleGateIds.has(id));
+        const orphans = listModules().map((m) => m.id).filter((id) => !moduleGateIds.has(id) && !gatedInAbsentModule(id));
         assert.deepEqual(orphans, [], `these modules cannot be switched off at the route layer: ${orphans.join(', ')}`);
     });
 

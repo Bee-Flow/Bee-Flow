@@ -27,6 +27,14 @@ const stubs = {
     verificationSend: async () => ({ success: true }),
 };
 
+const trialServiceDouble = {
+    maybeAutoGrantOrgTrial: (id) => stubs.trialCalls.push({ org: id }),
+    maybeAutoGrantConsumerTrial: (id) => stubs.trialCalls.push({ user: id }),
+};
+// finalizeAccount looks the trial service up by name (module "billing_stripe"): the same double
+// answers there, also when that module is absent.
+require('../core/featureModules').registerFeatureModules({ 'services/trialService': () => trialServiceDouble });
+
 const originalLoad = Module._load;
 Module._load = function (request, parent, isMain) {
     switch (request) {
@@ -60,10 +68,7 @@ Module._load = function (request, parent, isMain) {
                 getEffectiveFreeEmailDomains: async () => ['gmail.com', 'outlook.com'],
             };
         case '../services/trialService':
-            return {
-                maybeAutoGrantOrgTrial: (id) => stubs.trialCalls.push({ org: id }),
-                maybeAutoGrantConsumerTrial: (id) => stubs.trialCalls.push({ user: id }),
-            };
+            return trialServiceDouble;
         case '../core/privacy/signupShield':
             return { buildSignupShieldConfig: () => ({ piiDetectionCategories: ['email'], piiDetectionAction: 'block' }) };
         case '../core/privacy/userShieldDefaults':

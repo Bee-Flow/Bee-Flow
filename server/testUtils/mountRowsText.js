@@ -108,13 +108,17 @@ function sortedRows(parts, strip, order, ai) {
         .sort((a, b) => rank(a) - rank(b) || a.file.localeCompare(b.file) || a.index - b.index);
 }
 
-/** The mounts part files of every root of the tree (moduleRoots.cjs listTreeDir), by name. @returns {PartFile[]} */
+/**
+ * The mounts part files of every root of the tree, by name. Hidden roots too (core mode): the
+ * sweep guards the repository's source, not the routes one edition mounts (testUtils/serverTree.js).
+ * @returns {PartFile[]}
+ */
 function defaultMountParts() {
     const fs = require('node:fs');
-    const { listTreeDir } = require('../moduleRoots.cjs');
-    return listTreeDir('firstParty').filter((e) => e.name.endsWith('.mounts.js'))
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((e) => ({ file: `firstParty/${e.name}`, text: fs.readFileSync(e.abs, 'utf8') }));
+    const { walkServerTree } = require('./serverTree');
+    return walkServerTree({ under: 'firstParty', filter: (rel, e) => e.isDirectory() || rel.endsWith('.mounts.js') })
+        .sort((a, b) => a.treePath.localeCompare(b.treePath))
+        .map((f) => ({ file: f.treePath, text: fs.readFileSync(f.abs, 'utf8') }));
 }
 
 /**
@@ -146,4 +150,4 @@ function expandMountCalls(src, hostFile, ctx) {
     }));
 }
 
-module.exports = { expandMountCalls, rowsOf };
+module.exports = { expandMountCalls, rowsOf, defaultMountParts };

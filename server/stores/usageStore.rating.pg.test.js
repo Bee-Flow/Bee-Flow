@@ -33,6 +33,7 @@ const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
 const { installResolveStub } = require('../testUtils/stubRequire');
+const { stubFeatureModule } = require('../testUtils/featureDouble');
 const { usePglitePool } = require('../testUtils/pglitePool');
 
 // ── test doubles ────────────────────────────────────────────────────────────
@@ -68,9 +69,9 @@ const restoreStubs = installResolveStub({
     },
 });
 
-// The drain worker would talk to Stripe; the outbox row is what is asserted.
-const drainPath = require.resolve('../workers/paygDrain');
-require.cache[drainPath] = { id: drainPath, filename: drainPath, loaded: true, exports: { drainOne: async () => { } }, children: [], paths: [] };
+// The drain worker would talk to Stripe; the outbox row is what is asserted. The store looks it up
+// by name (module "billing_stripe"): the double answers there, with or without the module.
+stubFeatureModule('workers/paygDrain', { drainOne: async () => { } });
 
 const { pg, close } = usePglitePool();
 const usageStore = require('./usageStore');

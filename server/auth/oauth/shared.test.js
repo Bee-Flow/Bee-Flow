@@ -14,6 +14,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { resolveNativeAppRedirect, getReturnUrl } = require('./shared');
+const { stubFeatureModule } = require('../../testUtils/featureDouble');
 
 test('resolves the known key to its fixed target', () => {
     assert.strictEqual(resolveNativeAppRedirect('beeflow'), 'beeflow://oauth');
@@ -103,14 +104,15 @@ test('getReturnUrl: in production the Referer is never a target', () => withEnv(
 test('the vault copy of a sign-in keeps the access and the refresh token, the scope and the expiry', async () => {
     const { _vaultUpsertSafe } = require('./shared');
     const credentialStore = require('../../stores/automationCredentialStore');
-    const coworkStore = require('../../stores/coworkStore');
-    const real = { upsert: credentialStore.upsertCredential, resume: coworkStore.resumeNeedsReauthForUser };
+    const real = { upsert: credentialStore.upsertCredential };
     /** @type {Record<string, unknown>[]} */
     const saved = [];
     /** @type {string[]} */
     const resumedFor = [];
     credentialStore.upsertCredential = /** @type {typeof credentialStore.upsertCredential} */ (/** @type {unknown} */ (async (/** @type {Record<string, unknown>} */ row) => { saved.push(row); }));
-    coworkStore.resumeNeedsReauthForUser = /** @type {typeof coworkStore.resumeNeedsReauthForUser} */ (/** @type {unknown} */ (async (/** @type {string} */ userId) => { resumedFor.push(userId); return 0; }));
+    // The schedules to resume are looked up by name (module "cowork"): the double answers there,
+    // with or without the module.
+    const restoreCowork = stubFeatureModule('stores/coworkStore', { resumeNeedsReauthForUser: async (/** @type {string} */ userId) => { resumedFor.push(userId); return 0; } });
     try {
         const before = Date.now();
         await _vaultUpsertSafe({ userId: 'u1', orgId: 'o1', provider: 'google', tokenData: { access_token: 'at-1', refresh_token: 'rt-1', expires_in: '3600', scope: 'mail calendar' } });
@@ -135,6 +137,6 @@ test('the vault copy of a sign-in keeps the access and the refresh token, the sc
         await _vaultUpsertSafe({ userId: 'u1', orgId: 'o1', provider: 'google', tokenData: { access_token: 'at-2' } });
     } finally {
         credentialStore.upsertCredential = real.upsert;
-        coworkStore.resumeNeedsReauthForUser = real.resume;
+        restoreCowork();
     }
 });

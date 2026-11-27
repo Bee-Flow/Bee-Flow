@@ -12,12 +12,16 @@
  *
  * Nothing here reaches into the module system: the catalogue's up() takes the
  * language store as a parameter, and the suite hands it a recorder.
+ *
+ * The English dictionary and the other catalogues are those of the whole tree
+ * (i18n/defaults/treeI18n.testkit.js): in core mode a hidden module's namespaces
+ * and catalogues are still in the repository, and a catalogue answers to them.
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+const { english, catalogues } = require('../i18n/defaults/treeI18n.testkit');
 
 /**
  * @typedef {{ NL_TRANSLATIONS: Readonly<Record<string, string>>, SAME_AS_ENGLISH: readonly string[],
@@ -42,11 +46,15 @@ const holes = (/** @type {unknown} */ s) => (String(s).match(/\{[a-z_]+\}/gi) ||
  */
 function registerNlCatalogueChecks({ name, catalogue, mayHold, mustCover, declaredFor }) {
     const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = catalogue;
+    /** @type {Record<string, string> | null} */
+    let gui = null;
+    /** The English dictionary over every root, read when a test first asks. */
+    const GUI = () => (gui ??= english());
     const keys = [...Object.keys(NL_TRANSLATIONS), ...SAME_AS_ENGLISH];
     const startsWithAny = (/** @type {string} */ k, /** @type {readonly string[]} */ prefixes) => prefixes.some((p) => k.startsWith(p));
 
     test(`${name}: every Dutch key exists in the English catalog`, () => {
-        const orphans = keys.filter((k) => !(k in GUI_DEFAULTS));
+        const orphans = keys.filter((k) => !(k in GUI()));
         assert.deepStrictEqual(orphans, [], 'these Dutch keys have no English counterpart (removed or renamed?)');
     });
 
@@ -57,14 +65,14 @@ function registerNlCatalogueChecks({ name, catalogue, mayHold, mustCover, declar
 
     test(`${name}: every English key of a family it owns has Dutch, or is declared identical`, () => {
         const covered = new Set(keys);
-        const untranslated = Object.keys(GUI_DEFAULTS).filter((k) => startsWithAny(k, mustCover) && !covered.has(k));
+        const untranslated = Object.keys(GUI()).filter((k) => startsWithAny(k, mustCover) && !covered.has(k));
         assert.deepStrictEqual(untranslated, []);
     });
 
     test(`${name}: no Dutch value is blank or the English copied over, and no key is both`, () => {
         for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
             assert.ok(String(v || '').trim(), `${k} has no Dutch value`);
-            assert.notStrictEqual(v, GUI_DEFAULTS[k], `${k}: identical to English; move it to SAME_AS_ENGLISH if that is deliberate`);
+            assert.notStrictEqual(v, GUI()[k], `${k}: identical to English; move it to SAME_AS_ENGLISH if that is deliberate`);
         }
         assert.deepStrictEqual(SAME_AS_ENGLISH.filter((k) => k in NL_TRANSLATIONS), []);
         assert.strictEqual(new Set(SAME_AS_ENGLISH).size, SAME_AS_ENGLISH.length, 'SAME_AS_ENGLISH lists a key twice');
@@ -77,13 +85,13 @@ function registerNlCatalogueChecks({ name, catalogue, mayHold, mustCover, declar
         // screens unnoticed.
         assert.deepStrictEqual([...SAME_AS_ENGLISH].sort(), Object.keys(declaredFor).sort());
         for (const k of SAME_AS_ENGLISH) {
-            assert.strictEqual(GUI_DEFAULTS[k], declaredFor[k], `${k}: the English changed; translate it instead of declaring it identical`);
+            assert.strictEqual(GUI()[k], declaredFor[k], `${k}: the English changed; translate it instead of declaring it identical`);
         }
     });
 
     test(`${name}: placeholders survive translation exactly`, () => {
         for (const [k, v] of Object.entries(NL_TRANSLATIONS)) {
-            assert.deepStrictEqual(holes(v), holes(GUI_DEFAULTS[k]), `${k}: placeholders differ from English`);
+            assert.deepStrictEqual(holes(v), holes(GUI()[k]), `${k}: placeholders differ from English`);
         }
     });
 
@@ -96,10 +104,13 @@ function registerNlCatalogueChecks({ name, catalogue, mayHold, mustCover, declar
     test(`${name}: no key is also claimed by another registered catalogue`, () => {
         // Requiring a registered catalogue is side-effect free (the boot
         // ladder test pins that). The few older ones that do not export
-        // their table cannot be compared and are skipped.
+        // their table cannot be compared and are skipped. Those of every root,
+        // a hidden module's included (treeI18n.testkit.js).
         const { NL_TRANSLATIONS: bootList } = require('../boot/bootMigrations');
-        for (const other of bootList.filter((/** @type {string} */ n) => n !== name)) {
-            const mod = require(`../migrations/${other}`);
+        const others = bootList.filter((/** @type {string} */ n) => n !== name);
+        const tables = catalogues(others);
+        for (const other of others) {
+            const mod = tables[other];
             if (!mod.NL_TRANSLATIONS) continue;
             const theirs = new Set([...Object.keys(mod.NL_TRANSLATIONS), ...(mod.SAME_AS_ENGLISH || [])]);
             assert.deepStrictEqual(keys.filter((k) => theirs.has(k)), [], `these keys are also in ${other}`);
