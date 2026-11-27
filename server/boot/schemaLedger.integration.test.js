@@ -250,10 +250,10 @@ test('--force runs every statement again', async () => {
 });
 
 test('boot and db:migrate run the same list through the same ledger', async () => {
-    const { STORE_MODULES, collectStoreModules } = require('../storeModules');
+    // Both read storeModules.js collectStoreModules(): the core's stores and those of the
+    // loaded first-party modules, in the order of modules/firstParty/order.json.
+    const { collectStoreModules } = require('../storeModules');
     const migrateList = collectStoreModules(quiet).map((s) => s.name);
-    assert.deepStrictEqual(migrateList.slice(0, STORE_MODULES.length), STORE_MODULES.map((s) => s.name),
-        'db:migrate runs the boot list first, in the same order');
 
     // Boot: boot/storeSchemas.js over the same database, every init awaited.
     // The server starts them all at once; PGlite is ONE session, where one
@@ -281,7 +281,7 @@ test('boot and db:migrate run the same list through the same ledger', async () =
             },
         });
         assert.deepStrictEqual(report.failed, []);
-        assert.deepStrictEqual(report.started, STORE_MODULES.map((s) => s.name));
+        assert.deepStrictEqual(report.started, migrateList, 'boot starts the list db:migrate awaits, in the same order');
         await Promise.all(running);
     } finally {
         stop();

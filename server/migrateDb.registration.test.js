@@ -11,7 +11,7 @@
  * RED TEST with a hint, not a silently missing table on the next fresh installation.
  *
  * DB-free on purpose: registration is read from the merged list that `npm run db:migrate` iterates,
- * storeModules.js collectStoreModules() (STORE_MODULES plus the stores of the catalog modules), the
+ * storeModules.js collectStoreModules() (STORE_MODULES plus the stores of the first-party modules), the
  * function and not the text of storeModules.js, so a store whose entry moves into a module's
  * composition file still counts. Nothing in the list is required here; the behavioural side (does
  * the ladder really run, is it idempotent) is proven by migrateDb.integration.test.js against real
@@ -25,6 +25,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const { collectStoreModules } = require('./storeModules');
+const { hiddenOwner } = require('./moduleRoots.cjs');
 
 /** The tree paths of the stores db:migrate initialises: `./stores/x` -> `stores/x.js`, an extension kept. */
 function registeredStoreFiles() {
@@ -137,6 +138,8 @@ function ddlOwners(/** @type {string} */ root) {
             const p = path.join(dir, e.name);
             if (e.isDirectory()) { walk(p); continue; }
             if (!e.name.endsWith('.js') || e.name.includes('.test.')) continue;
+            // In core mode (BEEFLOW_HIDE_MODULES) a hidden module's store counts as absent, as its composition does.
+            if (hiddenOwner(p)) continue;
             const src = fs.readFileSync(p, 'utf8');
             if (/CREATE TABLE/.test(src)) out.push(path.relative(__dirname, p).replace(/\\/g, '/'));
         }
@@ -147,7 +150,9 @@ function ddlOwners(/** @type {string} */ root) {
 
 test('elke DDL-eigenaar onder stores/ staat in STORE_MODULES of is met reden vrijgesteld', () => {
     const registered = new Set(registeredStoreFiles());
-    assert.ok(registered.size >= 70, `verdacht kleine ladder (${registered.size}) — is STORE_MODULES herschreven?`);
+    // In core mode the module stores are absent: only the core's own list (64 today) is registered.
+    const floor = process.env.BEEFLOW_HIDE_MODULES ? 50 : 70;
+    assert.ok(registered.size >= floor, `verdacht kleine ladder (${registered.size}) — is STORE_MODULES herschreven?`);
 
     const missing = ddlOwners(path.join(__dirname, 'stores'))
         .filter((f) => !registered.has(f) && !EXEMPT.has(f));

@@ -44,6 +44,7 @@ const path = require('node:path');
 
 const SERVER = path.join(__dirname, '..');
 const { LOOSE_MIGRATIONS, NL_TRANSLATIONS, MANUAL_MIGRATIONS } = require('./bootMigrations');
+const { listTreeDir, treePath } = require('../moduleRoots.cjs');
 
 /**
  * Migration files whose DDL has since been folded into the own schema ladder of a
@@ -155,8 +156,11 @@ const COLUMN_LADDERS = [
     { table: 'automation_usage_indexed', kind: 'table', into: 'stores/automationUsageStore.js', tag: 'automationUsageStore' },
 ];
 
+// The migrations of the tree, over every root (moduleRoots.cjs): in core mode
+// (BEEFLOW_HIDE_MODULES) a hidden module's migrations count as absent, as its
+// composition does, so the lists and the files agree in both modes.
 function migrationNames() {
-    return fs.readdirSync(path.join(SERVER, 'migrations'))
+    return listTreeDir('migrations').map((e) => e.name)
         .filter((f) => f.endsWith('.js') && !f.endsWith('.test.js'))
         .map((f) => f.slice(0, -3))
         .sort();
@@ -226,7 +230,7 @@ test('geen naam staat in twee categorieën tegelijk', () => {
 
 test('elke geregistreerde of handmatige naam bestaat op schijf', () => {
     const missing = [...LOOSE_MIGRATIONS, ...NL_TRANSLATIONS, ...MANUAL_MIGRATIONS, ...ABSORBED.keys()]
-        .filter((n) => !fs.existsSync(path.join(SERVER, 'migrations', `${n}.js`)));
+        .filter((n) => !fs.existsSync(treePath('migrations', `${n}.js`)));
     assert.deepStrictEqual(missing, [], 'de ladder of een claim noemt een migratie die niet bestaat');
 });
 
@@ -242,7 +246,7 @@ test('elke entry die de ladder draait exporteert up() en draait niets bij requir
     // must be certain that require is safe before "require it and see whether up() is a
     // function" would be a meaningful behavioural alternative.
     for (const n of [...LOOSE_MIGRATIONS, ...NL_TRANSLATIONS]) {
-        const src = fs.readFileSync(path.join(SERVER, 'migrations', `${n}.js`), 'utf8');
+        const src = fs.readFileSync(treePath('migrations', `${n}.js`), 'utf8');
         assert.match(src, /module\.exports\s*=\s*\{\s*up\b|module\.exports\.up\s*=/,
             `${n}: exporteert geen up() — runList kan hem niet draaien`);
         const bare = src

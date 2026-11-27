@@ -21,15 +21,26 @@ const CHECKSUM_EXTRA = Object.freeze({
 });
 
 /**
- * @param {string} name a file name under server/migrations/, without .js
+ * The file of a migration, found through the tree (moduleRoots.cjs): in server/migrations/
+ * or in the migrations/ of the module root that holds it. Throws MODULE_NOT_FOUND when no
+ * root has it (or core mode hides it), as require.resolve does.
+ * @param {string} name a file name under migrations/, without .js
+ * @returns {string} absolute path
+ */
+function migrationFile(name) {
+    return require.resolve(require('../moduleRoots.cjs').treePath('migrations', name));
+}
+
+/**
+ * @param {string} name a file name under migrations/, without .js
  * @returns {string} hex sha256
  */
 function checksumOf(name) {
-    const file = require.resolve(`../migrations/${name}`);
+    const file = migrationFile(name);
     const hash = crypto.createHash('sha256').update(fs.readFileSync(file));
     const extra = Object.prototype.hasOwnProperty.call(CHECKSUM_EXTRA, name) ? CHECKSUM_EXTRA[name] : undefined;
     if (extra) hash.update(`\0${extra()}`);
     return hash.digest('hex');
 }
 
-module.exports = { checksumOf };
+module.exports = { checksumOf, migrationFile };

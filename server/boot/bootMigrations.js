@@ -37,10 +37,13 @@
 'use strict';
 
 /**
- * Loose data migrations (server/migrations/<name>.js with an up()).
- * Each idempotent; the reason is stated so that nobody "cleans them up".
+ * The core's loose data migrations (migrations/<name>.js with an up()).
+ * Each idempotent; the reason is stated so that nobody "cleans them up". A loose
+ * migration that exists for one first-party module is a row of that module's
+ * composition (firstParty/<id>.stores.js `migrations`); looseMigrations() merges
+ * both halves in the order of modules/firstParty/order.json "migrations".
  */
-const LOOSE_MIGRATIONS = [
+const CORE_LOOSE_MIGRATIONS = [
     'microsoft-sso-hardening-2026-10',
     // Vouwt subscription_plans.allowed_mcp_servers in allowed_integrations en
     // verhuist legacy mcp:<id>-grants; no-op zodra beide leeg zijn.
@@ -48,21 +51,10 @@ const LOOSE_MIGRATIONS = [
     // Compliance Hub as flag grandfather: append compliance_hub_gdpr to
     // existing pro/enterprise plans so that no customer loses the hub.
     'compliance-plan-flag-2026-09',
-    // Moves bare prompt tasks to Cowork; both runners tick every 60s,
-    // so the two tables must not stay alive at the same time.
-    'prompt-tasks-to-cowork-2026-08',
-    // The agent-linked tasks (the old "agent routines") follow: Cowork runs an item as an agent, ai_tasks is unwritten.
-    'agent-tasks-to-cowork-2026-10',
-    'cowork-conversation-origin-2026-11', // Cowork's own conversations out of the chat history, only where demonstrable
     // The stored word "routine" becomes "automation" (logs, grants,
     // knowledge-base provenance, playbooks, tool key). After the previous one: an old
     // ai_tasks row is recognised by its Cowork twin and labelled "cowork".
     'routine-to-automation-2026-10',
-    // Learning Center progress follows the lessons that were renamed from "routine" to
-    // "automation" (lesson, exercise, course and badge ids).
-    'learning-routine-ids-2026-10',
-    // Website pages: the demo block and /demo links from "routines" to "automations".
-    'cms-routine-demo-2026-10',
     // Ruimt het schema van de vier gepensioneerde verticals op; laat het
     // consent-ledger staan.
     'drop-retired-features-2026-08',
@@ -70,8 +62,6 @@ const LOOSE_MIGRATIONS = [
     'fix-org-admin-approval-status',
     // Zorgt dat er precies één default org-plan bestaat (BFSF-226).
     'default-org-plan-2026-06',
-    // Backfillt support_audit_log uit legacy support_thread_events.
-    'support-audit-log-backfill-2026-06',
     // BFSF-286: organizations.registration_source toevoegen + backfillen.
     'org-registration-source-2026-07',
     // Seedt org_health_problems voor al-kapotte NC-orgs (ON CONFLICT DO NOTHING).
@@ -86,14 +76,6 @@ const LOOSE_MIGRATIONS = [
     // Explicitly stamps org_cowork_shield_<orgId> as 'off' for existing orgs
     // (CW-10 shield flag; the run path only consumes it in a later stage).
     'cowork-shield-flag-2026-09',
-    // FRM-08: 'ingevuld door' hoort op een rij die blijft — kolom op
-    // automation_runs (90d-retentie), níét op de 8-uurs automation_form_sessions.
-    'automation-form-submitter-2026-09',
-    // W2: webpages.published_version_id + webpage_versions.source, plus a
-    // snapshot+pointer for every page that WAS published. Without this backfill
-    // the read path falls back for those pages to the LIVE row — org readers
-    // then see work that the owner never published.
-    'webpage-published-version-2026-09',
     // Memory overhaul 2026-08: corrects two outdated lines in the SEEDED
     // extractor prompt (system-memory-extractor is set to alwaysUpdate: false,
     // so the .md file never reaches an existing install). Targeted line
@@ -134,15 +116,6 @@ const LOOSE_MIGRATIONS = [
     // (they served one person's mail-derived scan to colleagues). Skips a
     // table that does not exist yet; a no-op once no org: rows are left.
     'suggestion-user-scope-2026-10',
-    // Which agents may call an agent_call automation became a table
-    // (automation_agent_bindings). Binds an active agent_call automation to the
-    // agents its OWNER already chose per agent (config.tools.automations or a
-    // persona hand-off); everything else stays unbound, so nothing gets wider.
-    // Runs once: the ledger records it, and a marker table written together with
-    // the inserts holds even when the ledger replays it (changed checksum,
-    // unreadable ledger, --force), so an owner who unlinks an agent later never
-    // gets it back. Throws while a table is missing, so the next boot retries.
-    'automation-agent-bindings-backfill-2026-10',
     // The Component Designer was removed: drops "component_designer" from every
     // org's org_granted_capabilities (and from the column DEFAULT) and deletes
     // the system-component-designer agent row. A no-op once neither is there.
@@ -317,72 +290,48 @@ const MANUAL_MIGRATIONS = [
     'agents-published-config',
     'stale-free-limits-repair-2026-11', // BFSF-249: a deliberate 5/3 override looks the same, --dry-run first
 ];
-const { LEDGER_TABLE, readLedger, record } = require('./migrationLedger');
-const { checksumOf } = require('./migrationChecksum');
-
-/** @param {string} name */
-const loadMigration = (name) => require(`../migrations/${name}`);
-const LEDGER = { read: readLedger, record };
+const ORDER = require('../modules/firstParty/order.json');
+const { LEDGER_TABLE } = require('./migrationLedger');
+const { runList } = require('./migrationLadder');
+const { mergeByOrder } = require('../modules/firstParty/compositionMerge');
 
 /**
- * Run a list of migrations in order and record every successful one in the
- * ledger. Every error is caught and collected — one broken catalogue must not hold
- * back the rest — but it is NOT silent: the caller receives the failures and decides
- * itself whether that is a warn (boot) or an exit 1 (migration runner).
- *
- * `load` and `ledger` are the test seam (boot/composition.migrations.characterisation.test.js
- * records the order the runner asks for its migrations); boot and migrateDb pass neither.
- *
- * @returns {Promise<{ok: string[], skipped: string[], failed: {name: string, error: string}[]}>}
- * @param {string[]} names
- * @param {{ log?: Pick<Console, 'warn' | 'log'>, force?: boolean, load?: (name: string) => { up: () => Promise<unknown> },
- *   ledger?: { read: () => Promise<Map<string, { checksum: string, applied_at: unknown }>>, record: (name: string, checksum: string) => Promise<void> } }} [opts]
- *   `log` is a Console or the telemetry logger
+ * The loose migrations the ladder runs: the core's and those of every loaded first-party
+ * module, in order-index order. Ledger names are the migration names, so no migration runs
+ * again because its row moved into a module.
+ * @returns {string[]}
  */
-async function runList(names, { log = require('../telemetry/log'), force = false, load = loadMigration, ledger: store = LEDGER } = {}) {
-    /** @type {{ ok: string[], skipped: string[], failed: { name: string, error: string }[] }} */
-    const out = { ok: [], skipped: [], failed: [] };
-    let ledger = new Map();
-    try {
-        ledger = await store.read();
-    } catch (e) {
-        // No ledger means the pre-ledger behaviour: run everything, record nothing.
-        log.warn(`[BootMigrations] ledger onbereikbaar, volledige ladder draait: ${/** @type {Error} */ (e).message}`);
-    }
-    for (const name of names) {
-        try {
-            const checksum = checksumOf(name);
-            const prior = ledger.get(name);
-            if (prior && !force && prior.checksum === checksum) {
-                out.skipped.push(name);
-                continue;
-            }
-            if (prior && prior.checksum !== checksum) {
-                log.log(`[BootMigrations] ${name} is gewijzigd sinds ${prior.applied_at} en draait opnieuw`);
-            }
-            await load(name).up();
-            out.ok.push(name);
-            try {
-                await store.record(name, checksum);
-            } catch (e) {
-                log.warn(`[BootMigrations] ${name} geslaagd maar niet geregistreerd (draait volgende keer opnieuw): ${/** @type {Error} */ (e).message}`);
-            }
-        } catch (e) {
-            out.failed.push({ name, error: /** @type {Error} */ (e).message });
-            log.warn(`[BootMigrations] ${name} faalde: ${/** @type {Error} */ (e).message}`);
-        }
-    }
-    return out;
+function looseMigrations() {
+    const contributed = require('../modules/firstParty/loader').migrations();
+    return mergeByOrder(CORE_LOOSE_MIGRATIONS, contributed, (n) => n, ORDER.migrations);
 }
 
 /** @param {Parameters<typeof runList>[1]} [opts] */
 async function runLooseMigrations(opts) {
-    return runList(LOOSE_MIGRATIONS, opts);
+    return runList(looseMigrations(), opts);
 }
 
-/** @param {Parameters<typeof runList>[1]} [opts] */
+/**
+ * The Dutch catalogues stay one core list in this round: they are ordered against sweep
+ * catalogues (add-nl-fix-english, rename-routine-i18n, add-nl-namespace-files), and a
+ * catalogue of a module installed later must not run after a sweep that was already
+ * recorded. A module's `nlTranslations` are therefore not run (compositions.test.js holds
+ * that none declares any); a listed catalogue whose module is not here is skipped by the
+ * ladder (boot/migrationLadder.js).
+ * @param {Parameters<typeof runList>[1]} [opts]
+ */
 async function runNlTranslations(opts) {
     return runList(NL_TRANSLATIONS, opts);
 }
 
-module.exports = { LOOSE_MIGRATIONS, NL_TRANSLATIONS, MANUAL_MIGRATIONS, LEDGER_TABLE, runLooseMigrations, runNlTranslations };
+module.exports = {
+    CORE_LOOSE_MIGRATIONS,
+    /** @returns {string[]} the merged loose list (looseMigrations()), computed when read */
+    get LOOSE_MIGRATIONS() { return looseMigrations(); },
+    NL_TRANSLATIONS,
+    MANUAL_MIGRATIONS,
+    LEDGER_TABLE,
+    looseMigrations,
+    runLooseMigrations,
+    runNlTranslations,
+};

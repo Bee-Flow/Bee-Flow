@@ -50,6 +50,7 @@
         "core/kb/sources/datatable.js",
         "jobs/datatable*",
         "i18n/defaults/en/datatables.js",
+        "migrations/datatable-*",
         "firstParty/datatables{,.*}.{js,json}"
       ],
       "agent-hub": [
@@ -118,6 +119,11 @@
         "i18n/defaults/en/code_step.js",
         "i18n/defaults/en/flatten_node.js",
         "i18n/defaults/en/http_query.js",
+        "migrations/automation-*",
+        "migrations/approvals-*",
+        "migrations/n8n-connections-2026-06{,.*}.js",
+        "migrations/agent-mail-trigger-2026-11{,.*}.js",
+        "migrations/drop-automation-trigger-samples-2026-09{,.*}.js",
         "firstParty/automation{,.*}.{js,json}"
       ],
       "agent-hub": [
@@ -192,6 +198,9 @@
         "jobs/coworkDailyMail.mts",
         "i18n/defaults/en/cowork*.js",
         "i18n/defaults/nl/cowork*.json",
+        "migrations/prompt-tasks-to-cowork-2026-08{,.*}.js",
+        "migrations/agent-tasks-to-cowork-2026-10{,.*}.js",
+        "migrations/cowork-conversation-origin-2026-11{,.*}.js",
         "firstParty/cowork{,.*}.{js,json}"
       ],
       "agent-hub": [
@@ -254,6 +263,7 @@
         "i18n/defaults/en/apps.js",
         "i18n/defaults/en/studio_app*.js",
         "i18n/defaults/nl/studio_app*.json",
+        "migrations/studio-app-*",
         "firstParty/apps{,.*}.{js,json}"
       ],
       "agent-hub": [
@@ -412,6 +422,7 @@
         "usecases/publicRenderBlogSitemap.js",
         "shared/cmsReact/**",
         "i18n/defaults/en/cms_*.js",
+        "migrations/cms-routine-demo-2026-10{,.*}.js",
         "firstParty/cms{,.*}.{js,json}"
       ],
       "agent-hub": [
@@ -459,6 +470,7 @@
         "core/kb/sources/webpage.js",
         "shared/webpage/**",
         "i18n/defaults/en/webpages.js",
+        "migrations/webpage-published-version-2026-09{,.*}.js",
         "firstParty/webpages{,.*}.{js,json}"
       ],
       "agent-hub": [
@@ -633,6 +645,7 @@
         "services/support*",
         "services/outboundChatNotifier.js",
         "i18n/defaults/en/support.js",
+        "migrations/support-audit-log-backfill-2026-06{,.*}.js",
         "firstParty/support{,.*}.{js,json}"
       ],
       "agent-hub": [
@@ -663,6 +676,8 @@
         "stores/learningContentStore.js",
         "i18n/defaults/en/learn.js",
         "i18n/defaults/en/training.js",
+        "migrations/learning-routine-ids-2026-10{,.*}.js",
+        "migrations/data/learning-routine-id-map.json",
         "firstParty/learning{,.*}.{js,json}"
       ],
       "agent-hub": [

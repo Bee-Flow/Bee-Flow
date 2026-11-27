@@ -16,11 +16,12 @@
  * That is what keeps the migration safe for the hundreds of tests that require
  * a store and call it without ever booting a server.
  *
- * THE CORE LIST ONLY. A platform module's own store schema is created when that
- * module is imported (modules/index.js awaits its initDB) and lazily on first
- * use otherwise — booting the server has never created tables for a module
- * nobody imported, and this call does not start doing so. The migration runner
- * still covers every module, imported or not; that is its job, not boot's.
+ * THE MERGED LIST: storeModules.js collectStoreModules(), the core's stores and
+ * those of every loaded first-party module (their compositions'
+ * firstParty/<id>.stores.js), the same list `npm run db:migrate` awaits. A
+ * module that is absent contributes no store, so its DDL does not run. A store
+ * that a downloadable platform module declares in the catalog is created when
+ * that module is imported (modules/moduleLifecycle.js awaits its initDB).
  *
  * CHEAP ON EVERY BOOT AFTER THE FIRST. Each init runs through the schema ledger
  * (stores/lib/ddlLedger.js, the same `schema_migrations` table as the boot
@@ -44,15 +45,15 @@
 
 'use strict';
 
-const path = require('path');
 const log = require('../telemetry/log');
-const { STORE_MODULES } = require('../storeModules');
+const { collectStoreModules } = require('../storeModules');
 const { bestEffort } = require('../utils/bestEffort');
 
 /**
+ * A store row's file is a tree path ('./stores/x'), found in whichever root holds it.
  * @param {string} file
  */
-const loadStore = (file) => require(path.join(__dirname, '..', file));
+const loadStore = (file) => require(require('../moduleRoots.cjs').treePath(file));
 
 /**
  * Start every registered store's schema init, in registry order.
@@ -71,7 +72,7 @@ function startStoreSchemas({ log: logger = log, modules, load = loadStore } = {}
     const report = { started: [], unverified: [], failed: [] };
     /** @type {Promise<string | null>[]} the name of a store whose init rejected, null for one that succeeded */
     const outcomes = [];
-    for (const store of (modules || STORE_MODULES)) {
+    for (const store of (modules || collectStoreModules(logger))) {
         try {
             const mod = load(store.file);
             const handle = (mod && typeof mod.initDB === 'function') ? mod.initDB()

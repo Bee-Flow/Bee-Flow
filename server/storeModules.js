@@ -1,20 +1,30 @@
 // @typecheck
 /**
- * storeModules.js — the ordered list of store modules that own schema, and
- * the only place that list lives.
+ * storeModules.js — the ordered list of store modules that own schema.
  *
- * Two callers read it and must not drift apart: `migrateDb.js` (the standalone
- * `npm run db:migrate`, which AWAITS every init and exits non-zero on failure)
- * and `boot/storeSchemas.js` (the server, which starts them and keeps serving).
- * migrateDb.registration.test.js holds it complete: a store under stores/ with
- * a CREATE TABLE that is not registered here is a red test.
+ * The CORE's stores are listed here (STORE_MODULES); a first-party module's stores are
+ * rows of its composition (firstParty/<id>.stores.js, see modules/firstParty/loader.js).
+ * collectStoreModules() merges both, sorted by the core's order index
+ * (modules/firstParty/order.json "stores"), and is the only list the two callers read:
+ * `migrateDb.js` (the standalone `npm run db:migrate`, which AWAITS every init and exits
+ * non-zero on failure) and `boot/storeSchemas.js` (the server, which starts them and keeps
+ * serving). migrateDb.registration.test.js holds it complete: a store under stores/ with
+ * a CREATE TABLE that is not registered is a red test.
  *
- * ORDER MATTERS and is documented per entry below — user schema first because
- * half the rest joins or FK-references it, datatableStore after automationStore
- * because the schema-rename migration lives in the latter.
+ * ORDER MATTERS and is documented per entry below and in the part files — user schema
+ * first because half the rest joins or FK-references it, datatableStore after
+ * automationStore because the schema-rename migration lives in the latter. The order
+ * index holds every name, core and module, at today's position.
+ *
+ * Tables are never removed: a module that is absent (hidden in core mode, not installed,
+ * unavailable in this edition) simply does not run its DDL, and its tables stay as they
+ * are; the statement ledger (stores/lib/ddlLedger.js) copes with a store that appears later.
  */
 
 'use strict';
+
+const ORDER = require('./modules/firstParty/order.json');
+const { mergeByOrder } = require('./modules/firstParty/compositionMerge');
 
 // All store modules that contain database migrations
 const STORE_MODULES = [
@@ -31,7 +41,6 @@ const STORE_MODULES = [
     // the old runner these tables were therefore missing after a "successful" migration.
     { name: 'agentSchema', file: './stores/agent/initSchema' },
     { name: 'agentStore', file: './stores/agentStore' },
-    { name: 'appStore', file: './stores/appStore' },
     { name: 'memoryStore', file: './stores/memoryStore' },
     { name: 'usageStore', file: './stores/usageStore' },
     // Time-dated price cards (model_price_catalog) that core/llm/modelCosts rates a call
@@ -81,9 +90,6 @@ const STORE_MODULES = [
     { name: 'projectSprintStore', file: './stores/projectSprintStore' },
     { name: 'projectMemberColorStore', file: './stores/projectMemberColorStore' },
     { name: 'reminderStore', file: './stores/reminderStore' },
-    { name: 'templateStore', file: './stores/templateStore' },
-    { name: 'transcriptionStore', file: './stores/transcriptionStore' },
-    { name: 'teamsImportStore', file: './stores/teamsImportStore' },
     { name: 'voiceprintStore', file: './stores/voiceprintStore' },
     { name: 'mcpStore', file: './stores/mcpStore' },
     { name: 'iconStore', file: './stores/iconStore' },
@@ -98,30 +104,6 @@ const STORE_MODULES = [
     { name: 'documentSuggestionStore', file: './stores/documentSuggestionStore' },
     { name: 'notebookStore', file: './stores/notebookStore' },
     { name: 'notebookConversationStore', file: './stores/notebookConversationStore' },
-    { name: 'aiTaskStore', file: './stores/aiTaskStore' },
-    // Owns cowork-2026-08 (cowork_schedules + cowork_runs). Without it here a
-    // standalone `npm run db:migrate` never created those tables — they only
-    // appeared once the app booted and something required the store.
-    { name: 'coworkStore', file: './stores/coworkStore' },
-    // Whether an owner gets the daily Cowork e-mail, and the day it was last sent (cowork_daily_mail). No FKs.
-    { name: 'coworkDailyMailStore', file: './stores/coworkDailyMail.mts' },
-    // The run receipts of Cowork items (cowork_receipts); refers to cowork_schedules, so after coworkStore.
-    { name: 'coworkReceiptsStore', file: './stores/coworkReceipts.mts' },
-    // What a person repeats in chat, as hashes and weeks, when they switched it on (cowork_habit_signals, _offers). No FKs.
-    { name: 'coworkHabitsStore', file: './stores/coworkHabits.mts' },
-    // The replays of Cowork plans (cowork_replays, cowork_replay_events); refers to cowork_schedules, so after coworkStore.
-    { name: 'coworkReplaysStore', file: './stores/coworkReplays.mts' },
-    // The goals of Cowork items and what their checks measured (cowork_goals, cowork_goal_results); refer to
-    // cowork_schedules, so after coworkStore.
-    { name: 'coworkGoalsStore', file: './stores/coworkGoals.mts' },
-    // Desks of coworks of different owners (cowork_desks, cowork_desk_members, cowork_desk_roles, cowork_desk_follows); refer to
-    // cowork_schedules, so after coworkStore.
-    { name: 'coworkDesksStore', file: './stores/coworkDesks.mts' },
-    // What Cowork proposes to change in a plan, and when it last tried (cowork_proposals, cowork_proposal_attempts);
-    // refer to cowork_schedules, so after coworkStore.
-    { name: 'coworkProposalsStore', file: './stores/coworkProposals.mts' },
-    // Cowork templates of an organisation (cowork_templates, stores/ddl/cowork-templates-2026-11.js). No FKs.
-    { name: 'coworkTemplatesStore', file: './stores/coworkTemplates.mts' },
     { name: 'automationCredentialStore', file: './stores/automationCredentialStore' },
     // Owns integration_activity_log — and integrationCacheStore's
     // scopes migration reads that table. Without this registration that
@@ -133,32 +115,12 @@ const STORE_MODULES = [
     // the first cached answer to create it.
     { name: 'integrationCacheStore', file: './stores/integrationCacheStore' },
     { name: 'integrationConnectionStore', file: './stores/integrationConnectionStore' },
-    { name: 'orgCustomIntegrationStore', file: './stores/orgCustomIntegrationStore' },
     { name: 'houseStyleStore', file: './stores/houseStyleStore' },
     { name: 'suggestionScanCache', file: './stores/suggestionScanCache' },
     { name: 'suggestionFeedbackStore', file: './stores/suggestionFeedbackStore' },
-    // §WS3.5 — automation-feature stores that own DDL (self-init on load). Without
-    // these, a standalone `npm run db:migrate` (CI / pre-deploy) did NOT bring the
-    // automation schema current — it only worked because the app self-inits on boot.
-    { name: 'automationStore', file: './stores/automationStore' },
-    // Test data of Automations (test cases and their captured run inputs, golden
-    // runs, form scenarios). Foreign keys to `automations` and `automation_runs`,
-    // so it comes right after automationStore; its init also awaits that
-    // store's, because boot starts every init at once.
-    { name: 'automationTestingStore', file: './stores/automationTestingStore' },
-    // Org-scoped datatables: the metadata, sharing grants and dependents
-    // index. Owns its own DDL, so a standalone db:migrate must create the
-    // tables too — otherwise they only appear on first datatable use.
-    //
-    // MUST stay AFTER automationStore: that store owns the migration ladder,
-    // and datatable-schema-rename-2026-09 (which renames every per-tenant
-    // Postgres schema) lives in it. Ordered the other way this file would touch
-    // datatable rows under the pre-rename names first.
-    { name: 'datatableStore', file: './stores/datatableStore' },
-    // Platform-module state (core infra, NOT a module store): any built-in
-    // module stores declared in the module catalog are appended below. The
-    // catalog currently ships none (Security Scan is a downloadable .bfmod that
-    // owns its own schema), so today only this core state table is registered.
+    // Platform-module state (core infra, NOT a module store). A first-party
+    // module's stores are rows of its composition (firstParty/<id>.stores.js);
+    // Security Scan is a downloadable .bfmod that owns its own schema.
     { name: 'platformModuleStore', file: './stores/platformModuleStore' },
     // Downloaded remote-module package ledger (per module_id+version staging
     // outcome). Core infra like platformModuleStore — the boot re-verify loop
@@ -166,22 +128,6 @@ const STORE_MODULES = [
     { name: 'platformModulePackageStore', file: './stores/platformModulePackageStore' },
     { name: 'feedbackStore', file: './stores/feedbackStore' },
     { name: 'versionStore', file: './stores/versionStore' },
-    // Support studio stores own DDL (threads/messages/audit-log + connected
-    // mailboxes incl. the new shared_groups ACL column). Without these a
-    // standalone `npm run db:migrate` would not bring the support schema current.
-    { name: 'supportStore', file: './stores/supportStore' },
-    { name: 'supportInboxStore', file: './stores/supportInboxStore' },
-    // App Studio — studio_apps / studio_app_versions (self-init on load).
-    { name: 'studioAppStore', file: './stores/studioAppStore' },
-    // App Studio v2 DATA ENGINE metadata — studio_app_data_meta / datasets /
-    // dataset_cache / members / attachments. FK-depends on studio_apps, so it
-    // MUST come after studioAppStore (its initDB awaits studioAppStore.ready).
-    { name: 'studioAppDataStore', file: './stores/studioAppDataStore' },
-    // Studio Playbooks — phased AI builds (table → automation → fill → app → approvals).
-    { name: 'playbookStore', file: './stores/playbookStore' },
-    // App Studio LARGE DATASET manifests (multi-GB genome files) — multipart
-    // upload state + ingest claims + artifact keys. Own DDL, no FK.
-    { name: 'datasetFileStore', file: './stores/datasetFileStore' },
 
     // ── DDL owners found by the registration sweep (U1) ────────────────
     // Without this section none of these tables exist after a "successful"
@@ -194,10 +140,8 @@ const STORE_MODULES = [
     { name: 'conversationMessages', file: './stores/agent/conversationMessages' },
     { name: 'skillStore', file: './stores/skillStore' },
     { name: 'skillActivations', file: './stores/skillActivations' },
-    { name: 'webpageSchema', file: './stores/webpage/schema' },
     // Named MCP access tokens (mcp_tokens): sha256 of the secret, scopes, per-token IP list.
     { name: 'mcpTokenStore', file: './stores/mcpTokenStore' },
-    { name: 'webpagePublicShareStore', file: './stores/webpagePublicShareStore' },
     { name: 'terminationStore', file: './stores/terminationStore' },
     { name: 'guardrailEventStore', file: './stores/guardrailEventStore' },
     { name: 'invitationStore', file: './stores/invitationStore' },
@@ -205,38 +149,13 @@ const STORE_MODULES = [
     { name: 'piiVaultStore', file: './stores/piiVaultStore' },
     { name: 'piiScanLedgerStore', file: './stores/piiScanLedgerStore' },
     { name: 'ipGeoCacheStore', file: './stores/ipGeoCacheStore' },
-    { name: 'githubSyncStore', file: './stores/githubSyncStore' },
-    { name: 'gmeetImportStore', file: './stores/gmeetImportStore' },
-    // meeting_prefs (M5): the per-meeting recording choice. Alongside its
-    // DDL it also carries the one-off backfill from the old exclusion lists, so it belongs
-    // AFTER configStore — it reads from that for this.
-    { name: 'meetingPrefsStore', file: './stores/meetingPrefsStore' },
-    { name: 'summaryTemplateStore', file: './stores/summaryTemplateStore' },
-    { name: 'releaseNotesStore', file: './stores/releaseNotesStore' },
-    { name: 'studioAppTemplateStore', file: './stores/studioAppTemplateStore' },
     { name: 'platformModuleInstallStore', file: './stores/platformModuleInstallStore' },
     { name: 'azureServiceUsageStore', file: './stores/azureServiceUsageStore' },
-    { name: 'automationUsageStore', file: './stores/automationUsageStore' },
-    // Compliance-hub-familie — allemaal al modern (memo + export), alleen nooit geregistreerd.
-    { name: 'complianceStore', file: './stores/complianceStore' },
-    { name: 'dpiaStore', file: './stores/dpiaStore' },
     // Chat signals: weekly/daily counters of how the Privacy Shield handled
     // chat messages (no ids, no text), and the per-person "Don't count my chat
     // turns" objection. Read only through stores/lib/chatSignalSuppression.js.
     { name: 'chatSignalStore', file: './stores/chatSignalStore' },
     { name: 'chatSignalObjectionStore', file: './stores/chatSignalObjectionStore' },
-    { name: 'dsrStore', file: './stores/dsrStore' },
-    { name: 'incidentStore', file: './stores/incidentStore' },
-    { name: 'riskStore', file: './stores/riskStore' },
-    { name: 'soaStore', file: './stores/soaStore' },
-    { name: 'ismsDocStore', file: './stores/ismsDocStore' },
-    { name: 'isoAuditStore', file: './stores/isoAuditStore' },
-    { name: 'isoEvidenceStore', file: './stores/isoEvidenceStore' },
-    { name: 'isoObligationStore', file: './stores/isoObligationStore' },
-    // Compliance-redesign (sep 2026): AI-Act-beoordelingen, eigen kaders +
-    // hun attestaties, en het release-logboek achter PLD-Art9.
-    { name: 'aiActAssessmentStore', file: './stores/aiActAssessmentStore' },
-    { name: 'customFrameworkStore', file: './stores/customFrameworkStore' },
     // Per-item personal-data signals of project content (content_pii_signals),
     // written by the background scan after a version checkpoint and read by
     // the project compliance checks. No text, no offsets — categories + counts.
@@ -246,37 +165,23 @@ const STORE_MODULES = [
     // (user_notification_prefs, project_notification_mutes). No FKs, so the
     // place in the ladder does not matter.
     { name: 'notificationPrefsStore', file: './stores/notificationPrefsStore' },
-    // The imported public sanctions lists (sanctions_lists, sanctions_entities,
-    // sanctions_names): instance-wide, no FKs, filled by jobs/sanctionsListRefresh.mts.
-    { name: 'sanctionsStore', file: './stores/sanctionsStore.mts' },
 ];
 
-// Platform-module stores (server/modules/catalog.js) — in v1 the tables of
-// every AVAILABLE module migrate, imported or not: import/remove toggles
-// runtime exposure, never schema, so a later import can't hit a missing-table
-// race and a remove keeps its data intact for re-import. Modules flipped to
-// available:false (future light builds exclude their code, so their store
-// files may not exist) stop migrating; their existing tables/data are simply
-// left untouched. Deduped by name against the core list.
 /**
- * @param {Console} [log]
+ * Every store that owns schema: the core's STORE_MODULES and the stores of the loaded
+ * first-party modules, in order-index order. A module that is absent contributes nothing.
+ * @param {Pick<Console, 'error'>} [log]
+ * @returns {{ name: string, file: string }[]}
  */
 function collectStoreModules(log = console) {
-    const list = [...STORE_MODULES];
+    /** @type {{ name: string, file: string }[]} */
+    let contributed = [];
     try {
-        const moduleStores = require('./modules/catalog').listModules()
-            .filter(m => m.available !== false)
-            .flatMap(m => m.storeModules || []);
-        const registered = new Set(list.map(s => s.name));
-        for (const s of moduleStores) {
-            if (registered.has(s.name)) continue;
-            registered.add(s.name);
-            list.push(s);
-        }
+        contributed = require('./modules/firstParty/loader').stores();
     } catch (err) {
-        log.error('[migrate] ❌ module catalog load failed:', /** @type {Error} */ (err).message);
+        log.error('[migrate] ❌ first-party module stores could not be listed:', /** @type {Error} */ (err).message);
     }
-    return list;
+    return mergeByOrder(STORE_MODULES, contributed, (s) => s.name, ORDER.stores);
 }
 
 module.exports = { STORE_MODULES, collectStoreModules };

@@ -79,7 +79,8 @@ async function runMigrations({ log = console, force = false } = {}) {
 
     for (const store of collectStoreModules(log)) {
         try {
-            const mod = require(store.file);
+            // A store row's file is a tree path, found in whichever root holds it.
+            const mod = require(require('./moduleRoots.cjs').treePath(store.file));
             // Preferred order: initDB() — through the promise memo that is
             // the same promise as the load-time init, and after an earlier failure a real
             // retry. Otherwise an exported ready promise. Neither = not verifiable, and we

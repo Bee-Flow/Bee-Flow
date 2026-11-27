@@ -1,0 +1,15 @@
+{
+  "_comment": "Which module owns a migration of the boot ladder (boot/migrationLadder.js): name -> module id, for every name of modules/firstParty/order.json \"migrations\" and of boot/bootMigrations.js NL_TRANSLATIONS whose file scripts/module-map.json gives to a module. The ladder skips such a name silently while its module is not here, also when the module is not installed at all and there is neither a file nor a map to ask. boot/migrationLadder.test.js holds this record equal to the map; add a line when a module takes over a migration.",
+  "migrations": {
+    "prompt-tasks-to-cowork-2026-08": "cowork",
+    "agent-tasks-to-cowork-2026-10": "cowork",
+    "cowork-conversation-origin-2026-11": "cowork",
+    "learning-routine-ids-2026-10": "learning",
+    "cms-routine-demo-2026-10": "cms",
+    "support-audit-log-backfill-2026-06": "support",
+    "automation-form-submitter-2026-09": "automation",
+    "webpage-published-version-2026-09": "webpages",
+    "automation-agent-bindings-backfill-2026-10": "automation"
+  },
+  "nlTranslations": {}
+}
