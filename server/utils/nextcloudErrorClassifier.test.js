@@ -21,7 +21,9 @@ const { cases } = require('./nextcloudErrorClassifier.testkit');
 
 for (const [code, text] of cases) {
     test(`${code} ← ${text.slice(0, 60)}`, () => {
-        assert.strictEqual(classifyNextcloudError(text).code, code);
+        const c = classifyNextcloudError(text);
+        assert.strictEqual(c.code, code);
+        assert.ok(c.message && c.remediation, 'every case carries a message and a remediation');
     });
 }
 

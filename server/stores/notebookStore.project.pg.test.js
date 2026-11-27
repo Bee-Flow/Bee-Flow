@@ -85,3 +85,12 @@ test('the owner\'s own removal is scoped to the project AND to the owner', async
     assert.strictEqual(await store.detachNotebookFromProject(nb.id, 'p2', 'carol'), true);
     assert.strictEqual((await pg.query('SELECT project_id FROM notebooks WHERE id = $1', [nb.id])).rows[0].project_id, null);
 });
+
+test('a meeting source records which meeting it came from, so the meeting can name the notebook', async () => {
+    // The meeting's side (core/meetingNotes/meetingUsage reading it back) is module "meetingNotes"'s:
+    // notebookStore.project.meetingNotes.pg.test.js.
+    const nb = await store.createNotebook({ userId: 'alice', name: 'Meeting digest' });
+    await store.addSource({ notebookId: nb.id, type: 'meeting', name: 'Meeting Note: Kick-off', sourceRefId: 'meet-1', contentText: 'x', wordCount: 1 });
+    const row = (await pg.query('SELECT source_ref_id FROM notebook_sources WHERE notebook_id = $1', [nb.id])).rows[0];
+    assert.strictEqual(row.source_ref_id, 'meet-1');
+});

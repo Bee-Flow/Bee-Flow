@@ -991,7 +991,8 @@
         "auth/permissionsOrgGates.orgChoice.int_saas.test.js",
         "core/integrations/integrationTools.n8nGrants.test.js",
         "core/integrations/integrationTools.extraApps.test.js",
-        "core/integrations/integrationTools.coworkApps.test.js"
+        "core/integrations/integrationTools.coworkApps.test.js",
+        "usecases/integrations/orgIntegrationAvailability.int_saas.test.js"
       ],
       "agent-hub": [
         "src/components/integrations/github/**",

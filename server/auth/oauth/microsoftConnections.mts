@@ -163,3 +163,15 @@ export function listMicrosoftLogins(config: AuthConfigLike): MicrosoftLogin[] {
     }
     return logins;
 }
+
+/**
+ * POST /auth/providers/microsoft/test without its live test (a token request, module "meetingNotes"):
+ * a format check of the primary registration's client id and tenant, answered as the Google test is.
+ */
+export function microsoftFormatTest(config: AuthConfigLike): { status: number; body: { success?: true; message?: string; error?: string } } {
+    const primary = primaryOf(config);
+    if (!primary.clientId) return { status: 400, body: { error: 'Microsoft Client ID not configured' } };
+    if (!GUID.test(String(primary.clientId))) return { status: 400, body: { error: 'Invalid Microsoft Client ID format' } };
+    if (normalizeTenantId(primary.tenantId) === null) return { status: 400, body: { error: 'Invalid Microsoft tenant ID format' } };
+    return { status: 200, body: { success: true, message: 'Microsoft app registration configured (format valid). The live test of the registration is part of the meeting notes module.' } };
+}

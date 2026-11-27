@@ -543,9 +543,9 @@ router.put('/organizations/:id', requireOrgAdmin('id'), imageLimitsColumnBody('i
             const billingTouched = ['address', 'billingLine2', 'billingPostalCode', 'billingCity', 'billingCountry', 'phone', 'name', 'email']
                 .some(f => orgUpdates[f] !== undefined);
             if (billingTouched) {
-                setImmediate(() => {
+                setImmediate(() => { try { // a failed module throws from the lookup: reported, never thrown from here
                     require('../../core/featureModules').optionalFeatureModule('services/stripeService')?.pushOrgBillingToStripe(id).catch((e) => bestEffort('orgRoutes:push-billing', e));
-                });
+                } catch (e) { bestEffort('orgRoutes:push-billing', e); } });
             }
         }
         res.json({ success: true });

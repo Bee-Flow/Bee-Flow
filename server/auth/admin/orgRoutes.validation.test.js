@@ -162,6 +162,24 @@ test('a Nextcloud-bound organisation keeps the method its binding wrote', async 
     assert.deepStrictEqual(touched, []);
 });
 
+test('a billing module that failed to load is reported, not thrown from the setImmediate', async () => {
+    const featureModules = require('../../core/featureModules');
+    const { ModuleFailedError } = require('../../modules/firstParty/moduleState');
+    const { bestEffortCounts } = require('../../utils/bestEffort');
+    const original = featureModules._featureModuleGetter('services/stripeService');
+    featureModules.registerFeatureModules({ 'services/stripeService': () => { throw new ModuleFailedError('billing_stripe', 'featureModules', 'services/stripeService', 'boom'); } });
+    try {
+        const before = bestEffortCounts()['orgRoutes:push-billing']?.count || 0;
+        const res = await dispatch({ method: 'PUT', url: '/organizations/orgA', body: { phone: '+31 20 123 4567' } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        await new Promise((r) => setImmediate(r));
+        assert.strictEqual(bestEffortCounts()['orgRoutes:push-billing']?.count, before + 1, 'the failed push is reported');
+    } finally {
+        if (original) featureModules.registerFeatureModules({ 'services/stripeService': original });
+        else featureModules._clearFeatureModulesForTests('services/stripeService');
+    }
+});
+
 test('DELETE /organizations/:id/logo removes the file and clears the field', async () => {
     // It used to call `.find` on the promise getAllOrganizations() returns,
     // so every call threw: the file stayed on disk and the field stayed set.
