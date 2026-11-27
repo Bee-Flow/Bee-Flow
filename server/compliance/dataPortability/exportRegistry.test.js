@@ -15,7 +15,6 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('fs');
 const path = require('path');
 const express = require('express');
 
@@ -24,7 +23,8 @@ const { isMounted } = require('./routeProbe');
 
 const { EXPORT_KINDS, MACHINE_READABLE_FORMATS, KNOWN_FORMATS } = registry;
 const SERVER_ROOT = path.resolve(__dirname, '..', '..');
-const INDEX_SRC = fs.readFileSync(path.join(SERVER_ROOT, 'index.js'), 'utf8');
+// index.js and every module's composition file (testUtils/compositionText.js).
+const INDEX_SRC = require('../../testUtils/compositionText').compositionText();
 
 // project_comments and notebook_versions joined with wave 2 (comments on
 // project content, notebook version history): both held, neither exportable yet.

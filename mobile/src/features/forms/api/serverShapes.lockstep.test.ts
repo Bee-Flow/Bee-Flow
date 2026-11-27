@@ -14,6 +14,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { compositionText } from '../testing/sources';
+
 // Read off a SERVER handle with plain path literals, so src/meta/serverClosure.test.ts
 // sees every file this test reads and holds ci.yml's mobile filter to them.
 const SERVER = path.resolve(__dirname, '../../../../../server');
@@ -39,7 +41,8 @@ const rows = readServer('routes/datatables/rows.js');
 // rows.js keeps the route table; its named handlers (H.listRows, …) live here.
 const rowHandlers = readServer('routes/datatables/rowHandlers.js');
 const summary = readServer('automation/formAnswers/summary.js');
-const index = readServer('index.js');
+// index.js and every module's composition file, so a mount that moves is still found.
+const index = compositionText();
 
 /**
  * The source of one route handler. Inline (`router.get('/x', async (req, res) => {…`):

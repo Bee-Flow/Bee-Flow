@@ -12,8 +12,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
-const fs = require('node:fs');
-const path = require('node:path');
 const Module = require('module');
 
 // ── Fixtures ────────────────────────────────────────────────────────
@@ -176,7 +174,8 @@ test('an unsupported window is refused, not silently answered as a month', async
 
 // ── The mount ───────────────────────────────────────────────────────
 
-const INDEX = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+// index.js and every module's composition file (testUtils/compositionText.js).
+const INDEX = require('../testUtils/compositionText').compositionText();
 
 test('the router is mounted BEFORE the CRUD router, or GET /:id swallows /usage-counts', () => {
     const usageAt = INDEX.indexOf("require('./routes/studioAppUsage')");

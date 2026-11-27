@@ -10,6 +10,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { compositionText } from '@/features/forms/testing/sources';
+
 import { RECORD_TYPES } from '../model/registry';
 import { SETTING_GROUPS } from '../model/settingsFields';
 import type { RecordType } from '../model/types';
@@ -25,7 +27,8 @@ const C = 'routes/compliance/';
 
 describe('the mounts and the gate', () => {
     it('keeps /api/compliance behind the module and the GDPR capability, /api/dsr behind the module', () => {
-        expectAll(read('index.js'), [
+        // index.js and every module's composition file, so a mount that moves is still found.
+        expectAll(compositionText(), [
             "app.use('/api/compliance', requireModule('compliance')",
             "requireCapability('compliance_hub_gdpr')",
             "app.use('/api/dsr', requireModule('compliance'), require('./routes/dsr'))",

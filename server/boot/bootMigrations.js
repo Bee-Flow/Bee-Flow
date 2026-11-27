@@ -31,7 +31,7 @@
  * The same table is the ledger of the store schemas: one row per store init,
  * named `store:<tag>`, with the keys of the schema statements it applied
  * (stores/lib/ddlLedger.js). stores/lib/ddlLedgerTable.js owns the table's
- * DDL; readLedger below asks it for the table instead of creating its own.
+ * DDL; readLedger (boot/migrationLedger.js) asks it for the table instead of creating its own.
  */
 
 'use strict';
@@ -317,29 +317,12 @@ const MANUAL_MIGRATIONS = [
     'agents-published-config',
     'stale-free-limits-repair-2026-11', // BFSF-249: a deliberate 5/3 override looks the same, --dry-run first
 ];
-const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedgerTable');
+const { LEDGER_TABLE, readLedger, record } = require('./migrationLedger');
 const { checksumOf } = require('./migrationChecksum');
 
-/** name → {checksum, applied_at} for every recorded entry; creates the table on first use. */
-async function readLedger() {
-    const db = require('../db');
-    // One owner of the ledger table's own DDL: the store schemas record in it
-    // too (stores/lib/ddlLedger.js, rows named `store:<tag>`).
-    await ensureLedgerTable(typeof db.ledgerQuery === 'function' ? db.ledgerQuery : (sql) => db.exec(sql));
-    const rows = await db.getAll(`SELECT name, checksum, applied_at FROM ${LEDGER_TABLE}`);
-    return new Map(rows.map((r) => [r.name, r]));
-}
-
-/**
- * @param {string} checksum
- * @param {string} name
- */
-async function record(name, checksum) {
-    await require('../db').run(
-        `INSERT INTO ${LEDGER_TABLE} (name, checksum, applied_at) VALUES ($1, $2, now())
-         ON CONFLICT (name) DO UPDATE SET checksum = EXCLUDED.checksum, applied_at = now()`,
-        [name, checksum]);
-}
+/** @param {string} name */
+const loadMigration = (name) => require(`../migrations/${name}`);
+const LEDGER = { read: readLedger, record };
 
 /**
  * Run a list of migrations in order and record every successful one in the
@@ -347,16 +330,21 @@ async function record(name, checksum) {
  * back the rest — but it is NOT silent: the caller receives the failures and decides
  * itself whether that is a warn (boot) or an exit 1 (migration runner).
  *
+ * `load` and `ledger` are the test seam (boot/composition.migrations.characterisation.test.js
+ * records the order the runner asks for its migrations); boot and migrateDb pass neither.
+ *
  * @returns {Promise<{ok: string[], skipped: string[], failed: {name: string, error: string}[]}>}
  * @param {string[]} names
- * @param {{ log?: Pick<Console, 'warn' | 'log'>, force?: boolean }} [opts] a Console or the telemetry logger
+ * @param {{ log?: Pick<Console, 'warn' | 'log'>, force?: boolean, load?: (name: string) => { up: () => Promise<unknown> },
+ *   ledger?: { read: () => Promise<Map<string, { checksum: string, applied_at: unknown }>>, record: (name: string, checksum: string) => Promise<void> } }} [opts]
+ *   `log` is a Console or the telemetry logger
  */
-async function runList(names, { log = require('../telemetry/log'), force = false } = {}) {
+async function runList(names, { log = require('../telemetry/log'), force = false, load = loadMigration, ledger: store = LEDGER } = {}) {
     /** @type {{ ok: string[], skipped: string[], failed: { name: string, error: string }[] }} */
     const out = { ok: [], skipped: [], failed: [] };
     let ledger = new Map();
     try {
-        ledger = await readLedger();
+        ledger = await store.read();
     } catch (e) {
         // No ledger means the pre-ledger behaviour: run everything, record nothing.
         log.warn(`[BootMigrations] ledger onbereikbaar, volledige ladder draait: ${/** @type {Error} */ (e).message}`);
@@ -372,10 +360,10 @@ async function runList(names, { log = require('../telemetry/log'), force = false
             if (prior && prior.checksum !== checksum) {
                 log.log(`[BootMigrations] ${name} is gewijzigd sinds ${prior.applied_at} en draait opnieuw`);
             }
-            await require(`../migrations/${name}`).up();
+            await load(name).up();
             out.ok.push(name);
             try {
-                await record(name, checksum);
+                await store.record(name, checksum);
             } catch (e) {
                 log.warn(`[BootMigrations] ${name} geslaagd maar niet geregistreerd (draait volgende keer opnieuw): ${/** @type {Error} */ (e).message}`);
             }

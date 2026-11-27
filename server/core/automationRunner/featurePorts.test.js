@@ -102,3 +102,10 @@ test('a port call reaches the feature module lazily, through require.cache', asy
     }
     assert.strictEqual(called, 1);
 });
+
+test('runnerPortNames lists every registered port name', () => {
+    ports.registerRunnerPorts({ _probeNames: { f: () => null } });
+    assert.ok(ports.runnerPortNames().includes('_probeNames'));
+    ports._clearRunnerPortsForTests('_probeNames');
+    assert.ok(!ports.runnerPortNames().includes('_probeNames'));
+});

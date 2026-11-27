@@ -71,3 +71,10 @@ test('integrations/integrationClients.js registers every client core asks for', 
     assert.strictEqual(typeof registry.integrationClient('nextcloudTalkBot').MAX_MESSAGE_CHARS, 'number');
     assert.strictEqual(typeof registry.integrationClient('nextcloud').getBaseUrl, 'function');
 });
+
+test('integrationClientNames lists every registered client name', () => {
+    registry.registerIntegrationClients({ _probeNames: () => ({}) });
+    assert.ok(registry.integrationClientNames().includes('_probeNames'));
+    registry._clearIntegrationClientsForTests('_probeNames');
+    assert.ok(!registry.integrationClientNames().includes('_probeNames'));
+});

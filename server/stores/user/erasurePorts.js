@@ -64,9 +64,17 @@ function resolveErasurePorts() {
     return { notebooks: erasurePort('notebooks'), teardown: erasurePort('projects').makeTeardown() };
 }
 
+/**
+ * Every registered port name, in registration order (boot/composition.registries.characterisation.test.js).
+ * @returns {string[]}
+ */
+function erasurePortNames() {
+    return Object.keys(ports);
+}
+
 /** Test helper: forget every registration. */
 function resetErasurePortsForTests() {
     ports = {};
 }
 
-module.exports = { registerErasurePorts, erasurePort, resolveErasurePorts, resetErasurePortsForTests };
+module.exports = { registerErasurePorts, erasurePort, resolveErasurePorts, erasurePortNames, resetErasurePortsForTests };
