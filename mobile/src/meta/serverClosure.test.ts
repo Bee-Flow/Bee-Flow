@@ -28,6 +28,12 @@
  * The other direction fails too: a server pattern that covers nothing mobile
  * reads is a stale entry that runs the job for nothing.
  *
+ * Module roots: a file keeps its tree path when it moves from server/ to
+ * modules/<id>/server/ (or from agent-hub/src/ to modules/<id>/frontend/src/),
+ * so a file counts as covered only when a pattern matches it in the core root
+ * AND in a module root (`{server,modules/*\/server}/<tree path>`), and the
+ * stale check compares tree paths. A move then never edits the filter.
+ *
  * What this cannot see: a path built at runtime (a template literal, a name
  * joined in a loop), or a file read by a child process. Keep server paths in
  * mobile code plain string literals, the way the three readers write them.
@@ -324,6 +330,48 @@ function expandBraces(pattern: string): string[] {
 
 const matches = (file: string, pattern: string): boolean => path.posix.matchesGlob(file, pattern);
 
+/**
+ * The roots that hold the same tree: server/ and every modules/<id>/server/,
+ * agent-hub/src/ and every modules/<id>/frontend/src/ (modules/README.md). A
+ * file keeps its tree path when it moves into a module, so the filter must
+ * cover it in either root.
+ */
+const ROOTS = [
+    { core: 'server/', module: /^modules\/[^/]+\/server\//, brace: '{server,modules/*/server}/' },
+    { core: 'agent-hub/src/', module: /^modules\/[^/]+\/frontend\/src\//, brace: '{agent-hub,modules/*/frontend}/src/' },
+] as const;
+
+/** A repo-relative path as its core path: `modules/x/server/a.js` -> `server/a.js`. */
+function treePath(file: string): string {
+    for (const root of ROOTS) {
+        const m = root.module.exec(file);
+        if (m) return root.core + file.slice(m[0].length);
+    }
+    return file;
+}
+
+/** A pattern with its root-aware prefix written as the core root: `{server,modules/*\/server}/a` -> `server/a`. */
+function treeForm(pattern: string): string {
+    for (const root of ROOTS) {
+        if (pattern.startsWith(root.brace)) return root.core + pattern.slice(root.brace.length);
+    }
+    return pattern;
+}
+
+/**
+ * Where a file can live: its core path and, under server/ or agent-hub/src/,
+ * the same tree path in a module root. A file counts as covered only when a
+ * pattern matches it in EVERY place, so moving it never needs a filter edit.
+ */
+function placesOf(file: string): string[] {
+    const tree = treePath(file);
+    const root = ROOTS.find((r) => tree.startsWith(r.core));
+    if (!root) return [tree];
+    const rest = tree.slice(root.core.length);
+    const moduleRoot = root.core === 'server/' ? 'modules/some-module/server/' : 'modules/some-module/frontend/src/';
+    return [tree, moduleRoot + rest];
+}
+
 describe("ci.yml's mobile filter covers everything mobile reads from server/", () => {
     const reads = whatMobileReads();
     const closure = requireClosure(reads.required);
@@ -332,13 +380,24 @@ describe("ci.yml's mobile filter covers everything mobile reads from server/", (
     const negated = patterns.filter((p) => p.startsWith('!')).map((p) => p.slice(1));
     // Conservative on negations whatever the step's predicate-quantifier: a
     // file a negation names never counts as covered.
-    const covered = (file: string) =>
-        positive.some((p) => matches(file, p)) && !negated.some((p) => matches(file, p));
+    const coveredAt = (place: string) =>
+        positive.some((p) => matches(place, p)) && !negated.some((p) => matches(place, p));
+    const covered = (file: string) => placesOf(file).every(coveredAt);
 
     it('finds the readers and parses the filter', () => {
         expect(reads.required.size).toBeGreaterThan(0);
         expect(reads.text.size).toBeGreaterThan(0);
         expect(patterns.length).toBeGreaterThan(0);
+    });
+
+    it('reads a module root as the same tree as the core root', () => {
+        expect(treePath('modules/apps/server/appStudio/componentSpecs.js')).toBe('server/appStudio/componentSpecs.js');
+        expect(treePath('modules/cms/frontend/src/utils/plural.ts')).toBe('agent-hub/src/utils/plural.ts');
+        expect(treeForm('{server,modules/*/server}/routes/*')).toBe('server/routes/*');
+        expect(placesOf('server/index.js')).toEqual(['server/index.js', 'modules/some-module/server/index.js']);
+        // A core-only pattern does not cover a file that may move into a module.
+        expect(placesOf('server/index.js').every((p) => matches(p, 'server/index.js'))).toBe(false);
+        expect(placesOf('server/index.js').every((p) => matches(p, '{server,modules/*/server}/index.js'))).toBe(true);
     });
 
     it('resolves every require on the way', () => {
@@ -349,7 +408,7 @@ describe("ci.yml's mobile filter covers everything mobile reads from server/", (
     it('lists every file in the require closure', () => {
         const uncovered = [...closure.files]
             .filter(([file]) => !inside(file, MOBILE) && !covered(rel(file)))
-            .map(([file, why]) => `${rel(file)} (${why}) matches no pattern under \`mobile:\` in ci.yml`);
+            .map(([file, why]) => `${rel(file)} (${why}) matches no pattern under \`mobile:\` in ci.yml in server/ and in a module root (write {server,modules/*/server}/ or {agent-hub,modules/*/frontend}/src/)`);
         // Named, not counted: the fix is a pattern in the filter (or dropping
         // the require), never a looser check.
         expect(uncovered).toEqual([]);
@@ -358,13 +417,15 @@ describe("ci.yml's mobile filter covers everything mobile reads from server/", (
     it('lists every server or web file read as text', () => {
         const uncovered = [...reads.text]
             .filter(([file]) => !covered(rel(file)))
-            .map(([file, why]) => `${rel(file)} (${why}) matches no pattern under \`mobile:\` in ci.yml`);
+            .map(([file, why]) => `${rel(file)} (${why}) matches no pattern under \`mobile:\` in ci.yml in server/ and in a module root (write {server,modules/*/server}/ or {agent-hub,modules/*/frontend}/src/)`);
         expect(uncovered).toEqual([]);
     });
 
     it('has no server pattern that covers nothing mobile reads', () => {
-        const readFiles = [...closure.files.keys(), ...reads.text.keys()].map(rel);
+        // Compared as tree paths: a pattern counts wherever the file it covers lives.
+        const readFiles = [...closure.files.keys(), ...reads.text.keys()].map((f) => treePath(rel(f)));
         const stale = positive
+            .map(treeForm)
             .filter((p) => p.startsWith('server/'))
             .flatMap(expandBraces)
             .filter((p) => !readFiles.some((file) => matches(file, p)))

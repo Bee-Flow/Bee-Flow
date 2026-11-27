@@ -22,6 +22,10 @@
  * manifest carries a yaml dependency, and pinning a workflow file line-wise
  * is the house method (see ./androidCiTrigger.test.ts).
  *
+ * Every pattern of the server half names both roots in one brace list,
+ * `{server,modules/*\/server}/<tree path>`, so a file that moves from server/
+ * to a module root (modules/<id>/server/, same tree path) stays covered.
+ *
  * If this goes red, restore the invariant or revert the exclusion. Do not
  * relax an assertion.
  */
@@ -48,6 +52,13 @@ function blockAt(lines: string[], at: number): string[] {
 
 const isMobileKey = (l: string) => /^ {10,}mobile:\s*$/.test(l);
 
+/**
+ * The root-aware prefix of a server pattern: the core root and every module
+ * root (modules/<id>/server/ holds the same tree paths as server/), so a file
+ * that moves into a module stays covered.
+ */
+const SERVER_ROOTS = '{server,modules/*/server}';
+
 /** The FIRST `mobile:` filter block inside the changes job: the server half. */
 function mobileFilterLines(lines: string[]): string[] {
     const at = lines.findIndex(isMobileKey);
@@ -68,16 +79,22 @@ describe("ci.yml's mobile filter leaves the server dependency manifests out", ()
     // Assembled, not written out, so that the "no mobile test reads the server
     // dependency manifests" assertion below does not match THIS file and mask
     // a real reader.
-    const MANIFESTS = ['server/' + 'package.json', 'server/' + 'package-lock.json'];
+    // modules/package.json is the module roots' counterpart (it makes their .js CommonJS).
+    const MANIFESTS = ['server/' + 'package.json', 'server/' + 'package-lock.json', 'modules/' + 'package.json'];
 
     it('lists server files in the server half: no server/**, no negation', () => {
         const block = mobileFilterLines(lines).filter((l) => !l.startsWith('#'));
         // Empty means the mobile job no longer fires on server changes at all.
         expect(block.length).toBeGreaterThan(0);
         const why = (l: string): string | null => {
-            if (l === "- 'server/**'") return 're-runs the mobile pipeline on every server change, manifests included';
+            if (l === `- '${SERVER_ROOTS}/**'` || l === "- 'server/**'") {
+                return 're-runs the mobile pipeline on every server change, manifests included';
+            }
             if (l.startsWith("- '!")) return 'is a negation, which dorny reads as "every path except this one"';
-            if (!/^- 'server\/[^']+'$/.test(l)) return 'is not a quoted server/ pattern';
+            if (l.startsWith("- 'server/")) {
+                return `names only the core root: write '${SERVER_ROOTS}/<tree path>' so the file stays covered when it moves to a module`;
+            }
+            if (!l.startsWith(`- '${SERVER_ROOTS}/`) || !/^- '[^']+'$/.test(l)) return `is not a quoted ${SERVER_ROOTS}/ pattern`;
             return null;
         };
         const offenders = block

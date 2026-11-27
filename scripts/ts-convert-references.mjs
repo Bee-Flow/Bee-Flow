@@ -28,6 +28,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** How ci.yml's filters name agent-hub: the core root and every module root (`modules/<id>/frontend`). */
+const WEB_ROOTS = '{agent-hub,modules/*/frontend}';
 
 /** Rewrites `text` (the content of `file`, repo-relative) for every pair; returns the new text. */
 /** `src/App.jsx`, `App.jsx`: a name with no directory below src, which other things are called too. */
@@ -44,15 +46,18 @@ export function rewrite(text, file, pairs) {
         //    bare `src/...` (and `'components/x/Y.jsx'` in a string) only inside
         //    agent-hub, and never a flat name.
         out = out.replace(new RegExp(`(^|[^\\w./-])agent-hub/${esc(oldRel)}(?![\\w.-])`, 'g'), (m, pre) => `${pre}agent-hub/${newRel}`);
+        //    The root-aware form of a ci.yml filter (`{agent-hub,modules/*/frontend}/src/...`).
+        out = out.replace(new RegExp(`${esc(WEB_ROOTS)}/${esc(oldRel)}(?![\\w.-])`, 'g'), `${WEB_ROOTS}/${newRel}`);
         if (insideHub && !flat) {
             out = out.replace(new RegExp(`(^|[^\\w./-])${esc(oldRel)}(?![\\w.-])`, 'g'), (m, pre) => pre + newRel);
             const fromSrc = oldRel.replace(/^src\//, '');
             out = out.replace(new RegExp(`(['"\`])${esc(fromSrc)}\\1`, 'g'), (m, q) => `${q}${newRel.replace(/^src\//, '')}${q}`);
         }
         // 1b. A brace list in a path glob (ci.yml: `agent-hub/src/.../runtime/{a.ts,uiBits.jsx}`).
-        out = out.replace(/((?:agent-hub\/)?src\/[\w./-]*\/)\{([^}'"\n]+)\}/g, (m, prefix, list) => {
-            if (!prefix.startsWith('agent-hub/') && !insideHub) return m;
-            const items = list.split(',').map((it) => ((prefix.replace(/^agent-hub\//, '') + it) === oldRel ? newBase : it));
+        out = out.replace(/((?:(?:agent-hub|\{agent-hub,modules\/\*\/frontend\})\/)?src\/[\w./-]*\/)\{([^}'"\n]+)\}/g, (m, prefix, list) => {
+            const root = /^(?:agent-hub|\{agent-hub,modules\/\*\/frontend\})\//;
+            if (!root.test(prefix) && !insideHub) return m;
+            const items = list.split(',').map((it) => ((prefix.replace(root, '') + it) === oldRel ? newBase : it));
             return `${prefix}{${items.join(',')}}`;
         });
         // 2. Relative specifiers that resolve to the file.
