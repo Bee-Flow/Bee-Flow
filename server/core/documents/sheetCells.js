@@ -56,6 +56,20 @@ const PAGE = 500;
 const CELL_RE = /^([A-Z])([1-9][0-9]{0,4})$/;
 
 const { HttpError } = require('../http/errors');
+const { optionalFeatureModule } = require('../featureModules');
+
+/**
+ * A file of the datatables module, which holds a spreadsheet's cells. Without that module a
+ * spreadsheet cannot be made, read or written: 409 module_absent.
+ * @template {keyof import('../featureModules').FeatureModuleMap} K
+ * @param {K} name
+ * @returns {NonNullable<import('../featureModules').FeatureModuleMap[K]>}
+ */
+function fromDatatables(name) {
+    const mod = optionalFeatureModule(name);
+    if (!mod) throw new HttpError(409, 'module_absent', 'Spreadsheets keep their cells in a datatable: they need the "datatables" module, which is not installed on this server.');
+    return /** @type {NonNullable<import('../featureModules').FeatureModuleMap[K]>} */ (mod);
+}
 
 /**
  * A refusal the route passes through as-is (status, code, message).
@@ -148,14 +162,14 @@ const isRowConflict = (/** @type {{ status?: unknown, code?: unknown } | null | 
  * @param {(e: unknown, userId: string) => Promise<unknown>} [deps.localize]   datatableLimits.localizeQuotaError
  */
 function makeSheetCells(deps = {}) {
-    const runtime = () => deps.runtime || require('../dataEngine/datatableRuntime');
+    const runtime = () => deps.runtime || fromDatatables('core/dataEngine/datatableRuntime');
     const principalFor = (/** @type {string} */ userId) => (deps.principalFor
-        || require('../../auth/datatableAccess').resolveDatatablePrincipalForUser)(userId);
-    const provision = (/** @type {any} */ o) => (deps.provision || require('../dataEngine/provisionManagedTable').provisionManagedTable)(o);
-    const userScope = (/** @type {string} */ userId) => (deps.userScope || require('../../stores/datatableStore').userScope)(userId);
-    const spec = () => (deps.spec || require('../dataEngine/dataModel/managedTables').managedKindSpec)('document_sheet');
-    const drop = (/** @type {string} */ id, /** @type {{ kind: 'org'|'user', id: string }} */ scope) => (deps.drop || require('../../stores/datatableDbStore').dropDatatable)(id, scope);
-    const localize = (/** @type {unknown} */ e, /** @type {string} */ userId) => (deps.localize || require('../dataEngine/datatableLimits').localizeQuotaError)(e, userId);
+        || fromDatatables('auth/datatableAccess').resolveDatatablePrincipalForUser)(userId);
+    const provision = (/** @type {any} */ o) => (deps.provision || fromDatatables('core/dataEngine/provisionManagedTable').provisionManagedTable)(o);
+    const userScope = (/** @type {string} */ userId) => (deps.userScope || fromDatatables('stores/datatableStore').userScope)(userId);
+    const spec = () => (deps.spec || fromDatatables('core/dataEngine/dataModel/managedTables').managedKindSpec)('document_sheet');
+    const drop = (/** @type {string} */ id, /** @type {{ kind: 'org'|'user', id: string }} */ scope) => (deps.drop || fromDatatables('stores/datatableDbStore').dropDatatable)(id, scope);
+    const localize = (/** @type {unknown} */ e, /** @type {string} */ userId) => (deps.localize || fromDatatables('core/dataEngine/datatableLimits').localizeQuotaError)(e, userId);
 
     /**
      * The owner's table, resolved as the owner. A missing one is the sheet's own 410.
@@ -335,6 +349,7 @@ function makeSheetCells(deps = {}) {
 
 module.exports = Object.assign(makeSheetCells(), {
     makeSheetCells,
+    fromDatatables,
     parseCellName,
     groupWrite,
     cellsOfRows,

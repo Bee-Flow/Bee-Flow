@@ -33,6 +33,7 @@ const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 const { withSessionLock } = require('../core/scheduling/lockSession');
 const { envInt } = require('../utils/envNumber.mts');
+const { optionalFeatureModule } = require('../core/featureModules');
 
 /**
  * A key of its own. 0xBEEF105–0xBEEF10E are taken by the other jobs
@@ -209,7 +210,9 @@ async function armStaleLiveSources({ store = kbSourcesStore, datatables = null }
     const pending = sources.filter(s => s.datatableId && !s.nextRefreshAt);
     if (pending.length === 0) return 0;
 
-    const dtStore = datatables || require('../stores/datatableStore');
+    // Without the datatables module no table can have moved: nothing to compare, nothing armed.
+    const dtStore = datatables || optionalFeatureModule('stores/datatableStore');
+    if (!dtStore) return 0;
     let armed = 0;
     const versions = new Map();
     const versionOf = async (/** @type {string} */ tableId) => {

@@ -4,65 +4,26 @@
  * The KB-level query-log routes, over the real router, the real stores and a real Postgres (PGlite):
  * who may call them, what the settings write to the audit, what the list, review and export do.
  *
+ * What the compliance module adds (the evidence chain, the DPIA register) is queryLog.compliance.test.js,
+ * over the same world (queryLog.testkit.js).
+ *
  * Run: cd server && node --test routes/knowledgeBases/queryLog.test.js
  */
 
-const { test, before, after, beforeEach } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'qlog-test-session-secret-0123456789abcdef';
-process.env.MASTER_ENCRYPTION_KEY = process.env.MASTER_ENCRYPTION_KEY || 'qlog-test-master-key-0123456789abcdef0123456789';
-
-const { usePglitePool } = require('../../testUtils/pglitePool');
-const { pg, close: closePg } = usePglitePool();
-const h = require('../../testUtils/routeHarness');
-const crypto = require('../../stores/kb/queryLog/crypto.mts');
 const { ATTESTATION, enableBody } = require('../../testUtils/kbQueryLogAttestation');
-
-const ORG = 'org-ql';           // licensed (enterprise plan)
-const ORG_OTHER = 'org-ql-2';   // licensed, another tenant
-const ORG_FREE = 'org-ql-free'; // no kb_query_log
-const mk = (id, org, extra = {}) => ({ id, username: id, email: `${id}@ql.test`, organizationId: org, role: 'user', orgRole: 'member', groups: [], ...extra });
-const OWNER = mk('u-owner', ORG);
-const READER = mk('u-reader', ORG);
-const OUTSIDER = mk('u-outsider', ORG_OTHER);
-const FREE_OWNER = mk('u-free-owner', ORG_FREE);
-const ASKER = mk('u-asker', ORG, { displayName: 'Ada Asker' });
+const {
+    useQueryLogWorld, pg, h, audit, as, put, enabledNow,
+    ORG, ORG_OTHER, ORG_FREE, OWNER, READER, OUTSIDER, FREE_OWNER, ASKER,
+} = require('./queryLog.testkit');
 
 let api;
 let kbId;
 let freeKbId;
 let store;
-
-before(async () => {
-    crypto._setCryptoDeps({ getOrgRootKey: async () => Buffer.alloc(32, 7), sealingEnabled: async () => true });
-    const userStore = require('../../stores/userStore');
-    await userStore.initDB();
-    const enterprise = await userStore.createPlan({ name: 'QL enterprise', tier: 'enterprise', allowed_features: ['knowledge', 'kb_query_log'] });
-    const pro = await userStore.createPlan({ name: 'QL free', tier: null, allowed_features: ['knowledge'] });
-    for (const [id, plan] of [[ORG, enterprise], [ORG_OTHER, enterprise], [ORG_FREE, pro]]) {
-        await userStore.createOrganization({ id, name: id }, { autoGrantTrial: false });
-        await userStore.setOrgSubscription(id, { plan_id: plan.id, status: 'active' });
-    }
-    for (const u of [OWNER, READER, OUTSIDER, FREE_OWNER, ASKER]) await userStore.createUser({ ...u, passwordHash: 'x' });
-    const kbStore = require('../../stores/knowledgeBases');
-    kbId = (await kbStore.createKB(OWNER.id, 'Handbook', '', ORG, { isPublished: true })).id;
-    freeKbId = (await kbStore.createKB(FREE_OWNER.id, 'Free handbook', '', ORG_FREE, { isPublished: true })).id;
-    store = require('../../stores/kb/queryLog/index.mts');
-    api = h.serve('/', require('../knowledgeBases'), { user: OWNER });
-}, { timeout: 120_000 });
-
-after(async () => {
-    crypto._setCryptoDeps(null);
-    await api.close();
-    await closePg();
-});
-
-beforeEach(async () => {
-    await pg.exec('DELETE FROM kb_query_log; DELETE FROM kb_query_log_ack; DELETE FROM access_audit_log');
-    await pg.exec(`UPDATE knowledge_bases SET query_log_enabled = false, query_log_retention_days = 90, query_log_show_names = false,
-        query_log_ai_act_high_risk = false, query_log_attestation = NULL, query_log_attested_by = NULL, query_log_attested_at = NULL, query_log_changed_at = NULL`);
-});
+useQueryLogWorld((w) => ({ api, kbId, freeKbId, store } = w));
 
 const entry = (over = {}) => ({
     searchGroupId: `g-${Math.random()}`, organizationId: ORG, kbId, userId: ASKER.id, channel: 'direct_chat', channelRef: {},
@@ -77,8 +38,6 @@ const seed = async (rows) => {
         for (const k of was) await pg.query('UPDATE knowledge_bases SET query_log_enabled = $2 WHERE id = $1', [k.id, k.query_log_enabled]);
     }
 };
-const audit = async () => (await pg.query('SELECT action, target_type, target_id, changed_by, organization_id, old_values, new_values FROM access_audit_log ORDER BY created_at, id')).rows;
-const as = (user) => ({ user });
 
 const ALL_KB_ROUTES = (id, entryId = 'e1') => [
     ['PUT', `/${id}/query-log/settings`, enableBody()],
@@ -390,8 +349,6 @@ test('the notice names only logging bases the caller can read, and only with the
 
 // ── Round 2: attestation, high-risk flag, pseudonyms, acknowledgement ──
 
-const put = (body, user = OWNER, id = kbId) => api.call('PUT', `/${id}/query-log/settings`, { user, body });
-const enabledNow = async (id = kbId) => (await pg.query('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [id])).rows[0].query_log_enabled;
 
 test('enabling without an attestation, or with an invalid one, is a 400 naming the missing fields; nothing changes', async () => {
     let res = await put({ enabled: true });
@@ -412,7 +369,7 @@ test('enabling without an attestation, or with an invalid one, is a 400 naming t
     assert.deepEqual(await audit(), []);
 });
 
-test('a valid attestation is stored with who and when, returned by GET settings, audited and put into the evidence', async () => {
+test('a valid attestation is stored with who and when, returned by GET settings and audited', async () => {
     const res = await put(enableBody({ retentionDays: 180 }));
     assert.equal(res.status, 200);
     assert.deepEqual(res.body.attestation, { ...ATTESTATION, dpiaId: null });
@@ -429,31 +386,6 @@ test('a valid attestation is stored with who and when, returned by GET settings,
     const rows = await audit();
     const enabled = rows.find((r) => r.action === 'kb.query_log.enabled');
     assert.deepEqual(JSON.parse(enabled.new_values).attestation, { ...ATTESTATION, dpiaId: null });
-    const ev = (await pg.query(`SELECT payload FROM compliance_evidence WHERE check_id = 'GDPR-Art5-kb-query-log' AND subject_id = $1`, [kbId])).rows;
-    const p = typeof ev[0].payload === 'string' ? JSON.parse(ev[0].payload) : ev[0].payload;
-    assert.equal(p.attDpia, 'not_required');
-    assert.equal(p.attWorksCouncil, 'not_applicable');
-    assert.equal(p.attPrivacyNoticeUpdated, true);
-});
-
-test('dpia done needs a DPIA of THIS organisation; one of another organisation is refused', async () => {
-    const dpiaStore = require('../../stores/dpiaStore');
-    const mine = await dpiaStore.upsertAssessment(ORG, 'agent-ql', { approved_by: OWNER.id });
-    const foreign = await dpiaStore.upsertAssessment(ORG_OTHER, 'agent-ql-other', { approved_by: OUTSIDER.id });
-    const att = (dpiaId) => ({ ...ATTESTATION, dpia: 'done', dpiaId });
-
-    let res = await put({ enabled: true, attestation: att(String(foreign.id)) });
-    assert.equal(res.status, 400);
-    assert.deepEqual(res.body.details.missing, ['dpiaId']);
-    res = await put({ enabled: true, attestation: att('999999') });
-    assert.equal(res.status, 400);
-    res = await put({ enabled: true, attestation: att(undefined) });
-    assert.equal(res.status, 400);
-    assert.equal(await enabledNow(), false);
-
-    res = await put({ enabled: true, attestation: att(String(mine.id)) });
-    assert.equal(res.status, 200);
-    assert.equal(res.body.attestation.dpiaId, String(mine.id));
 });
 
 test('the high-risk flag needs a term of 180 days or more and an attestation; 30 and 90 are refused, 180 is accepted', async () => {
@@ -562,23 +494,4 @@ test('acknowledge: records for readable logging bases only; others (unreadable, 
     const after = await api.call('GET', `/query-log/notice?kbIds=${kbId}`, as(READER));
     assert.equal(after.body.kbs[0].acknowledged, false);
     assert.equal((await api.call('GET', `/${kbId}/query-log/settings`, as(OWNER))).body.acknowledgedUsers, 0);
-});
-
-test('GET /query-log/dpias: managers of the organisation get their own organisation\'s DPIAs only; others get a 404', async () => {
-    const dpiaStore = require('../../stores/dpiaStore');
-    const mine = await dpiaStore.upsertAssessment(ORG, 'agent-dpias', { approved_by: OWNER.id });
-    await dpiaStore.upsertAssessment(ORG_OTHER, 'agent-theirs', { approved_by: OUTSIDER.id });
-
-    const ok = await api.call('GET', '/query-log/dpias', as(OWNER));
-    assert.equal(ok.status, 200);
-    const ids = ok.body.dpias.map((d) => d.id);
-    assert.ok(ids.includes(String(mine.id)));
-    assert.ok(ok.body.dpias.every((d) => Object.keys(d).sort().join() === 'id,status,title'));
-    assert.ok(!JSON.stringify(ok.body).includes('agent-theirs'), 'no other organisation');
-
-    assert.equal((await api.call('GET', '/query-log/dpias', as(READER))).status, 404, 'a reader who manages nothing');
-    assert.equal((await api.call('GET', '/query-log/dpias', as(FREE_OWNER))).status, 403, 'licence');
-    assert.equal((await api.call('GET', '/query-log/dpias', { user: null })).status, 401);
-    const theirs = (await api.call('GET', '/query-log/dpias', as(OUTSIDER))).body.dpias;
-    assert.ok(!theirs.some((d) => d.id === String(mine.id)));
 });

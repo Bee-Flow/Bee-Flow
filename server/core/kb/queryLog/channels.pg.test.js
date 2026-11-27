@@ -6,70 +6,24 @@
  * with the channel, the query and the passages; the answering step fills answer, model and outcome;
  * a failing model call becomes outcome `error`; one answer finishes every search of a turn.
  *
+ * The channels of first-party modules (webpage, studio_ai_generate, automation_ai_step) are in
+ * channels.<module>.pg.test.js beside this file, over the same world (channels.testkit.js).
+ *
  * Run: cd server && node --test core/kb/queryLog/channels.pg.test.js
  */
 
-const { test, before, after, beforeEach } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { pgliteDb } = require('../../../testUtils/pgliteDb');
-const { makeKbQueryLogStore } = require('../../../stores/kb/queryLog/index.mts');
-const { KB_QUERY_LOG_COLUMN_DDL, KB_QUERY_LOG_TABLE_DDL } = require('../../../stores/kb/queryLog/ddl.mts');
-const crypto = require('../../../stores/kb/queryLog/crypto.mts');
 const rec = require('./recorder.mts');
 const hook = require('./hook.mts');
-
-// The retrieval and the configuration, stubbed before the modules under test run.
-const configStore = require('../../../stores/configStore');
-configStore.getConfig = async () => '';
-configStore.getSecret = async () => '';
-const localKBIngest = require('../localKBIngest');
-const resolveProvider = require('../resolveProvider');
-resolveProvider.resolveKbProvider = async () => 'local';
-const kbVisibility = require('../kbVisibility');
-kbVisibility.filterKbIdsForUser = async (ids) => ids;
-
-const { pg, db } = pgliteDb();
-const store = makeKbQueryLogStore(db);
-
-const KB_ON = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'; // logs
-const KB_OFF = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'; // does not log
-const DOC_ON = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';
-const DOC_OFF = 'c1c1c1c1-c1c1-41c1-81c1-c1c1c1c1c1c1';
-
-let found = [];
-localKBIngest.searchLocally = async () => found;
-
-const warnings = [];
-const raw = async () => (await pg.query('SELECT * FROM kb_query_log ORDER BY created_at')).rows;
-const entry = async (row) => store.getEntry(row.kb_id, row.id);
-const settle = async (...handles) => { for (const h of handles) await h.settled(); await new Promise((r) => setTimeout(r, 50)); };
-
-before(async () => {
-    crypto._setCryptoDeps({ getOrgRootKey: async () => Buffer.alloc(32, 3), sealingEnabled: async () => true });
-    await pg.exec(`CREATE TABLE knowledge_bases (id UUID PRIMARY KEY, tenant_id TEXT, name TEXT, organization_id TEXT);
-        CREATE TABLE documents (id UUID PRIMARY KEY, knowledge_base_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE, content_hash TEXT);
-        CREATE TABLE kb_document_versions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), document_id UUID NOT NULL, deleted_at TIMESTAMPTZ DEFAULT now());`);
-    for (const sql of KB_QUERY_LOG_COLUMN_DDL) await pg.exec(sql);
-    for (const sql of KB_QUERY_LOG_TABLE_DDL) await pg.exec(sql);
-    await pg.exec(`INSERT INTO knowledge_bases (id, tenant_id, name, organization_id, query_log_enabled, query_log_retention_days) VALUES
-        ('${KB_ON}', 't', 'On', 'org1', true, 90), ('${KB_OFF}', 't', 'Off', 'org1', false, 90);
-        UPDATE knowledge_bases SET query_log_attestation = '{"purpose":"ai_quality"}'::jsonb WHERE query_log_enabled;
-        INSERT INTO documents (id, knowledge_base_id) VALUES ('${DOC_ON}', '${KB_ON}'), ('${DOC_OFF}', '${KB_OFF}');
-        INSERT INTO kb_query_log_ack (user_id, kb_id) SELECT u, '${KB_ON}'::uuid FROM unnest(ARRAY['u1','asker','u','owner','viewer','author','viewer1']) AS u;`);
-});
-after(async () => { rec._setRecorderDeps(null); crypto._setCryptoDeps(null); await pg.close(); });
-beforeEach(async () => {
-    await pg.exec('DELETE FROM kb_query_log');
-    warnings.length = 0;
-    found = [{ id: 'c1', chunk_id: 'c1', document_id: DOC_ON, source_uri: 'policy.pdf', title: 'Policy', score: 0.5, content: 'The notice period is two months.' }];
-    rec._setRecorderDeps({ store, hasFeature: async () => true, log: { warn: (m) => warnings.push(m) } });
-});
+const { useChannelWorld, store, raw, entry, settle, warnings, setFound, getFound, KB_ON, KB_OFF, DOC_ON, DOC_OFF } = require('./channels.testkit');
+useChannelWorld();
 
 const { quickKBSearch } = require('../../agentRuntime/knowledgeSearch');
 
 test('quickKBSearch (direct_chat): logging off writes nothing', async () => {
-    found = [{ ...found[0], document_id: DOC_OFF }];
+    setFound([{ ...getFound()[0], document_id: DOC_OFF }]);
     const out = await quickKBSearch('u1', [KB_OFF], 'notice period', { log: { channel: 'direct_chat', channelRef: {}, orgId: 'org1', userId: 'u1' } });
     assert.equal(out.length, 1);
     await hook.handleOf(out)?.settled();
@@ -111,7 +65,7 @@ test('quickKBSearch (direct_chat): logging on records channel, query, user and p
 });
 
 test('quickKBSearch: a search that finds nothing is logged as no_results', async () => {
-    found = [];
+    setFound([]);
     const out = await quickKBSearch('u', [KB_ON], 'something unknown', { log: { channel: 'template_chat', channelRef: {}, userId: 'u' } });
     await settle(hook.handleOf(out));
     const [row] = await raw();
@@ -218,71 +172,6 @@ test('searchNotebookKB (notebook): the viewer is the user, the result carries th
     assert.deepEqual((await entry(row)).channelRef, { notebookId: 'nb1' });
     const off = await searchNotebookKB({ userId: 'owner', kbIds: [KB_ON], query: 'x' });
     assert.equal(hook.handleOf(off), null);
-});
-
-test('searchWebpageKB (webpage): an anonymous visitor is never logged; the tool registers on the carrier', async () => {
-    const { searchWebpageKB, executeWebpageKBSearchTool } = require('../../webpages/webpageKnowledgeSearch');
-    const result = await searchWebpageKB({
-        userId: 'author', kbIds: [KB_ON], query: 'notice period',
-        log: { channel: 'webpage', channelRef: { webpageId: 'wp1', surface: 'public_share' }, orgId: 'org1', userId: null },
-    });
-    await settle(hook.handleOf(result));
-    assert.equal((await raw()).length, 0, 'webpage needs an acknowledgement, an anonymous visitor cannot give one');
-
-    await pg.exec('DELETE FROM kb_query_log');
-    const turn = {};
-    await executeWebpageKBSearchTool({ query: 'notice period' }, 'author', [KB_ON], {
-        channel: 'webpage', channelRef: { webpageId: 'wp1', surface: 'chat' }, orgId: 'org1', userId: 'author', carrier: turn,
-    });
-    assert.equal(hook.turnLogsOf(turn).handles().length, 1);
-    await settle(...hook.turnLogsOf(turn).handles());
-    const [row] = await raw();
-    assert.equal(row.user_id, 'author');
-    assert.equal(row.channel, 'webpage');
-});
-
-test('groundWithKB (studio_ai_generate): the viewer is the user, not the app owner; no viewer means no search and no row', async () => {
-    const aiRuntime = require('../../../appStudio/aiRuntime');
-    const askerContext = require('../askerContext');
-    askerContext.askerContext = async () => ({ orgIds: new Set(['org1']), userGroups: [] });
-    const app = { id: 'app1', userId: 'owner', organizationId: 'org1' };
-    const log = { channel: 'studio_ai_generate', channelRef: { appId: 'app1', actionId: 'act1' }, orgId: 'org1' };
-
-    const ground = await aiRuntime.groundWithKB(app, { knowledgeBaseIds: [KB_ON], query: 'notice period', viewer: { id: 'viewer1' }, log });
-    assert.ok(ground.context.includes('two months'));
-    const handle = hook.handleOf(ground.chunks);
-    assert.ok(handle);
-    await settle(handle);
-    const [row] = await raw();
-    assert.equal(row.channel, 'studio_ai_generate');
-    assert.equal(row.user_id, 'viewer1');
-    assert.deepEqual((await entry(row)).channelRef, { appId: 'app1', actionId: 'act1' });
-
-    await pg.exec('DELETE FROM kb_query_log');
-    const none = await aiRuntime.groundWithKB(app, { knowledgeBaseIds: [KB_ON], query: 'notice period', viewer: null, log });
-    assert.deepEqual(none.chunks, []);
-    await settle();
-    assert.equal((await raw()).length, 0, 'issue #599: nothing is searched without a viewer, so nothing is logged');
-});
-
-test('groundAiStepWithKB (automation_ai_step): real runs log with automation, run and step; a dry run does not', async () => {
-    const { groundAiStepWithKB } = require('../../automationRunner/aiStepGrounding');
-    const deps = { knowledgeSearch: () => require('../../agentRuntime/knowledgeSearch'), kbVisibility: () => ({ filterKbIdsForUser: async (ids) => ids }) };
-    const ctx = { userId: 'owner', orgId: 'org1', automationId: 'auto1', runId: 'run1' };
-    const step = { id: 'step1', knowledgeBaseIds: [KB_ON] };
-
-    const live = await groundAiStepWithKB(step, ctx, 'notice period', 'live', null, deps);
-    assert.ok(live.queryLogHandle);
-    await settle(live.queryLogHandle);
-    const [row] = await raw();
-    assert.equal(row.channel, 'automation_ai_step');
-    assert.deepEqual((await entry(row)).channelRef, { automationId: 'auto1', runId: 'run1', stepId: 'step1' });
-
-    await pg.exec('DELETE FROM kb_query_log');
-    const dry = await groundAiStepWithKB(step, ctx, 'notice period', 'dry_run', null, deps);
-    assert.equal(dry.queryLogHandle, null);
-    await settle();
-    assert.equal((await raw()).length, 0);
 });
 
 test('a recorder that cannot write never breaks the search', async () => {

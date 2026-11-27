@@ -100,10 +100,18 @@ export const maxItems: number = maxFiles();
 
 // ─── Wiring ─────────────────────────────────────────────────────────────
 
+/** The storage layer is the datatables module's spreadsheet mirror, asked for by name (a 409 module_absent without it). */
+function storage<T>(name: string): T {
+    const { moduleFile } = nodeRequire('./moduleKinds.js') as { moduleFile: (n: string, m: string, w: string) => unknown };
+    return moduleFile(name, 'datatables', 'A cloud folder') as T;
+}
+type LinkerAuth = { resolveLinker: CloudDeps['resolveLinker'] };
+type Providers = { providerFor: (provider: string) => { markerEquals: (a: Marker, b: Marker) => boolean } };
+
 function defaultDeps(): CloudDeps {
     return {
-        resolveLinker: (source, opts) => nodeRequire('../../dataEngine/sources/spreadsheetFile/linkerAuth.js').resolveLinker(source, opts),
-        markerEquals: (provider, a, b) => nodeRequire('../../dataEngine/sources/spreadsheetFile/providers/index.js').providerFor(provider).markerEquals(a, b),
+        resolveLinker: (source, opts) => storage<LinkerAuth>('core/dataEngine/sources/spreadsheetFile/linkerAuth').resolveLinker(source, opts),
+        markerEquals: (provider, a, b) => storage<Providers>('core/dataEngine/sources/spreadsheetFile/providers/index').providerFor(provider).markerEquals(a, b),
         extract: (buffer, mime, filename) => nodeRequire('../kbFileExtract.js').extractFileContentWithMeta(buffer, mime, filename),
     };
 }
@@ -113,10 +121,10 @@ function depsOf(deps: EngineDeps): CloudDeps {
     return { ...defaultDeps(), ...(override || {}) };
 }
 
-const documentsHelpers = () => nodeRequire('../../dataEngine/sources/spreadsheetFile/providers/documents.js') as {
+const documentsHelpers = () => storage<{
     exportFor: (mime: string | null | undefined) => { ext: string; mime: string } | null;
     mimeForFormat: (format: string | null | undefined) => string;
-};
+}>('core/dataEngine/sources/spreadsheetFile/providers/documents');
 
 type CodedError = Error & { code?: string };
 

@@ -19,9 +19,12 @@
  */
 
 const { HttpError } = require('../../core/http/errors');
+const { moduleFile } = require('../../core/kb/sources/moduleKinds');
 
 const PROVIDERS = Object.freeze(['nextcloud_files', 'onedrive', 'google_drive']);
 const ACCEPT = 'documents';
+/** The storage layer is the datatables module's spreadsheet mirror: without it, every call here is a 409. */
+const CLOUD = 'A cloud folder';
 
 /**
  * @typedef {{ userId?: string | null, orgId?: string | null }} Principal
@@ -45,11 +48,11 @@ const ACCEPT = 'documents';
 function defaultDeps() {
     return {
         callerApi: (session, principal, provider, opts) => /** @type {Promise<{ api: ListApi }>} */ (/** @type {unknown} */ (
-            require('../../core/dataEngine/sources/spreadsheetFile/linkBrowse').callerApi(session, principal, provider, opts))),
+            moduleFile('core/dataEngine/sources/spreadsheetFile/linkBrowse', 'datatables', CLOUD).callerApi(session, principal, provider, opts))),
         providerFor: (provider) => /** @type {ReturnType<CloudDeps['providerFor']>} */ (/** @type {unknown} */ (
-            require('../../core/dataEngine/sources/spreadsheetFile/providers').providerFor(provider))),
+            moduleFile('core/dataEngine/sources/spreadsheetFile/providers/index', 'datatables', CLOUD).providerFor(provider))),
         isIntegrationPermittedForUser: (opts) => require('../../core/integrations/integrationTools').isIntegrationPermittedForUser(opts),
-        resolvePrincipal: (req) => require('../../auth/datatableAccess').resolveDatatablePrincipal(req),
+        resolvePrincipal: (req) => moduleFile('auth/datatableAccess', 'datatables', CLOUD).resolveDatatablePrincipal(req),
         checkToolCall: (call) => require('../../core/integrations/ncScopeGuard').checkToolCall(call),
         friendlyError: (e, provider) => require('../../core/kb/sources/cloudFolder.mts').friendlyError(e, provider),
     };

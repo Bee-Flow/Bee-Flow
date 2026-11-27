@@ -19,7 +19,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const kbSourceRefresh = require('./kbSourceRefresh');
 const { onMeetingProcessed } = kbSourceRefresh;
-const { installResolveStub, evictModule } = require('../testUtils/stubRequire');
+// The bus tap that calls onMeetingProcessed sits in the automation module's trigger bus:
+// kbSourceRefresh.meetingTap.automation.test.js.
 
 function store(over = {}) {
     const calls = [];
@@ -69,37 +70,6 @@ test('a store that fails costs the promptness, never the meeting', async () => {
     const s = store({ throws: 'kb_sources is locked' });
     await assert.doesNotReject(() => onMeetingProcessed({ tags: ['sales'] }, { store: s }));
     assert.strictEqual(await onMeetingProcessed({ tags: ['sales'] }, { store: s }), 0);
-});
-
-test('the bus tap is wired, or none of this ever runs', async () => {
-    // The tap lives beside talkAutoIngest in triggerBus/dispatch. Without the
-    // wiring the event fires into subscriptions only and no source is armed.
-    // Called for real: stub the subscription lookup (irrelevant here) and spy
-    // on this module's own export the way dispatch.js reaches it — at call
-    // time, via require('../../jobs/kbSourceRefresh') — instead of reading
-    // dispatch.js as text.
-    const restoreStub = installResolveStub({
-        '../../stores/automationStore': { getSubscriptionsForProvider: async () => [] },
-    });
-    const realOnMeetingProcessed = kbSourceRefresh.onMeetingProcessed;
-    const calls = [];
-    kbSourceRefresh.onMeetingProcessed = (payload) => { calls.push(payload); return 0; };
-    evictModule(require.resolve('../automation/triggerBus/dispatch'));
-    try {
-        const { dispatchEvent } = require('../automation/triggerBus/dispatch');
-        // userId AND orgId: bypasses every fail-closed scope guard regardless
-        // of how 'meeting-notes' is classified, so only the wiring is on test.
-        await dispatchEvent({
-            provider: 'meeting-notes', event: 'meeting.processed',
-            payload: { tags: ['sales'] }, userId: 'u1', orgId: 'org1',
-        });
-        assert.deepStrictEqual(calls, [{ tags: ['sales'] }],
-            'dispatchEvent must call onMeetingProcessed for meeting-notes.meeting.processed');
-    } finally {
-        kbSourceRefresh.onMeetingProcessed = realOnMeetingProcessed;
-        restoreStub();
-        evictModule(require.resolve('../automation/triggerBus/dispatch'));
-    }
 });
 
 test('the arming query respects the mode somebody chose', async () => {

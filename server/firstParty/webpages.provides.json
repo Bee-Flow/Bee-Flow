@@ -1,6 +1,7 @@
 {
   "featureModules": [
     "services/webpageSnapshot",
+    "core/kb/sources/webpage",
     "core/webpages/sidePanelWebpageContext",
     "integrations/webpageBuilderTools",
     "integrations/webpageDbTools",

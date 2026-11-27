@@ -113,14 +113,15 @@ function typedText(cell, XLSX, cellsLib) {
  * @returns {Promise<ParsedSheet[]>}
  */
 async function parseWorkbook(buffer, format, maxRows, maxCols) {
-    const formats = require('../dataEngine/sources/spreadsheetFile/formats');
+    const { fromDatatables } = require('./sheetCells');
+    const formats = fromDatatables('core/dataEngine/sources/spreadsheetFile/formats/index');
     if (!Buffer.isBuffer(buffer) || !buffer.length) throw new HttpError(422, 'spreadsheet_rejected', 'The file is empty.');
     if (buffer.length > formats.MAX_FILE_BYTES) {
         throw new HttpError(413, 'spreadsheet_too_large', `The file is larger than ${formats.MAX_FILE_BYTES / (1024 * 1024)} MB.`);
     }
     return formats.withSlot(async () => {
         if (format === 'csv') {
-            const csv = require('../dataEngine/sources/spreadsheetFile/formats/csv');
+            const csv = fromDatatables('core/dataEngine/sources/spreadsheetFile/formats/csv');
             const { text } = csv.decode(buffer);
             const { records, truncated } = csv.parseRecords(text, csv.sniffDelimiter(text), { maxCells: 1_000_000 });
             const width = records.reduce((m, r) => Math.max(m, r.fields.length), 0);
@@ -131,8 +132,8 @@ async function parseWorkbook(buffer, format, maxRows, maxCols) {
             return [{ name: 'Sheet1', grid, droppedRows, droppedCols: Math.max(0, width - maxCols) }];
         }
         const XLSX = require('@e965/xlsx');
-        const cellsLib = require('../dataEngine/sources/spreadsheetFile/cells');
-        const wb = await require('../dataEngine/sources/spreadsheetFile/formats/sheetjs').readWorkbook(buffer, format, {
+        const cellsLib = fromDatatables('core/dataEngine/sources/spreadsheetFile/cells');
+        const wb = await fromDatatables('core/dataEngine/sources/spreadsheetFile/formats/sheetjs').readWorkbook(buffer, format, {
             cellNF: true, cellDates: false, cellFormula: true, raw: true, cellText: false, cellHTML: false, sheetStubs: true, sheetRows: maxRows + 1,
         });
         return wb.SheetNames.map((/** @type {string} */ name) => {

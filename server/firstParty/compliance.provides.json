@@ -4,6 +4,8 @@
     "compliance/events",
     "legal/legalStore",
     "compliance/dataPortability/stampExport",
-    "compliance/marking"
+    "compliance/marking",
+    "stores/dpiaStore",
+    "compliance/kbQueryLogEvidence"
   ]
 }

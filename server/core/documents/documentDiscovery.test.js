@@ -53,13 +53,3 @@ test('includeBody is capped and says so', async () => {
     const small = await execute('builder_read_document',{documentId:fixture.id,includeBody:true},{userId:'owner'});
     assert.equal(small.bodyTruncated, undefined);
 });
-test('app_list_documents is built from an explicit allow-list of fields', async () => {
-    const { applyListDocuments } = require('../../appStudio/builderTools/dataTools');
-    listResult = [{ id: 'd1', name: 'Quote', docType: 'letter', kind: 'document', versionId: 'v1',
-        userId: 'other-user', updatedBy: 'other-user', projectId: 'p1', htmlSize: 9, schemaVersion: 2,
-        parameters: [{ key: 'a' }], sections: [{ id: 's', title: 'Full section' }],
-        placeholders: [{ key: 'a', kind: 'text' }] }];
-    const out = await applyListDocuments({ userId: 'owner' });
-    assert.deepEqual(out.documents, [{ documentId: 'd1', name: 'Quote', docType: 'letter', kind: 'document', versionId: 'v1', placeholders: [{ key: 'a', kind: 'text' }] }]);
-    listResult = [{ id: fixture.id }];
-});

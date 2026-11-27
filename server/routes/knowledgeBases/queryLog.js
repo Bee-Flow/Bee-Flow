@@ -46,7 +46,7 @@ const { once } = require('node:events');
 const { isDeepStrictEqual } = require('node:util');
 const log = require('../../telemetry/log');
 const queryLogStore = require('../../stores/kb/queryLog/index.mts');
-const { recordKbQueryLogEvidence } = require('../../compliance/kbQueryLogEvidence');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 /** @typedef {{ id: string, organization_id?: string | null, query_log_show_names?: boolean | null }} KbRow */
 /** @typedef {import('../../stores/kb/queryLog/index.mts').EntryRow} EntryRow */
@@ -212,8 +212,10 @@ async function applySettings(kb, actorId, body) {
         invalidateKbQueryLogCache(kb.id);
     }
     const deleted = purge ? await queryLogStore.deleteForKb(kb.id) : 0;
-    if (audit.length > 0) {
-        await recordKbQueryLogEvidence(kb.organization_id ?? null, {
+    // The compliance evidence chain is the compliance module's: without it the audit rows are the record.
+    const evidence = optionalFeatureModule('compliance/kbQueryLogEvidence');
+    if (audit.length > 0 && evidence) {
+        await evidence.recordKbQueryLogEvidence(kb.organization_id ?? null, {
             action: audit.map((a) => a.action).join('+'), subjectType: 'knowledge_base', subjectId: kb.id, actorId,
             details: { ...next, deleted, ...attestationEvidence(attestation ?? /** @type {Partial<Attestation> | null} */ (current.attestation)) },
         });

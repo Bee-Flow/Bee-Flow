@@ -1,6 +1,7 @@
 {
   "featureModules": [
-    "stores/githubSyncStore"
+    "stores/githubSyncStore",
+    "integrations/n8nTools"
   ],
   "integrationClients": [
     "github",

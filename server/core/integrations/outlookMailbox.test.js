@@ -12,10 +12,10 @@ const assert = require('node:assert');
 
 const {
     parseMailbox, isValidMailbox, mailboxBase, mailboxResource, hasSharedMailboxScopes, grantedScopeOf,
-    assertSharedScopes, mapGraphMailboxError, mailboxLogRef, sharedMailboxDeniedText,
+    assertSharedScopes, mapGraphMailboxError, mailboxLogRef,
     SHARED_SCOPES_MISSING_TEXT, SHARED_MAILBOX_NOT_FOUND_TEXT, MAILBOX_PARAM,
 } = require('./outlookMailbox.mts');
-const { classifyMailboxError } = require('../../appStudio/mailboxConnector');
+// The App Studio connector's own wording, word for word: outlookMailbox.apps.test.js.
 
 test('absent, empty and "me" (any case) are the own mailbox', () => {
     for (const v of [undefined, null, '', '   ', 'me', 'ME', ' Me ']) {
@@ -81,12 +81,6 @@ test('Graph 403 on a shared mailbox becomes the App Studio connector\'s "no acce
     assert.ok(!mapped.message.includes('team@contoso.com'), 'the error (which lands in run logs) never carries the address');
     // A batched answer hands the status in as `status`.
     assert.strictEqual(/** @type {any} */ (mapGraphMailboxError({ status: 403 }, shared)).code, 'shared_mailbox_denied');
-});
-
-test('the wording is the App Studio connector\'s, word for word', () => {
-    const fromConnector = classifyMailboxError({ status: 403 }, { mode: 'shared', address: 'team@contoso.com' });
-    assert.strictEqual(fromConnector.message, sharedMailboxDeniedText('team@contoso.com'));
-    assert.strictEqual(fromConnector.code, 'shared_mailbox_denied');
 });
 
 test('a 404 for the MAILBOX becomes "not found"; a 404 for a message stays as it is', () => {

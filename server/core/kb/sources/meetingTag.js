@@ -40,6 +40,7 @@
  */
 
 const { fallback } = require('../../../utils/bestEffort');
+const { moduleFile } = require('./moduleKinds');
 
 const supportsModes = ['manual', 'schedule', 'after_meeting'];
 const defaultMode = 'after_meeting';
@@ -87,7 +88,7 @@ async function enumerate(source, ctx, deps) {
     const tag = String(source?.config?.tag || '').trim();
     if (!tag) return [];
 
-    const store = deps.transcriptionStore || require('../../../stores/transcriptionStore');
+    const store = deps.transcriptionStore || moduleFile('stores/transcriptionStore', 'meetingNotes', 'A meeting-tag source');
     const owner = ctx.kb?.tenant_id || null;
     if (!owner) return [];
 

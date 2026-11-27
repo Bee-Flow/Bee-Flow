@@ -6,6 +6,7 @@
  */
 
 const { keepFetchedOriginal } = require('./keepOriginals');
+const { optionalFeatureModule } = require('../../featureModules');
 
 /** @typedef {import('./index').SyncCtx} SyncCtx */
 /** @typedef {import('./index').SyncDeps} SyncDeps */
@@ -167,7 +168,8 @@ async function recordTableVersion(ctx, counts, deps) {
     if (source.kind !== 'datatable' || counts.cancelled || counts.truncated) return;
     try {
         const datatableId = source.config?.datatableId;
-        const dtStore = deps.datatableStore || require('../../../stores/datatableStore');
+        const dtStore = deps.datatableStore || optionalFeatureModule('stores/datatableStore');
+        if (!dtStore) return;
         const version = datatableId ? await dtStore.getDataVersion(datatableId) : null;
         const related = ctx.relatedTables && typeof ctx.relatedTables === 'object' ? ctx.relatedTables : null;
         // The store's `related` parameter defaults to null and is typed from that default; it takes the map.

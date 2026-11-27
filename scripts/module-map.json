@@ -52,6 +52,11 @@
         "i18n/defaults/en/datatables.js",
         "migrations/datatable-*",
         "firstParty/datatables{,.*}.{js,json}",
+        "core/dataEngine/dataModel/vocabulary.lockstep.test.js",
+        "core/kb/queryLog/csvExport.datatables.test.js",
+        "core/documents/sheetImport.datatables.test.js",
+        "jobs/kbSourceRefresh.liveDatatable.datatables.test.js",
+        "core/kb/sources/cloudFolder.datatables.test.js",
         "core/tools/toolDispatcher.datatableIdentity.test.js",
         "stores/user/organizations.datatables.test.js"
       ],
@@ -127,6 +132,8 @@
         "migrations/agent-mail-trigger-2026-11{,.*}.js",
         "migrations/drop-automation-trigger-samples-2026-09{,.*}.js",
         "firstParty/automation{,.*}.{js,json}",
+        "jobs/kbSourceRefresh.meetingTap.automation.test.js",
+        "core/kb/queryLog/channels.automation.pg.test.js",
         "core/tools/toolDispatcher.agentCall.test.js",
         "routes/studio/search.automation.test.js",
         "core/integrations/integrationTools.agentAutomations.test.js"
@@ -276,6 +283,9 @@
         "i18n/defaults/nl/studio_app*.json",
         "migrations/studio-app-*",
         "firstParty/apps{,.*}.{js,json}",
+        "core/documents/documentDiscovery.apps.test.js",
+        "core/integrations/outlookMailbox.apps.test.js",
+        "core/kb/queryLog/channels.apps.pg.test.js",
         "jobs/platformRetention.apps.test.js"
       ],
       "agent-hub": [
@@ -365,7 +375,8 @@
         "stores/dsrStore.js",
         "i18n/defaults/en/dsr_public.js",
         "utils/compliancePdf.js",
-        "firstParty/compliance{,.*}.{js,json}"
+        "firstParty/compliance{,.*}.{js,json}",
+        "routes/knowledgeBases/queryLog.compliance.test.js"
       ],
       "agent-hub": [
         "src/components/admin/compliance/**",
@@ -484,6 +495,8 @@
         "i18n/defaults/en/webpages.js",
         "migrations/webpage-published-version-2026-09{,.*}.js",
         "firstParty/webpages{,.*}.{js,json}",
+        "core/kb/queryLog/channels.webpages.pg.test.js",
+        "routes/knowledgeBases/sources.webpages.test.js",
         "core/integrations/integrationTools.webpagesGate.test.js"
       ],
       "agent-hub": [
@@ -612,6 +625,7 @@
         "i18n/defaults/en/teams_setup.js",
         "utils/summaryTemplates.js",
         "firstParty/meetingNotes{,.*}.{js,json}",
+        "core/kb/sources/meetingTag.meetingNotes.test.js",
         "routes/studio/search.meetingNotes.test.js",
         "routes/studio/counts.meetingNotes.test.js",
         "stores/user/userSecretKeys.meetingNotes.test.js",
@@ -1039,6 +1053,8 @@
       "shared/appDefinition/schemaEnvelope.mjs",
       "stores/voiceprintStore.js",
       "stores/kbSourcesMeetingArm.js",
+      "core/dataEngine/dataModel/vocabulary.js",
+      "core/dataEngine/dataModel/connectorVocabulary.js",
       "shared/appDefinition/schemaVersion.mjs",
       "shared/appDefinition/schemaVersionQuery.mjs",
       "stores/automationStore/webhookPolicy.mts",
