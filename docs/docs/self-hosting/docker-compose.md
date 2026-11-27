@@ -52,6 +52,10 @@ Then set `OLLAMA_URL=http://ollama:11434` in `.env`, restart, and download a mod
 from **Admin dashboard → Whole server → AI configuration → Providers** (the Local group). Full guide:
 [Local models](../admin/local-models.md).
 
+The `analytics` profile starts Umami for the product website's visitor statistics. In the
+default cookieless mode visits are counted without cookies, and the session hash uses a daily
+salt (`SALT_ROTATION=day`), so a visitor cannot be followed across days.
+
 This runs in `DEPLOYMENT_MODE=self-hosted`: no billing, and paid features unlock when you activate a
 server-wide licence key (see [Activate a licence](#activate-a-licence)).
 

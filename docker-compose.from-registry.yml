@@ -715,6 +715,9 @@ services:
       # DATABASE_URL-derived secret; selfhost.sh generates a real value into
       # .env (on fresh installs, and whenever the analytics profile starts).
       - APP_SECRET=${UMAMI_APP_SECRET:-}
+      # Daily salt for the session hash (Umami's default is monthly), so a
+      # visitor's session id cannot be linked across days.
+      - SALT_ROTATION=day
     depends_on:
       postgres:
         condition: service_healthy

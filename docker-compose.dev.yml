@@ -277,6 +277,8 @@ services:
       - DATABASE_TYPE=postgresql
       - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/umami
       - APP_SECRET=${UMAMI_APP_SECRET:-dev-umami-secret-change-me}
+      # Daily salt for the session hash (Umami's default is monthly).
+      - SALT_ROTATION=day
     depends_on:
       postgres:
         condition: service_healthy
