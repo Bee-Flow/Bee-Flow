@@ -29,7 +29,8 @@ const db = require('../db');
 const log = require('../telemetry/log');
 
 // Cheap sentinel: a cross-section of core tables from different store owners. If these four exist, the migration ladder has run.
-const SENTINEL_TABLES = ['users', 'agents', 'automations', 'direct_conversations'];
+// Core tables only: a table of a first-party module (`automations` stood here) is not there in an edition without that module.
+const SENTINEL_TABLES = ['users', 'agents', 'knowledge_bases', 'direct_conversations'];
 
 const CACHE_TTL_MS = 30_000;
 

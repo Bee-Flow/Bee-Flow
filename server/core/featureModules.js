@@ -154,13 +154,16 @@ const { assertProviderNotFailed } = require('../modules/firstParty/moduleState')
  *   'services/trialService': typeof import('../services/trialService'),
  *   'routes/teamsProviderTest': typeof import('../routes/teamsProviderTest.mts'),
  *   'core/customIntegrations/featureFlag': typeof import('../core/customIntegrations/featureFlag'),
- *   'stores/orgCustomIntegrationStore': typeof import('../stores/orgCustomIntegrationStore'),
  *   'learning/certificates': typeof import('../learning/certificates'),
  *   'learning/progressValidation': typeof import('../learning/progressValidation'),
- *   'integrations/n8nTools': typeof import('../integrations/n8nTools'),
  *   'integrations/n8nHttp': typeof import('../integrations/n8nHttp'),
  *   'appStudio/mailboxIdentity': typeof import('../appStudio/mailboxIdentity'),
- *   'stores/githubSyncStore': typeof import('../stores/githubSyncStore'),
+ *   'usecases/ai/config/erpNlSettingsFields': typeof import('../usecases/ai/config/erpNlSettingsFields'),
+ *   'integrations/nmbrsTools': typeof import('../integrations/nmbrsTools'),
+ *   'routes/ai/config/firebirdTestRoute': typeof import('../routes/ai/config/firebirdTestRoute'),
+ *   'routes/ai/config/frappeCrmTestRoute': typeof import('../routes/ai/config/frappeCrmTestRoute.mts'),
+ *   'routes/ai/config/twobaTestRoute': typeof import('../routes/ai/config/twobaTestRoute.mts'),
+ *   'usecases/ai/config/scalewayBillingFields': typeof import('../usecases/ai/config/scalewayBillingFields'),
  * }} FeatureModuleMap
  */
 

@@ -14,7 +14,7 @@ const assert = require('node:assert');
 
 const h = require('../testUtils/routeHarness');
 
-const SENTINELS = ['users', 'agents', 'automations', 'direct_conversations'];
+const SENTINELS = ['users', 'agents', 'knowledge_bases', 'direct_conversations'];
 
 /** What "the database" does in this test: 'up', 'unmigrated' or 'down'. */
 let database = 'up';

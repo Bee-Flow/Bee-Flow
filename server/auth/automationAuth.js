@@ -359,13 +359,13 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
     };
 
     try {
-        const coworkStore = require('../stores/coworkStore');
+        const coworkStore = require('../modules/firstParty/moduleData').lookupFeatureModule('stores/coworkStore'); // the cowork module's schedules: without it there is none to pause
         // Stamp last_status alongside the deactivation: the OAuth-callback
         // resume (resumeNeedsReauthForUser) only matches rows whose
         // last_status is 'needs_reauth'. Without it, only the one item whose
         // own run failed would ever come back after a reconnect — everything
         // paused proactively here stayed off forever.
-        await pauseAll(
+        if (coworkStore) await pauseAll(
             'cowork',
             await coworkStore.getSchedules(userId).catch((e) => fallback('automationAuth:cowork-schedules', e, [])),
             id => coworkStore.updateSchedule(id, { isActive: false, lastStatus: 'needs_reauth' }),

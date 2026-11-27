@@ -664,9 +664,9 @@ async function finalizeAccount({ userId, email, displayName, intent, placement, 
     const target = trialTarget(placement, userId);
     if (target) {
         setImmediate(() => {
-            const trialService = require('../services/trialService');
-            if (target.organizationId) trialService.maybeAutoGrantOrgTrial(target.organizationId);
-            else trialService.maybeAutoGrantConsumerTrial(/** @type {string} */ (target.userId)); // no organisation means a user
+            const trialService = require('../modules/firstParty/moduleData').lookupFeatureModule('services/trialService'); // module "billing_stripe": without it there is no trial to grant
+            if (target.organizationId) trialService?.maybeAutoGrantOrgTrial(target.organizationId);
+            else trialService?.maybeAutoGrantConsumerTrial(/** @type {string} */ (target.userId)); // no organisation means a user
         });
     }
 

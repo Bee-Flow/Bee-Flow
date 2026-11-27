@@ -1,3 +1,9 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "usecases/ai/config/erpNlSettingsFields",
+    "integrations/nmbrsTools",
+    "routes/ai/config/firebirdTestRoute",
+    "routes/ai/config/frappeCrmTestRoute",
+    "routes/ai/config/twobaTestRoute"
+  ]
 }

@@ -53,7 +53,7 @@ function reset() {
     dbCalls = 0;
 }
 
-const ALL_TABLES = ['users', 'agents', 'automations', 'direct_conversations'];
+const ALL_TABLES = ['users', 'agents', 'knowledge_bases', 'direct_conversations'];
 
 // ── Gezond schema ──────────────────────────────────────────────────────────
 

@@ -38,8 +38,9 @@ async function _vaultUpsertSafe({ userId, orgId, provider, tokenData }) {
         // needs_reauth, in both tables. The runners pick them up on the next
         // 60s tick.
         try {
-            const coworkStore = require('../../stores/coworkStore');
-            const resumed = await coworkStore.resumeNeedsReauthForUser(userId);
+            // The schedules are the cowork module's: without it there is none to resume.
+            const coworkStore = require('../../modules/firstParty/moduleData').lookupFeatureModule('stores/coworkStore');
+            const resumed = coworkStore ? await coworkStore.resumeNeedsReauthForUser(userId) : 0;
             if (resumed > 0) {
                 log.info(`[OAuth/${provider}] resumed ${resumed} automation(s) for user ${userId} after reconnect`);
             }

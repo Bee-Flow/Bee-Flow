@@ -31,6 +31,11 @@ function toolFamilies() {
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'usecases/ai/config/erpNlSettingsFields': () => require('../usecases/ai/config/erpNlSettingsFields'),
+        'integrations/nmbrsTools': () => require('../integrations/nmbrsTools'),
+        'routes/ai/config/firebirdTestRoute': () => require('../routes/ai/config/firebirdTestRoute'),
+        'routes/ai/config/frappeCrmTestRoute': () => require('../routes/ai/config/frappeCrmTestRoute.mts'),
+        'routes/ai/config/twobaTestRoute': () => require('../routes/ai/config/twobaTestRoute.mts'),
     }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', () => require('../integrations/coreToolsets').registerToolsets({

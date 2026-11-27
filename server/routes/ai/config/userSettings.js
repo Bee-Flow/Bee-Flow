@@ -42,14 +42,7 @@ const { z, typeError } = require('../../../utils/zod');
 const log = require('../../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
-const { normalizeAfasToken } = require('../../../integrations/afasTools');
-const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE, clearNmbrsPageCacheForUser } = require('../../../integrations/nmbrsTools');
-const NMBRS_CLIENT_ID_RE = /^[\x21-\x7E]{4,256}$/; // printable ASCII, no whitespace/CRLF
-const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
-const { firebirdFields } = require('../../../usecases/ai/config/firebirdFields');
-const { frappeCrmFields } = require('../../../usecases/ai/config/frappeCrmFields.mts');
 const { SECRETS } = require('../../../stores/user/userSecretKeys.mts');
-const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { optionalFeatureModule } = require('../../../core/featureModules'); // the Learning Center: module "learning"
 const { requireAuth } = require('../../../auth/permissions');
 const { orgScope } = require('../../../auth/orgScope');
@@ -70,20 +63,7 @@ const LEARNING_PATHS = ['everyday', 'builder', 'admin', 'skipped', ''];
  */
 const credential = (label) => z.string({ error: typeError({ invalid: `${label} must be text.` }) })
     .trim().max(4096, `${label} is at most 4096 characters.`).nullable();
-/**
- * Text that must match `re` unless it is '' (disconnect).
- * @param {RegExp} re
- * @param {string} message
- */
-const shaped = (re, message) => z.string({ error: typeError({ invalid: message }) })
-    .trim().refine((v) => v === '' || re.test(v), message).nullable();
-/**
- * One of `values`, case-insensitive; '' clears it.
- * @param {string[]} values
- * @param {string} message
- */
-const oneOf = (values, message) => z.string({ error: typeError({ invalid: message }) })
-    .trim().toLowerCase().pipe(z.enum(values, { error: () => message })).nullable();
+const { shaped } = require('../../../usecases/ai/config/settingsFieldShapes');
 /**
  * @param {string} name
  */
@@ -101,10 +81,18 @@ function isHttpUrl(value) {
     }
 }
 
-const AFAS_NUMBER_TEXT = 'AFAS member number must be digits only.';
-const AFAS_TOKEN_TEXT = 'AFAS token is not a valid AppConnector token. Paste the token XML or its hex data.';
 const YOUTRACK_URL_TEXT = 'The YouTrack URL is the address of your YouTrack, like https://yourcompany.youtrack.cloud.';
 const APPS_TEXT = 'enabledApps is a list of app ids, or null for all apps.';
+/**
+ * The settings fields a first-party module contributes, or none when it is not here. Read while
+ * this file loads: the modules have registered by then (the registry fills itself on a miss).
+ * @template {'usecases/ai/config/erpNlSettingsFields' | 'usecases/ai/config/scalewayBillingFields'} N
+ * @template {keyof import('../../../core/featureModules').FeatureModuleMap[N]} K
+ * @param {N} name
+ * @param {K} key
+ * @returns {import('../../../core/featureModules').FeatureModuleMap[N][K]}
+ */
+const moduleFields = (name, key) => /** @type {import('../../../core/featureModules').FeatureModuleMap[N][K]} */ (optionalFeatureModule(name)?.[key] ?? {});
 const UserSettingsBody = z.object({
     firefliesApiKey: credential('The Fireflies API key'),
     gammaApiKey: credential('The Gamma API key'),
@@ -113,45 +101,11 @@ const UserSettingsBody = z.object({
     youtrackToken: credential('The YouTrack token'),
     signrequestSubdomain: shaped(SIGNREQUEST_SUBDOMAIN_RE, 'The SignRequest subdomain is just your team name (e.g. "your-team"), no dots or slashes.'),
     signrequestToken: credential('The SignRequest token'),
-    // AFAS Profit — the member number forms the API URL's subdomain (SSRF
-    // guard) and the token is stored in canonical XML form. A number is
-    // taken as its digits, as String() did before.
-    afasMemberNumber: z.preprocess((v) => (typeof v === 'number' ? String(v) : v),
-        shaped(/^\d{1,10}$/, AFAS_NUMBER_TEXT)),
-    afasToken: z.string({ error: typeError({ invalid: AFAS_TOKEN_TEXT }) }).nullable().transform((v, ctx) => {
-        if (!v) return '';
-        const value = normalizeAfasToken(v);
-        if (!value) {
-            ctx.addIssue({ code: 'custom', message: AFAS_TOKEN_TEXT });
-            return z.NEVER;
-        }
-        return value;
-    }),
-    afasEnvType: oneOf(['', 'production', 'test', 'accept'], 'AFAS environment type must be production, test or accept.'),
-    // NMBRS (read-only). The subdomain forms the SOAP Domain / REST tenant
-    // (SSRF-relevant), the token/email travel in auth headers.
-    nmbrsApiMode: oneOf(['', 'soap', 'rest'], 'NMBRS API mode must be soap or rest.'),
-    nmbrsSubdomain: shaped(NMBRS_SUBDOMAIN_RE, 'NMBRS subdomain is invalid — use just the tenant name (e.g. "mycompany"), no dots or slashes.'),
-    nmbrsEmail: shaped(NMBRS_EMAIL_RE, 'NMBRS login email is invalid.'),
-    nmbrsToken: shaped(NMBRS_TOKEN_RE, 'NMBRS token is invalid — paste the API token / bearer token with no spaces.'),
-    nmbrsEnv: oneOf(['', 'production', 'sandbox'], 'NMBRS environment must be production or sandbox.'),
-    // NMBRS REST: the subscription key travels in the X-Subscription-Key header and
-    // the client id / secret in the Basic header of the token call, so the shape
-    // (printable ASCII, no whitespace) is the header-injection guard.
-    nmbrsSubscriptionKey: shaped(NMBRS_TOKEN_RE, 'NMBRS subscription key is invalid — paste the key from the Nmbrs developer portal with no spaces.'),
-    nmbrsClientId: shaped(NMBRS_CLIENT_ID_RE, 'NMBRS client ID is invalid — paste the client ID of your Nmbrs app with no spaces.'),
-    nmbrsClientSecret: shaped(NMBRS_TOKEN_RE, 'NMBRS client secret is invalid — paste the client secret of your Nmbrs app with no spaces.'),
-    // vPlan (read-only) — both travel in request headers (X-Api-Key /
-    // X-Api-Env), so the shape check is the header-injection guard.
-    vplanApiKey: shaped(VPLAN_API_KEY_RE, 'vPlan API key is invalid — paste the key from vPlan → Settings → Developers, with no spaces.'),
-    vplanApiEnv: shaped(VPLAN_API_ENV_RE, 'vPlan environment is invalid — paste the API env shown next to the key in vPlan, with no spaces.'),
-    // Firebird, Frappe CRM and 2BA: the shapes live in firebirdFields.js, frappeCrmFields.mts and twobaFields.mts, shared with their connection tests.
-    ...firebirdFields, ...frappeCrmFields, ...require('../../../usecases/ai/config/twobaFields.mts').twobaFields,
-    // Scaleway Billing (read-only). The secret key travels in X-Auth-Token and
-    // the organization id in a query string; both are UUIDs.
-    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the string is a validation message, not a key
-    scalewayBillingSecretKey: shaped(SCALEWAY_SECRET_KEY_RE, 'Scaleway secret key is invalid. Paste the secret key of the IAM API key, with no spaces.'),
-    scalewayBillingOrgId: shaped(SCALEWAY_ORG_ID_RE, 'Scaleway Organization ID is invalid. Paste the ID from Organization settings, a UUID like 11111111-2222-3333-4444-555555555555.'),
+    // The connection settings of the integration modules that are here (AFAS, NMBRS, vPlan,
+    // Firebird, Frappe CRM, 2BA: "int_erp_nl"; Scaleway Billing: "int_saas"). Their shapes live
+    // with the module; without it the fields do not exist, and the strict body refuses them.
+    ...moduleFields('usecases/ai/config/erpNlSettingsFields', 'erpNlSettingsFields'),
+    ...moduleFields('usecases/ai/config/scalewayBillingFields', 'scalewayBillingFields'),
     enabledApps: z.array(z.string({ error: typeError({ invalid: APPS_TEXT }) }).trim().min(1, APPS_TEXT).max(100, APPS_TEXT),
         { error: typeError({ invalid: APPS_TEXT }) }).max(500, APPS_TEXT).nullable(),
     simpleMode: flag('simpleMode'),
@@ -397,7 +351,7 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
     for (const [field, key] of /** @type {[keyof typeof req.body, string][]} */ (Object.entries(SECRETS))) {
         if (req.body[field] === undefined) continue;
         await configStore.setSecret(`${key}_user_${userId}`, req.body[field] || '');
-        if (key.startsWith('nmbrs_')) clearNmbrsPageCacheForUser(userId); // connection changed or removed: forget its cached lists
+        if (key.startsWith('nmbrs_')) optionalFeatureModule('integrations/nmbrsTools')?.clearNmbrsPageCacheForUser(userId); // connection changed or removed: forget its cached lists
     }
 
     if (enabledApps !== undefined) {

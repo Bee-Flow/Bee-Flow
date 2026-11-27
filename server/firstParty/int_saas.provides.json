@@ -2,7 +2,8 @@
   "featureModules": [
     "stores/githubSyncStore",
     "integrations/n8nTools",
-    "integrations/n8nHttp"
+    "integrations/n8nHttp",
+    "usecases/ai/config/scalewayBillingFields"
   ],
   "integrationClients": [
     "github",

@@ -76,7 +76,9 @@ function trackDecrypt(userId, conversationId = null) {
         // swallowed error below are what keep a compliance failure from
         // undoing the audit write that just happened.
         try {
-            const events = require('../compliance/events');
+            const events = require('../modules/firstParty/moduleData').lookupFeatureModule('compliance/events');
+            // Without the compliance module there is nowhere to file the signal: reported as a failed delivery, never skipped in silence.
+            if (!events) throw new Error('the compliance module is not installed: the breach signal is in the log only');
             events.emit(events.EVENTS.BREACH_SIGNAL, {
                 userId,
                 source: 'bulk_decrypt',

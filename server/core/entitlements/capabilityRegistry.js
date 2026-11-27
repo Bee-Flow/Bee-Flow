@@ -67,11 +67,11 @@ function mcpStore() {
     return _mcpStore;
 }
 
-// Lazy-require the custom-integration store (DB layer) only when projecting
-// an org's AI-built integrations — same pattern as mcpStore above.
+// The custom_integrations module's store, asked by name when projecting an org's AI-built integrations; without the module both callers answer the throw as a store failure.
 let _customStore = null;
 function customIntegrationStore() {
-    if (!_customStore) _customStore = require('../../stores/orgCustomIntegrationStore');
+    _customStore ||= require('../../modules/firstParty/moduleData').lookupFeatureModule('stores/orgCustomIntegrationStore');
+    if (!_customStore) throw new Error('the custom integrations module is not installed');
     return _customStore;
 }
 

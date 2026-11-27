@@ -84,6 +84,7 @@ let orgAllowsSensitive = false;
 require('../../../core/featureModules').registerFeatureModules({
     'learning/progressValidation': () => MOCKS['../../../learning/progressValidation'],
     'learning/certificates': () => MOCKS['../../../learning/certificates'],
+    'integrations/nmbrsTools': () => MOCKS['../../../integrations/nmbrsTools'],
 });
 
 const MOCK_IDS = {};

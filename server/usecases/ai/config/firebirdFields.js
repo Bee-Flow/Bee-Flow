@@ -22,16 +22,7 @@ const ACCOUNT_TEXT = 'Firebird user is invalid. Use the account name only.';
 const SECRET_TEXT = 'Firebird password is invalid.';
 const CHARSET_TEXT = 'Firebird character set is invalid. Use a name such as UTF8, NONE or WIN1252.';
 
-/**
- * Text that must match `re` unless it is '' (not set).
- * @param {RegExp} re
- * @param {string} message
- * @param {boolean} [trim]
- */
-const shaped = (re, message, trim = true) => {
-    const base = z.string({ error: typeError({ invalid: message }) });
-    return (trim ? base.trim() : base).refine((v) => v === '' || re.test(v), message).nullable();
-};
+const { shaped } = require('./settingsFieldShapes');
 
 /** A port: a number is taken as its digits; '' means the default (3050). */
 const port = z.preprocess((v) => (typeof v === 'number' ? String(v) : v),

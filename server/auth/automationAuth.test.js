@@ -61,6 +61,9 @@ const MOCKS = {
         createNotification: async (row) => { fx.notifications.push(row); },
     },
 };
+// The schedules are asked of the cowork module by name: the same stand-in under that name.
+require('../core/featureModules').registerFeatureModules({ 'stores/coworkStore': () => MOCKS['../stores/coworkStore'] });
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:automationAuth:${request}`;

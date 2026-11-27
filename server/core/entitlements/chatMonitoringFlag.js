@@ -52,12 +52,24 @@ const OFF = Object.freeze({
     signals: Object.freeze([]), noticeUrl: null, visitorNoticeUrl: null, retentionDays: V.RETENTION.default,
 });
 
+/**
+ * A store of the compliance module. read() answers OFF before it asks when the module is not
+ * active, so a missing store here is an error, never a silent "off".
+ * @template {'stores/complianceStore' | 'stores/dpiaStore'} K
+ * @param {K} name
+ */
+function complianceFile(name) {
+    const store = require('../../modules/firstParty/moduleData').lookupFeatureModule(name);
+    if (!store) throw new Error(`chat monitoring: the compliance module is not installed (${name})`);
+    return store;
+}
+
 function defaultDeps() {
     return {
         isModuleActive: (id) => require('../../modules').isModuleActive(id),
         hasCapability: (capId, opts) => require('./entitlements').hasCapability(capId, opts),
-        getSettings: (orgKey) => require('../../stores/complianceStore').getSettings(orgKey),
-        getDpia: (orgKey) => require('../../stores/dpiaStore').getLatestForAgent(orgKey, V.CHAT_MONITORING_DPIA_KEY),
+        getSettings: (orgKey) => complianceFile('stores/complianceStore').getSettings(orgKey),
+        getDpia: (orgKey) => complianceFile('stores/dpiaStore').getLatestForAgent(orgKey, V.CHAT_MONITORING_DPIA_KEY),
         hasAnyOrganization: () => require('../../stores/userStore').hasAnyOrganization(),
         now: () => Date.now(),
     };

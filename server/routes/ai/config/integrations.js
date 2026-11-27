@@ -262,7 +262,7 @@ router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }
         res.json({ ok: false, error: /** @type {Error} */ (err).message });
     }
 });
-router.use(require('./firebirdTestRoute').createFirebirdTestRouter(), require('./frappeCrmTestRoute.mts').createFrappeCrmTestRouter(), require('./twobaTestRoute.mts').createTwobaTestRouter()); // POST /ai/firebird/test, /ai/frappe-crm/test, /ai/twoba/test
+for (const [name, make] of /** @type {const} */ ([['routes/ai/config/firebirdTestRoute', 'createFirebirdTestRouter'], ['routes/ai/config/frappeCrmTestRoute', 'createFrappeCrmTestRouter'], ['routes/ai/config/twobaTestRoute', 'createTwobaTestRouter']])) { const m = /** @type {Record<string, () => import('express').Router> | null} */ (optionalFeatureModule(name)); if (m) router.use(/** @type {() => import('express').Router} */ (m[make])()); } // POST /ai/firebird/test, /ai/frappe-crm/test, /ai/twoba/test: module "int_erp_nl", when it is here
 const N8N_PERMISSION_IDS = ['use_n8n_tools', 'modify_n8n_workflows'];
 
 // GET /ai/n8n/diagnostics — self-service access check for the current user.

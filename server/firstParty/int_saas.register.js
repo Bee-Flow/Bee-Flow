@@ -100,9 +100,8 @@ function register() {
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
         'stores/githubSyncStore': () => require('../stores/githubSyncStore'),
         'integrations/n8nTools': () => require('../integrations/n8nTools'),
-        'integrations/n8nTools': () => require('../integrations/n8nTools'),
         'integrations/n8nHttp': () => require('../integrations/n8nHttp'),
-        'stores/githubSyncStore': () => require('../stores/githubSyncStore'),
+        'usecases/ai/config/scalewayBillingFields': () => require('../usecases/ai/config/scalewayBillingFields'),
     }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', registerToolsets);
