@@ -377,6 +377,9 @@ services:
       - DATABASE_TYPE=postgresql
       - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@postgres:5432/umami
       - APP_SECRET=${UMAMI_APP_SECRET:?Set UMAMI_APP_SECRET in .env to enable analytics}
+      # Daily salt for the session hash (Umami's default is monthly), so a
+      # visitor's session id cannot be linked across days.
+      - SALT_ROTATION=day
     depends_on:
       postgres:
         condition: service_healthy
