@@ -695,15 +695,14 @@
     },
     {
       "file": "scripts/gen-i18n-defaults.mjs",
-      "status": "pending",
-      "what": "reads server/i18n/defaults/en/index.js, writes agent-hub/src/i18n/en-defaults.js (plan step 0.3)",
-      "group": "i18n"
+      "status": "root-aware",
+      "what": "loads the resolver, then server/i18n/defaults/en/index.js, which reads the namespace files of every root (core mode ignored); writes agent-hub/src/i18n/en-defaults.js"
     },
     {
       "file": "scripts/gen-i18n-defaults.test.mjs",
       "status": "not-applicable",
       "what": "unit test of gen-i18n-defaults.mjs",
-      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when gen-i18n-defaults.mjs is converted"
+      "reason": "fixtures only (a temp directory with a copy of the resolver and en/index.js, and a module root beside it); it does not read the real tree"
     },
     {
       "file": "scripts/gen-routes-contract.mjs",
@@ -755,27 +754,24 @@
     },
     {
       "file": "scripts/i18n-key-guard.mjs",
-      "status": "pending",
-      "what": "reads server/i18n/defaults from the base with git archive (plan step 0.3: all roots)",
-      "group": "i18n"
+      "status": "root-aware",
+      "what": "archives server/i18n/defaults, the resolver and modules/*/server/i18n/defaults of the base, loads each dictionary in a child with its own roots, compares by key"
     },
     {
       "file": "scripts/i18n-key-guard.test.mjs",
       "status": "not-applicable",
       "what": "unit test of i18n-key-guard.mjs",
-      "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when i18n-key-guard.mjs is converted"
+      "reason": "fixtures only (a temp git repository with a copy of the resolver and en/index.js, and a module root beside it); it does not read the real tree"
     },
     {
       "file": "scripts/i18n-ratchet.mjs",
-      "status": "pending",
-      "what": "walks agent-hub/src for strings without a key",
-      "group": "i18n"
+      "status": "root-aware",
+      "what": "walks src/ of every agent-hub root through scripts/lib/roots.mjs (other packages: their own src/)"
     },
     {
       "file": "scripts/i18n-ratchet.test.mjs",
-      "status": "pending",
-      "what": "checks prefixes against the real agent-hub/src",
-      "group": "i18n"
+      "status": "root-aware",
+      "what": "checks the exempted prefixes through resolveTreePath, and a module-root fixture"
     },
     {
       "file": "scripts/i18n-split.mjs",
@@ -1334,9 +1330,8 @@
     },
     {
       "file": "scripts/vendor-name-ratchet.mjs",
-      "status": "pending",
-      "what": "requires server/i18n/defaults/en/index.js by path",
-      "group": "i18n"
+      "status": "root-aware",
+      "what": "loads the resolver, then the dictionary of every root (core mode ignored)"
     },
     {
       "file": "scripts/vuln-watch-gate.test.mjs",
@@ -1580,9 +1575,8 @@
     },
     {
       "file": "server/scripts/mergeComplianceKeys.mjs",
-      "status": "pending",
-      "what": "writes server/i18n/defaults/en/<namespace>.js",
-      "group": "i18n"
+      "status": "root-aware",
+      "what": "loads the resolver, reads the dictionary of every root and writes a namespace file where it lives (treePath)"
     },
     {
       "file": "server/scripts/mint-mcp-token.js",

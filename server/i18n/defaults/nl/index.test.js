@@ -3,7 +3,9 @@
  * loader checks each file's shape and namespace, and the files that exist
  * cover what they must: every English namespace that en/index.js DISCOVERS
  * (a namespace added since discovery, which no add-nl-* catalogue knows) has
- * its Dutch here, key for key.
+ * its Dutch here, key for key. The files come from the tree (i18n/defaults/nl/
+ * over every root, see server/moduleRoots.cjs), so a module keeps its Dutch
+ * in its own root.
  *
  * Run: node --test i18n/defaults/nl/index.test.js
  */
@@ -15,7 +17,8 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { listFiles, loadNamespaceFiles, sourceHash, NL_DIR } = require('.');
-const { GUI_DEFAULTS, DISCOVERED_NAMESPACES } = require('../en');
+const { GUI_DEFAULTS, LISTED_NAMESPACES, DISCOVERED_NAMESPACES } = require('../en');
+const { i18nTreeFixture } = require('../treeFixture.testkit.js');
 
 /** @param {Record<string, unknown>} files name -> JSON value, or a string written as is */
 function tempDir(files) {
@@ -80,8 +83,52 @@ test('the source hash changes when a file is added or changed, and only then', (
 
 test('the real files load, and each one belongs to an English namespace', () => {
     const { namespaces } = loadNamespaceFiles();
+    const english = new Set([...LISTED_NAMESPACES, ...DISCOVERED_NAMESPACES]);
     for (const ns of namespaces) {
-        assert.ok(fs.existsSync(path.join(NL_DIR, '..', 'en', `${ns}.js`)), `nl/${ns}.json has no en/${ns}.js`);
+        assert.ok(english.has(ns), `nl/${ns}.json has no en/${ns}.js`);
+    }
+});
+
+test('without a directory the loader reads the tree, which here is this directory', () => {
+    assert.deepStrictEqual(listFiles(), listFiles(NL_DIR));
+    assert.strictEqual(sourceHash(), sourceHash(NL_DIR));
+});
+
+// -- Data files in more than one root (server/moduleRoots.cjs) ---------------
+
+const REPORT = "const n = require('./i18n/defaults/nl/index.js');"
+    + ' process.stdout.write(JSON.stringify({ files: n.listFiles(), loaded: n.loadNamespaceFiles(), hash: n.sourceHash() }));';
+const A_NS = { translations: { 'a_ns.one': 'Een' }, sameAsEnglish: [] };
+const B_NS = { translations: { 'b_ns.one': 'Een' }, sameAsEnglish: ['b_ns.brand'] };
+const C_NS = { translations: { 'c_ns.one': 'Een' }, sameAsEnglish: [] };
+
+test('a data file in a module root is merged in file-name order, and left out in core mode', () => {
+    const tree = i18nTreeFixture('nl', {
+        core: { 'a_ns.json': JSON.stringify(A_NS), 'c_ns.json': JSON.stringify(C_NS), 'index.test.js': '' },
+        module: { 'b_ns.json': JSON.stringify(B_NS) },
+    });
+    try {
+        const all = tree.run(REPORT);
+        assert.deepStrictEqual(all.files, ['a_ns.json', 'b_ns.json', 'c_ns.json']);
+        assert.deepStrictEqual(all.loaded.namespaces, ['a_ns', 'b_ns', 'c_ns']);
+        assert.deepStrictEqual(all.loaded.sameAsEnglish, ['b_ns.brand']);
+        const coreMode = tree.run(REPORT, { hide: 'x' });
+        assert.deepStrictEqual(coreMode.files, ['a_ns.json', 'c_ns.json']);
+        assert.notStrictEqual(coreMode.hash, all.hash);
+
+        fs.renameSync(path.join(tree.moduleDir, 'b_ns.json'), path.join(tree.core, 'i18n', 'defaults', 'nl', 'b_ns.json'));
+        assert.strictEqual(tree.run(REPORT).hash, all.hash, 'a file hashes by name, not by the root it lies in');
+    } finally {
+        tree.remove();
+    }
+});
+
+test('a stray file in a module root throws, naming the module', () => {
+    const tree = i18nTreeFixture('nl', { core: { 'a_ns.json': JSON.stringify(A_NS) }, module: { 'b-ns.json': '{}' } });
+    try {
+        assert.throws(() => tree.run(REPORT), (e) => /b-ns\.json in i18n\/defaults\/nl\/ of module "x" is not a namespace data file/.test(String(/** @type {any} */ (e).stderr)));
+    } finally {
+        tree.remove();
     }
 });
 
