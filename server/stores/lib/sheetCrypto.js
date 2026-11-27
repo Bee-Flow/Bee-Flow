@@ -88,6 +88,20 @@ async function openRows(tableId, rows) {
     return Promise.all(rows.map((row) => openRow(tableId, row, keys)));
 }
 
+/**
+ * The row number of a stored row. Only the datatables module writes cells, so its store is here
+ * whenever this runs; without it there is no row, and no number.
+ * @param {ResolvedTable} resolved
+ * @param {string} rowId
+ */
+async function storedRowNo(resolved, rowId) {
+    const store = require('../../modules/firstParty/moduleData').lookupFeatureModule('stores/datatableDbStore');
+    if (!store) return undefined;
+    const result = await store.query(resolved.scopeKey, resolved.scopeKey,
+        `SELECT row_no FROM ${quote(resolved.meta.key)} WHERE id = ?`, [rowId]);
+    return result?.rows?.[0]?.row_no;
+}
+
 async function sealValues(resolved, values, rowId = /** @type {string | null} */ (null)) {
     if (!isSheet(resolved)) return values;
     const document = await documentFor(resolved.table.id);
@@ -98,12 +112,7 @@ async function sealValues(resolved, values, rowId = /** @type {string | null} */
     const context = await content.writeContext(resource);
     if (!context) return values;
     let rowNo = values.row_no;
-    if (rowNo == null && rowId) {
-        const store = require('../datatableDbStore');
-        const result = await store.query(resolved.scopeKey, resolved.scopeKey,
-            `SELECT row_no FROM ${quote(resolved.meta.key)} WHERE id = ?`, [rowId]);
-        rowNo = result?.rows?.[0]?.row_no;
-    }
+    if (rowNo == null && rowId) rowNo = await storedRowNo(resolved, rowId);
     if (rowNo == null) throw new Error('An encrypted cell needs its row number.');
     const out = { ...values };
     const key = await content.keyFor(context, resource.type, resource.id);
@@ -112,7 +121,11 @@ async function sealValues(resolved, values, rowId = /** @type {string | null} */
 }
 
 async function transition(client, document, resource, context) {
-    const store = require('../datatableDbStore');
+    // The cells live in the datatables module's tables: without the module and its data there are
+    // none; with its data but not its code the share refuses rather than leave cells under the old key.
+    const store = await require('../../modules/firstParty/moduleData').moduleForDataDuty('datatables', 'stores/datatableDbStore',
+        { duty: 're-encrypt the cells of a spreadsheet whose sharing changed', whenDataPresent: 'refuse' });
+    if (!store) return;
     const schema = store._schemaFor(store.scopeKey({ kind: 'user', id: resource.userId }));
     for (const tab of sheetTabsOf({ settings: document.settings })) {
         const { rows: tables } = await client.query(`SELECT key FROM datatables WHERE id = $1 AND scope_kind = 'user' AND scope_id = $2 AND managed_kind = 'document_sheet'`, [tab.datatableId, resource.userId]);

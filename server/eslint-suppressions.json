@@ -9510,9 +9510,6 @@
     },
     "max-depth": {
       "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "stores/user/plans.js": {

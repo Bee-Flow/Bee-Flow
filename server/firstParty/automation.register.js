@@ -29,6 +29,7 @@ function registerFeatureModules() {
         'automation/portability': () => require('../automation/portability'),
         'automation/datatableUsage': () => require('../automation/datatableUsage'),
         'automation/validate': () => require('../automation/validate'),
+        'stores/automationStore/webhookDeliveries': () => require('../stores/automationStore/webhookDeliveries'),
     });
 }
 

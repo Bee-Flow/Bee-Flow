@@ -41,6 +41,7 @@
 'use strict';
 
 const telemetryLog = require('../telemetry/log');
+const { moduleForDataDuty } = require('../modules/firstParty/moduleData');
 
 const LEDGER_PRUNE_LOCK_KEY = 0xBEEF111;
 const ACTION_RUN_PRUNE_LOCK_KEY = 0xBEEF115;
@@ -52,6 +53,16 @@ const INTERVAL_MS = 60 * 60 * 1000;
 // The first interval fire is an hour away — longer than plenty of pods live —
 // so a short boot delay is the only pass a short-lived replica ever runs.
 const BOOT_DELAY_MS = 60 * 1000;
+
+/**
+ * A file of App Studio (module "apps") for its retention passes; null when the module and its
+ * data are not here (with its data but not its code the passes are skipped, with one warning).
+ * @template {'stores/studioAppData/actionRuns' | 'stores/studioAppData/runLogStore' | 'stores/studioAppData/webhookTriggers' | 'stores/studioAppData/runPolicy'} K
+ * @param {K} name
+ */
+function studioModule(name) {
+    return moduleForDataDuty('apps', name, { duty: 'prune the action runs and run logs of App Studio', whenDataPresent: 'warn' });
+}
 
 /** @type {NodeJS.Timeout | null} */
 let _timer = null;
@@ -97,17 +108,29 @@ function deps() {
             pruneSuggestionScans: () => require('../stores/suggestionScanCache').pruneExpired(),
             pruneSuggestionFeedback: () => require('../stores/suggestionFeedbackStore').pruneExpired(),
             pruneDocumentSuggestions: () => require('../stores/documentSuggestionStore').purgeResolved(DOCUMENT_SUGGESTION_RETENTION_DAYS),
-            pruneStudioActionRuns: (opts) => require('../stores/studioAppData/actionRuns.mts').actionRunStore().pruneRuns(opts),
+            pruneStudioActionRuns: async (opts) => {
+                const runs = await studioModule('stores/studioAppData/actionRuns');
+                return runs ? runs.actionRunStore().pruneRuns(opts) : { nulled: 0, deleted: 0 };
+            },
             pruneStudioRunLog: async (opts) => {
-                const store = require('../stores/studioAppData/runLogStore.mts').runLogStore();
+                const runLog = await studioModule('stores/studioAppData/runLogStore');
+                if (!runLog) return { closed: 0, overflow: 0 };
+                const store = runLog.runLogStore();
                 const closed = await store.closeIdleRuns({ idleMs: opts.idleMs, staleMs: opts.staleMs, limit: opts.batch });
                 const overflow = await store.pruneOverflow({ maxPerApp: opts.maxPerApp, batch: opts.batch });
                 return { closed, overflow };
             },
             // The delivery log of webhook triggers: STUDIO_APP_WEBHOOK_DELIVERY_RETENTION_DAYS (0 = keep).
-            pruneStudioWebhookDeliveries: () => require('../stores/studioAppData/webhookTriggers.mts').pruneWebhookDeliveries(),
+            pruneStudioWebhookDeliveries: async () => {
+                const triggers = await studioModule('stores/studioAppData/webhookTriggers');
+                return triggers ? triggers.pruneWebhookDeliveries() : 0;
+            },
             // The delivery log of automation webhooks: AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS (0 = keep).
-            pruneAutomationWebhookDeliveries: () => require('../stores/automationStore/webhookDeliveries').pruneAutomationWebhookDeliveries(),
+            pruneAutomationWebhookDeliveries: async () => {
+                const deliveries = await moduleForDataDuty('automation', 'stores/automationStore/webhookDeliveries',
+                    { duty: 'prune the delivery log of automation webhooks', whenDataPresent: 'warn' });
+                return deliveries ? deliveries.pruneAutomationWebhookDeliveries() : 0;
+            },
             // Temporary recording copies of Azure Whisper batch jobs that a stopped process left behind.
             sweepTranscriptionAudio: () => require('../core/voice/whisperTempAudio.mts').sweepStaleWhisperAudio(),
             log: require('../telemetry/log'),
@@ -175,7 +198,14 @@ async function _pruneSuggestions(d) {
  */
 async function _pruneStudioActionRuns(d) {
     if (typeof d.pruneStudioActionRuns !== 'function') return;
-    const policy = require('../stores/studioAppData/runPolicy.mts');
+    let policy;
+    try {
+        policy = await studioModule('stores/studioAppData/runPolicy');
+    } catch (e) {
+        d.log.warn('[platformRetention] action-run prune failed:', /** @type {Error} */ (e).message);
+        return;
+    }
+    if (!policy) return;
     const resultTtlHours = policy.resultTtlHours();
     const retentionDays = policy.retentionDays();
     const runLog = typeof d.pruneStudioRunLog === 'function' ? d.pruneStudioRunLog : null;

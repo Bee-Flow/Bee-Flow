@@ -426,6 +426,36 @@ function orgConfigKeys(orgId) {
     ];
 }
 
+/** An organisation's datatables (module "datatables"). @param {string} orgId @param {typeof import('../datatableDbStore')} datatableDbStore @param {(name: string) => void} setStep */
+async function eraseOrgDatatables(orgId, datatableDbStore, setStep) { // stepwise: part of deleteOrganization's erasure; rows before metadata, each step idempotent, deleting again finishes it
+    // Datatables: rows first, metadata second. The rows live in a schema of
+    // their own that no foreign key reaches, so this is the only code that
+    // deletes them. A crash after the drop leaves visible, repairable
+    // metadata; the inverse order leaves personal data nothing describes.
+    // The store resolves the schema name from its scope; it is never
+    // concatenated here, because the drop is irreversible.
+    const scopeKey = datatableDbStore.orgScopeKey(orgId);
+    const hasModel = await getOne(
+        `SELECT 1 AS present FROM datatable_models WHERE scope_kind = 'org' AND scope_id = $1`, [orgId]);
+    if (hasModel) {
+        await datatableDbStore.reset(scopeKey, scopeKey);
+        log.info(`[UserStore] Dropped the datatable schema for org '${orgId}'`);
+    }
+    setStep('datatable metadata');
+    // usage and grants cascade from `datatables`; said explicitly because a
+    // cascade dropped by a migration would otherwise fail silently here.
+    await run('DELETE FROM automation_datatable_usage WHERE organization_id = $1', [orgId]);
+    await run(`DELETE FROM datatable_grants WHERE datatable_id IN
+               (SELECT id FROM datatables WHERE organization_id = $1)`, [orgId]);
+    await run('DELETE FROM datatables WHERE organization_id = $1', [orgId]);
+    // By scope: a personal model has no organisation, so `organization_id`
+    // would leave this org's own model row behind on a NULL comparison.
+    await run(`DELETE FROM datatable_models WHERE scope_kind = 'org' AND scope_id = $1`, [orgId]);
+    // The store memoises "this org has datatables" for 60s; a re-created
+    // org id must not inherit that answer.
+    datatableDbStore.invalidate(scopeKey);
+}
+
 async function deleteOrganization(orgId) { // stepwise: cross-store erasure; every step is idempotent and the organisation row goes last, so deleting again finishes a failed delete
     await initDB();
     const org = await getOne('SELECT id, nc_instance_id FROM organizations WHERE id = $1', [orgId]);
@@ -494,34 +524,10 @@ async function deleteOrganization(orgId) { // stepwise: cross-store erasure; eve
         step = 'tasks';
         await run('DELETE FROM tasks WHERE organization_id = $1', [orgId]);
 
-        // Datatables: rows first, metadata second. The rows live in a schema of
-        // their own that no foreign key reaches, so this is the only code that
-        // deletes them. A crash after the drop leaves visible, repairable
-        // metadata; the inverse order leaves personal data nothing describes.
-        // The store resolves the schema name from its scope; it is never
-        // concatenated here, because the drop is irreversible.
         step = 'datatable rows';
-        const datatableDbStore = require('../datatableDbStore');
-        const scopeKey = datatableDbStore.orgScopeKey(orgId);
-        const hasModel = await getOne(
-            `SELECT 1 AS present FROM datatable_models WHERE scope_kind = 'org' AND scope_id = $1`, [orgId]);
-        if (hasModel) {
-            await datatableDbStore.reset(scopeKey, scopeKey);
-            log.info(`[UserStore] Dropped the datatable schema for org '${orgId}'`);
-        }
-        step = 'datatable metadata';
-        // usage and grants cascade from `datatables`; said explicitly because a
-        // cascade dropped by a migration would otherwise fail silently here.
-        await run('DELETE FROM automation_datatable_usage WHERE organization_id = $1', [orgId]);
-        await run(`DELETE FROM datatable_grants WHERE datatable_id IN
-                   (SELECT id FROM datatables WHERE organization_id = $1)`, [orgId]);
-        await run('DELETE FROM datatables WHERE organization_id = $1', [orgId]);
-        // By scope: a personal model has no organisation, so `organization_id`
-        // would leave this org's own model row behind on a NULL comparison.
-        await run(`DELETE FROM datatable_models WHERE scope_kind = 'org' AND scope_id = $1`, [orgId]);
-        // The store memoises "this org has datatables" for 60s; a re-created
-        // org id must not inherit that answer.
-        datatableDbStore.invalidate(scopeKey);
+        const datatableDbStore = await require('../../modules/firstParty/moduleData').moduleForDataDuty('datatables', 'stores/datatableDbStore',
+            { duty: 'erase the datatables of an organisation', whenDataPresent: 'refuse' });
+        if (datatableDbStore) await eraseOrgDatatables(orgId, datatableDbStore, (name) => { step = name; });
 
         step = 'custom_tables';
         const customTables = await getAll('SELECT table_name FROM custom_tables WHERE organization_id = $1', [orgId]);

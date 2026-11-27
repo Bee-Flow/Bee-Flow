@@ -90,6 +90,7 @@ const restore = installResolveStub({
     '../../stores/configStore': configStoreStub,
 
     '../datatableDbStore': datatableDbStub,
+    '../stores/datatableDbStore': datatableDbStub, // as the datatables module's registration requires it
     '../integrationCacheStore': {
         purgeForOrg: async (orgId) => { cachePurges.push(orgId); return 2; },
         purgeForUser: async () => 0,

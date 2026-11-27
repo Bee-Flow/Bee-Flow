@@ -14,6 +14,7 @@ function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // documents, webpages, KB
         'services/webpageSnapshot': () => require('../services/webpageSnapshot'),
+        'stores/webpageStore': () => require('../stores/webpageStore'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

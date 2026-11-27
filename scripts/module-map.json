@@ -51,7 +51,8 @@
         "jobs/datatable*",
         "i18n/defaults/en/datatables.js",
         "migrations/datatable-*",
-        "firstParty/datatables{,.*}.{js,json}"
+        "firstParty/datatables{,.*}.{js,json}",
+        "stores/user/organizations.datatables.test.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Datatables/**",
@@ -264,7 +265,8 @@
         "i18n/defaults/en/studio_app*.js",
         "i18n/defaults/nl/studio_app*.json",
         "migrations/studio-app-*",
-        "firstParty/apps{,.*}.{js,json}"
+        "firstParty/apps{,.*}.{js,json}",
+        "jobs/platformRetention.apps.test.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/AppStudio/**",
@@ -597,7 +599,11 @@
         "i18n/defaults/en/voiceprint.js",
         "i18n/defaults/en/teams_setup.js",
         "utils/summaryTemplates.js",
-        "firstParty/meetingNotes{,.*}.{js,json}"
+        "firstParty/meetingNotes{,.*}.{js,json}",
+        "stores/user/userSecretKeys.meetingNotes.test.js",
+        "stores/notebookStore.project.meetingNotes.pg.test.js",
+        "stores/encryptionBackfill.meetingNotes.test.js",
+        "core/meetingNotes/teamsAppImport/settings.test.js"
       ],
       "agent-hub": [
         "src/pages/meeting-notes/**",
@@ -927,7 +933,9 @@
         "i18n/defaults/en/project*.js",
         "i18n/defaults/nl/project_*.json",
         "routes/solutionStages.js",
-        "firstParty/projects{,.*}.{js,json}"
+        "firstParty/projects{,.*}.{js,json}",
+        "stores/user/projectErasure.projects.test.js",
+        "stores/blueprint/releases.projects.test.js"
       ],
       "agent-hub": [
         "src/components/projects/**",
@@ -1004,7 +1012,10 @@
       "routes/projects/notebookGate.js",
       "shared/appDefinition/schemaEnvelope.mjs",
       "stores/voiceprintStore.js",
-      "stores/kbSourcesMeetingArm.js"
+      "stores/kbSourcesMeetingArm.js",
+      "automation/patterns/templating.js",
+      "core/meetingNotes/teamsAppImport/settings.mts",
+      "core/meetingNotes/lazyDeps.js"
     ],
     "agent-hub": [
       "src/components/projects/workspace/chat/ime.ts"

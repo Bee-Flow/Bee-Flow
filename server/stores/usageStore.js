@@ -37,7 +37,8 @@ const { logUsage } = createLogUsage({
     rateUsage: require('./usage/unitPrice').withUnitPrice(rateUsage), // an image carries its own price
     resolveBilledModel,
     loadCurrency: () => require('../core/text/currency'),
-    loadPaygDrain: () => require('../workers/paygDrain'),
+    // The billing_stripe module's worker; without it there is no PAYG meter to drain.
+    loadPaygDrain: () => require('../modules/firstParty/moduleData').lookupFeatureModule('workers/paygDrain'),
 });
 
 log.info('[UsageStore] Initialized (PostgreSQL)');

@@ -8,47 +8,7 @@ const { backfillOrg, BACKFILL_SURFACES, RUNNERS } = require('./encryptionBackfil
 const { conversationKey, messageAad } = require('./agent/messageCrypto');
 const { decryptField, isEnvelope } = require('./lib/fieldEnvelope');
 
-const USER_KEY = crypto.randomBytes(32);
-const PROJECT_KEY = crypto.randomBytes(32);
-const ALL_ON = { encryption_tier: 'managed', encryption_scope: null };
-
-function ctxOf(key) {
-    return {
-        key, backgroundKey: key, tier: 'managed',
-        encryptMessages: true, encryptMeta: true, encryptConversationMeta: true,
-        encryptTitle: true, encryptNotebookMessages: true,
-    };
-}
-
-/**
- * A tiny fake database: `tables` maps a table name to rows; getAll picks the
- * table out of the SQL, run records UPDATEs. `casMiss` forces rowCount 0.
- */
-function fakeDeps({ org = ALL_ON, tables = {}, casMiss = false, resolve } = {}) {
-    const updates = [];
-    const resolved = [];
-    const deps = {
-        updates, resolved,
-        async getOne(sql) {
-            if (/FROM organizations/.test(sql)) return org ? { id: 'o1', ...org } : null;
-            if (/COUNT\(\*\)/.test(sql)) return { n: (tables.transcriptions || []).length };
-            return null;
-        },
-        async getAll(sql, params) {
-            const m = sql.match(/FROM (\w+)/);
-            const name = m && m[1];
-            const cursor = params[0];
-            return (tables[name] || []).filter(r => r.id > cursor).slice(0, params[2]);
-        },
-        async run(sql, params) { updates.push({ sql, params }); return { rowCount: casMiss ? 0 : 1 }; },
-        async resolveCrypto(opts) {
-            resolved.push(opts);
-            if (resolve) return resolve(opts);
-            return ctxOf(opts.projectKeyFor ? PROJECT_KEY : USER_KEY);
-        },
-    };
-    return deps;
-}
+const { USER_KEY, PROJECT_KEY, ALL_ON, ctxOf, fakeDeps } = require('./encryptionBackfill.testkit');
 
 const msgRow = (over = {}) => ({
     id: 'm1', conversation_id: 'c1', conversation_type: 'agent', content: 'hello', meta_json: null,
@@ -241,38 +201,6 @@ test('notebookMessages: readable by the runtime decoder, message_count untouched
     const u = deps.updates[0];
     assert.doesNotMatch(u.sql, /message_count/);
     assert.deepStrictEqual(tryDecryptMessages(u.params[0], USER_KEY.toString('base64'), 'n1', 'u1'), { ok: true, json: plain });
-});
-
-test('transcripts: columns and previews sealed via transcriptCrypto, jsonb CAS', async () => {
-    const tc = require('./transcriptCrypto');
-    const orgKey = crypto.randomBytes(32);
-    const tctx = { key: orgKey, encrypt: true, tier: 'managed' };
-    const deps = fakeDeps({ tables: { transcriptions: [{
-        id: 't1', full_text: 'we fire Jansen', transcript: 'x', summary: 'sum', segments: [{ t: 1 }],
-        speakers: [], attendees: ['Jansen'], chapters: [], full_text_snippet_enc: null, summary_snippet_enc: 'sum',
-    }] } });
-    deps.resolveTranscriptCrypto = async () => tctx;
-    const res = await backfillOrg('o1', { surfaces: ['transcripts'], deps });
-    assert.deepStrictEqual(res.surfaces.transcripts, { encrypted: 1, skipped: 0, noKey: 0, failed: 0 });
-    const u = deps.updates[0];
-    assert.match(u.sql, /segments = \$\d+::jsonb/);
-    assert.match(u.sql, /segments IS NOT DISTINCT FROM \$\d+::jsonb/);
-    assert.doesNotMatch(u.sql, /speakers =/); // empty array: nothing to protect
-    assert.doesNotMatch(u.sql, /action_items/);
-    const idx = (col) => u.sql.match(new RegExp(`${col} = \\$(\\d+)`))[1] - 1;
-    const full = u.params[idx('full_text')];
-    assert.strictEqual(decryptField(full, { key: tc.keyFor(tctx, 't1'), aad: tc.columnAad('t1', 'full_text') }), 'we fire Jansen');
-    const snip = u.params[idx('full_text_snippet_enc')];
-    assert.strictEqual(tc.readSnippet({ id: 't1', full_text_snippet_enc: snip }, tctx), 'we fire Jansen');
-    assert.ok(isEnvelope(u.params[idx('summary_snippet_enc')])); // plaintext preview sealed too
-});
-
-test('transcripts: org without a usable key reports noKey for every row', async () => {
-    const deps = fakeDeps({ tables: { transcriptions: [{ id: 't1' }, { id: 't2' }] } });
-    deps.resolveTranscriptCrypto = async () => ({ key: null, encrypt: false, tier: 'managed' });
-    const res = await backfillOrg('o1', { surfaces: ['transcripts'], deps });
-    assert.strictEqual(res.surfaces.transcripts.noKey, 2);
-    assert.strictEqual(deps.updates.length, 0);
 });
 
 // ── legacyBlobs ──────────────────────────────────────────────────────────────

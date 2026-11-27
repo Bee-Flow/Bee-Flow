@@ -1,5 +1,8 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "stores/transcriptionStore",
+    "stores/transcriptCrypto"
+  ],
   "runnerPorts": [
     "meetingImports"
   ]
