@@ -17,6 +17,7 @@ const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
 const { memoryUsedItems, emitMemoryUsed } = require('../../../core/memory/memoryUsed');
 const { fallback } = require('../../../utils/bestEffort');
 const { registerHandle, handleOf } = require('../../../core/kb/queryLog/hook.mts');
+const { optionalFeatureModule } = require('../../../core/featureModules');
 
 /**
  * Knowledge-base passages go into the prompt without a tool call, so the
@@ -263,8 +264,9 @@ async function sidePanelContext({ sidePanelWebpage, sidePanelDocument, userId })
     let volatile = '';
     if (sidePanelWebpage?.id) {
         try {
-            const { buildSidePanelWebpageContext } = require('../../../core/webpages/sidePanelWebpageContext');
-            const block = await buildSidePanelWebpageContext(sidePanelWebpage, userId);
+            // Without the webpages module there is no page to describe: nothing is injected.
+            const webpageContext = optionalFeatureModule('core/webpages/sidePanelWebpageContext');
+            const block = webpageContext ? await webpageContext.buildSidePanelWebpageContext(sidePanelWebpage, userId) : '';
             if (block) volatile += block;
         } catch (e) {
             log.warn('[DirectChat] sidePanelWebpage injection failed:', e.message);

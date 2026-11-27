@@ -13,6 +13,10 @@
 
 const { registerToolFamily } = require('./toolFamilyRegistry');
 const configStore = require('../../stores/configStore');
+const { optionalFeatureModule } = require('../featureModules');
+
+/** What a Cowork tool answers when the cowork module is not here (it is then never offered). */
+const COWORK_ABSENT = { error: 'Cowork is not available on this installation.' };
 
 function sessionSkillRuntime() {
     return require('./sessionSkillRuntime');
@@ -50,16 +54,18 @@ async function executeActivateSkillTool(toolName, toolArgs, context) {
 // Only works with the run context the tool round hands over (`context.coworkRun`):
 // it writes the request onto it, and the run closes as needs_review.
 async function executeCoworkReview(toolName, toolArgs, context) {
-    const { executeReviewTool } = require('../cowork/reviewTool.mts');
-    return await executeReviewTool(toolName, toolArgs, context);
+    const reviewTool = optionalFeatureModule('core/cowork/reviewTool');
+    if (!reviewTool) return COWORK_ABSENT;
+    return await reviewTool.executeReviewTool(toolName, toolArgs, context);
 }
 
 // ─── Cowork outcome (the AI of a Cowork run gives its own verdict) ──
 // Writes the verdict onto the run context; only a Cowork run has one (core/cowork/outcomeTool.mts).
 async function executeCoworkOutcome(_toolName, toolArgs, context) {
-    const { isRunActivity } = require('../cowork/runActivity.mts');
+    const runActivity = optionalFeatureModule('core/cowork/runActivity');
+    if (!runActivity) return COWORK_ABSENT;
     const run = context?.coworkRun;
-    return require('../cowork/outcomeTool.mts').executeOutcomeTool(toolArgs, isRunActivity(run) ? run : null);
+    return optionalFeatureModule('core/cowork/outcomeTool').executeOutcomeTool(toolArgs, runActivity.isRunActivity(run) ? run : null);
 }
 
 // ─── Session Skill Runtime (direct-chat local skills) ──────────
@@ -162,7 +168,8 @@ async function executeSetReminder(toolName, toolArgs, context) {
 // saved agent configs, and renaming it would silently drop the capability
 // from existing agents.
 async function executeSetAiTask(toolName, toolArgs, context) {
-    const coworkStore = require('../../stores/coworkStore');
+    const coworkStore = optionalFeatureModule('stores/coworkStore');
+    if (!coworkStore) return COWORK_ABSENT;
     const { userId } = context;
     if (!userId) return { error: 'Not authenticated' };
     if (!toolArgs.title) return { error: 'Title is required' };
@@ -211,7 +218,7 @@ async function executeSetAiTask(toolName, toolArgs, context) {
 // not tell". `agentId` is load-bearing too: the grants come off that
 // agent's published config.
 async function executeDatatable(toolName, toolArgs, context) {
-    const { executeDatatableTool } = require('./datatableTools');
+    const { executeDatatableTool } = optionalFeatureModule('core/tools/datatableTools');
     return await executeDatatableTool(toolName, toolArgs, {
         userId: context.askerUserId, agentId: context.agentId,
     });
@@ -227,7 +234,8 @@ const BUILTIN_TOOL_FAMILIES = [
     { name: 'elevenlabs', order: 70, isTool: n => require('./elevenLabsTools').isElevenLabsTool(n), execute: executeElevenLabs },
     { name: 'set_reminder', order: 400, isTool: n => n === 'set_reminder', execute: executeSetReminder },
     { name: 'set_ai_task', order: 410, isTool: n => n === 'set_ai_task', execute: executeSetAiTask },
-    { name: 'datatable', order: 460, isTool: n => require('./datatableTools').isDatatableTool(n), execute: executeDatatable },
+    // Without the datatables module no name is a datatable tool (the family matches nothing).
+    { name: 'datatable', order: 460, isTool: n => !!optionalFeatureModule('core/tools/datatableTools')?.isDatatableTool(n), execute: executeDatatable },
 ];
 
 function registerBuiltinToolFamilies() {

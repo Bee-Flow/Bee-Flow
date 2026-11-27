@@ -1,5 +1,11 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "core/cowork/runActivity",
+    "core/cowork/reviewTool",
+    "core/cowork/outcomeTool",
+    "core/cowork/habits/habitSignals",
+    "stores/coworkStore"
+  ],
   "runnerPorts": [
     "heldDefinitions",
     "approvalDeciders"

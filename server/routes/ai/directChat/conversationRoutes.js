@@ -377,12 +377,9 @@ router.get('/direct/conversations/:id/workspace', requireAuth, async (req, res) 
     // DB hydrate path in dlpRunner.
     const { restoreTokens } = require('../../../core/privacy/piiDetection');
     const _convMap = await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(req.params.id);
-    const { resolveWorkspaceContent } = require('../../../integrations/workspaceTools');
-    const content = await resolveWorkspaceContent({
-        notebookId: conv.workspace_notebook_id,
-        userId,
-        fallbackContent: conv.workspace_content,
-    });
+    const workspaceTools = require('../../../core/featureModules').optionalFeatureModule('integrations/workspaceTools');
+    // Without the notebooks module a linked notebook cannot be read: the conversation's own stored content is shown.
+    const content = workspaceTools ? await workspaceTools.resolveWorkspaceContent({ notebookId: conv.workspace_notebook_id, userId, fallbackContent: conv.workspace_content }) : (conv.workspace_content || '');
     res.json({
         content: restoreTokens(content, _convMap),
         notebookId: conv.workspace_notebook_id || null,
@@ -399,7 +396,9 @@ router.put('/direct/conversations/:id/workspace', requireAuth, validate({ body: 
         // A NEW link needs edit rights on the notebook: the chat's notebook
         // tools write through it (integrations/workspaceTools.js).
         if (notebookId && notebookId !== conv.workspace_notebook_id) {
-            const refusal = await require('../../../integrations/workspaceTools').notebookLinkRefusal(notebookId, userId);
+            const workspaceTools = require('../../../core/featureModules').optionalFeatureModule('integrations/workspaceTools');
+            if (!workspaceTools) throw new HttpError(409, 'module_absent', 'Notebooks are not available on this installation, so none can be linked.');
+            const refusal = await workspaceTools.notebookLinkRefusal(notebookId, userId);
             if (refusal) return res.status(refusal.status).json({ error: refusal.error });
         }
         // userId is REQUIRED by the store — the workspace is owner-only and there

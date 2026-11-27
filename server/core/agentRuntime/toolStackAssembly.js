@@ -29,9 +29,7 @@ const { buildToolPolicy, isUnattended, automationConfirmsFor } = require('./tool
 const log = require('../../telemetry/log');
 const { REPLY_IN_THREAD_TOOLS } = require('./toolPolicy/mailAccess');
 const { withholdIncognitoTools } = require('../conversation/incognito.mts');
-const { applyToolCeiling, noteOfferedTools, coworkRunOf } = require('../cowork/runActivity.mts');
-const { addReviewTool } = require('../cowork/reviewTool.mts');
-const { addOutcomeTool } = require('../cowork/outcomeTool.mts');
+const { optionalFeatureModule } = require('../featureModules');
 
 /**
  * The agent fields tool assembly reads.
@@ -168,8 +166,8 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
         });
     }
 
-    // ── Built-in: set_ai_task tool (always available) ────────────
-    if (!tools.find(t => t.function?.name === 'set_ai_task')) {
+    // ── Built-in: set_ai_task tool (always available with cowork, whose schedule it writes) ──
+    if (!tools.find(t => t.function?.name === 'set_ai_task') && optionalFeatureModule('stores/coworkStore')) {
         tools.push({
             type: 'function',
             function: {
@@ -206,9 +204,10 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
     log.info('[AgentRuntime] Tool params map:', JSON.stringify(Object.fromEntries(Object.entries(toolParamsMap).map(([k, v]) => [k, Object.keys(v && typeof v === 'object' ? v : {})]))));
 
     // ── Cowork run: the structured "a person has to decide" signal (core/cowork/reviewTool.mts) ──
-    addReviewTool(tools, coworkRunOf(messageMetadata));
+    // (without cowork there is no run, so neither tool is added)
+    optionalFeatureModule('core/cowork/reviewTool')?.addReviewTool(tools, messageMetadata?.coworkRun);
     // ...and its own verdict on the run (core/cowork/outcomeTool.mts): it can only make the run worse.
-    if (require('../cowork/runActivity.mts').isRunActivity(coworkRunOf(messageMetadata))) addOutcomeTool(tools, coworkRunOf(messageMetadata));
+    if (optionalFeatureModule('core/cowork/runActivity')?.isRunActivity(messageMetadata?.coworkRun)) optionalFeatureModule('core/cowork/outcomeTool')?.addOutcomeTool(tools, messageMetadata?.coworkRun);
 
     const unattended = isUnattended(messageMetadata);
     const narrowed = narrowToolsForTurn({ tools, agent, agentId, messageMetadata });
@@ -239,6 +238,22 @@ function withholdPinnedToolsFromVisitor({ tools, toolParamsMap, userId, agent, a
 }
 
 /**
+ * A Cowork run's ceiling and the note of what it was offered (core/cowork/runActivity.mts); without cowork there is
+ * no run: no ceiling, nothing noted.
+ * @param {import('./chatStream/turnState').MessageMetadata} messageMetadata
+ */
+function coworkRunStack(messageMetadata) {
+    const runActivity = optionalFeatureModule('core/cowork/runActivity');
+    const run = messageMetadata?.coworkRun;
+    return {
+        /** @template {{ function?: { name?: string } }} T @param {T[]} tools @returns {T[]} */
+        ceiling: (tools) => (runActivity ? runActivity.applyToolCeiling(run, tools) : tools),
+        /** @param {Array<{ function?: { name?: string } }>} tools */
+        noteOffered: (tools) => runActivity?.noteOfferedTools(run, tools),
+    };
+}
+
+/**
  * The two drops this turn is entitled to, over ANY list of tools.
  *
  * Extracted because the stack is not assembled once. `onSkillsActivated`
@@ -263,8 +278,8 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
     let unattendedWithheld = [];
 
     // ── A follow-up Cowork run: never more than the run it continues (core/cowork/runActivity.mts) ──
-    const coworkRun = coworkRunOf(messageMetadata);
-    out = applyToolCeiling(coworkRun, out);
+    const coworkRun = coworkRunStack(messageMetadata);
+    out = coworkRun.ceiling(out);
 
     // ── Headless: withhold the tools that would need approval ────
     // Inert for an agent without a stored `config.tools` map — buildToolPolicy
@@ -334,7 +349,7 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
     }
 
     // What a Cowork run was offered: the ceiling of a follow-up that continues it.
-    noteOfferedTools(coworkRun, out);
+    coworkRun.noteOffered(out);
 
     return { tools: out, sandboxWithheld, unattendedWithheld };
 }

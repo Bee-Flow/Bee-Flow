@@ -75,6 +75,7 @@ const CommitBody = bodyOf({
 const wizardLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
 
 const { INTEGRATION_CATALOG } = require('../../usecases/agents/wizardIntegrationCatalog');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 // Compute the integrations actually available to this user — same gating
 // rules as agent-hub/src/components/admin/AgentDesigner/sections/ToolsSection.jsx
@@ -628,8 +629,9 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
         try {
             const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
             const allowed = await userHasBetaFeature(userId, 'agent_routines', req.session).catch(() => false);
-            if (allowed) {
-                const coworkStore = require('../../stores/coworkStore');
+            // Without the cowork module there is nowhere to put the schedule: the agent is created without one.
+            const coworkStore = allowed ? optionalFeatureModule('stores/coworkStore') : null;
+            if (coworkStore) {
                 const { computeScheduleNextRun } = require('../../shared/schedule/nextRun.mjs');
                 const r = /** @type {Record<string, any>} */ (plan.schedule);
                 // Shared TZ-aware helper — same one the modal and wizard chat

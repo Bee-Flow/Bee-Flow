@@ -11,7 +11,7 @@
  * progressive-disclosure hint, component tools).
  */
 
-const { featureModule } = require('../featureModules');
+const { optionalFeatureModule } = require('../featureModules');
 const { executeComponentTool } = require('./toolExecution');
 const { dispatchToToolFamily, getToolFamily } = require('./toolFamilyRegistry');
 const { registerBuiltinToolFamilies } = require('./builtinToolFamilies');
@@ -112,8 +112,10 @@ function automationCallContext(context) {
 
 async function dispatchAgentCallable(toolName, toolArgs, userId, automationCallCtx) {
     if (!userId) return { handled: false };
-    return await featureModule('automation/agentCallableTools')
-        .dispatchAgentCallableByName(toolName, toolArgs, automationCallCtx);
+    // Without the automation module no automation is a tool: the name is not one of ours.
+    const agentCallable = optionalFeatureModule('automation/agentCallableTools');
+    if (!agentCallable) return { handled: false };
+    return await agentCallable.dispatchAgentCallableByName(toolName, toolArgs, automationCallCtx);
 }
 
 // ─── Reusable Steps (kind='block') exposed as chat tools ────
@@ -124,8 +126,9 @@ async function dispatchStepTool(toolName, toolArgs, userId, automationCallCtx) {
     let match = null;
     let tools = null;
     try {
-        tools = featureModule('automation/agentCallableTools');
-        const stepTools = await tools.getStepToolsForUser(userId);
+        // Without the automation module there are no reusable steps: the name is not one of ours.
+        tools = optionalFeatureModule('automation/agentCallableTools');
+        const stepTools = tools ? await tools.getStepToolsForUser(userId) : [];
         match = stepTools.find(t => t?.function?.name === toolName) || null;
     } catch (e) {
         log.warn('[ToolDispatcher] Step tool lookup failed:', /** @type {Error} */ (e).message);

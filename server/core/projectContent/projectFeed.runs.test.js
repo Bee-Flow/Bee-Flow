@@ -20,7 +20,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const feedPath = require.resolve('./projectFeed');
-const storePath = require.resolve('../../stores/automationStore');
+const featureModules = require('../featureModules');
 
 const emitted = [];
 let lookups = 0;
@@ -33,16 +33,15 @@ require.cache[feedPath] = {
         emitProjectEvent: async (projectId, event, opts) => { emitted.push({ projectId, event, opts }); },
     },
 };
-require.cache[storePath] = {
-    id: storePath, filename: storePath, loaded: true,
-    exports: {
-        getAutomation: async (id) => {
-            lookups++;
-            if (lookupError) throw lookupError;
-            return automations[id] || null;
-        },
+// The bridge asks for the automation store by name (core/featureModules.js): a stub answers there.
+const storeStub = {
+    getAutomation: async (id) => {
+        lookups++;
+        if (lookupError) throw lookupError;
+        return automations[id] || null;
     },
 };
+featureModules.registerFeatureModules({ 'stores/automationStore': () => storeStub });
 
 const { _test } = require('./projectFeed.runs');
 const { _handle, _runContext, MAX_TRACKED_RUNS } = _test;
@@ -174,4 +173,16 @@ test('a prototype-chain key is not a run kind', async () => {
     }
     assert.strictEqual(emitted.length, 0);
     assert.strictEqual(lookups, 0);
+});
+
+test('without the automation module a run event finds no project and says nothing', async () => {
+    reset();
+    featureModules._clearFeatureModulesForTests('stores/automationStore');
+    try {
+        await _handle({ type: 'run.started', runId: 'r1', automationId: 'a1' });
+        assert.strictEqual(emitted.length, 0);
+        assert.strictEqual(lookups, 0);
+    } finally {
+        featureModules.registerFeatureModules({ 'stores/automationStore': () => storeStub });
+    }
 });

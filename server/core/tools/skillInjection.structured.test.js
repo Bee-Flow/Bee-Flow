@@ -57,9 +57,11 @@ mock('../../stores/skillActivations', {
 // See the header: `executeActivateSkill` requires both of these on every
 // activation, and the real ones open a database.
 let linkedRuns = null;     // set by a test that links an automation: its executeAutomation calls land here
-mock('../../stores/automationStore', {
+// skillInjection asks for the automation store by name (core/featureModules.js): the stub answers there.
+const automationStoreStub = {
     getAutomation: async (id) => { if (!linkedRuns) throw new Error('no skill here links an automation'); return { id, title: 'Linked' }; },
-});
+};
+require('../featureModules').registerFeatureModules({ 'stores/automationStore': () => automationStoreStub });
 require('./automationExecutorPort').setAutomationExecutor(
     async (automation, o) => { if (!linkedRuns) throw new Error('no skill here links an automation'); linkedRuns.push(o); return { id: 'r1', status: 'success' }; },
 );
@@ -267,15 +269,10 @@ test('no real automation runtime or config store was ever loaded', () => {
     // ever; it arrives through automationStore/automationRunner, which
     // `executeActivateSkill` requires on EVERY activation. Goes red the
     // moment a real one is back in the process.
-    const stubs = new Map([
-        [require.resolve('../../stores/automationStore'), 'getAutomation'],
-    ]);
-    for (const [file, fn] of stubs) {
-        const entry = require.cache[file];
-        assert.ok(entry, `${file} is not in the cache — the stub was dropped`);
-        assert.deepStrictEqual(Object.keys(entry.exports), [fn], `${file} is the REAL module, not the stub`);
-    }
-    const forbidden = [/stores[\\/]configStore\.js$/, /stores[\\/]notificationStore\.js$/];
+    const store = require('../featureModules')._featureModuleGetter('stores/automationStore');
+    assert.ok(store, 'stores/automationStore is not registered — the stub was dropped');
+    assert.deepStrictEqual(Object.keys(store()), ['getAutomation'], 'stores/automationStore is the REAL module, not the stub');
+    const forbidden = [/stores[\\/]automationStore\.js$/, /stores[\\/]configStore\.js$/, /stores[\\/]notificationStore\.js$/];
     for (const pattern of forbidden) {
         assert.deepStrictEqual(
             Object.keys(require.cache).filter(f => pattern.test(f)), [],

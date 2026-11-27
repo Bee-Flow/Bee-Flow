@@ -26,6 +26,7 @@ const { unknownUsage } = require('../../stores/agent/agentUsage');
 const { groundingOf } = require('../../core/agentRuntime/agentGrounding');
 const { namedAdminOrg, withOrganizationNames } = require('./agentOrgScope.mts');
 const log = require('../../telemetry/log');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 // Attach the server-side edit verdict to each agent row so clients render
 // read-only editors from the SAME policy the mutating endpoints enforce
@@ -296,8 +297,9 @@ router.patch('/:id/publish', requireAgentGrade('edit'), validate({ body: Publish
     // Art-35 DPIA) — re-check now instead of waiting for the 6-hour sweep.
     if (isPublished) {
         try {
-            const events = require('../../compliance/events');
-            events.emit(events.EVENTS.AGENT_PUBLISHED, {
+            // Without the compliance module there is no compliance surface to re-check: no event.
+            const events = optionalFeatureModule('compliance/events');
+            if (events) events.emit(events.EVENTS.AGENT_PUBLISHED, {
                 orgId: agent.organization_id || 'default',
                 agentId: agent.id,
             });

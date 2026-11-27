@@ -17,49 +17,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
-
-process.env.NODE_ENV = 'test';
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'unit-test-session-secret-0123456789abcdef';
-
-function mock(/** @type {string} */ id, /** @type {unknown} */ exports) {
-    const p = require.resolve(id);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
-
-mock('../integrations/integrationTools', { buildToolHint: async () => '\n\n[TOOLS]\nweb search available.' });
-/** @type {{ systemPromptAddendum: string, staticCount: number, dynamicSkillIds: string[], tools: unknown[] }} */
-const NO_SKILLS = { systemPromptAddendum: '', staticCount: 0, dynamicSkillIds: [], tools: [] };
-/** What the skill injection answers; a test that needs skills sets it and puts it back. */
-let skillAnswer = NO_SKILLS;
-mock('../tools/skillInjection', {
-    buildSkillInjection: async () => skillAnswer,
-});
-mock('../../stores/houseStyleStore', { getDefaultForOrg: async () => null });
-// The open-document block reads through the store (readable for u1 only).
-mock('../../stores/documentStore', {
-    getDocument: async (/** @type {string} */ id, /** @type {string} */ userId) => (id === 'doc1' && userId === 'u1'
-        ? { id: 'doc1', name: 'Offerte', docType: 'quote', bodyHtml: '<h1>Titel</h1><p>Inhoud <b>hier</b></p>' }
-        : null),
-});
-
-const { buildSystemPrompt } = require('./contextBuilder');
-const { systemPrefixFingerprint } = require('../llm/promptCacheStability');
-
-const AGENT = { system_prompt: 'You are Bee Flow. It is {DateTime}.' };
-
-const build = (over = {}) => buildSystemPrompt({
-    agent: AGENT,
-    tools: [],
-    userId: 'u1',
-    messageMetadata: { timezone: 'UTC' },
-    memoryContext: '',
-    isStrictKnowledge: false,
-    ...over,
-});
+const { build, systemPrefixFingerprint } = require('./contextBuilder.testkit');
 
 test('the stable half carries no clock', async () => {
     const { stable, volatile } = await build();
@@ -128,15 +86,4 @@ test('no document block without sidePanelDocument, for an unreadable one, or a m
     assert.ok(!other.volatile.includes('DOCUMENT OPEN'), 'another user cannot read it');
 });
 
-test('a Cowork run notes the static skills the prompt carried, never the dynamic ones', async () => {
-    const { createRunActivity } = require('../cowork/runActivity.mts');
-    skillAnswer = { systemPromptAddendum: '\n\n[ACTIVE SKILLS]\n### SKILL', staticCount: 1, dynamicSkillIds: ['d1'], tools: [] };
-    try {
-        const coworkRun = createRunActivity();
-        await build({ agent: { ...AGENT, config: { attachedSkillIds: ['s1', 'd1'] } }, messageMetadata: { timezone: 'UTC', coworkRun } });
-        assert.deepStrictEqual([...coworkRun.staticSkills], ['s1']);
-        assert.deepStrictEqual([...coworkRun.activatedSkills], []);
-    } finally {
-        skillAnswer = NO_SKILLS;
-    }
-});
+// A Cowork run's notes of the static skills: ./contextBuilder.cowork.test.js (the cowork module's).

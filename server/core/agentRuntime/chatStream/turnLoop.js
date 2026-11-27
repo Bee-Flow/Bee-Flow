@@ -14,7 +14,7 @@
  * answer, a graceful bail, a client disconnect, or the tool-round budget
  * running out.
  */
-const { featureModule } = require('../../featureModules');
+const { optionalFeatureModule } = require('../../featureModules');
 const terminationStore = require('../../../stores/terminationStore');
 const configStore = require('../../../stores/configStore');
 const agentStore = require('../../../stores/agentStore');
@@ -83,7 +83,7 @@ async function chatWithAgentStreamImpl(agentId, userId, userMessage, userAuth = 
     const maxIterations = parseInt(await configStore.getConfig('max_tool_rounds_chat'), 10) || 20;
     await seedNotebookFromEditor({
         messageMetadata, tools: t.tools, conversation: t.conversation, userId,
-        workspaceTools: () => featureModule('integrations/workspaceTools'),
+        workspaceTools: () => optionalFeatureModule('integrations/workspaceTools'),
     });
     const turnStartedAt = Date.now();
     try {

@@ -14,10 +14,8 @@ const toolDisclosure = require('../../../core/tools/toolDisclosure');
 const { executeTool: dispatchTool } = require('../../../core/tools/toolDispatcher');
 const { runWithProbe, markLocal } = require('../../../core/http/outboundProbe');
 const { resolveIntegration: resolveIntegrationMeta } = require('../../../core/integrations/integrationToolMap');
-const { isBuilderTool, executeBuilderTool } = require('../../../integrations/webpageBuilderTools');
 const { isDocumentTool, executeDocumentTool } = require('../../../integrations/documentBuilderTools');
-const { isDbTool, executeDbTool } = require('../../../integrations/webpageDbTools');
-const { executeProposeWebpagePlan } = require('../../../integrations/webpagePlanTool');
+const { optionalFeatureModule } = require('../../../core/featureModules');
 const { untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
 const { isNotebookWriteTool } = require('./notebookWriteGate');
 const guardrailEventStore = require('../../../stores/guardrailEventStore');
@@ -155,11 +153,12 @@ function searchGuardRefusal(toolCall, toolName, toolArgs, ctx, streamed) {
 const ran = (toolResult) => ({ toolResult: /** @type {ToolAnswer} */ (toolResult), outboundProbe: null, toolError: null });
 
 /**
+ * @param {typeof import('../../../integrations/webpagePlanTool')} planTool
  * @param {ToolArgs} toolArgs
  * @param {ToolCtx} ctx
  */
-function proposeWebpagePlan(toolArgs, ctx) {
-    const toolResult = executeProposeWebpagePlan(toolArgs);
+function proposeWebpagePlan(planTool, toolArgs, ctx) {
+    const toolResult = planTool.executeProposeWebpagePlan(toolArgs);
     if (toolResult._action === 'webpage_plan_proposed') {
         ctx.markWebpagePlanProposed();
         ctx.send('webpage_plan_proposed', {
@@ -197,12 +196,13 @@ async function runDocumentTool(toolName, toolArgs, ctx) {
 }
 
 /**
+ * @param {typeof import('../../../integrations/webpageBuilderTools')} builderTools
  * @param {string} toolName
  * @param {ToolArgs} toolArgs
  * @param {ToolCtx} ctx
  */
-async function runWebpageBuilderTool(toolName, toolArgs, ctx) {
-    const builderOut = await executeBuilderTool(toolName, toolArgs, { userId: ctx.userId, readSlots: ctx.webpageBuilderReadSlots });
+async function runWebpageBuilderTool(builderTools, toolName, toolArgs, ctx) {
+    const builderOut = await builderTools.executeBuilderTool(toolName, toolArgs, { userId: ctx.userId, readSlots: ctx.webpageBuilderReadSlots });
     if (builderOut.webpageUpdate) {
         const { webpageId, file, content, title } = builderOut.webpageUpdate;
         ctx.send('webpage_doc_update', { webpageId, file, content, title });
@@ -211,15 +211,16 @@ async function runWebpageBuilderTool(toolName, toolArgs, ctx) {
 }
 
 /**
+ * @param {typeof import('../../../integrations/webpageDbTools')} dbTools
  * @param {string} toolName
  * @param {ToolArgs} toolArgs
  * @param {ToolCtx} ctx
  */
-async function runWebpageDbTool(toolName, toolArgs, ctx) {
+async function runWebpageDbTool(dbTools, toolName, toolArgs, ctx) {
     const dbWebpageId = toolArgs?.webpageId;
     if (!dbWebpageId) return { error: 'webpageId is required — pass the id returned by create_webpage.' };
     const { webpageId: _wp, ...dbArgs } = toolArgs || {};
-    const toolResult = /** @type {ToolResult | undefined} */ (await executeDbTool(toolName, dbArgs, { webpageId: dbWebpageId, userId: ctx.userId }));
+    const toolResult = /** @type {ToolResult | undefined} */ (await dbTools.executeDbTool(toolName, dbArgs, { webpageId: dbWebpageId, userId: ctx.userId }));
     if (toolResult?._action === 'webpage_db_update') {
         ctx.send('webpage_db_update', { webpageId: dbWebpageId });
     }
@@ -268,10 +269,14 @@ async function dispatchUnderProbe(toolName, toolArgs, ctx, tierOverrides, stream
  */
 function runTool(toolName, toolArgs, ctx, tierOverrides, streamed) {
     if (toolName === toolDisclosure.LOAD_TOOLS_TOOL_NAME) return ran(ctx.applyLoadTools(toolArgs));
-    if (toolName === 'propose_webpage_plan') return ran(proposeWebpagePlan(toolArgs, ctx));
+    // Without the webpages module its tools are not offered; a call by one of their names goes to the dispatcher.
+    const planTool = optionalFeatureModule('integrations/webpagePlanTool');
+    if (planTool && toolName === 'propose_webpage_plan') return ran(proposeWebpagePlan(planTool, toolArgs, ctx));
     if (isDocumentTool(toolName)) return runDocumentTool(toolName, toolArgs, ctx).then(ran);
-    if (isBuilderTool(toolName)) return runWebpageBuilderTool(toolName, toolArgs, ctx).then(ran);
-    if (isDbTool(toolName)) return runWebpageDbTool(toolName, toolArgs, ctx).then(ran);
+    const builderTools = optionalFeatureModule('integrations/webpageBuilderTools');
+    if (builderTools?.isBuilderTool(toolName)) return runWebpageBuilderTool(builderTools, toolName, toolArgs, ctx).then(ran);
+    const dbTools = optionalFeatureModule('integrations/webpageDbTools');
+    if (dbTools?.isDbTool(toolName)) return runWebpageDbTool(dbTools, toolName, toolArgs, ctx).then(ran);
     return dispatchUnderProbe(toolName, toolArgs, ctx, tierOverrides, streamed);
 }
 

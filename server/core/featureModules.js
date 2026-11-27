@@ -124,6 +124,21 @@ const { assertProviderNotFailed } = require('../modules/firstParty/moduleState')
  *   'compliance/marking': typeof import('../compliance/marking'),
  *   'stores/complianceStore': typeof import('../stores/complianceStore'),
  *   'usecases/notebookArchive': typeof import('../usecases/notebookArchive.mts'),
+ *   'core/cowork/runActivity': typeof import('../core/cowork/runActivity.mts'),
+ *   'core/cowork/reviewTool': typeof import('../core/cowork/reviewTool.mts'),
+ *   'core/cowork/outcomeTool': typeof import('../core/cowork/outcomeTool.mts'),
+ *   'core/cowork/habits/habitSignals': typeof import('../core/cowork/habits/habitSignals.mts'),
+ *   'stores/coworkStore': typeof import('../stores/coworkStore'),
+ *   'core/webpages/sidePanelWebpageContext': typeof import('../core/webpages/sidePanelWebpageContext'),
+ *   'integrations/webpageBuilderTools': typeof import('../integrations/webpageBuilderTools'),
+ *   'integrations/webpageDbTools': typeof import('../integrations/webpageDbTools'),
+ *   'integrations/webpagePlanTool': typeof import('../integrations/webpagePlanTool'),
+ *   'stores/automationStore': typeof import('../stores/automationStore'),
+ *   'core/runEventBus': typeof import('../core/runEventBus'),
+ *   'automation/agentBinding': typeof import('../automation/agentBinding'),
+ *   'automation/access': typeof import('../automation/access'),
+ *   'core/tools/datatableTools': typeof import('../core/tools/datatableTools'),
+ *   'compliance/events': typeof import('../compliance/events'),
  * }} FeatureModuleMap
  */
 

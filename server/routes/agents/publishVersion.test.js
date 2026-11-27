@@ -67,6 +67,8 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const router = require('./publishVersion');
 test.after(() => { Module._resolveFilename = originalResolve; });
+// The route asks for the compliance module by name (core/featureModules.js): the same stub answers there.
+require('../../core/featureModules').registerFeatureModules({ 'compliance/events': () => MOCKS['../../compliance/events'] });
 
 function dispatch(url, body = {}) {
     return new Promise((resolve, reject) => {

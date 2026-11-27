@@ -44,6 +44,7 @@ const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { bestEffort } = require('../../utils/bestEffort');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 /** No body at all (Express 5 leaves `req.body` undefined then) or an empty one. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
@@ -136,8 +137,9 @@ router.post('/:id/publish-version', requireAgentGrade('edit'), validate({ body: 
     // instead of at the next sweep (only meaningful when it has an audience).
     if (agent.is_published) {
         try {
-            const events = require('../../compliance/events');
-            events.emit(events.EVENTS.AGENT_PUBLISHED, {
+            // Without the compliance module there is no compliance surface to re-check: no event.
+            const events = optionalFeatureModule('compliance/events');
+            if (events) events.emit(events.EVENTS.AGENT_PUBLISHED, {
                 orgId: agent.organization_id || 'default',
                 agentId: agent.id,
             });

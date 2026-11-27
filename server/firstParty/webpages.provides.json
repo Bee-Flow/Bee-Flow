@@ -1,6 +1,10 @@
 {
   "featureModules": [
     "services/webpageSnapshot",
+    "core/webpages/sidePanelWebpageContext",
+    "integrations/webpageBuilderTools",
+    "integrations/webpageDbTools",
+    "integrations/webpagePlanTool",
     "auth/webpagePreviewToken",
     "stores/webpageStore",
     "core/webpages/webpageUsageSync"

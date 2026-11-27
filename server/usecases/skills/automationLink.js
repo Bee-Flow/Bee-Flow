@@ -13,6 +13,7 @@
 'use strict';
 
 const { HttpError } = require('../../core/http/errors');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 /**
  * The stores this check asks, required on first use (the store and the access
@@ -26,11 +27,23 @@ const { HttpError } = require('../../core/http/errors');
  * }} LinkDeps
  */
 
+/**
+ * A module of the automation feature, by name. Without it no automation can be linked: a NEW link is refused
+ * (409 module_absent); an unchanged link never gets here, so a skill keeps the link it has.
+ * @template {'stores/automationStore' | 'automation/access'} K
+ * @param {K} name
+ */
+function automationModule(name) {
+    const mod = optionalFeatureModule(name);
+    if (!mod) throw new HttpError(409, 'module_absent', 'Automations are not available on this installation, so none can be linked to a skill.');
+    return mod;
+}
+
 /** @type {LinkDeps} */
 const defaultDeps = {
-    getAutomation: (/** @type {string} */ id) => require('../../stores/automationStore').getAutomation(id),
+    getAutomation: (/** @type {string} */ id) => automationModule('stores/automationStore').getAutomation(id),
     canAccessAutomation: (/** @type {Record<string, unknown>} */ automation, /** @type {string} */ userId, /** @type {string} */ need) =>
-        require('../../automation/access').canAccessAutomation(automation, userId, need),
+        automationModule('automation/access').canAccessAutomation(automation, userId, need),
 };
 
 /**

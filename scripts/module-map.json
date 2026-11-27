@@ -52,6 +52,7 @@
         "i18n/defaults/en/datatables.js",
         "migrations/datatable-*",
         "firstParty/datatables{,.*}.{js,json}",
+        "core/tools/toolDispatcher.datatableIdentity.test.js",
         "stores/user/organizations.datatables.test.js"
       ],
       "agent-hub": [
@@ -126,6 +127,7 @@
         "migrations/agent-mail-trigger-2026-11{,.*}.js",
         "migrations/drop-automation-trigger-samples-2026-09{,.*}.js",
         "firstParty/automation{,.*}.{js,json}",
+        "core/tools/toolDispatcher.agentCall.test.js",
         "routes/studio/search.automation.test.js",
         "core/integrations/integrationTools.agentAutomations.test.js"
       ],
@@ -204,7 +206,13 @@
         "migrations/prompt-tasks-to-cowork-2026-08{,.*}.js",
         "migrations/agent-tasks-to-cowork-2026-10{,.*}.js",
         "migrations/cowork-conversation-origin-2026-11{,.*}.js",
-        "firstParty/cowork{,.*}.{js,json}"
+        "firstParty/cowork{,.*}.{js,json}",
+        "core/agentRuntime/chatStream.coworkRun.test.js",
+        "core/agentRuntime/chatStream/skillActivation.cowork.test.js",
+        "core/agentRuntime/toolRound/parseAndGate.outsideText.test.js",
+        "core/tools/toolDispatcher.coworkReview.test.js",
+        "core/agentRuntime/toolRoundExecutor.gateOrder.cowork.test.js",
+        "core/agentRuntime/contextBuilder.cowork.test.js"
       ],
       "agent-hub": [
         "src/components/cowork/**",
@@ -737,6 +745,7 @@
         "routes/nextcloudTaskProcessing.js",
         "usecases/nextcloudTaskProcessingUsage.js",
         "firstParty/int_nextcloud{,.*}.{js,json}",
+        "core/tools/toolDispatcher.ncScope.test.js",
         "core/integrations/integrationTools.ncBinding.test.js",
         "core/integrations/integrationTools.ncCapabilities.test.js"
       ],
@@ -769,7 +778,9 @@
         "routes/integrations/calendar.js",
         "routes/integrations/contacts.js",
         "routes/integrations/keep.js",
-        "firstParty/int_google{,.*}.{js,json}"
+        "firstParty/int_google{,.*}.{js,json}",
+        "core/agentRuntime/toolPolicy/mailAccess.test.js",
+        "core/agentRuntime/toolPolicy/mailRun.test.js"
       ],
       "agent-hub": [
         "src/components/chat/GmailPicker.tsx",
@@ -947,6 +958,7 @@
         "i18n/defaults/nl/project_*.json",
         "routes/solutionStages.js",
         "firstParty/projects{,.*}.{js,json}",
+        "core/llm/llmClient.forcedTool.projects.test.js",
         "routes/studio/attentionChecks.projects.test.js",
         "stores/user/projectErasure.projects.test.js",
         "stores/blueprint/releases.projects.test.js"

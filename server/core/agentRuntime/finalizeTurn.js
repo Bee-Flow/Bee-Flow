@@ -10,7 +10,7 @@
  * the turn's result object. The message's extras (markup strip, token
  * restore, thinking, tokenisation info) live in ./assistantMessageExtras.
  */
-const { featureModule } = require('../featureModules');
+const { featureModule, optionalFeatureModule } = require('../featureModules');
 const log = require('../../telemetry/log');
 const { resolveMemoryPolicy } = require('../memory/memoryPolicy');
 const { persistedMemoryUsed } = require('../memory/memoryUsed');
@@ -112,7 +112,10 @@ async function noticeRepeat({ userId, agentId, toolCalls, messageMetadata, onEve
     let timer;
     const late = new Promise((resolve) => { timer = setTimeout(() => resolve(null), 500); });
     try {
-        const offer = await Promise.race([require('../cowork/habits/habitSignals.mts').noteTurn({ userId, agentId, toolNames }), late]);
+        // Without cowork there is nothing to offer: the turn is not noted.
+        const habitSignals = optionalFeatureModule('core/cowork/habits/habitSignals');
+        if (!habitSignals) return;
+        const offer = await Promise.race([habitSignals.noteTurn({ userId, agentId, toolNames }), late]);
         if (offer) onEvent?.('cowork_suggestion', offer);
     } catch (e) {
         bestEffort('core/agentRuntime/finalizeTurn:noticeRepeat', e);

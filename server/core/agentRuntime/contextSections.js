@@ -13,7 +13,7 @@ const houseStyleStore = require('../../stores/houseStyleStore');
 const log = require('../../telemetry/log');
 
 /**
- * @typedef {{ buildToolHint: typeof import('../integrations/integrationTools').buildToolHint, memoryStore: () => typeof import('../../stores/memoryStore'), sidePanelWebpageContext: () => typeof import('../webpages/sidePanelWebpageContext'), sidePanelDocumentContext: () => typeof import('../documents/sidePanelDocumentContext') }} SectionDeps
+ * @typedef {{ buildToolHint: typeof import('../integrations/integrationTools').buildToolHint, memoryStore: () => typeof import('../../stores/memoryStore'), sidePanelWebpageContext: () => typeof import('../webpages/sidePanelWebpageContext') | null, sidePanelDocumentContext: () => typeof import('../documents/sidePanelDocumentContext') }} SectionDeps
  */
 
 /**
@@ -159,8 +159,9 @@ async function sidePanelSections(messageMetadata, userId, d) {
     let volatile = '';
     if (messageMetadata?.sidePanelWebpage?.id) {
         try {
-            const { buildSidePanelWebpageContext } = d.sidePanelWebpageContext();
-            const block = await buildSidePanelWebpageContext(messageMetadata.sidePanelWebpage, userId);
+            // Without the webpages module there is no page to describe: nothing is injected.
+            const webpageContext = d.sidePanelWebpageContext();
+            const block = webpageContext ? await webpageContext.buildSidePanelWebpageContext(messageMetadata.sidePanelWebpage, userId) : '';
             if (block) volatile += block;
         } catch (e) {
             log.warn('[contextBuilder] sidePanelWebpage injection failed:', e.message);

@@ -18,6 +18,10 @@ function register() {
         'auth/webpagePreviewToken': () => require('../auth/webpagePreviewToken'),
         'stores/webpageStore': () => require('../stores/webpageStore'),
         'core/webpages/webpageUsageSync': () => require('../core/webpages/webpageUsageSync'),
+        'core/webpages/sidePanelWebpageContext': () => require('../core/webpages/sidePanelWebpageContext'),
+        'integrations/webpageBuilderTools': () => require('../integrations/webpageBuilderTools'),
+        'integrations/webpageDbTools': () => require('../integrations/webpageDbTools'),
+        'integrations/webpagePlanTool': () => require('../integrations/webpagePlanTool'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

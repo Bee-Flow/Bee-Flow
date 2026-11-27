@@ -13,6 +13,11 @@ const { contribute } = require('../modules/firstParty/registrationChannels');
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'core/cowork/runActivity': () => require('../core/cowork/runActivity.mts'),
+        'core/cowork/reviewTool': () => require('../core/cowork/reviewTool.mts'),
+        'core/cowork/outcomeTool': () => require('../core/cowork/outcomeTool.mts'),
+        'core/cowork/habits/habitSignals': () => require('../core/cowork/habits/habitSignals.mts'),
+        'stores/coworkStore': () => require('../stores/coworkStore'),
     }));
     contribute('boot/featureRegistrations', () => require('../core/cowork/runnerPorts'));
 }
