@@ -235,6 +235,13 @@ function startSupportAndSyncJobs() {
     } catch (err) {
         log.warn('[Server] Support SLA enforcer load failed:', err.message);
     }
+    // Company-inbox retention: website-form tickets past SUPPORT_THREAD_RETENTION_DAYS
+    // (0/unset = keep, the default). Daily, advisory-locked, one pod per pass.
+    if (isModuleAvailable('support')) try {
+        require('../jobs/supportThreadRetention.mts').start();
+    } catch (err) {
+        log.warn('[Server] Support thread retention job load failed:', err.message);
+    }
     // NC user/group sync backstop — covers gaps when real-time webhooks miss
     try {
         require('../services/ncSyncBackstop').start();

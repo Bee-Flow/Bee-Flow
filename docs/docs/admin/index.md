@@ -139,6 +139,7 @@ row under Platform services in the whole-server block.
 | Lock Studio so users can't create their own agents | [Organisation settings](organisation-settings.md) → Studio policy |
 | See how many people use AI and where it goes | [Usage & adoption](usage-and-adoption.md) |
 | Stop the AI from reading or answering support messages | [Support inbox: AI replies](#support-inbox-ai-replies) |
+| Delete website contact-form messages after a fixed term | [Support inbox: retention](#support-inbox-retention) |
 
 ## Support inbox: AI replies
 
@@ -155,6 +156,20 @@ tickets people open in the app. **AI replies** decides what the AI does with the
 Only a platform admin can change it. The setting is for this company inbox only; a mailbox
 inbox in the Support studio keeps its own reply mode. The **Test reply** preview on the Agent
 page still asks the model, with the text you type there.
+
+## Support inbox: retention
+
+By default the company support inbox keeps every ticket. To delete website contact-form
+messages after a fixed term, set `SUPPORT_THREAD_RETENTION_DAYS` on the server (for example
+`365` for 12 months after the last contact) and restart it. Once a day the server then deletes
+the tickets whose last message is older than that, with their messages, attachment details
+and audit rows.
+
+Only tickets from people who are not a customer are deleted: tickets with no organisation and
+no signed-in account, which is what the website contact form produces. Tickets people open in
+the app, and every mailbox inbox in the Support studio, stay. Each run that deleted something
+adds one line to the support audit log (`retention_purge`) with the number of tickets and the
+term, never who they were from. See [Environment variables](../self-hosting/env.md).
 
 ## Admin audit trail
 
