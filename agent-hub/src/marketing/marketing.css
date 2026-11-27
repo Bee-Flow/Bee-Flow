@@ -187,6 +187,11 @@
 .marketing-root section.alt-bg { background: var(--bg-secondary); }
 /* Two plain sections stacked: one --section-y between them, not two (see blockFlow.ts). */
 .marketing-root .cms-block-wrap--joined > section { padding-top: 0; }
+/* Style tab spacing "None" (a zero edge, see blockWrap.ts spacingFlushClasses):
+   the section drops its own rhythm padding on that edge too. The hero keeps its
+   top padding, which is the clearance under the fixed header. */
+.marketing-root .cms-block-wrap.cms-block-wrap--flush-top > section:not(.hero) { padding-top: 0; }
+.marketing-root .cms-block-wrap.cms-block-wrap--flush-bottom > section { padding-bottom: 0; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 /* Buttons are token-driven so a theme can pick shape (pill / soft /

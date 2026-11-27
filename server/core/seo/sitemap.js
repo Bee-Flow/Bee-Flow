@@ -14,6 +14,7 @@
 
 const { esc } = require('./html');
 const { buildPublicPath, BLOG_BASE } = require('./publicPath');
+const { llmsFactLines, statesPrice } = require('./siteFacts.mts');
 
 // Homepage first, then the pages a buyer moves through, then the rest.
 // Sitemap priority is a weak signal at best, but ordering costs nothing.
@@ -187,12 +188,6 @@ function buildRobots({ origin, allow = true }) {
     ].join('\n');
 }
 
-/** The fixed links at the end of llms.txt: where the docs, the source and the Nextcloud app live. */
-const LLMS_LINKS = Object.freeze([
-    { title: 'Documentation', url: 'https://docs.beeflow.ai' },
-    { title: 'Source code (GitHub)', url: 'https://github.com/Bee-Flow/Bee-Flow' },
-    { title: 'Nextcloud App Store', url: 'https://apps.nextcloud.com/apps/bee_flow' },
-]);
 /** How many of the newest blog posts llms.txt lists as Guides. */
 const LLMS_GUIDES = 15;
 
@@ -217,6 +212,15 @@ function llmsGuides(posts, { origin, defaultLocale, storedPosts = {} }) {
 }
 
 /**
+ * The Links lines of llms.txt; a link whose title states a price is left out.
+ * @param {ReadonlyArray<{ title: string, url: string }> | undefined} links
+ * @returns {string[]}
+ */
+function linkLines(links) {
+    return (links || []).filter(l => l && !statesPrice(l.title)).map(l => `- [${String(l.title).trim()}](${l.url})`);
+}
+
+/**
  * llms.txt — the same page inventory, addressed to language models.
  *
  * Not a duplicate of the sitemap. An assistant answering "is there a European
@@ -230,21 +234,32 @@ function llmsGuides(posts, { origin, defaultLocale, storedPosts = {} }) {
  * served, and it carries each page's own meta description rather than invented
  * blurbs. Comparison pages (`*-alternative`, `vs-*`, `compare`) are listed under
  * their own heading because they are the ones a model is most likely to be
- * asked to cite; the newest blog posts follow as Guides, then the fixed links
- * (documentation, source, Nextcloud App Store). The text stays English; a page
+ * asked to cite; the newest blog posts follow as Guides, then the site's own
+ * external links (the footer columns: documentation, source, an app store page;
+ * core/seo/siteFacts.mts footerLinks). Nothing here is fixed for one site: every
+ * CMS customer's llms.txt lists that customer's links. The text stays English; a page
  * translated into another language lists that address after its own.
+ *
+ * A Facts block (core/seo/siteFacts.mts: name, what it is, legal entity,
+ * address, contact, profiles) comes first, from the site settings. No price is
+ * written here: a description or summary that states an amount of money is
+ * left out (the page itself stays listed), because the pricing page is where a
+ * price is kept current and a copy here goes stale unseen.
  *
  * @param {import('../../stores/cms/shared').CmsDoc[]} pages   a page may carry `locales` (the languages it is published in)
  * @param {{ origin: string, siteName?: string, summary?: string, defaultLocale?: string,
- *   guides?: Array<{ title: string, url: string }>, links?: ReadonlyArray<{ title: string, url: string }> }} opts
- *   `guides`: the newest published posts, absolute URLs; `links`: replaces LLMS_LINKS
+ *   guides?: Array<{ title: string, url: string }>, links?: ReadonlyArray<{ title: string, url: string }>,
+ *   facts?: import('./siteFacts.mts').SiteFacts | null }} opts
+ *   `guides`: the newest published posts, absolute URLs; `links`: the Links section (default: `facts.links`);
+ *   `facts`: the site's facts
  */
-function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defaultLocale = 'en', guides = [], links = LLMS_LINKS }) {
+function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defaultLocale = 'en', guides = [], links, facts = null }) {
     const indexable = (pages || []).filter(p => !p?.seo?.noIndex && !p?.isNotFound);
     const line = (/** @type {import('../../stores/cms/shared').CmsDoc} */ p) => {
         const slug = p.isHomepage ? '' : String(p.slug || '');
         const title = String(p.title || slug || 'Home').trim();
-        const desc = String(p?.seo?.metaDescription || '').trim();
+        const written = String(p?.seo?.metaDescription || '').trim();
+        const desc = statesPrice(written) ? '' : written;
         const others = (Array.isArray(p.locales) ? p.locales : []).filter((/** @type {string} */ l) => l !== defaultLocale)
             .map((/** @type {string} */ l) => ` (${l}: ${origin}${buildPublicPath(l, slug, defaultLocale)})`).join('');
         return `- [${title}](${origin}/${slug})${desc ? `: ${desc}` : ''}${others}`;
@@ -256,15 +271,17 @@ function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defa
     const link = (/** @type {{ title: string, url: string }} */ l) => `- [${String(l.title).trim()}](${l.url})`;
 
     const out = [`# ${siteName}`, ''];
-    if (summary) out.push(summary, '');
+    if (summary && !statesPrice(summary)) out.push(summary, '');
     const main = indexable.filter(p => !isComparison(p));
     const comparisons = indexable.filter(isComparison);
     /** @type {Array<[string, string[]]>} */
     const sections = [
+        ['Facts', facts ? llmsFactLines(facts) : []],
         ['Pages', main.map(line)],
         ['Comparisons', comparisons.map(line)],
-        ['Guides', (guides || []).filter(g => g && g.title && g.url).map(link)],
-        ['Links', (links || []).map(link)],
+        // A guide or link whose title states a price is left out: its title is the whole line.
+        ['Guides', (guides || []).filter(g => g && g.title && g.url && !statesPrice(g.title)).map(link)],
+        ['Links', linkLines(links ?? facts?.links)],
     ];
     for (const [heading, lines] of sections) {
         if (lines.length) out.push(`## ${heading}`, '', ...lines, '');
@@ -283,4 +300,4 @@ function publicSiteName(site) {
     return brand || String(site?.name || '').trim() || 'Bee Flow';
 }
 
-module.exports = { buildSitemap, buildRobots, buildLlmsTxt, llmsGuides, publicSiteName, LLMS_LINKS, LLMS_GUIDES };
+module.exports = { buildSitemap, buildRobots, buildLlmsTxt, llmsGuides, publicSiteName, LLMS_GUIDES };

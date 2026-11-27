@@ -32,7 +32,8 @@ function healSnapshotInBackground(siteId, now = Date.now()) {
     if (state === 0 || (state && now < state)) return;
     healing.set(siteId, 0);
     Promise.resolve()
-        .then(() => cmsStore.publishSite(siteId))
+        // Through IndexNow like every publish (off without INDEXNOW_KEY).
+        .then(() => require('../usecases/cmsIndexNow.mts').publishWithIndexNow(siteId, () => cmsStore.publishSite(siteId)))
         .then(() => healing.delete(siteId))
         .catch((e) => {
             log.warn(`[CMS] background publish for live site ${siteId} failed: ${e.message}`);

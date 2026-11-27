@@ -1,5 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { designStyleClasses, designStyleVars, displayTrackingEm } from './blockWrap';
+import { designStyleClasses, designStyleVars, displayTrackingEm, spacingFlushClasses } from './blockWrap';
+
+// The Style tab's "None" step stores '0' (older saves '0px'). The wrapper
+// carried that padding, but the section inside kept its own rhythm padding,
+// so "None" changed nothing: /plans showed ~200px of empty band between the
+// hero (bottom: None) and the pricing block (top: None).
+describe('spacingFlushClasses', () => {
+    it('flags an edge set to zero so the inner section drops its own padding there', () => {
+        expect(spacingFlushClasses({ spacing: { paddingBottom: '0px' } })).toEqual(['cms-block-wrap--flush-bottom']);
+        expect(spacingFlushClasses({ spacing: { paddingTop: '0' } })).toEqual(['cms-block-wrap--flush-top']);
+        expect(spacingFlushClasses({ spacing: { paddingTop: '0rem', paddingBottom: '0' } }))
+            .toEqual(['cms-block-wrap--flush-top', 'cms-block-wrap--flush-bottom']);
+    });
+
+    it('leaves default and non-zero spacing exactly as it rendered before', () => {
+        expect(spacingFlushClasses(undefined)).toEqual([]);
+        expect(spacingFlushClasses({})).toEqual([]);
+        expect(spacingFlushClasses({ spacing: { paddingTop: '', paddingBottom: '3rem' } })).toEqual([]);
+        expect(spacingFlushClasses({ spacing: { paddingTop: 'calc(0px + 2rem)', paddingBottom: 'abc' } })).toEqual([]);
+    });
+});
 
 describe('designStyleClasses', () => {
     it('emits nothing for a style without design keys', () => {

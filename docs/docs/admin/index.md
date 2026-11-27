@@ -139,6 +139,7 @@ row under Platform services in the whole-server block.
 | Lock Studio so users can't create their own agents | [Organisation settings](organisation-settings.md) → Studio policy |
 | See how many people use AI and where it goes | [Usage & adoption](usage-and-adoption.md) |
 | Stop the AI from reading or answering support messages | [Support inbox: AI replies](#support-inbox-ai-replies) |
+| Delete website contact-form messages after a fixed term | [Support inbox: retention](#support-inbox-retention) |
 
 ## Support inbox: AI replies
 
@@ -155,6 +156,27 @@ tickets people open in the app. **AI replies** decides what the AI does with the
 Only a platform admin can change it. The setting is for this company inbox only; a mailbox
 inbox in the Support studio keeps its own reply mode. The **Test reply** preview on the Agent
 page still asks the model, with the text you type there.
+
+## Support inbox: retention
+
+By default the company support inbox keeps every ticket. To delete website contact-form
+messages after a fixed term, set `SUPPORT_THREAD_RETENTION_DAYS` on the server (for example
+`365` for 12 months after the last contact) and restart it. Once a day the server then deletes
+the tickets whose last message (or, without any message, whose creation) is older than that,
+with their messages, attachment details and audit rows.
+
+The ticket's own audit rows go too, on purpose: they hold the sender's IP address and browser
+details, and keeping them after the ticket is gone would keep that personal data with no end
+date (data minimisation). Before this setting existed, audit rows were kept when a ticket was
+deleted.
+
+Only tickets from people who are not a customer are deleted: tickets with no organisation and
+no signed-in account, which is what the website contact form produces. Tickets people open in
+the app, and every mailbox inbox in the Support studio, stay. Tickets are deleted in batches;
+each batch adds one line to the support audit log (`retention_purge`, in the same transaction
+as the delete) with the number of tickets and the term, never who they were from. It sits in
+the company inbox's scope, like the audit rows it replaces. See
+[Environment variables](../self-hosting/env.md).
 
 ## Admin audit trail
 

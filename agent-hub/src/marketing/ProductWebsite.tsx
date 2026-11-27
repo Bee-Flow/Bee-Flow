@@ -53,7 +53,7 @@ import { BlockIdContext } from './components/EditableText';
 import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome';
 import { resolveAssetUrl } from './assetUrl';
 import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
-import { designStyleClasses, designStyleVars } from './blockWrap';
+import { designStyleClasses, designStyleVars, spacingFlushClasses } from './blockWrap';
 import { buildBlockOverrideCss } from './blockOverrideCss';
 import { blockFlowOptions } from './blockFlow';
 import { applyBrandVars, BRAND_VAR_PROPS, roleColor } from './designBrand';
@@ -522,7 +522,7 @@ function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview, join
     if (typeof style?.backgroundImage === 'string' && style.backgroundImage) {
         out.push('cms-block-wrap--has-image');
     }
-    out.push(...designStyleClasses(style)); // background placement + brand motif
+    out.push(...designStyleClasses(style), ...spacingFlushClasses(style)); // background, motif, zero padding
     // ── style v2 (all optional; absent = today's rendering) ─────────
     // band: works on EVERY type via the retheme-scope rule in tokens.css.
     if ((['surface', 'tint', 'dark', 'primary'] as (string | undefined)[]).includes(style?.band)) {

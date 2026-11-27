@@ -12,7 +12,7 @@ const { err } = require('./handlerKit');
 const SHOT_WINDOW_MS = 10 * 60 * 1000;
 const SHOT_MAX_PER_WINDOW = 24;
 const UPLOAD_PATH = '/mcp/cms/upload';
-const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|vtt)$/i;
+const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|vtt|pdf|docx|xlsx|pptx)$/i;
 
 
 /**

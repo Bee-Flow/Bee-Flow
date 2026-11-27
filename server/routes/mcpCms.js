@@ -54,6 +54,17 @@ const isCmsAdmin = (user) => require('./cmsShared').canAdminCms({ isAdmin: user?
 // canAdminCms is the platform-admin test (users.role 'admin'): a token owned by a
 // platform admin passes, a token whose owner only holds the 'all' permission does not.
 
+/**
+ * The CMS store the MCP tools use: publishSite goes through IndexNow (off
+ * unless INDEXNOW_KEY is set), like the admin publish route.
+ * @template {{ publishSite: (siteId: string) => Promise<unknown> }} S
+ * @param {S} cmsStore
+ * @returns {S}
+ */
+function mcpCmsStore(cmsStore) {
+    return require('../usecases/cmsIndexNow.mts').withIndexNow(cmsStore);
+}
+
 /** The real collaborators, built on first use so requiring this file stays cheap. */
 function buildRuntime() {
     const cmsMcp = require('../cms/mcp');
@@ -81,7 +92,7 @@ function buildRuntime() {
     const screenshots = cmsMcp.createScreenshotRenderer();
 
     const mcp = cmsMcp.createCmsMcp({
-        cmsStore,
+        cmsStore: mcpCmsStore(cmsStore),
         cmsParts: { collectLocaleOverrides: cmsParts.collectLocaleOverrides, deepMerge: cmsParts.deepMerge, sanitizeAnalytics: cmsParts.sanitizeAnalytics },
         builder,
         validateDraft: validateSiteDraft,
@@ -233,4 +244,4 @@ function makeRouter(injected = {}) {
     return router;
 }
 
-module.exports = Object.assign(makeRouter(), { makeRouter, isCmsAdmin });
+module.exports = Object.assign(makeRouter(), { makeRouter, isCmsAdmin, mcpCmsStore, buildRuntime });

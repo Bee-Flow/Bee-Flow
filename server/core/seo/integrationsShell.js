@@ -12,6 +12,7 @@
 'use strict';
 
 const { esc, clamp, clampTitle, jsonForScript, ogLocale } = require('./html');
+const { organization } = require('./jsonld');
 const { buildPublicPath } = require('./publicPath');
 const content = require('./integrationContent/model.mts');
 
@@ -25,7 +26,10 @@ const TITLE_MAX = 58;
  * @typedef {Record<string, boolean | string[] | undefined>} Nav
  *   per site page (`integrations`, `deployment`, `plans`, `blog`): absent = not on the site,
  *   true = on the site, a list = the locales it is published in
- * @typedef {{ origin: string, siteName: string, locale?: string, defaultLocale?: string, locales?: string[], nav?: Nav }} SiteCtx
+ * @typedef {{ origin: string, siteName: string, locale?: string, defaultLocale?: string, locales?: string[], nav?: Nav,
+ *   facts?: import('./siteFacts.mts').SiteFacts | null, logoUrl?: string }} SiteCtx
+ *   `facts`: what the site settings state about the organisation (core/seo/siteFacts.mts), for the
+ *   Organization node; `logoUrl`: the site logo, absolute, for og:image and the Organization
  */
 
 /** @param {string} id @param {string} [locale] @param {string} [defaultLocale] */
@@ -130,13 +134,56 @@ function siteHeader(site, ui, locale) {
 }
 
 /**
- * @param {{ site: SiteCtx, lang: string, title: string, description: string, path: string, body: string,
- *   noindex?: boolean, jsonLd?: Array<Record<string, unknown>>, alternates?: string[] }} p `path`: canonical path; `lang`: the language served
+ * The tags every public page carries (core/seo/head.js writes the same set for
+ * CMS pages): robots, Open Graph, the Twitter card and the language alternates.
+ * @param {{ url: string, title: string, desc: string, siteName: string, lang: string, locales: string[],
+ *   noindex: boolean, image: string }} p `title` and `desc` already escaped
  */
-function page({ site, lang, title, description, path, body, noindex = false, jsonLd = [], alternates = [] }) {
+function socialTags({ url, title, desc, siteName, lang, locales, noindex, image }) {
+    return [
+        `<meta name="robots" content="${noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}">`,
+        `<meta property="og:title" content="${title}">`,
+        `<meta property="og:description" content="${desc}">`,
+        `<meta property="og:url" content="${esc(url)}">`,
+        '<meta property="og:type" content="website">',
+        `<meta property="og:site_name" content="${esc(siteName)}">`,
+        `<meta property="og:locale" content="${esc(ogLocale(lang))}">`,
+        ...locales.filter(l => l !== lang).map(l => `<meta property="og:locale:alternate" content="${esc(ogLocale(l))}">`),
+        image ? `<meta property="og:image" content="${esc(image)}">` : '',
+        '<meta name="twitter:card" content="summary">',
+        `<meta name="twitter:title" content="${title}">`,
+        `<meta name="twitter:description" content="${desc}">`,
+        image ? `<meta name="twitter:image" content="${esc(image)}">` : '',
+    ];
+}
+
+/**
+ * The JSON-LD of a page: the site's Organization first, then the page's own
+ * nodes, each naming the Organization as its publisher.
+ * @param {SiteCtx} site @param {Array<Record<string, unknown>>} jsonLd
+ */
+function graphScripts(site, jsonLd) {
+    const org = organization({
+        siteName: site.siteName, origin: site.origin, logoUrl: site.logoUrl || '',
+        sameAs: site.facts?.profiles || [], facts: site.facts || null,
+    });
+    const publisher = { '@id': `${site.origin}/#organization` };
+    return [
+        { '@context': 'https://schema.org', ...org },
+        ...jsonLd.map(j => ({ ...j, publisher })),
+    ].map(j => `<script type="application/ld+json">${jsonForScript(j)}</script>`);
+}
+
+/**
+ * @param {{ site: SiteCtx, lang: string, title: string, description: string, path: string, body: string,
+ *   noindex?: boolean, jsonLd?: Array<Record<string, unknown>>, alternates?: string[], locales?: string[] }} p
+ *   `path`: canonical path; `lang`: the language served; `locales`: the languages the page exists in
+ *   (with `alternates`, its hreflang links)
+ */
+function page({ site, lang, title, description, path, body, noindex = false, jsonLd = [], alternates = [], locales = [] }) {
     const { origin, siteName } = site;
     const url = `${origin}${path}`;
-    const desc = clamp(description, 155);
+    const desc = esc(clamp(description, 155));
     const t = esc(clampTitle(`${title} | ${siteName}`, TITLE_MAX, siteName));
     const ui = content.localeContent(lang).ui;
     return [
@@ -146,18 +193,12 @@ function page({ site, lang, title, description, path, body, noindex = false, jso
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         `<title>${t}</title>`,
-        `<meta name="description" content="${esc(desc)}">`,
-        noindex ? '<meta name="robots" content="noindex, follow">' : '',
+        `<meta name="description" content="${desc}">`,
         `<link rel="canonical" href="${esc(url)}">`,
         ...alternates,
-        `<meta property="og:title" content="${t}">`,
-        `<meta property="og:description" content="${esc(desc)}">`,
-        `<meta property="og:url" content="${esc(url)}">`,
-        '<meta property="og:type" content="website">',
-        `<meta property="og:site_name" content="${esc(siteName)}">`,
-        `<meta property="og:locale" content="${esc(ogLocale(lang))}">`,
+        ...socialTags({ url, title: t, desc, siteName, lang, locales: alternates.length ? locales : [], noindex, image: site.logoUrl || '' }),
         `<style>${CSS}</style>`,
-        ...jsonLd.map(j => `<script type="application/ld+json">${jsonForScript(j)}</script>`),
+        ...graphScripts(site, jsonLd),
         '</head>',
         '<body>',
         siteHeader(site, ui, lang),

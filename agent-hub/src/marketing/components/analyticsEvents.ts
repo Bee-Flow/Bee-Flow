@@ -9,6 +9,7 @@ import { logger } from '../../utils/logger';
  *   cta_click     — a button-styled control (the site's Button) or a link inside a block
  *   outbound_click— a link to another host
  *   file_download — a link to a document-ish file
+ *   contact_click — a mailto: or tel: link (kind mail|phone and the block; never the address or the link text)
  *   form_start    — the first focus in a form, once per form per page view
  *   form_submit   — a form submission attempt
  *   form_success  — a submission the server accepted (sent by the form itself)
@@ -100,6 +101,27 @@ function blockOf(el: Element): { block?: string; blockType?: string } {
     return out;
 }
 
+/** 'mail' for a mailto: link, 'phone' for tel:, null for anything else. */
+function contactKind(href: string | null): 'mail' | 'phone' | null {
+    const h = (href || '').trim().toLowerCase();
+    if (h.startsWith('mailto:')) return 'mail';
+    if (h.startsWith('tel:')) return 'phone';
+    return null;
+}
+
+/**
+ * A mailto: or tel: link: contact_click with the kind and the block only.
+ * Never the address or number, and never the link text either: a contact link
+ * often shows a person's name ("Jan de Vries"), and personal data does not
+ * leave Bee Flow. Returns true when it was one (so no other event follows).
+ */
+function trackContact(href: string | null, block: { block?: string; blockType?: string }) {
+    const kind = contactKind(href);
+    if (!kind) return false;
+    track('contact_click', { kind, ...block });
+    return true;
+}
+
 /**
  * Download / outbound handling for a real navigable href.
  * Returns true when it emitted an event and the click needs nothing further.
@@ -141,7 +163,7 @@ function onClick(e: MouseEvent) {
     const label = labelFor(el);
     const block = blockOf(el);
 
-    if (trackLink(href, label, block)) return;
+    if (trackContact(href, block) || trackLink(href, label, block)) return;
 
     // A bare internal link outside a block is ordinary navigation and is
     // already captured as a pageview, so it is not worth an event.

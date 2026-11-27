@@ -250,7 +250,38 @@ test('restoreAssets collects failures rather than aborting the import', async ()
     assert.match(result.failed[0], /cms\/boom\.png/);
 });
 
+/** @param {string[]} names */
+async function officeZip(names) {
+    const zip = new JSZip();
+    for (const name of names) zip.file(name, '<x/>');
+    return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+}
+
+test('an imported document gets its type from the extension and the same byte check as an upload', async () => {
+    storage.objects.clear();
+    storage.uploads.length = 0;
+    const docx = await officeZip(['[Content_Types].xml', 'word/document.xml']);
+    const macro = await officeZip(['[Content_Types].xml', 'word/document.xml', 'word/vbaProject.bin']);
+    const result = await bundleLib.restoreAssets([
+        { key: 'cms/ok.pdf', buffer: Buffer.from('%PDF-1.7\n%%EOF\n') },
+        { key: 'cms/fake.pdf', buffer: Buffer.from('<html><script>alert(1)</script></html>') },
+        { key: 'cms/ok.docx', buffer: docx },
+        { key: 'cms/macro.docx', buffer: macro },
+    ]);
+    assert.strictEqual(result.written, 2);
+    assert.deepStrictEqual(storage.uploads.map(u => [u.key, u.contentType]), [
+        ['cms/ok.pdf', 'application/pdf'],
+        ['cms/ok.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    ]);
+    assert.strictEqual(result.failed.length, 2);
+    assert.match(result.failed[0], /cms\/fake\.pdf \(not a valid application\/pdf document\)/);
+    assert.match(result.failed[1], /cms\/macro\.docx/);
+    assert.strictEqual(storage.objects.has('cms/macro.docx'), false);
+});
+
 test('guessContentType covers the CMS upload whitelist', () => {
+    assert.strictEqual(bundleLib.guessContentType('cms/a.pdf'), 'application/pdf');
+    assert.strictEqual(bundleLib.guessContentType('cms/a.XLSX'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     assert.strictEqual(bundleLib.guessContentType('cms/a.png'), 'image/png');
     assert.strictEqual(bundleLib.guessContentType('cms/a.SVG'), 'image/svg+xml');
     assert.strictEqual(bundleLib.guessContentType('cms/a.mp4'), 'video/mp4');

@@ -68,6 +68,9 @@ Postgres instance.
 | `CLIENT_PUBLIC_HOST` / `CLIENT_PROTOCOL` | `localhost:5176` / `http` | Where the SPA lives; drives CORS and OAuth redirect URLs. |
 | `CORS_ORIGIN` | `http://localhost:5176` | Comma-separated list of allowed browser origins. |
 | `PUBLIC_SITE_URL` | falls back to `PUBLIC_BASE_URL` | Public origin of the marketing site: canonical/og URLs, sitemap, and the robots.txt gate. Unset on a public site means `Disallow: /` — it will not be indexed. Leave unset on staging. |
+| `INDEXNOW_KEY` | (none: off) | [IndexNow](https://www.indexnow.org) key for the live website (8 to 128 letters, digits or dashes). When set, the site serves it at `/<key>.txt` and every publish of the live site sends the addresses it added or changed (the sitemap before and after, compared) to `api.indexnow.org`, after the publish has answered. Only those public addresses are sent. Needs `PUBLIC_SITE_URL` (or `PUBLIC_BASE_URL`). |
+| `INDEXNOW_MAX_URLS` | `1000` | Most addresses one publish sends to IndexNow. `0` = the protocol's own limit of 10 000. |
+| `INDEXNOW_BEFORE_TIMEOUT_MS` | `2000` | How long a publish waits for the sitemap it compares against. When reading it takes longer, the publish goes ahead and nothing is sent to IndexNow for that publish. `0` = no limit. |
 
 ## Sessions and cookies
 
@@ -130,8 +133,10 @@ Optional; empty means the default.
 | `AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS` | `5` | Windmill runs per flow that an import from a standalone Windmill replays as dry runs of the new draft ("Compare with the last N Windmill runs"; at most 100). Their reads count in the import's total read budget. `0` = the comparison is off. |
 | `AUTOMATION_IMPORT_WINDMILL_COMPARE_FLOWS` | `20` | Imported flows compared in one import; the rest say they were not compared. `0` = unlimited. |
 | `WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS` | `0` (keep) | Days the nonce of a signed webhook delivery without a timestamp is kept for replay protection. `0` keeps it for good, so that table only grows; ordinary nonces are swept after 24 hours either way. |
+| `SUPPORT_THREAD_RETENTION_DAYS` | `0` (keep) | Days a ticket in the company support inbox from someone who is not a customer (the website contact form: no organisation, no signed-in account) is kept after its last message. A daily job deletes older ones with their messages, attachment details and audit rows, and logs only how many. Tickets opened in the app and the mailbox inboxes of the Support studio are never touched. `0` keeps them for good. See [Support inbox: retention](../admin/index.md#support-inbox-retention). |
 | `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`. Self-hosted allows them already. Link-local and cloud-metadata addresses are always refused. |
 | `FIREBIRD_ALLOWED_HOSTS` | empty (any) | Comma-separated host names a Firebird connection may use. |
+| `CMS_DOCUMENT_MAX_MB` | `25` | Largest document (PDF, `.docx`, `.xlsx`, `.pptx`) the website CMS accepts for download through an upload URL of the CMS MCP server, in MB. `0` = no limit. The admin uploader in the browser stays at 25 MB for every file. |
 | `OFFICE_PACKAGE_MAX_ENTRIES` | `10000` | Files inside one office package (.docx) before a parser opens it. `0` = unlimited. |
 | `OFFICE_PACKAGE_MAX_INFLATED_BYTES` | `268435456` (256 MB) | All parts of one office package together, unpacked. `0` = unlimited. |
 | `OFFICE_PACKAGE_MAX_PART_BYTES` | `67108864` (64 MB) | One part of an office package, unpacked. `0` = unlimited. |

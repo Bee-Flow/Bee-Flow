@@ -9,7 +9,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildJsonLd, faqPage, LICENSE_URL } = require('./jsonld');
+const { buildJsonLd, faqPage } = require('./jsonld');
 const { buildHead, footerProfiles } = require('./head');
 const { ogLocale } = require('./html');
 
@@ -42,40 +42,87 @@ test('a WebSite node names the site, its address and its languages; the page is 
     assert.equal(graphOf().find((n) => n['@type'] === 'WebSite')?.inLanguage, 'en');
 });
 
-test('the Organization carries the registered address, the e-mail address and its profiles', () => {
+test('the Organization states only what the site settings state: no facts, no address or e-mail', () => {
     const org = graphOf().find((n) => n['@type'] === 'Organization');
-    assert.deepEqual(org?.address, {
-        '@type': 'PostalAddress', streetAddress: 'Bovenkerkerweg 6 unit 1.12', postalCode: '1185 XE',
-        addressLocality: 'Amstelveen', addressCountry: 'NL',
-    });
-    assert.equal(org?.email, 'info@beeflow.nl');
-    assert.deepEqual(org?.sameAs, ['https://github.com/Bee-Flow/Bee-Flow', 'https://apps.nextcloud.com/apps/bee_flow']);
+    assert.deepEqual(org, { '@type': 'Organization', '@id': `${ORIGIN}/#organization`, name: 'Bee Flow', url: `${ORIGIN}/` });
 });
 
-test('the SoftwareApplication names its licence and only the free offer', () => {
-    const app = graphOf({ isProductPage: true }).find((n) => n['@type'] === 'SoftwareApplication');
-    assert.equal(app?.license, LICENSE_URL);
-    assert.equal(LICENSE_URL, 'https://github.com/Bee-Flow/Bee-Flow/blob/main/LICENSE.md');
+test('the footer and header become the Organization: legal name, address, KvK number, e-mail, logo and profiles', () => {
+    const footer = {
+        copyright: '© Acme B.V.',
+        socials: [{ platform: 'github', link: { kind: 'external', url: 'https://github.com/acme/acme' } }],
+        accountability: {
+            address: 'Main street 6, 1185 XE Amstelveen, Netherlands', registration: 'KvK 97632430',
+            links: [{ label: 'info@acme.test', href: 'mailto:info@acme.test' }],
+        },
+    };
+    const header = { nav: [{ label: 'Source', link: { kind: 'external', url: 'https://github.com/acme/acme' } }] };
+    for (const slug of ['', 'pricing']) {
+        const head = buildHead({
+            origin: ORIGIN, slug, locale: 'en', defaultLocale: 'en', locales: ['en'],
+            page: { title: 'Home', blocks: [] }, design: { logo: 'cms/logo.png' }, siteName: 'Acme', footer, header,
+        });
+        const org = headGraph(head).find((/** @type {any} */ n) => n['@type'] === 'Organization');
+        assert.deepEqual(org, {
+            '@type': 'Organization', '@id': `${ORIGIN}/#organization`, name: 'Acme', url: `${ORIGIN}/`,
+            legalName: 'Acme B.V.', email: 'info@acme.test',
+            address: { '@type': 'PostalAddress', streetAddress: 'Main street 6', postalCode: '1185 XE', addressLocality: 'Amstelveen', addressCountry: 'NL' },
+            identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: '97632430' },
+            logo: `${ORIGIN}/api/cms/asset/cms/logo.png`,
+            sameAs: ['https://github.com/acme/acme'],
+        });
+    }
+});
+
+const LICENSE = 'https://git.acme.test/acme/blob/main/LICENSE.md';
+/** Facts of a site whose footer links a licence. */
+const LICENSED = {
+    name: 'Acme', legalName: null, description: null, email: null, address: null, registration: null, vat: null,
+    profiles: [], links: [{ title: 'Licence', url: LICENSE }], licenseUrl: LICENSE,
+};
+
+test('the SoftwareApplication names the licence the footer links, and only the free offer', () => {
+    const app = graphOf({ isProductPage: true, facts: LICENSED }).find((n) => n['@type'] === 'SoftwareApplication');
+    assert.equal(app?.license, LICENSE);
     assert.deepEqual(app?.offers, { '@type': 'Offer', price: '0', priceCurrency: 'EUR' });
 });
 
-test('the footer social links become sameAs, next to the known profiles and without duplicates', () => {
+test('a site whose footer links no licence gets no SoftwareApplication, product page or not', () => {
+    assert.ok(!graphOf({ isProductPage: true }).some((n) => n['@type'] === 'SoftwareApplication'));
+    assert.ok(!graphOf({ isProductPage: true, facts: { ...LICENSED, licenseUrl: null } })
+        .some((n) => n['@type'] === 'SoftwareApplication'));
+});
+
+test('the licence comes from the footer columns through buildHead', () => {
+    const footer = { columns: [{ heading: 'Company', links: [
+        { label: 'Docs', link: { kind: 'external', url: 'https://docs.acme.test' } },
+        { label: 'Sustainable Use License', link: { kind: 'external', url: LICENSE } },
+    ] }] };
+    const head = buildHead({
+        origin: ORIGIN, slug: '', locale: 'en', defaultLocale: 'en', locales: ['en'],
+        page: { title: 'Home', blocks: [] }, design: {}, siteName: 'Acme', footer, header: {},
+    });
+    const app = headGraph(head).find((/** @type {any} */ n) => n['@type'] === 'SoftwareApplication');
+    assert.equal(app?.license, LICENSE);
+});
+
+test('the footer social links become sameAs, without duplicates', () => {
     const footer = { socials: [
         { platform: 'linkedin', link: { href: 'https://www.linkedin.com/company/bee-flow' } },
         { platform: 'github', link: { href: 'https://github.com/Bee-Flow/Bee-Flow' } },
+        { platform: 'github', link: { kind: 'external', url: 'https://github.com/Bee-Flow/Bee-Flow' } },
         { platform: 'x', link: { href: '/internal' } },
         { platform: 'mastodon', enabled: false, link: { href: 'https://example.social/@bf' } },
     ] };
-    assert.deepEqual(footerProfiles(footer), ['https://www.linkedin.com/company/bee-flow', 'https://github.com/Bee-Flow/Bee-Flow']);
+    assert.deepEqual(footerProfiles(footer), [
+        'https://www.linkedin.com/company/bee-flow', 'https://github.com/Bee-Flow/Bee-Flow', 'https://github.com/Bee-Flow/Bee-Flow',
+    ]);
     const head = buildHead({
         origin: ORIGIN, slug: '', locale: 'en', defaultLocale: 'en', locales: ['en'],
         page: { title: 'Home', blocks: [] }, design: {}, siteName: 'Bee Flow', footer,
     });
     const org = headGraph(head).find((/** @type {any} */ n) => n['@type'] === 'Organization');
-    assert.deepEqual(org.sameAs, [
-        'https://www.linkedin.com/company/bee-flow', 'https://github.com/Bee-Flow/Bee-Flow',
-        'https://apps.nextcloud.com/apps/bee_flow',
-    ]);
+    assert.deepEqual(org.sameAs, ['https://www.linkedin.com/company/bee-flow', 'https://github.com/Bee-Flow/Bee-Flow']);
 });
 
 test('og:locale is language_TERRITORY', () => {

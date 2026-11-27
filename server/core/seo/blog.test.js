@@ -96,6 +96,22 @@ function indexEff(locale = 'en', title = 'Blog') {
     };
 }
 
+test('a paged or tag-filtered index is noindex but followable, so the posts it lists stay reachable', () => {
+    /** @param {Record<string, unknown>} blog @param {Record<string, unknown>} [seo] */
+    const robotsOf = (blog, seo = {}) => {
+        const eff = indexEff();
+        Object.assign(eff.blog, blog);
+        Object.assign(eff.page.seo, seo);
+        const head = buildBlogHead({ origin: ORIGIN, eff, locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+        return (head.match(/<meta name="robots" content="([^"]*)">/) || [])[1];
+    };
+    // The store marks these views noIndex; that used to come out as "noindex, nofollow".
+    assert.strictEqual(robotsOf({ page: 2, pageCount: 3 }, { noIndex: true }), 'noindex, follow');
+    assert.strictEqual(robotsOf({ tag: { slug: 'x', label: 'X' } }, { noIndex: true }), 'noindex, follow');
+    assert.strictEqual(robotsOf({}, { noIndex: true }), 'noindex, follow', 'an empty blog is not indexed either');
+    assert.match(robotsOf({}), /^index, follow/);
+});
+
 test('a post without a cover shares the site card, not the favicon-sized logo', () => {
     const eff = { ...postEff({ coverImage: '' }), ...CHROME };
     eff.page.seo.ogImage = '';

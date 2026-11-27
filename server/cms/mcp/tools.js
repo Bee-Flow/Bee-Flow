@@ -168,7 +168,7 @@ const MCP_ONLY_TOOLS = [
     },
     {
         name: 'cms_list_assets',
-        description: 'List the uploaded CMS assets (images, clips, captions), newest first, with the url to put in a block. If a file is not here, upload it: cms_request_upload.',
+        description: 'List the uploaded CMS assets (images, clips, captions, PDF/Office documents), newest first, with the url to put in a block or link. If a file is not here, upload it: cms_request_upload.',
         parameters: {
             type: 'object',
             properties: {
@@ -180,13 +180,13 @@ const MCP_ONLY_TOOLS = [
     },
     {
         name: 'cms_request_upload',
-        description: 'Get a one-time upload URL for a LOCAL file (photo, video, SVG, captions). Allowed: jpeg, png, gif, webp, apng, svg, mp4, webm, vtt; images up to 25 MB, mp4/webm up to 500 MB, vtt up to 1 MB. The result holds a ready curl command: run it in a shell with the real file path. The file goes straight to the server and never through this conversation. The URL works once, for 15 minutes, for exactly this content type and size. The curl answer holds the asset `url` to use in a block; cms_upload_status reports it too. Do not paste file contents or base64 into any tool.',
+        description: 'Get a one-time upload URL for a LOCAL file (photo, video, SVG, captions, or a document to download). Allowed: jpeg, png, gif, webp, apng, svg, mp4, webm, vtt, pdf, docx, xlsx, pptx; images up to 25 MB, mp4/webm up to 500 MB, vtt up to 1 MB, documents up to the server\'s document limit (25 MB by default). A document must really be that type (checked on its bytes; macro-enabled Office files are refused) and is always served as a download: link to its url from a button or text link. The result holds a ready curl command: run it in a shell with the real file path. The file goes straight to the server and never through this conversation. The URL works once, for 15 minutes, for exactly this content type and size. The curl answer holds the asset `url` to use in a block; cms_upload_status reports it too. Do not paste file contents or base64 into any tool.',
         parameters: {
             type: 'object',
             properties: {
                 siteId: SITE_ID_PROP,
                 filename: { type: 'string', description: 'The file\'s name, e.g. "hero.jpg". Used to name the asset.' },
-                contentType: { type: 'string', description: 'MIME type, e.g. "image/jpeg", "video/mp4", "image/svg+xml", "text/vtt".' },
+                contentType: { type: 'string', description: 'MIME type, e.g. "image/jpeg", "video/mp4", "image/svg+xml", "text/vtt", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" (docx).' },
                 size: { type: 'integer', description: 'The file size in bytes (`stat -c %s file`). The upload may not exceed it.' },
             },
             required: ['filename', 'contentType', 'size'],

@@ -41,8 +41,7 @@
 const express = require('express');
 const cmsStore = require('../stores/cmsStore');
 const configStore = require('../stores/configStore');
-const languageStore = require('../stores/languageStore');
-const { parsePublicPath, buildPublicPath, homeSlugRedirect, LOCALE_PREFIXES } = require('../core/seo/publicPath');
+const { parsePublicPath, buildPublicPath, homeSlugRedirect } = require('../core/seo/publicPath');
 const { resolveOrigin, isIndexableHost } = require('../core/seo/publicOrigin');
 const { legalRedirectTarget } = require('../core/seo/legalPaths');
 const { buildHead } = require('../core/seo/head');
@@ -50,43 +49,21 @@ const { renderBlocksWithHints, PREHYDRATE_CSS } = require('../core/seo/renderBlo
 const { getShell } = require('../core/seo/shell');
 const { injectIntoShell } = require('../core/seo/inject');
 const { buildSitemap, buildRobots } = require('../core/seo/sitemap');
+const { siteLocales, liveSitemapXml } = require('../usecases/liveSitemap.mts');
 const { localesForPage } = require('../i18n/pageLocales');
 const { LEGACY_SLUGS, GONE_SLUGS } = require('../core/seo/legacySlugs');
 const { resolveSiteRedirect } = require('../core/seo/siteRedirect');
+const { localesForTarget } = require('../core/seo/targetLocales');
 const { versionOf } = require('../core/seo/ogCard');
 const { jsonForScript } = require('../core/seo/html');
 const { sendNotFound } = require('../core/seo/notFound');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
 const { buildBlogHead, renderBlogBody, buildFeed } = require('../core/seo/blog');
 const { buildAtomFeed } = require('../core/seo/blogAtom');
-const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
-const { blogSitemap } = require('../usecases/publicRenderBlogSitemap');
 const { homeLocaleRedirect, siteLocaleCookie } = require('../core/seo/homeLocale.mts');
 const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
 
 const router = express.Router();
-
-/**
- * The locales this SITE publishes, default first.
- *
- * Intersected with LOCALE_PREFIXES rather than taken from the product's
- * interface-translation list: that list includes every language the GUI has
- * strings for, and using it made each page advertise hreflang alternates —
- * /de/, /fr/ — that the router does not serve and no translator has written.
- */
-async function siteLocales() {
-    const defaultLocale = await cmsStore.getDefaultLocale();
-    /** @type {string[]} */
-    let extra = [];
-    try {
-        const available = await languageStore.getAvailableLocales();
-        extra = (available || [])
-            .map((/** @type {{ code: unknown; }} */ l) => String(l.code).toLowerCase())
-            .filter((/** @type {string} */ code) => code !== defaultLocale && LOCALE_PREFIXES.has(code));
-    } catch (err) { fallback('routes/publicRender:siteLocales', err); /* a single-locale site is a fine fallback */ }
-    return { defaultLocale, locales: [defaultLocale, ...extra] };
-}
 
 async function getLiveSiteId() {
     return (await configStore.getConfig('cms_live_site_id')) || null;
@@ -138,33 +115,12 @@ router.get('/sitemap.xml', async (/** @type {import('express').Request} */ req, 
         const siteId = await getLiveSiteId();
         if (!siteId) return emptySitemap();
 
-        const { defaultLocale, locales } = await siteLocales();
-
-        // The PUBLISHED snapshot, not the draft: the sitemap must advertise
-        // what is actually being served. It is also the only source that
-        // carries each page's full `seo` (the page index entry does not), and
-        // `seo.noIndex` decides whether a page belongs in here at all.
         const snapshot = await cmsStore.getPublishedSnapshot(siteId);
         if (!snapshot) return emptySitemap();
-
-        // Per-page when the snapshot carries it (cmsStore.publishSite), else the site-wide publish date.
-        const lastmod = snapshot.publishedAt || null;
-        const pages = (snapshot.site?.pages || [])
-            .map(/** @param {import('../stores/cms/shared').PageIndexEntry} entry */ entry => {
-                const full = snapshot.pages?.[entry.id] || {};
-                return {
-                    ...entry,
-                    seo: full.seo || {},
-                    updatedAt: snapshot.pageMeta?.[entry.id]?.lastModifiedAt || lastmod,
-                    locales: localesForPage(snapshot, entry.id, defaultLocale, locales),
-                };
-            });
-
-        // Blog: the index and every visible post, in the languages it is translated into.
-        const blogEntries = await blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod });
-
+        // Per-page dates where the snapshot has them (cmsStore.publishSite), else the site-wide publish date.
+        const xml = await liveSitemapXml({ siteId, snapshot, origin, lastmod: snapshot.publishedAt || null });
         res.type('application/xml').set('Cache-Control', 'public, max-age=600');
-        return res.send(buildSitemap([...pages, ...blogEntries, ...integrationSitemapEntries(listGalleryItems(), { defaultLocale, locales, lastmod })], { origin, defaultLocale, locales }));
+        return res.send(xml);
     } catch (err) {
         log.warn('[SEO] sitemap failed:', /** @type {Error} */ (err).message);
         res.type('application/xml').set('Cache-Control', 'no-store');
@@ -183,7 +139,7 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (/** @type {im
         // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the locale segment is matched by [a-z]{2,3} and must be one of the site locales; it is never echoed
         const asked = req.params[0] ? String(req.params[0]).toLowerCase() : null;
         if (!siteId || (asked && (asked === defaultLocale || !locales.includes(asked)))) {
-            return res.status(404).type('text/plain').set('Cache-Control', 'public, max-age=300').send('Not found');
+            return res.status(404).type('text/plain').set('Cache-Control', 'public, max-age=300').set('X-Beeflow-Render', 'not-found').send('Not found');
         }
         const locale = asked || defaultLocale;
         const latest = await cmsStore.getLatestPublishedPosts(siteId, { locale, limit: 30, withBody: true });
@@ -224,18 +180,21 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
     const blog = /** @type {NonNullable<typeof parsed.blog>} */ (parsed.blog); // called for a blog path only
     const locale = parsed.locale || defaultLocale;
     const q = rawQuery(req);
+    const askedPage = Number.parseInt(q.get('page') || '1', 10);
     const eff = await cmsStore.getEffectiveBlog(siteId, {
         state: 'published',
         view: blog.view,
         postSlug: blog.postSlug,
         tag: q.get('tag') || '',
-        page: Number.parseInt(q.get('page') || '1', 10) || 1,
+        page: askedPage || 1,
         locale,
         siteLocales: locales,
     });
     if (!eff) return false;
     if (blog.view === 'index' && (eff.pages || []).some(/** @param {import('../stores/cms/shared').PageIndexEntry} p */ p => p.slug === 'blog')) return false;
-    if (!eff.found || (!eff.blog?.post && blog.view === 'post')) {
+    // The store clamps the page number; a page past the last (or below 1) is no page at all.
+    const pageMissing = blog.view === 'index' && !Number.isNaN(askedPage) && askedPage !== eff.blog?.page;
+    if (!eff.found || (!eff.blog?.post && blog.view === 'post') || pageMissing) {
         const notFoundShell = await getShell();
         if (!notFoundShell) return false;
         sendNotFound(res, notFoundShell, locale, false);
@@ -340,9 +299,17 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
 
         const { defaultLocale, locales } = await siteLocales();
 
+        const live = await cmsStore.getPublishedSnapshot(siteId);
         // Editor-managed redirects (renamed or merged pages), answered before this address is taken for a page, a 410 or the SPA.
-        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target was validated when saved (stores/cms/redirectRules.js): a site path, or an https URL on the site's allow-list
-        const managed = resolveSiteRedirect(await cmsStore.getPublishedSnapshot(siteId), req.path, locales, rawQuery(req));
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target was validated when saved (stores/cms/redirectRules.js): a site path, or an https URL on the site's allow-list; a ?locale= only changes its locale prefix
+        const managed = resolveSiteRedirect(live, req.path, locales, rawQuery(req), { defaultLocale, pageLocales: (/** @type {string} */ slug) => localesForTarget(live, slug, defaultLocale, locales) });
+        if (managed?.locale) {
+            // The ?locale= was applied in this one hop: remember the choice like localeRedirect does, never in a shared cache.
+            const cookie = siteLocaleCookie(managed.locale, locales);
+            if (cookie) res.append('Set-Cookie', cookie);
+            res.set('Cache-Control', 'private, no-store');
+            return res.redirect(managed.status, managed.location);
+        }
         if (managed) {
             res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
             return res.redirect(managed.status, managed.location);
@@ -443,7 +410,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
         const head = buildHead({
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
             page: eff.page, design: eff.design || {}, siteName, shareImageVersion: versionOf(snapshot && snapshot.publishedAt),
-            extraLinks: headLinks, footer: eff.footer,
+            extraLinks: headLinks, footer: eff.footer, header: eff.header,
         });
 
         /* The same payload GET /api/cms/site would return, inlined.
@@ -514,5 +481,8 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
         return next();
     }
 });
+
+// Last: the IndexNow key file, /index.html and the 404 for any other .xml/.txt nothing above claimed.
+router.use(require('./publicFilesRender.mts').createPublicFilesRouter({ siteLocales }));
 
 module.exports = router;

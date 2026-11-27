@@ -211,6 +211,8 @@ test('the graph carries no invented commercial data', () => {
         origin: ORIGIN, siteName: 'Bee Flow', url: `${ORIGIN}/`, title: 'Home',
         description: 'd', locale: 'en', slug: '', localePrefix: '',
         blocks: [], isProductPage: true,
+        facts: { name: 'Bee Flow', legalName: null, description: null, email: null, address: null, registration: null,
+            vat: null, profiles: [], licenseUrl: 'https://example.test/LICENSE' },
     })['@graph'];
     const json = JSON.stringify(graph);
     for (const bad of ['aggregateRating', 'review', 'lowPrice', 'highPrice']) {

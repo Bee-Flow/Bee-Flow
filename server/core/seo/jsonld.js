@@ -12,37 +12,25 @@
  * disagrees with the visible page is a manual-action risk, not a ranking win.
  */
 
-/** The company behind the site, as the footer's accountability line states it. */
-const ORG_ADDRESS = Object.freeze({
-    '@type': 'PostalAddress',
-    streetAddress: 'Bovenkerkerweg 6 unit 1.12',
-    postalCode: '1185 XE',
-    addressLocality: 'Amstelveen',
-    addressCountry: 'NL',
-});
-const ORG_EMAIL = 'info@beeflow.nl';
-/** The organisation's own profiles, used next to the footer's social links. */
-const DEFAULT_SAME_AS = Object.freeze([
-    'https://github.com/Bee-Flow/Bee-Flow',
-    'https://apps.nextcloud.com/apps/bee_flow',
-]);
-/** The licence the footer links to (Sustainable Use License). */
-const LICENSE_URL = 'https://github.com/Bee-Flow/Bee-Flow/blob/main/LICENSE.md';
+const { organizationFields } = require('./siteFacts.mts');
 
 /**
- * Organization — site-wide identity. Emitted on every page.
- * @param {{ siteName: string, origin: string, logoUrl?: string, sameAs?: string[] }} params
+ * Organization — site-wide identity. Emitted on every page. Every fact beyond
+ * the name comes from the site settings (core/seo/siteFacts.mts): the legal name
+ * from the copyright line, address, registration and VAT number from the
+ * footer's accountability block, the profiles from the footer socials. A fact
+ * the site does not state is left out.
+ * @param {{ siteName: string, origin: string, logoUrl?: string, sameAs?: string[],
+ *   facts?: import('./siteFacts.mts').SiteFacts | null }} params
  */
-function organization({ siteName, origin, logoUrl, sameAs = [] }) {
-    /** @type {{ '@type': string, '@id': string, name: string, url: string, logo?: string, email: string,
-     *   address: typeof ORG_ADDRESS, sameAs?: string[] }} */
+function organization({ siteName, origin, logoUrl, sameAs = [], facts = null }) {
+    /** @type {Record<string, unknown>} */
     const node = {
         '@type': 'Organization',
         '@id': `${origin}/#organization`,
         name: siteName,
         url: `${origin}/`,
-        email: ORG_EMAIL,
-        address: ORG_ADDRESS,
+        ...(facts ? organizationFields(facts) : {}),
     };
     if (logoUrl) node.logo = logoUrl;
     const links = [...new Set(sameAs.filter(Boolean))];
@@ -66,7 +54,11 @@ function webSite({ siteName, origin, inLanguage }) {
 }
 
 /**
- * SoftwareApplication — for the pages that describe the product itself.
+ * SoftwareApplication — for the pages that describe the product itself, and
+ * only on a site whose footer links a licence (siteFacts licenseUrl): that link
+ * is what says the site offers software. A site without one gets no
+ * SoftwareApplication, so a customer's site never claims a licence or a free
+ * offer it does not state.
  *
  * The one offer stated is the free self-hosted edition (price 0): it needs no
  * licence key and is the same on every page. The paid prices live in the
@@ -75,9 +67,9 @@ function webSite({ siteName, origin, inLanguage }) {
  * hardcoded prices" rule exists to prevent, and a wrong price in structured
  * data is worse than none.
  *
- * @param {{ siteName: string, origin: string, description?: string, logoUrl?: string }} params
+ * @param {{ siteName: string, origin: string, licenseUrl: string, description?: string, logoUrl?: string }} params
  */
-function softwareApplication({ siteName, origin, description, logoUrl }) {
+function softwareApplication({ siteName, origin, licenseUrl, description, logoUrl }) {
     /** @type {{ '@type': string, '@id': string, name: string, applicationCategory: string, operatingSystem: string,
      *   publisher: { '@id': string }, license: string, offers: Record<string, string>, description?: string, image?: string }} */
     const node = {
@@ -87,12 +79,23 @@ function softwareApplication({ siteName, origin, description, logoUrl }) {
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web, Docker, Kubernetes',
         publisher: { '@id': `${origin}/#organization` },
-        license: LICENSE_URL,
+        license: licenseUrl,
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
     };
     if (description) node.description = description;
     if (logoUrl) node.image = logoUrl;
     return node;
+}
+
+/**
+ * The SoftwareApplication of a product page, or null on any other page and
+ * when the site's footer links no licence.
+ * @param {{ isProductPage?: boolean, siteName: string, origin: string, description?: string, logoUrl?: string,
+ *   facts?: import('./siteFacts.mts').SiteFacts | null }} params
+ */
+function licensedApplication({ isProductPage, facts, ...rest }) {
+    const licenseUrl = facts?.licenseUrl;
+    return isProductPage && licenseUrl ? softwareApplication({ ...rest, licenseUrl }) : null;
 }
 
 /**
@@ -171,21 +174,23 @@ function breadcrumbs({ origin, localePrefix, slug, title }) {
  *
  * @param {{ origin: string, siteName: string, url: string, title: string, description?: string, locale: string,
  *   locales?: string[], slug: string, localePrefix?: string, logoUrl?: string, sameAs?: string[],
+ *   facts?: import('./siteFacts.mts').SiteFacts | null,
  *   blocks?: import('../../stores/cms/shared').CmsBlock[], isProductPage?: boolean, extraNodes?: unknown[],
  *   breadcrumbTrail?: Array<{ name: string, path: string }> }} ctx
  */
 function buildJsonLd(ctx) {
     const { origin, siteName, url, title, description, locale, locales, slug, localePrefix,
-        logoUrl, sameAs, blocks, isProductPage, extraNodes, breadcrumbTrail } = ctx;
+        logoUrl, sameAs, facts, blocks, isProductPage, extraNodes, breadcrumbTrail } = ctx;
     const siteLocales = Array.isArray(locales) && locales.length > 1 ? locales : locale;
 
     /** @type {Array<Record<string, any>>} */
     const graph = [
-        organization({ siteName, origin, logoUrl, sameAs: sameAs ?? [...DEFAULT_SAME_AS] }),
+        organization({ siteName, origin, logoUrl, sameAs: sameAs ?? facts?.profiles ?? [], facts }),
         webSite({ siteName, origin, inLanguage: siteLocales }),
         webPage({ url, title, description, locale, origin }),
     ];
-    if (isProductPage) graph.push(softwareApplication({ siteName, origin, description, logoUrl }));
+    const app = licensedApplication({ isProductPage, siteName, origin, description, logoUrl, facts });
+    if (app) graph.push(app);
 
     const faq = faqPage(blocks);
     if (faq) graph.push(faq);
@@ -209,5 +214,4 @@ function buildJsonLd(ctx) {
 
 module.exports = {
     buildJsonLd, faqPage, organization, softwareApplication, breadcrumbs, webSite,
-    DEFAULT_SAME_AS, LICENSE_URL,
 };

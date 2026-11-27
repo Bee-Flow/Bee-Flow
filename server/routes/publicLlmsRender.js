@@ -14,6 +14,7 @@ const express = require('express');
 const cmsStore = require('../stores/cmsStore');
 const { buildLlmsTxt, llmsGuides, publicSiteName, LLMS_GUIDES } = require('../core/seo/sitemap');
 const { localesForPage } = require('../i18n/pageLocales');
+const { siteFacts } = require('../core/seo/siteFacts.mts');
 const log = require('../telemetry/log');
 
 /**
@@ -55,13 +56,15 @@ function createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost, siteL
             const home = pages.find((/** @type {{ isHomepage?: boolean }} */ p) => p.isHomepage);
             const guides = await latestGuides(siteId, snapshot, origin, defaultLocale);
 
+            const siteName = publicSiteName(snapshot.site);
             res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
             return res.send(buildLlmsTxt(pages, {
                 origin,
-                siteName: publicSiteName(snapshot.site),
+                siteName,
                 summary: String(home?.seo?.metaDescription || '').trim(),
                 defaultLocale,
                 guides,
+                facts: { ...siteFacts(snapshot.site), name: siteName },
             }));
         } catch (err) {
             log.warn('[SEO] llms.txt failed:', /** @type {Error} */ (err).message);

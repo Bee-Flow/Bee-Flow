@@ -20,6 +20,7 @@ const { clientRev } = require('../stores/cms/revision');
 const { mediaWarningFor } = require('../stores/cms/localeMedia');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+const { publishWithIndexNow } = require('../usecases/cmsIndexNow.mts');
 
 // ── Shared handler bodies ────────────────────────────────────────
 //
@@ -164,7 +165,8 @@ async function postSiteAiTranslate(req, res) {
  */
 async function postSitePublish(req, res) {
     try {
-        const result = await cmsStore.publishSite(req.siteId);
+        // IndexNow (off unless INDEXNOW_KEY is set) announces what the publish changed, after it answered.
+        const result = await publishWithIndexNow(req.siteId, () => cmsStore.publishSite(req.siteId));
         // Best-effort: ensure this site has a Umami website so its public pages
         // have an id to report against. Fire-and-forget so publish stays fast.
         const project = await cmsStore.getProject(req.siteId).catch((e) => fallback('routes/cmsSiteHandlers:postSitePublish', e, null));

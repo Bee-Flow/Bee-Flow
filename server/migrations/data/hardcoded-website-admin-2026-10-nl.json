@@ -99,6 +99,7 @@
     "cms_site.analytics.events.empty": "Nog geen interacties geregistreerd. De gepubliceerde site volgt klikken op knoppen, formulierinzendingen, uitgaande links en bestandsdownloads automatisch. Ze verschijnen hier zodra een bezoeker de site gebruikt.",
     "cms_site.analytics.events.filter_by": "Dashboard filteren op {value}",
     "cms_site.analytics.events.interactions": "{n} interacties",
+    "cms_site.analytics.events.label_contact_click": "Klikken op e-mail- en telefoonlinks",
     "cms_site.analytics.events.label_cta_click": "Klikken op knoppen en links",
     "cms_site.analytics.events.label_file_download": "Bestandsdownloads",
     "cms_site.analytics.events.label_form_submit": "Formulierinzendingen",
