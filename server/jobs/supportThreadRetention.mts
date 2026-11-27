@@ -53,13 +53,16 @@ function defaultDeps(): RetentionDeps {
     };
 }
 
-let deps: RetentionDeps | null = null;
+let current: RetentionDeps | null = null;
 let running = false;
-const d = (): RetentionDeps => deps ?? (deps = defaultDeps());
+function d(): RetentionDeps {
+    if (!current) current = defaultDeps();
+    return current;
+}
 
-/** Test hook: replace dependencies; no argument restores the real ones. */
+/** Test hook: swap in some dependencies over the real ones; null or nothing goes back to the real ones. */
 export function _setDeps(next?: Partial<RetentionDeps> | null): void {
-    deps = next ? { ...defaultDeps(), ...next } : null;
+    current = next ? { ...defaultDeps(), ...next } : null;
     running = false;
 }
 
@@ -99,11 +102,10 @@ export async function runOnce(): Promise<number | null> {
     }
 }
 
-const { periodicJob } = nodeRequire('./lib/periodicTimer.js');
-const timer = periodicJob({
-    bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS, run: () => runOnce(),
+/** The daily timer (jobs/lib/periodicTimer.js): first pass BOOT_DELAY_MS after boot. */
+const daily: { start: () => void, stop: () => void } = nodeRequire('./lib/periodicTimer.js').periodicJob({
+    run: () => runOnce(), bootDelayMs: BOOT_DELAY_MS, intervalMs: INTERVAL_MS,
     onStart: () => d().log.info('[supportThreadRetention] Started: daily'),
 });
 
-export const start: () => void = timer.start;
-export const stop: () => void = timer.stop;
+export const { start, stop } = daily;
