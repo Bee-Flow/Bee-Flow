@@ -174,6 +174,96 @@ test('edges and the summary count core -> module, module -> core and module -> m
     assert.equal(map.edges('server', { tests: true }).length, 5);
 });
 
+const WEB = {
+    server: { coreDir: 'server', moduleDir: 'server' },
+    'agent-hub': { coreDir: 'agent-hub', moduleDir: 'frontend', imports: { style: 'vite', alias: { '@/': 'src/' } } },
+};
+const webMod = (web, extra = {}) => ({ name: 'x', requires: [], uses: [], server: [], 'agent-hub': web, ...extra });
+
+test('the web client: tree paths under src/, colocated tests and split-off parts follow their component', () => {
+    const map = fixture({
+        packages: WEB,
+        modules: { help: webMod(['src/components/help/**']), side: webMod(['src/shell/Panel.helpers.ts']) },
+        core: { 'agent-hub': ['src/components/help/keep.ts'] },
+    }, {
+        'agent-hub/src/components/help/Desk.tsx': '',
+        'agent-hub/src/components/help/keep.ts': '',
+        'agent-hub/src/shell/Panel.tsx': '',
+        'agent-hub/src/shell/Panel.test.tsx': '',
+        'agent-hub/src/shell/Panel.threads.test.jsx': '',
+        'agent-hub/src/shell/Panel.types.ts': '',
+        'agent-hub/src/shell/Panel.helpers.ts': '',
+        'agent-hub/src/shell/Panel.module.css': '',
+        'agent-hub/src/shell/Panel.testkit.tsx': '',
+        'agent-hub/src/shell/lonely.types.ts': '',
+        'agent-hub/vite.config.js': '',
+    });
+    const owner = (p) => map.ownerOf('agent-hub', p);
+    assert.equal(owner('src/components/help/Desk.tsx'), 'help');
+    assert.equal(owner('src/components/help/keep.ts'), null, 'a core exception wins in the web client too');
+    for (const p of ['Panel.test.tsx', 'Panel.threads.test.jsx', 'Panel.types.ts', 'Panel.module.css', 'Panel.testkit.tsx']) assert.equal(owner(`src/shell/${p}`), null, p);
+    assert.equal(owner('src/shell/Panel.helpers.ts'), 'side', 'a glob that names the split-off part wins over its component');
+    assert.equal(owner('src/shell/lonely.types.ts'), null);
+    assert.equal(owner('vite.config.js'), null);
+    assert.equal(map.ownerOf('server', 'src/components/help/Desk.tsx'), null, 'the packages do not share globs');
+    const rows = Object.fromEntries(summarize(map, 'agent-hub').map((r) => [r.id, r]));
+    assert.equal(rows.core.tests, 3, 'tests and testkits count as tests, split-off parts do not');
+    assert.equal(rows.core.files, 9);
+    assert.deepEqual(checkMap(map), []);
+});
+
+test('--check covers the web client: a glob that matches nothing, a file two modules claim', () => {
+    const map = fixture({
+        packages: WEB,
+        modules: { a: webMod(['src/a/**', 'src/gone/**']), b: webMod(['src/a/shared.ts']) },
+    }, { 'agent-hub/src/a/x.tsx': '', 'agent-hub/src/a/shared.ts': '' });
+    const problems = checkMap(map).join('\n');
+    assert.match(problems, /agent-hub: glob "src\/gone\/\*\*" of a matches no file/);
+    assert.match(problems, /agent-hub\/src\/a\/shared\.ts: owned by two modules \(a, b\)/);
+});
+
+test('web client edges: the alias, static and lazy core -> module edges counted apart, types left out', () => {
+    const map = fixture({
+        packages: WEB,
+        modules: { help: webMod(['src/help/**']), learn: webMod(['src/learn/**'], { uses: ['help'] }) },
+    }, {
+        'agent-hub/src/App.tsx': [
+            "import Desk from '@/help/Desk';",
+            "import type { T } from './learn/types';",
+            "const Course = lazy(() => import('./learn/Course'));",
+            'export default () => <Desk />;',
+        ].join('\n'),
+        'agent-hub/src/util.ts': '',
+        'agent-hub/src/help/Desk.tsx': "import { u } from '../util';\n",
+        'agent-hub/src/help/Desk.test.tsx': "import Course from '@/learn/Course';\n",
+        'agent-hub/src/learn/Course.tsx': "import Desk from '@/help/Desk';\nimport { u } from '@/util';\n",
+        'agent-hub/src/learn/types.ts': '',
+    });
+    assert.deepEqual(map.edges('agent-hub').map((e) => `${e.from}>${e.to}:${e.lazy ? 'lazy' : 'top'}`).sort(), [
+        'src/App.tsx>src/help/Desk.tsx:top',
+        'src/App.tsx>src/learn/Course.tsx:lazy',
+        'src/help/Desk.tsx>src/util.ts:top',
+        'src/learn/Course.tsx>src/help/Desk.tsx:top',
+        'src/learn/Course.tsx>src/util.ts:top',
+    ]);
+    const rows = Object.fromEntries(summarize(map, 'agent-hub').map((r) => [r.id, r]));
+    assert.deepEqual([rows.help.coreIn, rows.help.coreInLazy], [1, 0]);
+    assert.deepEqual([rows.learn.coreIn, rows.learn.coreInLazy], [1, 1]);
+    assert.equal(rows.learn.declared, 1);
+    assert.equal(rows.help.coreFiles, 1);
+    assert.equal(rows.help.tests, 1);
+});
+
+test('the CLI takes --pkg agent-hub for --owner and --list', () => {
+    const run = (...args) => execFileSync(process.execPath, [path.join(HERE, 'module-map.mjs'), ...args], { encoding: 'utf8' });
+    assert.equal(run('--owner', 'agent-hub/src/components/support/SupportDrawer.tsx', '--pkg', 'agent-hub').trim(), 'support');
+    assert.equal(run('--owner', 'src/AgentHub.tsx', '--pkg', 'agent-hub').trim(), 'core');
+    const listed = run('--list', 'learning', '--pkg', 'agent-hub').trim().split('\n');
+    assert.ok(listed.includes('src/pages/settings/LearningCenterSection.tsx'));
+    assert.ok(listed.every((p) => p.startsWith('src/')));
+    assert.throws(() => execFileSync(process.execPath, [path.join(HERE, 'module-map.mjs'), '--summary', '--pkg', 'nope'], { stdio: 'pipe' }));
+});
+
 test('the committed map passes --check', () => {
     const out = execFileSync(process.execPath, [path.join(HERE, 'module-map.mjs'), '--check'], { encoding: 'utf8' });
     assert.match(out, /module-map: ok/);
@@ -200,6 +290,42 @@ test('the pilot modules own exactly their files', () => {
     assert.equal(owner('integrations/documentBuilderTools.js'), null);
     assert.equal(owner('auth/googleSessionHydration.js'), null);
     assert.equal(owner('core/providers/google.js'), null);
+});
+
+test('the web client pilots: learning, support and int_google own exactly their screens', () => {
+    const map = loadModuleMap();
+    const owner = (p) => map.ownerOf('agent-hub', p);
+    assert.equal(owner('src/pages/settings/LearningCenterSection.tsx'), 'learning');
+    assert.equal(owner('src/pages/settings/learning/CourseView.video.test.tsx'), 'learning');
+    assert.equal(owner('src/components/onboarding/player/LessonPlayer.tsx'), 'learning');
+    assert.equal(owner('src/components/onboarding/generated/lessons.js'), 'learning');
+    assert.equal(owner('src/hooks/useTrainingGates.ts'), 'learning');
+    assert.equal(owner('src/i18n/en/learn.generated.mjs'), 'learning');
+    assert.equal(owner('src/components/support/SupportInboxPanel.tsx'), 'support');
+    assert.equal(owner('src/components/admin/Studio/SupportStudio/SupportSettings.tsx'), 'support');
+    assert.equal(owner('src/pages/settings/HelpSupportSection.test.tsx'), 'support');
+    assert.equal(owner('src/i18n/en/support.generated.mjs'), 'support');
+    assert.equal(owner('src/components/chat/GmailPicker.tsx'), 'int_google');
+    assert.equal(owner('src/components/chat/MessageItem/KeepDraftCard.tsx'), 'int_google');
+    assert.equal(owner('src/lib/googleOAuthPopup.test.ts'), 'int_google');
+    // the tour engine, e-mail verification and the shared draft cards stay core
+    for (const p of ['src/components/onboarding/OnboardingTour.tsx', 'src/components/onboarding/tourSteps.ts', 'src/components/onboarding/EmailVerificationScreen.tsx',
+        'src/api/lessons.types.ts', 'src/components/chat/MessageItem/EmailDraftCard.tsx', 'src/components/chat/MessageItem/DraftCardShell.tsx',
+        'src/pages/meeting-notes/hooks/useGoogleMeetConnected.ts', 'src/marketing/sections/CustomerSupport.tsx']) {
+        assert.notEqual(owner(p), 'learning', p);
+        assert.notEqual(owner(p), 'support', p);
+        assert.notEqual(owner(p), 'int_google', p);
+    }
+});
+
+test('a generated i18n chunk of the web client has the owner of its server namespace', () => {
+    const map = loadModuleMap();
+    const server = new Map(map.files('server').map((f) => [f.treePath, f.owner]));
+    for (const f of map.files('agent-hub')) {
+        const m = f.treePath.match(/^src\/i18n\/en\/(.+)\.generated\.mjs$/);
+        const ns = m && `i18n/defaults/en/${m[1]}.js`;
+        if (ns && server.has(ns)) assert.equal(f.owner, server.get(ns), f.treePath);
+    }
 });
 
 test('an i18n namespace and its Dutch twin have one owner', () => {
