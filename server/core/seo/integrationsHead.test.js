@@ -46,10 +46,10 @@ async function get(app, path) {
     } finally { server.close(); }
 }
 
-function app() {
+function app(snapshot = { site: SITE }) {
     const a = express();
     a.use(createIntegrationsRouter({
-        resolveOrigin: () => ORIGIN, getLiveSiteId: async () => 'site1', getSnapshot: async () => ({ site: SITE }),
+        resolveOrigin: () => ORIGIN, getLiveSiteId: async () => 'site1', getSnapshot: async () => snapshot,
         siteLocales: async () => ({ defaultLocale: 'en', locales: ['en', 'nl'] }),
     }));
     return a;
@@ -107,6 +107,17 @@ test('integration pages carry the site Organization from the site settings, and 
     assert.deepEqual(org.sameAs, ['https://github.com/acme/acme']);
     const page = graph.find(n => n['@type'] === 'WebPage');
     assert.deepEqual(page.publisher, { '@id': `${ORIGIN}/#organization` });
+});
+
+test('a Dutch integration page describes the Organization with the Dutch footer blurb, when the site has one', async () => {
+    const site = { ...SITE, footer: { ...SITE.footer, blurb: 'Acme is a workspace for firms.' } };
+    const translated = app({ site, siteLocaleOverrides: { nl: { footer: { blurb: 'Acme is een werkplek voor kantoren.' } } } });
+    const orgOf = async (/** @type {import('express').Express} */ a, /** @type {string} */ path) =>
+        graphOf((await get(a, path)).body).find(n => n['@type'] === 'Organization');
+    assert.equal((await orgOf(translated, '/nl/integrations/gmail')).description, 'Acme is een werkplek voor kantoren.');
+    assert.equal((await orgOf(translated, '/integrations/gmail')).description, 'Acme is a workspace for firms.');
+    // Without a Dutch blurb the default-language one stays.
+    assert.equal((await orgOf(app({ site }), '/nl/integrations/gmail')).description, 'Acme is a workspace for firms.');
 });
 
 test('the directory gets the same tags; an English-only catalogue page has no hreflang', async () => {

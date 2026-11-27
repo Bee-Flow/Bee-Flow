@@ -57,8 +57,8 @@ test('a translated page lists its other-language address after its own', () => {
     assert.ok(section(txt, 'Pages').includes(`- [Pricing](${ORIGIN}/pricing): Plans.`));
 });
 
-/** Any amount of money in the text: a currency sign or code next to a number. */
-const PRICE = /[€$£]\s?\d|\d\s?(?:€|EUR|USD|GBP)\b|\b(?:EUR|USD|GBP)\s?\d/;
+/** Any amount of money in the text: a currency sign, code or word next to a number, or a number per user/month. */
+const PRICE = /[€$£]\s?\d|\d\s?(?:€|EUR|USD|GBP|euros?|dollars?)\b|\b(?:EUR|USD|GBP)\s?\d|\d\s?(?:per|a|\/)\s?(?:user|month|seat)\b/i;
 
 test('a facts block from the site settings follows the summary, and no price reaches the file', () => {
     const facts = {
@@ -84,6 +84,28 @@ test('a facts block from the site settings follows the summary, and no price rea
     // The page stays listed; only its priced description is dropped.
     assert.ok(section(txt, 'Pages').includes(`- [Plans](${ORIGIN}/plans)`));
     assert.ok(section(txt, 'Pages').includes(`- [Costs](${ORIGIN}/kosten): A fixed price agreed before building starts.`));
+    assert.doesNotMatch(txt, PRICE);
+});
+
+test('a price written in words is dropped too, from descriptions, guide titles and link titles', () => {
+    const pages = [
+        ...PAGES,
+        { slug: 'plans', title: 'Plans', seo: { metaDescription: 'Paid licences from 6 euro per user per month.' } },
+        { slug: 'us', title: 'US', seo: { metaDescription: 'Ten dollars? No: 10 dollars a seat.' } },
+        { slug: 'team', title: 'Team', seo: { metaDescription: 'Just 6 per user per month.' } },
+    ];
+    const txt = buildLlmsTxt(pages, {
+        origin: ORIGIN,
+        guides: [
+            { title: 'Why EU hosting', url: `${ORIGIN}/blog/why-eu-hosting` },
+            { title: 'Bee Flow now 5 euros a month', url: `${ORIGIN}/blog/price-cut` },
+        ],
+        links: [{ title: 'Docs', url: 'https://docs.acme.test' }, { title: 'Buy for 99 EUR', url: 'https://shop.acme.test' }],
+    });
+    assert.ok(section(txt, 'Pages').includes(`- [Plans](${ORIGIN}/plans)`));
+    assert.ok(section(txt, 'Pages').includes(`- [Team](${ORIGIN}/team)`));
+    assert.deepEqual(section(txt, 'Guides'), [`- [Why EU hosting](${ORIGIN}/blog/why-eu-hosting)`]);
+    assert.deepEqual(section(txt, 'Links'), ['- [Docs](https://docs.acme.test)']);
     assert.doesNotMatch(txt, PRICE);
 });
 

@@ -24,7 +24,7 @@ export interface SiteFacts {
     /** The registration line, e.g. "KvK 97632430". */
     registration: string | null;
     vat: string | null;
-    /** External profiles (footer socials, header nav links to profile hosts). */
+    /** External profiles: the footer's social links, nothing else. */
     profiles: string[];
 }
 
@@ -42,13 +42,6 @@ function list(v: unknown): unknown[] {
     return Array.isArray(v) ? v : [];
 }
 
-/** Hosts whose pages are an organisation's own profile, for sameAs. */
-const PROFILE_HOSTS: readonly string[] = [
-    'github.com', 'gitlab.com', 'codeberg.org', 'linkedin.com', 'x.com', 'twitter.com', 'facebook.com',
-    'instagram.com', 'youtube.com', 'bsky.app', 'mastodon.social', 'apps.nextcloud.com', 'wikidata.org',
-    'crunchbase.com', 'tiktok.com', 'threads.net',
-];
-
 /** An absolute http(s) URL, else ''. */
 function absoluteUrl(v: unknown): string {
     const s = text(v);
@@ -63,17 +56,12 @@ export function linkHref(item: unknown): string {
     return text(link?.url) || text(link?.href) || text(item.href) || text(item.url);
 }
 
-function isProfileUrl(url: string): boolean {
-    let host: string;
-    try {
-        host = new URL(url).hostname.toLowerCase();
-    } catch {
-        return false;
-    }
-    return PROFILE_HOSTS.some(h => host === h || host.endsWith(`.${h}`));
-}
-
-/** The external profiles among the footer's social links (absolute http(s) URLs only). */
+/**
+ * The external profiles among the footer's social links (absolute http(s) URLs only).
+ * These are the only links the site marks as its own profiles: a header nav link to
+ * a known host can just as well be a third party's repository, a video or a post,
+ * and sameAs would then claim it as this organisation's identity.
+ */
 export function footerProfiles(footer: unknown): string[] {
     if (!isDoc(footer)) return [];
     const out: string[] = [];
@@ -83,27 +71,6 @@ export function footerProfiles(footer: unknown): string[] {
         if (href) out.push(href);
     }
     return out;
-}
-
-/** Every link item in the header nav: top entries, their children and dropdown columns. */
-function navItems(entries: unknown): Doc[] {
-    const out: Doc[] = [];
-    for (const e of list(entries)) {
-        if (!isDoc(e) || e.enabled === false) continue;
-        out.push(e);
-        out.push(...navItems(e.children));
-        const dropdown = isDoc(e.dropdown) ? e.dropdown : null;
-        for (const col of list(dropdown?.columns)) {
-            if (isDoc(col)) out.push(...navItems(col.items));
-        }
-    }
-    return out;
-}
-
-/** Header nav links that point at a known profile host (a repository, a company page). */
-export function headerProfiles(header: unknown): string[] {
-    if (!isDoc(header)) return [];
-    return navItems(header.nav).map(linkHref).map(absoluteUrl).filter(u => u && isProfileUrl(u));
 }
 
 /**
@@ -141,7 +108,7 @@ export function siteFacts(site: unknown): SiteFacts {
         address: text(acc.address) || null,
         registration: text(acc.registration) || null,
         vat: text(acc.vat) || null,
-        profiles: [...new Set([...footerProfiles(footer), ...headerProfiles(header)])],
+        profiles: [...new Set(footerProfiles(footer))],
     };
 }
 
@@ -210,24 +177,70 @@ export function organizationFields(facts: SiteFacts): Record<string, unknown> {
     return out;
 }
 
-const CURRENCY_SIGNS = ['€', '$', '£', '¥', '₹', 'CHF', 'EUR', 'USD', 'GBP'];
+const CURRENCY_SIGNS: readonly string[] = ['€', '$', '£', '¥', '₹'];
+const CURRENCY_WORDS: ReadonlySet<string> = new Set([
+    ...CURRENCY_SIGNS, 'eur', 'euro', 'euros', 'usd', 'dollar', 'dollars', 'gbp', 'pound', 'pounds', 'chf',
+]);
+/** Multipliers that may sit between an amount and its currency ("6 k EUR", "2 million euro"). */
+const MULTIPLIERS: ReadonlySet<string> = new Set(['k', 'm', 'mln', 'million', 'miljoen']);
+/** "per user", "a month", "/month": a bare amount followed by one of these is a price. */
+const RATE_UNITS: ReadonlySet<string> = new Set([
+    'user', 'users', 'seat', 'seats', 'month', 'mo', 'year', 'yr', 'gebruiker', 'maand', 'jaar', 'licence', 'license',
+]);
+const RATE_LEADS: ReadonlySet<string> = new Set(['per', 'a', '/']);
+const EDGE_PUNCTUATION = '.,;:!?()[]{}"\'«»-';
+
+function trimPunctuation(token: string): string {
+    let start = 0;
+    let end = token.length;
+    while (start < end && EDGE_PUNCTUATION.includes(token[start])) start++;
+    while (end > start && EDGE_PUNCTUATION.includes(token[end - 1])) end--;
+    return token.slice(start, end);
+}
+
+function isDigit(ch: string | undefined): boolean {
+    return ch !== undefined && ch >= '0' && ch <= '9';
+}
+
+function isAmount(token: string | undefined): boolean {
+    if (!token || !isDigit(token[0])) return false;
+    for (const ch of token) if (!isDigit(ch) && ch !== '.' && ch !== ',') return false;
+    return true;
+}
 
 /**
- * Does the text state an amount of money ("€6", "6 EUR", "$ 10")? Used to keep
- * prices out of what is written for language models: a price belongs on the
- * site's own pricing page, where it is kept current.
+ * The lower-cased words of a text, with currency signs, slashes and the border
+ * between a number and a word ("6EUR", "€6") split off as their own tokens.
+ */
+function priceTokens(s: string): string[] {
+    let spaced = '';
+    let prev = '';
+    for (const ch of s.toLowerCase()) {
+        if (CURRENCY_SIGNS.includes(ch) || ch === '/') spaced += ` ${ch} `;
+        else if (prev && ((isDigit(prev) && ch >= 'a' && ch <= 'z') || (isDigit(ch) && prev >= 'a' && prev <= 'z'))) spaced += ` ${ch}`;
+        else spaced += ch;
+        prev = ch;
+    }
+    return spaced.split(/\s+/).map(trimPunctuation).filter(Boolean);
+}
+
+/**
+ * Does the text state an amount of money? An amount next to a currency sign,
+ * code or word ("€6", "6 EUR", "$ 10", "6 euros", "10 dollars"), or a bare
+ * amount followed by a rate ("6 per user per month", "9 a month", "6/user").
+ * Used to keep prices out of what is written for language models: a price
+ * belongs on the site's own pricing page, where it is kept current.
  */
 export function statesPrice(value: unknown): boolean {
     const s = text(value);
     if (!s) return false;
-    for (const sign of CURRENCY_SIGNS) {
-        let at = s.indexOf(sign);
-        while (at !== -1) {
-            const before = s.slice(Math.max(0, at - 12), at).trimEnd();
-            const after = s.slice(at + sign.length, at + sign.length + 12).trimStart();
-            if (/^\d/.test(after) || /\d[\d.,]*(\s?(k|m|mln|million))?$/i.test(before)) return true;
-            at = s.indexOf(sign, at + sign.length);
-        }
+    const tokens = priceTokens(s);
+    for (let i = 0; i < tokens.length; i++) {
+        if (!isAmount(tokens[i])) continue;
+        let next = i + 1;
+        if (MULTIPLIERS.has(tokens[next])) next++;
+        if (CURRENCY_WORDS.has(tokens[i - 1]) || CURRENCY_WORDS.has(tokens[next])) return true;
+        if (RATE_LEADS.has(tokens[next]) && RATE_UNITS.has(tokens[next + 1])) return true;
     }
     return false;
 }

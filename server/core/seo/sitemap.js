@@ -273,8 +273,9 @@ function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defa
         ['Facts', facts ? llmsFactLines(facts) : []],
         ['Pages', main.map(line)],
         ['Comparisons', comparisons.map(line)],
-        ['Guides', (guides || []).filter(g => g && g.title && g.url).map(link)],
-        ['Links', (links || []).map(link)],
+        // A guide or link whose title states a price is left out: its title is the whole line.
+        ['Guides', (guides || []).filter(g => g && g.title && g.url && !statesPrice(g.title)).map(link)],
+        ['Links', (links || []).filter(l => l && !statesPrice(l.title)).map(link)],
     ];
     for (const [heading, lines] of sections) {
         if (lines.length) out.push(`## ${heading}`, '', ...lines, '');

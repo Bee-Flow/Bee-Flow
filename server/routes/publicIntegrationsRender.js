@@ -77,6 +77,33 @@ function navFor(snapshot, defaultLocale, locales) {
     return nav;
 }
 
+/**
+ * The footer blurb in the served locale, as CMS pages show it: the site's locale
+ * override (or that of its base language, "pt" for "pt-br"), else null.
+ * @param {{ siteLocaleOverrides?: Record<string, { footer?: { blurb?: unknown } } | null> }} snapshot
+ * @param {string} locale
+ * @returns {string | null}
+ */
+function localeBlurb(snapshot, locale) {
+    const overrides = snapshot.siteLocaleOverrides || {};
+    const ov = overrides[locale] || overrides[locale.split('-')[0]];
+    const blurb = ov?.footer?.blurb;
+    return typeof blurb === 'string' && blurb.trim() ? blurb.trim() : null;
+}
+
+/**
+ * The site facts for a page in `asked` (a locale prefix, or null for the default
+ * locale): the organisation's description in the page's own language, as on CMS pages.
+ * @param {PublishedSnapshot & { siteLocaleOverrides?: Record<string, any> }} snapshot
+ * @param {string} siteName @param {string | null} asked
+ */
+function localeFacts(snapshot, siteName, asked) {
+    const facts = { ...siteFacts(snapshot.site), name: siteName };
+    const translated = asked ? localeBlurb(snapshot, asked) : null;
+    if (translated) facts.description = translated;
+    return facts;
+}
+
 /** The query string as sent, for a redirect that keeps it. @param {import('express').Request} req */
 function rawQueryString(req) {
     const url = String(req.originalUrl || '');
@@ -110,7 +137,7 @@ function createIntegrationsRouter({
         const origin = resolveOrigin(req);
         return {
             origin, siteName, items: dir.listGalleryItems(),
-            facts: { ...siteFacts(snapshot.site), name: siteName },
+            facts: localeFacts(snapshot, siteName, asked),
             logoUrl: absolute(origin, snapshot.site?.design?.logo || ''),
             nav: navFor(snapshot, defaultLocale, locales), defaultLocale, locales, locale: asked || defaultLocale,
         };

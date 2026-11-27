@@ -8,7 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     siteFacts, legalNameFrom, postalAddress, registrationIdentifier, organizationFields, statesPrice,
-    footerProfiles, headerProfiles, llmsFactLines,
+    footerProfiles, llmsFactLines,
 } from './siteFacts.mts';
 
 /** The shape the CMS stores (header nav with a dropdown and children, footer socials as link objects). */
@@ -47,7 +47,7 @@ test('the facts come from the header brand, the footer blurb, copyright line and
         address: 'Main street 6 unit 1.12, 1185 XE Amstelveen, Netherlands',
         registration: 'KvK 12345678',
         vat: null,
-        profiles: ['https://github.com/acme/acme', 'https://www.linkedin.com/company/acme'],
+        profiles: ['https://github.com/acme/acme'],
     });
 });
 
@@ -66,9 +66,13 @@ test('footer socials are read from the stored link object (link.url) as well as 
     ] }), ['https://github.com/acme/acme', 'https://x.com/acme']);
 });
 
-test('only header nav links to a profile host count as profiles', () => {
-    assert.deepEqual(headerProfiles(SITE.header), ['https://www.linkedin.com/company/acme', 'https://github.com/acme/acme']);
-    assert.deepEqual(headerProfiles({ nav: [{ link: { kind: 'external', url: 'https://evilgithub.com/x' } }] }), []);
+test('header nav links never count as profiles: only the footer socials the site marks as its own', () => {
+    // The header links to LinkedIn and GitHub (SITE.header), but a nav link can be a
+    // third-party repository, a video or a post: sameAs would then claim it as this
+    // organisation's identity. Only the footer socials are profiles.
+    assert.deepEqual(siteFacts({ ...SITE, footer: { ...SITE.footer, socials: [] } }).profiles, []);
+    const nav = [{ link: { kind: 'external', url: 'https://github.com/other/project/blob/main/LICENSE.md' } }];
+    assert.deepEqual(siteFacts({ header: { nav } }).profiles, []);
 });
 
 test('the legal name is the copyright line without the sign, the years and the reservation', () => {
@@ -110,8 +114,16 @@ test('the Organization fields carry the legal name as alternateName, the address
 });
 
 test('statesPrice sees an amount of money, not the word price', () => {
-    for (const s of ['from €6 per user', '€ 6', '6 EUR a month', 'USD 10', '$10', '12,50 €']) assert.ok(statesPrice(s), s);
-    for (const s of ['A fixed price agreed first', 'Euro hosting', 'EU AI Act', '', null]) assert.ok(!statesPrice(s), String(s));
+    for (const s of [
+        'from €6 per user', '€ 6', '6 EUR a month', 'USD 10', '$10', '12,50 €', '€6,-', '(€6)',
+        '6 euro per user per month', '6 euros a month', '10 dollars', '1 dollar.', 'EUR 6', 'from 6EUR',
+        '6 per user per month', '6/user/month', '6 per seat', 'only 9 a month', '6 per gebruiker per maand',
+        'Costs 7.50/month.',
+    ]) assert.ok(statesPrice(s), s);
+    for (const s of [
+        'A fixed price agreed first', 'Euro hosting', 'EU AI Act', '', null, 'European data centres',
+        '10,000 runs per month for teams', 'Users per organisation', 'Founded in 2024', '24/7 support',
+    ]) assert.ok(!statesPrice(s), String(s));
 });
 
 test('the llms facts leave out a priced blurb', () => {
