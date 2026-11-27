@@ -21,6 +21,10 @@
  * DEFENSIVE: every collector is wrapped so a missing table/column (an install
  * that never enabled a feature) yields [] instead of throwing — telemetry must
  * never break, and a partial snapshot is fine.
+ *
+ * A collector over a first-party module's tables is that module's part
+ * (stores/metrics/<module>.js), asked for by name at the point of use: without
+ * the module its metrics are left out of the snapshot.
  */
 
 const { getAll } = require('../db');
@@ -38,6 +42,16 @@ async function safe(fn) {
     catch (e) { log.warn('[metricsStore] collector failed:', e && /** @type {Error} */ (e).message); return []; }
 }
 
+/** The automation module's collectors, or null without that module. */
+function automationMetrics() {
+    return require('../modules/firstParty/moduleData').lookupFeatureModule('stores/metrics/automation');
+}
+
+/** The compliance module's collectors, or null without that module. */
+function complianceMetrics() {
+    return require('../modules/firstParty/moduleData').lookupFeatureModule('stores/metrics/compliance');
+}
+
 // ── Reliability / ops ────────────────────────────────────────────────────────
 
 // In-flight automation work + Stripe billing outbox backlog. Platform-wide
@@ -45,11 +59,8 @@ async function safe(fn) {
 async function opsRollup() {
     const rows = [];
 
-    const q = await safe(() => getAll(`
-        SELECT status, COUNT(*)::int AS value
-          FROM automation_runs
-         WHERE status IN ('queued', 'running', 'awaiting_approval', 'awaiting_form')
-         GROUP BY status`));
+    const automation = automationMetrics();
+    const q = automation ? await safe(() => automation.queueDepth(getAll)) : [];
     for (const r of q) rows.push({ metric: 'automation_queue_depth', status: r.status, value: r.value });
 
     const outbox = await safe(() => getAll(`
@@ -116,12 +127,8 @@ async function productRollup() {
     }
 
     // Automation runs in the last 24h by outcome — success-rate + volume signal.
-    const runs = await safe(() => getAll(`
-        SELECT status, COUNT(*)::int AS value,
-               COALESCE(AVG(duration_ms) FILTER (WHERE duration_ms IS NOT NULL), 0)::int AS avg_duration_ms
-          FROM automation_runs
-         WHERE created_at > NOW() - INTERVAL '1 day'
-         GROUP BY status`));
+    const automation = automationMetrics();
+    const runs = automation ? await safe(() => automation.runsLastDay(getAll)) : [];
     for (const r of runs) rows.push({ metric: 'automation_runs_24h', status: r.status, value: r.value, avg_duration_ms: r.avg_duration_ms });
 
     // Knowledge-base footprint per org (docs + embedded chunks).
@@ -175,11 +182,8 @@ async function securityRollup() {
 
     // GDPR retention-job liveness — seconds since the last enforced sweep per
     // org. A large/growing value means the memoryRetentionEnforcer stopped.
-    const ret = await safe(() => getAll(`
-        SELECT organization_id AS org_id,
-               EXTRACT(EPOCH FROM (NOW() - last_retention_run_at))::int AS value
-          FROM compliance_settings
-         WHERE last_retention_run_at IS NOT NULL`));
+    const compliance = complianceMetrics();
+    const ret = compliance ? await safe(() => compliance.retentionRunAge(getAll)) : [];
     for (const r of ret) rows.push({ metric: 'retention_run_age_s', org_id: r.org_id || '', value: r.value });
 
     return rows;

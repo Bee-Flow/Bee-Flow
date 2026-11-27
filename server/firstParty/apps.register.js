@@ -27,6 +27,9 @@ function register() {
         'appStudio/approvalWaits': () => require('../appStudio/approvalWaits.mts'),
         'appStudio/mcpBuilder': () => require('../appStudio/mcpBuilder'),
         'appStudio/mailboxIdentity': () => require('../appStudio/mailboxIdentity'),
+        'stores/adoption/kinds.apps': () => require('../stores/adoption/kinds.apps'),
+        'core/kb/usage/apps': () => require('../core/kb/usage/apps'),
+        'stores/agent/usage/apps': () => require('../stores/agent/usage/apps'),
     }));
 }
 

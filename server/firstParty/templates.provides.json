@@ -1,3 +1,5 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "core/kb/usage/templates"
+  ]
 }

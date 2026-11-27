@@ -22,6 +22,9 @@ function register() {
         'integrations/webpageDbTools': () => require('../integrations/webpageDbTools'),
         'integrations/webpagePlanTool': () => require('../integrations/webpagePlanTool'),
         'core/kb/sources/webpage': () => require('../core/kb/sources/webpage'),
+        'stores/adoption/kinds.webpages': () => require('../stores/adoption/kinds.webpages'),
+        'core/kb/usage/webpages': () => require('../core/kb/usage/webpages'),
+        'stores/agent/usage/webpages': () => require('../stores/agent/usage/webpages'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

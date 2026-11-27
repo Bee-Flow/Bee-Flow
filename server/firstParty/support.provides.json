@@ -1,3 +1,6 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "core/kb/usage/support",
+    "stores/agent/usage/support"
+  ]
 }

@@ -1,6 +1,7 @@
 'use strict';
 /**
- * The hero numbers, against the real schemas (PGlite).
+ * The hero numbers, against the real schemas (PGlite). The makers of a
+ * module's kinds are tested next to its part (kinds.<module>.test.js).
  *
  * Run: cd server && node --test stores/adoption/summary.test.js
  */
@@ -19,9 +20,6 @@ test('members, status, makers, spend and seats of org A', async () => {
         total: 5, aiActive: 2, seenOnly: 1, dormant: 1, never: 1, newInPeriod: 1,
         seats: { used: 5, max: 25 },
     });
-    // The owner built their first thing 100 days ago; the colleague's first is
-    // the meeting of a week ago.
-    assert.deepEqual(s.makers, { total: 2, newInPeriod: 1 });
     assert.equal(s.spend.calls, 4);
     assert.equal(s.spend.cost, 3.6);
     assert.equal(s.spend.people, 2);

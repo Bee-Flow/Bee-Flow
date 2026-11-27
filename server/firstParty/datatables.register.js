@@ -32,6 +32,7 @@ function register() {
         'core/dataEngine/sources/spreadsheetFile/formats/csv': () => require('../core/dataEngine/sources/spreadsheetFile/formats/csv'),
         'core/dataEngine/sources/spreadsheetFile/formats/sheetjs': () => require('../core/dataEngine/sources/spreadsheetFile/formats/sheetjs'),
         'core/dataEngine/sources/spreadsheetFile/cells': () => require('../core/dataEngine/sources/spreadsheetFile/cells'),
+        'stores/adoption/kinds.datatables': () => require('../stores/adoption/kinds.datatables'),
     }));
     // The live-datatable listeners (stores/datatableStore/liveChanges.js, this module's): the
     // knowledge-source arm, public webpage snapshots and the cowork items that start on a table.

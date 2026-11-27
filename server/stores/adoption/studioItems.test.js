@@ -1,6 +1,7 @@
 'use strict';
 /**
- * The drill-down of one Studio kind against the real schemas (PGlite).
+ * The drill-down of one Studio kind against the real schemas (PGlite): the
+ * core's kinds. A module's kinds are tested next to its part (kinds.<module>.test.js).
  *
  * Run: cd server && node --test stores/adoption/studioItems.test.js
  */
@@ -26,19 +27,9 @@ test('the drill-down lists the objects with owner name, audience and uses', asyn
     assert.ok(out.items.every((i) => i.id.startsWith('a-')), 'nothing of org B');
 });
 
-test('a colleague who runs an app counts as its user, the owner only pays', async () => {
-    const out = await kit.store().studioItems(kit.scope(), 'app', 50);
-    assert.equal(out.items[0].people, 1);
-    assert.equal(out.topPeople[0].person, 'a-colleague');
-    assert.equal(out.topPeople[0].cost, 2);
-    assert.ok(!out.topPeople.some((p) => p.person.startsWith('guest_')));
-});
-
 test('org B sees its own objects, never A\'s', async () => {
     const out = await kit.store().studioItems(kit.scope(kit.ORG_B), 'agent', 50);
     assert.deepEqual(out.items.map((i) => i.id).sort(), ['b-agent', 'b-agent2']);
-    const flows = await kit.store().studioItems(kit.scope(kit.ORG_B), 'automation', 50);
-    assert.equal(flows?.total, 1, 'the private automation of B is counted, not listed');
     const unknown = await kit.store().studioItems(kit.scope('org-nobody'), 'agent', 50);
     assert.equal(unknown?.total, 0);
 });
@@ -47,35 +38,29 @@ test('an unknown kind answers null', async () => {
     assert.equal(await kit.store().studioItems(kit.scope(), 'nope', 50), null);
 });
 
+test('a kind whose module is not part of this installation answers null too', async () => {
+    const registry = require('../../core/featureModules');
+    const name = 'stores/adoption/kinds.playbooks';
+    registry.optionalFeatureModule(name);
+    const previous = registry._featureModuleGetter(name);
+    registry.registerFeatureModules({ [name]: () => ({ KINDS: [] }) });
+    try {
+        assert.equal(await kit.store().studioItems(kit.scope(), 'playbook', 50), null);
+    } finally {
+        if (previous) registry.registerFeatureModules({ [name]: previous });
+        else registry._clearFeatureModulesForTests(name);
+    }
+});
 
-test('private items are counted, never listed: no title of a private recording or document leaves the store', async () => {
-    const meetings = await kit.store().studioItems(kit.scope(), 'meeting', 50);
-    assert.equal(meetings?.total, 2);
-    assert.deepEqual(meetings?.items.map((i) => i.id), ['a-meet-pub'], 'the private "Standup" recording is not listed');
+
+test('private items are counted, never listed: no title of a private document leaves the store', async () => {
     const docs = await kit.store().studioItems(kit.scope(), 'document', 50);
     assert.equal(docs?.total, 1);
     assert.deepEqual(docs?.items, []);
     assert.deepEqual(docs?.unused, []);
-    const body = JSON.stringify([meetings, docs]);
-    assert.ok(!body.includes('Standup') && !body.includes('Private notes'), 'no private title anywhere in the answer');
-    assert.ok(!body.includes('a-meet"') && !body.includes('a-doc-private'), 'nor its id');
-});
-
-test('a recording names no owner next to its use: the use is the owner\'s own', async () => {
-    const out = await kit.store().studioItems(kit.scope(), 'meeting', 50);
-    const item = out?.items[0];
-    assert.equal(item?.uses, 1);
-    assert.equal(item?.ownerId, null);
-    assert.equal(item?.ownerName, null);
-    // Other kinds still name the owner: an owner is organisational metadata.
-    const agents = await kit.store().studioItems(kit.scope(), 'agent', 50);
-    assert.equal(agents?.items[0].ownerName, 'Owner A');
-});
-
-test('a webpage published inside the organisation is not "unused": its evidence cannot see internal visits', async () => {
-    const out = await kit.store().studioItems(kit.scope(), 'webpage', 50);
-    assert.deepEqual(out?.items.map((i) => [i.id, i.audience]), [['a-page', 'org']]);
-    assert.deepEqual(out?.unused, []);
+    const body = JSON.stringify([docs]);
+    assert.ok(!body.includes('Private notes'), 'no private title anywhere in the answer');
+    assert.ok(!body.includes('a-doc-private'), 'nor its id');
 });
 
 test('with a group, uses, people, cost and top people narrow to its members; the objects stay listed', async () => {

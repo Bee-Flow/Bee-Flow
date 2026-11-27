@@ -62,103 +62,41 @@
 const { pool } = require('../../db');
 const log = require('../../telemetry/log');
 
-/** Every kind this can find, in the order the Used-by tab lists them. */
-/** @type {readonly UsageKind[]} */
-const KINDS = Object.freeze(['task', 'cowork', 'support', 'automation', 'app', 'webpage']);
+/**
+ * Every kind this can find, in the order the Used-by tab lists them, with the module part that
+ * declares its scan. Every consumer of an agent is a first-party module's table, so every scan
+ * is that module's (stores/agent/usage/<module>.js), asked for by name at the point of use: a
+ * module that is not part of this installation leaves its kinds out (no row, not partial),
+ * which is not the same as a table that is missing (partial).
+ */
+const SOURCES = /** @type {const} */ ([
+    ['task', 'stores/agent/usage/cowork'],
+    ['cowork', 'stores/agent/usage/cowork'],
+    ['support', 'stores/agent/usage/support'],
+    ['automation', 'stores/agent/usage/automation'],
+    ['app', 'stores/agent/usage/apps'],
+    ['webpage', 'stores/agent/usage/webpages'],
+]);
 
 /** Ids per round trip. A scan is one pass per kind; the ids ride along. */
 const ID_CHUNK = 200;
 
 /**
- * One query per consumer kind, each returning `(agent_id, id, title,
- * owner_id, last_at)` for EVERY id in `$1`. `agent_id` is which of the asked
- * agents this row uses — that is what lets one query serve both callers.
+ * The scans of this installation, in Used-by order. Each returns `(agent_id, id, title,
+ * owner_id, last_at)` for EVERY id in `$1`. `agent_id` is which of the asked agents this row
+ * uses — that is what lets one query serve both callers.
+ * @returns {Record<string, AgentScan>}
  */
-const SCANS = Object.freeze({
-    // A scheduled AI task bound to an agent. `aiTaskRunner` resolves it with
-    // getForRuntime and throws "Linked agent no longer exists" when it is
-    // gone — the exact breakage this guard exists to announce first.
-    task: {
-        table: 'ai_tasks',
-        role: 'automation',
-        sql: `SELECT t.agent_id AS agent_id, t.id AS id, t.title AS title,
-                     t.user_id AS owner_id, COALESCE(t.last_run_at, t.created_at) AS last_at
-                FROM ai_tasks t
-               WHERE t.agent_id = ANY($1::text[])`,
-    },
-    // The same relationship on the Cowork side.
-    cowork: {
-        table: 'cowork_schedules',
-        role: 'automation',
-        sql: `SELECT c.agent_id AS agent_id, c.id AS id, c.title AS title,
-                     c.user_id AS owner_id, COALESCE(c.last_run_at, c.created_at) AS last_at
-                FROM cowork_schedules c
-               WHERE c.agent_id = ANY($1::text[])`,
-    },
-    // The inbox's auto-responder drafts replies with this agent. `id` is a
-    // UUID here, so it is cast — a client comparing ids across kinds must get
-    // text from all of them.
-    support: {
-        table: 'support_inboxes',
-        role: 'auto_reply',
-        sql: `SELECT i.default_agent_id AS agent_id, i.id::text AS id, i.display_name AS title,
-                     i.created_by AS owner_id, i.updated_at AS last_at
-                FROM support_inboxes i
-               WHERE i.default_agent_id = ANY($1::text[])`,
-    },
-    // R2's ai_step. The id sits at an unknown depth inside a definition that
-    // also encodes a canvas, so the recursive accessor is the only form that
-    // finds it wherever the editor put it. DISTINCT because an automation that
-    // names the same agent in two steps is ONE automation that breaks.
-    automation: {
-        table: 'automations',
-        role: 'ai_step',
-        sql: `SELECT DISTINCT v.val #>> '{}' AS agent_id, a.id AS id, a.title AS title,
-                     a.user_id AS owner_id, a.updated_at AS last_at
-                FROM automations a,
-                     LATERAL jsonb_path_query(COALESCE(a.definition_json, '{}'::jsonb), '$.**.agentId') AS v(val)
-               WHERE jsonb_typeof(v.val) = 'string'
-                 AND (v.val #>> '{}') = ANY($1::text[])`,
-    },
-    // P's app AI block. Both definitions are searched: an app that names the
-    // agent only in its PUBLISHED version still breaks when it goes. They are
-    // wrapped in one object rather than merged with `||`, which would let a
-    // draft key hide a published one of the same name.
-    app: {
-        table: 'studio_apps',
-        role: 'ai_block',
-        sql: `SELECT DISTINCT v.val #>> '{}' AS agent_id, s.id AS id, s.name AS title,
-                     s.user_id AS owner_id, s.updated_at AS last_at
-                FROM studio_apps s,
-                     LATERAL jsonb_path_query(
-                         jsonb_build_object('draft', COALESCE(s.definition, '{}'::jsonb),
-                                            'published', COALESCE(s.published_definition, '{}'::jsonb)),
-                         '$.**.agentId') AS v(val)
-               WHERE jsonb_typeof(v.val) = 'string'
-                 AND (v.val #>> '{}') = ANY($1::text[])`,
-    },
-    // W3's `bridge_grants.agent`. The exact shape is W3's to choose, so all
-    // three plausible ones are covered: a nested `agentId` key at any depth
-    // (which is how `automations` and `integrations` already record their
-    // grants), and a bare string at `bridge_grants.agent`.
-    webpage: {
-        table: 'webpages',
-        role: 'bridge',
-        sql: `SELECT DISTINCT agent_id, id, title, owner_id, last_at FROM (
-                  SELECT v.val #>> '{}' AS agent_id, w.id AS id, w.name AS title,
-                         w.user_id AS owner_id, w.updated_at AS last_at
-                    FROM webpages w,
-                         LATERAL jsonb_path_query(COALESCE(w.bridge_grants, '{}'::jsonb), '$.**.agentId') AS v(val)
-                   WHERE jsonb_typeof(v.val) = 'string'
-                  UNION ALL
-                  SELECT w.bridge_grants ->> 'agent' AS agent_id, w.id AS id, w.name AS title,
-                         w.user_id AS owner_id, w.updated_at AS last_at
-                    FROM webpages w
-                   WHERE jsonb_typeof(w.bridge_grants -> 'agent') = 'string'
-              ) x
-              WHERE agent_id = ANY($1::text[])`,
-    },
-});
+function scansHere() {
+    const { lookupFeatureModule } = require('../../modules/firstParty/moduleData');
+    /** @type {Record<string, AgentScan>} */
+    const out = {};
+    for (const [kind, part] of SOURCES) {
+        const scan = lookupFeatureModule(part)?.SCANS[kind];
+        if (scan) out[kind] = scan;
+    }
+    return out;
+}
 
 /**
  * Which consumer tables exist, in ONE round trip.
@@ -168,10 +106,11 @@ const SCANS = Object.freeze({
  * to the delete guard until the process restarts. If the probe itself fails
  * every kind is reported absent, which lands in `partial` — the narrow answer.
  * @param {readonly UsageKind[]} kinds
+ * @param {Record<string, AgentScan>} scans
  * @param {Db} db
  */
-async function probeTables(kinds, db) {
-    const tables = kinds.map(k => SCANS[k].table);
+async function probeTables(kinds, scans, db) {
+    const tables = kinds.map(k => scans[k].table);
     const cols = tables.map((_, i) => `to_regclass($${i + 1}) IS NOT NULL AS t${i}`).join(', ');
     try {
         const r = await db.query(`SELECT ${cols}`, tables);
@@ -202,14 +141,17 @@ async function _scan(agentIds, db) {
     const ids = [...new Set((Array.isArray(agentIds) ? agentIds : []).filter(Boolean).map(String))];
     if (ids.length === 0) return { rows: [], partial: [] };
 
-    const present = await probeTables(KINDS, db);
+    const scans = scansHere();
+    const kinds = /** @type {UsageKind[]} */ (Object.keys(scans));
+    if (kinds.length === 0) return { rows: [], partial: [] };
+    const present = await probeTables(kinds, scans, db);
     /** @type {UsageRow[]} */
     const rows = [];
     /** @type {string[]} */
     const partial = [];
 
-    for (const kind of KINDS) {
-        const scan = SCANS[kind];
+    for (const kind of kinds) {
+        const scan = scans[kind];
         if (!present.get(kind)) {
             // Absent because the feature is not installed. Not an error, and
             // not "no usage" either — `partial` carries the difference.
@@ -296,7 +238,7 @@ async function usageCountsForAgents(agentIds, { db = pool } = {}) {
  * per agent rather than shipping an empty `counts` that renders as zero.
  */
 function unknownUsage() {
-    return { counts: {}, partial: [...KINDS] };
+    return { counts: {}, partial: Object.keys(scansHere()) };
 }
 
 /**
@@ -334,12 +276,15 @@ module.exports = {
     usageCountsForAgents,
     unknownUsage,
     redactForeign,
-    KINDS,
-    SCANS,
+    /** Every kind of this installation, in the order the Used-by tab lists them. */
+    get KINDS() { return /** @type {readonly UsageKind[]} */ (Object.freeze(Object.keys(scansHere()))); },
+    /** The scan of every kind of this installation. */
+    get SCANS() { return Object.freeze(scansHere()); },
 };
 
 /** @typedef {import('pg').Pool} Pool */
 
 /** @typedef {'task' | 'cowork' | 'support' | 'automation' | 'app' | 'webpage'} UsageKind */
 /** @typedef {Pick<import('pg').Pool, 'query'>} Db */
+/** @typedef {{ table: string, role: string, sql: string }} AgentScan */
 /** @typedef {{ agentId: string, kind: UsageKind, id: string | null, title: string | null, role: string, ownerId: string | null, lastAt: unknown }} UsageRow */

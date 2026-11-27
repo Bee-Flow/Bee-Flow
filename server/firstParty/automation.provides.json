@@ -17,7 +17,12 @@
     "core/runEventBus",
     "automation/agentBinding",
     "automation/access",
-    "stores/automationStore/webhookDeliveries"
+    "stores/automationStore/webhookDeliveries",
+    "stores/adoption/kinds.automation",
+    "core/kb/usage/automation",
+    "stores/agent/usage/automation",
+    "stores/skill/automationUsage",
+    "stores/metrics/automation"
   ],
   "runnerPorts": [
     "approvals",

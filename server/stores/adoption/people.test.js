@@ -23,12 +23,10 @@ test('one row per member, cost first; a run counts for whoever started it', asyn
     assert.equal(colleague.cost, 2.5);
     assert.equal(colleague.calls, 2);
     assert.deepEqual(colleague.areas, ['apps', 'automations']);
-    assert.deepEqual(colleague.built, { meeting: 2 });
     assert.equal(colleague.status, 'ai_active');
     const owner = out.people[1];
     assert.equal(owner.cost, 1.1);
     assert.equal(owner.built.agent, 2);
-    assert.equal(owner.built.automation, 1);
     assert.ok(owner.firstAiUseAt, 'the first ledger row ever, the direct chat of 40 days ago');
     assert.ok(Date.parse(owner.firstAiUseAt) < kit.NOW - 39 * kit.DAY);
     assert.ok(ids.every((id) => id.startsWith('a-')), 'nothing of org B, no pending invitation');

@@ -7,6 +7,12 @@
  * evidence and ledger rows. Org B mirrors org A so a test can prove that
  * nothing of B reaches A.
  *
+ * A store, a seed row or a migration of a first-party module is used only
+ * when that module is loaded (modules/firstParty/moduleState.js): with the
+ * modules hidden or left out by the edition the kit builds the core's part
+ * only, and the report leaves the module's kinds out. A test of a module's
+ * kind lives next to the module's part (kinds.<module>.test.js).
+ *
  * Test-only (`.testkit.js`: neither the server nor the layering scan loads it).
  *
  *   const kit = require('./adoption.testkit');
@@ -25,12 +31,31 @@ const NOW = Date.now();
 const ORG_A = 'org-adopt-a';
 const ORG_B = 'org-adopt-b';
 
-/** Stores whose initDB creates the tables the report reads, in a safe order. */
-const STORES = [
-    'userStore', 'usageStore', 'agentStore', 'datatableStore', 'automationStore', 'studioAppStore', 'studioAppDataStore',
-    'skillStore', 'skillActivations', 'webpageStore', 'webpagePublicShareStore', 'transcriptionStore',
-    'projectStore', 'coworkStore', 'knowledgeBases', 'documentStore', 'playbookStore',
+/**
+ * Stores whose initDB creates the tables the report reads, in a safe order,
+ * with the first-party module that owns each (null: the core).
+ * @type {Array<[string, string | null]>}
+ */
+const STORE_OWNERS = [
+    ['userStore', null], ['usageStore', null], ['agentStore', null], ['datatableStore', 'datatables'],
+    ['automationStore', 'automation'], ['studioAppStore', 'apps'], ['studioAppDataStore', 'apps'],
+    ['skillStore', null], ['skillActivations', null], ['webpageStore', 'webpages'], ['webpagePublicShareStore', 'webpages'],
+    ['transcriptionStore', 'meetingNotes'], ['projectStore', null], ['coworkStore', 'cowork'], ['knowledgeBases', null],
+    ['documentStore', null], ['playbookStore', 'playbooks'],
 ];
+
+/**
+ * Is this first-party module loaded in this process? (null: the core, always.)
+ * @param {string | null} moduleId
+ */
+function loaded(moduleId) {
+    if (moduleId === null) return true;
+    require('../../modules/firstParty/loader').load();
+    return require('../../modules/firstParty/moduleState').moduleStateOf(moduleId) === 'loaded';
+}
+
+/** The stores of this process, in a safe order. */
+const STORES = STORE_OWNERS.filter(([, owner]) => loaded(owner)).map(([name]) => name);
 
 let pool = null;
 
@@ -55,8 +80,9 @@ async function initStores() {
         if (typeof s.initDB === 'function') await s.initDB();
     }
     // The boot ladder's column on automation_runs (boot/bootMigrations.js), not the store's.
-    await require('../../migrations/automation-form-submitter-2026-09').up();
+    if (loaded('automation')) await require('../../migrations/automation-form-submitter-2026-09').up();
     // The action-run log is created by its own init (studioAppData/schema.js).
+    if (!loaded('apps')) return;
     const appData = require('../studioAppData/schema');
     for (const fn of Object.values(appData)) if (typeof fn === 'function' && /^init/.test(fn.name)) await fn();
 }
@@ -78,37 +104,63 @@ async function seedOrg(letter, orgId) {
     return { groupBig, groupSmall };
 }
 
+/** @typedef {{ run: (sql: string, params?: unknown[]) => Promise<unknown>, orgId: string, owner: string, colleague: string, id: (k: string) => string }} SeedCtx */
+
+/**
+ * The Studio objects of one organisation, in insertion order, each with the
+ * module whose tables it writes (null: the core).
+ * @type {Array<[string | null, (c: SeedCtx) => Promise<void>]>}
+ */
+const OBJECT_SEEDS = [
+    [null, async ({ run, id, owner, colleague, orgId }) => {
+        await run(`INSERT INTO agents (id, name, owner_id, organization_id, is_published, created_at) VALUES ($1, 'Agent', $2, $3, TRUE, $4), ($5, 'Quiet agent', $2, $3, TRUE, $4)`,
+            [id('agent'), owner, orgId, at(10), id('agent2')]);
+        await run(`INSERT INTO agent_conversations (id, agent_id, user_id, updated_at) VALUES ($1, $2, $3, $4)`, [id('conv'), id('agent'), colleague, at(3)]);
+    }],
+    ['automation', async ({ run, id, owner, colleague }) => {
+        await run(`INSERT INTO automations (id, user_id, organization_id, title, definition_json, created_at) VALUES ($1, $2, NULL, 'Flow', '{}'::jsonb, $3)`,
+            [id('auto'), owner, at(100)]);
+        // A run started by the colleague: it counts for the colleague, not the owner.
+        await run(`INSERT INTO automation_runs (id, automation_id, version, user_id, started_by_user_id, trigger_kind, started_at) VALUES ($1, $2, 1, $3, $4, 'manual', $5)`,
+            [id('run'), id('auto'), owner, colleague, at(4)]);
+    }],
+    ['apps', async ({ run, id, owner, colleague, orgId }) => {
+        await run(`INSERT INTO studio_apps (id, user_id, organization_id, name, is_published, created_at) VALUES ($1, $2, $3, 'App', TRUE, $4)`,
+            [id('app'), owner, orgId, at(20)]);
+        await run(`INSERT INTO studio_app_action_runs (id, app_id, owner_user_id, action_id, origin, viewer_user_id, started_at) VALUES ($1, $2, $3, 'go', 'click', $4, $5)`,
+            [id('apprun'), id('app'), owner, colleague, at(2)]);
+    }],
+    [null, async ({ run, id, owner, colleague, orgId }) => {
+        await run(`INSERT INTO skills (id, org_id, user_id, name, is_shared, created_at) VALUES ($1, $2, $3, 'Skill', TRUE, $4)`, [id('skill'), orgId, owner, at(50)]);
+        await run(`INSERT INTO skill_activations (skill_id, user_id, source, at) VALUES ($1, $2, 'static', $3)`, [id('skill'), colleague, at(6)]);
+    }],
+    ['meetingNotes', async ({ run, id, colleague, orgId }) => {
+        // A private recording (the default) and one published to the organisation.
+        await run(`INSERT INTO transcriptions (id, user_id, organization_id, title, created_at) VALUES ($1, $2, $3, 'Standup', $4)`, [id('meet'), colleague, orgId, at(7)]);
+        await run(`INSERT INTO transcriptions (id, user_id, organization_id, title, is_published, created_at) VALUES ($1, $2, $3, 'All hands', TRUE, $4)`,
+            [id('meet-pub'), colleague, orgId, at(8)]);
+    }],
+    [null, async ({ run, id, owner, orgId }) => {
+        // A private document: counted, never listed by title.
+        await run(`INSERT INTO studio_documents (id, user_id, organization_id, name, visibility, created_at) VALUES ($1, $2, $3, 'Private notes', 'private', $4)`,
+            [id('doc-private'), owner, orgId, at(9)]);
+    }],
+    ['webpages', async ({ run, id, owner, orgId }) => {
+        // A webpage published to the organisation, without a public share: its
+        // internal visits are not recorded, so it cannot show a use.
+        await run(`INSERT INTO webpages (id, user_id, organization_id, name, is_published, created_at) VALUES ($1, $2, $3, 'Intranet page', TRUE, $4)`,
+            [id('page'), owner, orgId, at(11)]);
+    }],
+    ['datatables', async ({ run, id, owner, orgId }) => {
+        await run(`INSERT INTO datatables (id, scope_id, organization_id, owner_user_id, key, name, created_at) VALUES ($1, $2, $2, $3, $1, 'Table', $4)`, [id('table'), orgId, owner, at(40)]);
+    }],
+];
+
 async function seedObjects(letter, orgId) {
     const { run } = require('../../db');
-    const owner = `${letter}-owner`;
-    const colleague = `${letter}-colleague`;
-    const id = (k) => `${letter}-${k}`;
-    await run(`INSERT INTO agents (id, name, owner_id, organization_id, is_published, created_at) VALUES ($1, 'Agent', $2, $3, TRUE, $4), ($5, 'Quiet agent', $2, $3, TRUE, $4)`,
-        [id('agent'), owner, orgId, at(10), id('agent2')]);
-    await run(`INSERT INTO agent_conversations (id, agent_id, user_id, updated_at) VALUES ($1, $2, $3, $4)`, [id('conv'), id('agent'), colleague, at(3)]);
-    await run(`INSERT INTO automations (id, user_id, organization_id, title, definition_json, created_at) VALUES ($1, $2, NULL, 'Flow', '{}'::jsonb, $3)`,
-        [id('auto'), owner, at(100)]);
-    // A run started by the colleague: it counts for the colleague, not the owner.
-    await run(`INSERT INTO automation_runs (id, automation_id, version, user_id, started_by_user_id, trigger_kind, started_at) VALUES ($1, $2, 1, $3, $4, 'manual', $5)`,
-        [id('run'), id('auto'), owner, colleague, at(4)]);
-    await run(`INSERT INTO studio_apps (id, user_id, organization_id, name, is_published, created_at) VALUES ($1, $2, $3, 'App', TRUE, $4)`,
-        [id('app'), owner, orgId, at(20)]);
-    await run(`INSERT INTO studio_app_action_runs (id, app_id, owner_user_id, action_id, origin, viewer_user_id, started_at) VALUES ($1, $2, $3, 'go', 'click', $4, $5)`,
-        [id('apprun'), id('app'), owner, colleague, at(2)]);
-    await run(`INSERT INTO skills (id, org_id, user_id, name, is_shared, created_at) VALUES ($1, $2, $3, 'Skill', TRUE, $4)`, [id('skill'), orgId, owner, at(50)]);
-    await run(`INSERT INTO skill_activations (skill_id, user_id, source, at) VALUES ($1, $2, 'static', $3)`, [id('skill'), colleague, at(6)]);
-    // A private recording (the default) and one published to the organisation.
-    await run(`INSERT INTO transcriptions (id, user_id, organization_id, title, created_at) VALUES ($1, $2, $3, 'Standup', $4)`, [id('meet'), colleague, orgId, at(7)]);
-    await run(`INSERT INTO transcriptions (id, user_id, organization_id, title, is_published, created_at) VALUES ($1, $2, $3, 'All hands', TRUE, $4)`,
-        [id('meet-pub'), colleague, orgId, at(8)]);
-    // A private document: counted, never listed by title.
-    await run(`INSERT INTO studio_documents (id, user_id, organization_id, name, visibility, created_at) VALUES ($1, $2, $3, 'Private notes', 'private', $4)`,
-        [id('doc-private'), owner, orgId, at(9)]);
-    // A webpage published to the organisation, without a public share: its
-    // internal visits are not recorded, so it cannot show a use.
-    await run(`INSERT INTO webpages (id, user_id, organization_id, name, is_published, created_at) VALUES ($1, $2, $3, 'Intranet page', TRUE, $4)`,
-        [id('page'), owner, orgId, at(11)]);
-    await run(`INSERT INTO datatables (id, scope_id, organization_id, owner_user_id, key, name, created_at) VALUES ($1, $2, $2, $3, $1, 'Table', $4)`, [id('table'), orgId, owner, at(40)]);
+    /** @type {SeedCtx} */
+    const ctx = { run, orgId, owner: `${letter}-owner`, colleague: `${letter}-colleague`, id: (k) => `${letter}-${k}` };
+    for (const [owner, seed] of OBJECT_SEEDS) if (loaded(owner)) await seed(ctx);
 }
 
 async function seedLedger(letter, orgId) {
@@ -165,4 +217,32 @@ function store() {
     return createAdoptionStore({ seats: { getMaxSeatsForOrg: async () => 25 } });
 }
 
-module.exports = { setUp, tearDown, scope, store, at, NOW, DAY, ORG_A, ORG_B, STORES };
+/**
+ * More members of organisation A in one of its groups (a group of five or more is shown on its
+ * own, a smaller one folded).
+ * @param {string} groupId
+ * @param {number} n
+ */
+async function addMembers(groupId, n) {
+    const userStore = require('../userStore');
+    const { run } = require('../../db');
+    for (let i = 1; i <= n; i++) {
+        await userStore.createUser({ id: `a-extra${i}`, username: `aextra${i}`, email: `a-extra${i}@adopt.test`, organizationId: ORG_A, role: 'user', passwordHash: 'x' });
+        await run(`UPDATE users SET groups = $2 WHERE id = $1`, [`a-extra${i}`, JSON.stringify([groupId])]);
+    }
+}
+
+/**
+ * The file's before (setUp, then `more`) and after (tearDown).
+ * @param {() => Promise<void>} [more]
+ */
+function use(more) {
+    const { before, after } = require('node:test');
+    before(async () => { await setUp(); if (more) await more(); }, { timeout: 240_000 });
+    after(tearDown);
+}
+
+/** The db facade the kit seeds through (for a test bed outside stores/). */
+const db = () => require('../../db');
+
+module.exports = { use, db, setUp, tearDown, scope, store, at, addMembers, loaded, NOW, DAY, ORG_A, ORG_B, STORES };

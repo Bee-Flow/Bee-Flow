@@ -23,102 +23,18 @@
  *     shows nothing;
  *   - a customer lens shows marked-up cost and no call counts.
  *
+ * The test bed is ./usageAdoption.authz.testkit.js. What a module's Studio kind
+ * adds is tested beside this file (usageAdoption.authz.<module>.test.js).
+ *
  * Run: cd server && node --test routes/usageAdoption.authz.test.js
  */
 
-const { test, before, after, beforeEach } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const kit = require('../stores/adoption/adoption.testkit');
-const h = require('../testUtils/routeHarness');
+const r = require('./usageAdoption.authz.testkit');
 
-/** @type {Record<string, string[]>} */
-const PERMS = {
-    'a-owner': ['all'],
-    'a-colleague': ['admin_monitoring'],
-    'a-seen': ['page_chat'],
-    solo: ['all'],
-};
-
-/** The 401/403 answers of auth/permissions requirePermission, over the table above. */
-const permissions = {
-    requirePermission: (/** @type {string} */ perm) => async (req, res, next) => {
-        if (!req.session?.isAuthenticated || !req.session.user) return res.status(401).json({ error: 'Not authenticated' });
-        const held = PERMS[req.session.user.id] || [];
-        if (held.includes(perm) || held.includes('all')) return next();
-        return res.status(403).json({ error: `Permission '${perm}' required` });
-    },
-};
-
-const rawLens = { costLens: async () => ({ raw: true, cost: (v) => (v == null ? null : v), calls: (v) => Number(v) || 0 }) };
-let lens = rawLens;
-let auditFails = false;
-
-let api;
-let router;
-before(async () => {
-    await kit.setUp();
-    const userStore = require('../stores/userStore');
-    await userStore.createUser({ id: 'solo', username: 'solo', email: 'solo@adopt.test', role: 'user', passwordHash: 'x' });
-    const realStore = kit.store();
-    const store = new Proxy(realStore, {
-        get(target, prop) {
-            if (prop === 'recordReveal' && auditFails) return async () => { throw new Error('db down'); };
-            if (prop === 'periodOf') return require('../stores/adoptionStore').periodOf;
-            return target[prop];
-        },
-    });
-    // The roles the report's own check reads: the owner administers org A, the colleague is its DPO.
-    await setRow('users', 'a-owner', 'orgRole', 'org_admin');
-    await setRow('users', 'a-colleague', 'orgRole', 'dpo');
-    const { createAdoptionRouter } = require('./usageAdoption');
-    router = createAdoptionRouter({
-        store, userStore, permissions,
-        scope: require('./usageScope'),
-        redact: { costLens: (req) => lens.costLens(req) },
-        pseudonym: require('../core/privacy/pseudonym'),
-        orgRoles: require('../auth/orgRolePolicy'),
-        catalog: require('../auth/permissionsCatalog'),
-        now: () => kit.NOW,
-    });
-    api = h.serve('/api/usage/adoption', router);
-}, { timeout: 240_000 });
-
-after(async () => {
-    if (api) await api.close();
-    await kit.tearDown();
-});
-
-beforeEach(() => {
-    router?.__clearCacheForTests?.();
-    lens = rawLens;
-    auditFails = false;
-});
-
-const as = (id, orgId = kit.ORG_A) => ({ id, username: id, organizationId: orgId, role: 'user' });
-const ID = /^[0-9a-f]{16}$/;
-const LABEL = /^Member · [A-HJ-NP-Z2-9]{4}$/;
-
-/** Set one column of a users or groups row (the test's own setup, restored by the test that changes it). */
-async function setRow(table, id, column, value) {
-    const { run } = require('../db');
-    await run(`UPDATE ${table} SET "${column}" = $2 WHERE id = $1`, [id, value]);
-}
-
-function pseudonyms() {
-    const { pseudonymFor, pseudonymId, pseudonymSecret } = require('../core/privacy/pseudonym');
-    const secret = pseudonymSecret();
-    return {
-        id: (userId, orgId = kit.ORG_A) => pseudonymId(userId, orgId, secret),
-        label: (userId, orgId = kit.ORG_A) => pseudonymFor(userId, orgId, secret),
-        top: (userId, orgId = kit.ORG_A) => pseudonymFor(userId, orgId, secret, { domain: 'top-people' }),
-    };
-}
-const get = (url, user) => api.call('GET', `/api/usage/adoption${url}`, { user });
-
-async function revealRows() {
-    const { getAll } = require('../db');
-    return getAll(`SELECT * FROM access_audit_log WHERE action = 'usage_adoption_people_revealed' ORDER BY created_at`);
-}
+const { kit, PERMS, state, setRow, as, ID, LABEL, pseudonyms, get, revealRows } = r;
+r.useAdoptionApi();
 
 test('an org admin and an admin_monitoring holder read the report', async () => {
     for (const who of ['a-owner', 'a-colleague']) {
@@ -204,7 +120,6 @@ test('the summary counts organisation A only, and the colleague as AI-active', a
     assert.equal(s.members.dormant, 1);
     assert.equal(s.members.never, 1);
     assert.equal(s.members.seats.max, 25);
-    assert.equal(s.makers.total, 2, 'owner, and the colleague who recorded a meeting');
     assert.equal(s.spend.cost, 3.6, 'guest rows and the row outside the period are left out');
     assert.equal(s.spend.calls, 4, 'the tool row is not a call');
     assert.equal(s.adoptionRate, 40);
@@ -224,7 +139,7 @@ test('people are pseudonymous, stable, and different per organisation', async ()
     assert.equal(new Set(first.body.people.map((p) => p.id)).size, first.body.people.length);
     assert.ok(!JSON.stringify(first.body).includes('Owner A'), 'no name');
     assert.ok(!JSON.stringify(first.body).includes('a-owner'), 'no user id');
-    router.__clearCacheForTests();
+    state.router.__clearCacheForTests();
     const again = await get('/people?days=30', as('a-owner'));
     assert.deepEqual(again.body.people.map((p) => p.id), first.body.people.map((p) => p.id));
 
@@ -282,7 +197,7 @@ test('reveal writes one audit row with the allow-listed payload, then shows name
 });
 
 test('a reveal that cannot be recorded shows nothing', async () => {
-    auditFails = true;
+    state.auditFails = true;
     const res = await get('/people?reveal=true', as('a-owner'));
     assert.equal(res.status, 503);
     assert.equal(res.body.code, 'audit_unavailable');
@@ -290,11 +205,11 @@ test('a reveal that cannot be recorded shows nothing', async () => {
 });
 
 test('nothing of organisation B reaches organisation A', async () => {
-    const urls = ['/summary', '/areas', '/studio', '/studio/items?kind=agent', '/studio/items?kind=automation', '/groups', '/people?reveal=true'];
+    const urls = ['/summary', '/areas', '/studio', '/studio/items?kind=agent', '/groups', '/people?reveal=true'];
     for (const url of urls) {
         const res = await get(url, as('a-owner'));
         assert.equal(res.status, 200, `${url}: ${res.text}`);
-        assert.ok(!/\bb-|Owner B|Big b|org-adopt-b/.test(res.text), `${url} leaks org B: ${res.text.slice(0, 300)}`);
+        assert.ok(!r.B_TRACE.test(res.text), `${url} leaks org B: ${res.text.slice(0, 300)}`);
     }
 });
 
@@ -309,37 +224,39 @@ test('?group narrows within the organisation and never widens to another', async
     assert.equal(sum.body.spend.cost, 0);
 });
 
-test('groups fold the small ones, and the drill-down names owners but not users', async () => {
+test('groups fold the small ones', async () => {
     const groups = await get('/groups?days=30', as('a-owner'));
     assert.equal(groups.status, 200, groups.text);
     assert.deepEqual(groups.body.groups, [], 'both groups have fewer than five members');
     assert.equal(groups.body.folded.count, 2);
     assert.equal(groups.body.folded.members, 5);
-    const items = await get('/studio/items?kind=app', as('a-owner'));
-    assert.equal(items.body.items[0].ownerName, 'Owner A');
-    assert.match(items.body.topPeople[0].person, LABEL);
 });
 
-test('a top user of a kind never carries the label a people reveal names', async () => {
-    const ps = pseudonyms();
-    const items = await get('/studio/items?kind=app', as('a-owner'));
-    assert.equal(items.status, 200, items.text);
-    assert.deepEqual(items.body.topPeople.map((p) => p.person), [ps.top('a-colleague')]);
-    const people = await get('/people?days=30', as('a-owner'));
-    const tableLabels = new Set(people.body.people.map((p) => p.name));
-    assert.ok(tableLabels.has(ps.label('a-colleague')));
-    for (const p of items.body.topPeople) assert.ok(!tableLabels.has(p.person), `${p.person} is also a people-table label`);
+test('a kind the report knows whose module is not part of this installation answers 404', async () => {
+    const registry = require('../core/featureModules');
+    const name = 'stores/adoption/kinds.playbooks';
+    registry.optionalFeatureModule(name);
+    const previous = registry._featureModuleGetter(name);
+    registry.registerFeatureModules({ [name]: () => ({ KINDS: [] }) });
+    try {
+        const res = await get('/studio/items?kind=playbook', as('a-owner'));
+        assert.equal(res.status, 404, res.text);
+        assert.equal(res.body.code, 'module_absent');
+    } finally {
+        if (previous) registry.registerFeatureModules({ [name]: previous });
+        else registry._clearFeatureModulesForTests(name);
+    }
 });
 
 test('the cache keys on the clamped page and holds people as rows, not as member records', async () => {
-    router.__clearCacheForTests();
+    state.router.__clearCacheForTests();
     const a = await get('/people?days=30&limit=500', as('a-owner'));
     const b = await get('/people?days=30&limit=9999', as('a-owner'));
     const c = await get('/people?days=30&limit=500&reveal=true', as('a-owner'));
     assert.equal(a.status, 200);
     assert.deepEqual(b.body.people, a.body.people);
     assert.equal(c.status, 200);
-    assert.deepEqual(router.__cacheStatsForTests(), { entries: 1, rows: 5 }, 'one entry for the three requests');
+    assert.deepEqual(state.router.__cacheStatsForTests(), { entries: 1, rows: 5 }, 'one entry for the three requests');
     assert.ok(!JSON.stringify(c.body).includes('@adopt.test'), 'no e-mail address reaches the answer');
 });
 
@@ -349,7 +266,7 @@ test('the drill-down needs a kind', async () => {
 });
 
 test('a customer sees marked-up cost and no call counts', async () => {
-    lens = { costLens: async () => ({ raw: false, cost: (v) => (v == null ? null : v * 1.5), calls: () => undefined }) };
+    state.lens = { costLens: async () => ({ raw: false, cost: (v) => (v == null ? null : v * 1.5), calls: () => undefined }) };
     const s = await get('/summary?days=30', as('a-owner'));
     assert.equal(s.body.spend.cost, 3.6 * 1.5);
     assert.equal('calls' in s.body.spend, false);

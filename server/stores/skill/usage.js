@@ -3,7 +3,8 @@
 /**
  * Where a skill is used ("Used by"): agents (draft and published config)
  * and automation steps, per skill and as a summary. The delete guard in
- * ../skillStore.js reads this list.
+ * ../skillStore.js reads this list. The automation steps are the automation
+ * module's part (./automationUsage.js); without that module they are left out.
  */
 
 const { getAll } = require('../../db');
@@ -76,31 +77,13 @@ async function _agentsUsingSkill(skillId, orgId) {
 }
 
 /**
- * Which automation AI steps apply this skill (`ai_step.skillIds`, Track R2):
- * root steps and steps inside `definition_json.layers.<key>.steps`.
+ * The automation module's part (stores/skill/automationUsage.js), asked for by name at the
+ * point of use: null when the module is not part of this installation, and then automations
+ * are left out of the answer (no rows, no count, not "unchecked").
  */
-async function _automationStepsUsingSkill(skillId, orgId) {
-    return getAll(
-        `SELECT a.id, a.title, a.user_id, a.last_run_at, a.is_active,
-                step->>'id' AS step_id, step->>'label' AS step_label, NULL AS layer_key
-           FROM automations a,
-                jsonb_array_elements(CASE WHEN jsonb_typeof(a.definition_json->'steps') = 'array' THEN a.definition_json->'steps' ELSE '[]'::jsonb END) step
-          WHERE a.organization_id IS NOT DISTINCT FROM $2
-            AND step->>'type' = 'ai_step'
-            AND jsonb_typeof(step->'skillIds') = 'array'
-            AND (step->'skillIds') ? $1
-         UNION ALL
-         SELECT a.id, a.title, a.user_id, a.last_run_at, a.is_active,
-                step->>'id' AS step_id, step->>'label' AS step_label, layer.key AS layer_key
-           FROM automations a,
-                jsonb_each(CASE WHEN jsonb_typeof(a.definition_json->'layers') = 'object' THEN a.definition_json->'layers' ELSE '{}'::jsonb END) layer,
-                jsonb_array_elements(CASE WHEN jsonb_typeof(layer.value->'steps') = 'array' THEN layer.value->'steps' ELSE '[]'::jsonb END) step
-          WHERE a.organization_id IS NOT DISTINCT FROM $2
-            AND step->>'type' = 'ai_step'
-            AND jsonb_typeof(step->'skillIds') = 'array'
-            AND (step->'skillIds') ? $1`,
-        [skillId, orgId || null],
-    );
+function automationPart() {
+    const { lookupFeatureModule } = require('../../modules/firstParty/moduleData');
+    return lookupFeatureModule('stores/skill/automationUsage');
 }
 
 /**
@@ -129,9 +112,10 @@ async function listSkillUsage(skillId, orgId) {
     if (!skillId) return { rows: [], unchecked: [] };
     /** @type {string[]} */
     const unchecked = [];
+    const automations = automationPart();
     const [agents, steps] = await Promise.all([
         _agentsUsingSkill(skillId, orgId),
-        _automationStepsUsingSkill(skillId, orgId).catch(err => {
+        !automations ? Promise.resolve([]) : automations.stepsUsingSkill(getAll, skillId, orgId).catch(err => {
             // automations may not exist on an install without automations. Not an
             // error — but not a count either, so it is named rather than zeroed.
             if (/relation .*automations.* does not exist/i.test(err.message)) {
@@ -180,7 +164,8 @@ async function getUsageSummary(orgId, skillIds) {
     const ids = [...new Set((Array.isArray(skillIds) ? skillIds : []).filter(Boolean))];
     const out = {};
     if (ids.length === 0) return out;
-    for (const id of ids) out[id] = { agents: 0, automations: 0, lastUsedAt: null };
+    const automations = automationPart();
+    for (const id of ids) out[id] = automations ? { agents: 0, automations: 0, lastUsedAt: null } : { agents: 0, lastUsedAt: null };
 
     // Same union as `_agentsUsingSkill`, and `COUNT(DISTINCT agent_id)` for
     // the same reason the automation count uses it: an agent that carries the
@@ -204,24 +189,23 @@ async function getUsageSummary(orgId, skillIds) {
     );
     for (const r of agentCounts || []) if (out[r.skill_id]) out[r.skill_id].agents = Number(r.n) || 0;
 
+    if (automations) await countAutomations(automations, out, orgId, ids);
+
+    const lastUsed = await getAll(`SELECT id, last_used_at FROM skills WHERE id = ANY($1::text[])`, [ids]);
+    for (const r of lastUsed || []) if (out[r.id]) out[r.id].lastUsedAt = r.last_used_at ? new Date(r.last_used_at).toISOString() : null;
+    return out;
+}
+
+/**
+ * The automations column of the summary, from the automation module's part.
+ * @param {NonNullable<ReturnType<typeof automationPart>>} automations
+ * @param {Record<string, { automations?: number, automationsUnchecked?: boolean }>} out
+ * @param {string | null | undefined} orgId
+ * @param {string[]} ids
+ */
+async function countAutomations(automations, out, orgId, ids) {
     try {
-        const autoCounts = await getAll(
-            `SELECT skill_id, COUNT(DISTINCT automation_id)::int AS n FROM (
-                SELECT a.id AS automation_id, s AS skill_id
-                  FROM automations a,
-                       jsonb_array_elements(CASE WHEN jsonb_typeof(a.definition_json->'steps') = 'array' THEN a.definition_json->'steps' ELSE '[]'::jsonb END) step,
-                       jsonb_array_elements_text(CASE WHEN step->>'type' = 'ai_step' AND jsonb_typeof(step->'skillIds') = 'array' THEN step->'skillIds' ELSE '[]'::jsonb END) s
-                 WHERE a.organization_id IS NOT DISTINCT FROM $1 AND s = ANY($2::text[])
-                UNION ALL
-                SELECT a.id AS automation_id, s AS skill_id
-                  FROM automations a,
-                       jsonb_each(CASE WHEN jsonb_typeof(a.definition_json->'layers') = 'object' THEN a.definition_json->'layers' ELSE '{}'::jsonb END) layer,
-                       jsonb_array_elements(CASE WHEN jsonb_typeof(layer.value->'steps') = 'array' THEN layer.value->'steps' ELSE '[]'::jsonb END) step,
-                       jsonb_array_elements_text(CASE WHEN step->>'type' = 'ai_step' AND jsonb_typeof(step->'skillIds') = 'array' THEN step->'skillIds' ELSE '[]'::jsonb END) s
-                 WHERE a.organization_id IS NOT DISTINCT FROM $1 AND s = ANY($2::text[])
-             ) u GROUP BY skill_id`,
-            [orgId || null, ids],
-        );
+        const autoCounts = await automations.automationCountsBySkill(getAll, orgId, ids);
         for (const r of autoCounts || []) if (out[r.skill_id]) out[r.skill_id].automations = Number(r.n) || 0;
     } catch (err) {
         if (!/relation .*automations.* does not exist/i.test(/** @type {Error} */ (err).message)) throw err;
@@ -230,10 +214,6 @@ async function getUsageSummary(orgId, skillIds) {
         // letting the list print "not linked yet" off a count nobody made.
         for (const id of ids) out[id].automationsUnchecked = true;
     }
-
-    const lastUsed = await getAll(`SELECT id, last_used_at FROM skills WHERE id = ANY($1::text[])`, [ids]);
-    for (const r of lastUsed || []) if (out[r.id]) out[r.id].lastUsedAt = r.last_used_at ? new Date(r.last_used_at).toISOString() : null;
-    return out;
 }
 
 module.exports = { listSkillUsage, getUsageSummary };

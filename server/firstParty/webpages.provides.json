@@ -8,6 +8,9 @@
     "integrations/webpagePlanTool",
     "auth/webpagePreviewToken",
     "stores/webpageStore",
-    "core/webpages/webpageUsageSync"
+    "core/webpages/webpageUsageSync",
+    "stores/adoption/kinds.webpages",
+    "core/kb/usage/webpages",
+    "stores/agent/usage/webpages"
   ]
 }

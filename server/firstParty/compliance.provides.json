@@ -6,6 +6,8 @@
     "compliance/dataPortability/stampExport",
     "compliance/marking",
     "stores/dpiaStore",
-    "compliance/kbQueryLogEvidence"
+    "compliance/kbQueryLogEvidence",
+    "stores/metrics/compliance",
+    "stores/chatSignal/retentionDays"
   ]
 }

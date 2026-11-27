@@ -14,12 +14,7 @@ const { sourceOf, FOLD_BELOW } = require('./groups');
 before(async () => {
     await kit.setUp();
     // Three more members in the big group of org A make it five: shown on its own.
-    const userStore = require('../userStore');
-    const { run } = require('../../db');
-    for (const i of [1, 2, 3]) {
-        await userStore.createUser({ id: `a-extra${i}`, username: `aextra${i}`, email: `a-extra${i}@adopt.test`, organizationId: kit.ORG_A, role: 'user', passwordHash: 'x' });
-        await run(`UPDATE users SET groups = '["a-grp-big"]' WHERE id = $1`, [`a-extra${i}`]);
-    }
+    await kit.addMembers('a-grp-big', 3);
 }, { timeout: 240_000 });
 after(kit.tearDown);
 
@@ -34,7 +29,6 @@ test('a group of five is shown, a smaller one folded', async () => {
     assert.equal(big.members, 7);
     assert.equal(big.aiActive, 2);
     assert.equal(big.adoptionRate, 28.6);
-    assert.equal(big.makers, 2);
     assert.equal(big.cost, 3.6);
     assert.equal(big.topArea, 'apps');
     // One person in the merged set: its size, never its figures (k = 5).
