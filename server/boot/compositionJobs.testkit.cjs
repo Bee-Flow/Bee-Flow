@@ -25,6 +25,11 @@
  * recorded where it is scheduled. `requires` lists every module a phase asked
  * for, called or not (a require for its side effect, such as compliance/checks).
  *
+ * Shutdown: the calls made inside the first-party loader's drain and close
+ * (each module's drain, or close, runs concurrently with the others') are one
+ * entry per hook, { concurrently: 'drain' | 'close', calls }, sorted; every
+ * other shutdown call is an entry of its own, in order.
+ *
  * The environment is the default one (BEEFLOW_EDITION, DEPLOYMENT_MODE and the
  * per-job switches unset): every module available, the cloud billing jobs on.
  */
@@ -47,10 +52,16 @@ const REAL = new Set([
     'boot/startupTasks.js', 'boot/startupJobs.js', 'boot/startupProbes.js', 'boot/startupOneShots.js',
     'boot/startupBilling.js', 'boot/startupPrunes.js', 'boot/startupSystemAgents.js', 'boot/lifecycle.js',
     'telemetry/log.js', 'utils/bestEffort.js', 'utils/envNumber.mts', 'utils/runtimeState.mts', 'modules/catalog.js',
+    // The first-party loader the phases and the shutdown hand the module rows to (loaded before
+    // the recording starts, see main); the rows' own requires are recorded like the core's.
+    'modules/firstParty/loader.js', 'modules/firstParty/loaderRules.js', 'modules/firstParty/moduleState.js',
+    'modules/firstParty/parts.js', 'moduleRoots.cjs', 'boot/optionalRequire.js',
 ]);
 
 /** @type {string | null} */
 let phase = null;
+/** @type {string | null} the shutdown hook of the loader that is running (its calls are concurrent) */
+let group = null;
 /** @type {Array<{ phase: string, module: string, method: string }>} */
 const calls = [];
 /** @type {Map<string, Set<string>>} */
@@ -85,7 +96,7 @@ function recorder(mod, chain) {
             return recorder(mod, [...chain, prop]);
         },
         apply() {
-            calls.push({ phase: phase || '(none)', module: mod, method: chain.join('.') });
+            calls.push({ phase: phase || '(none)', module: mod, method: chain.join('.'), group });
             return result();
         },
         construct() {
@@ -157,9 +168,40 @@ const unique = (/** @type {Array<{ module: string, method: string }>} */ list) =
     });
 };
 
+/**
+ * The shutdown calls in order, except that the calls made inside one loader hook (the modules'
+ * drains run concurrently, so do their closes) are one entry { concurrently: hook, calls },
+ * sorted: their order among themselves is not part of the sequence.
+ * @param {Array<{ module: string, method: string, group?: string | null }>} list
+ */
+function groupConcurrent(list) {
+    /** @type {any[]} */
+    const out = [];
+    for (const { module, method, group: g } of list) {
+        const last = out.at(-1);
+        if (!g) out.push({ module, method });
+        else if (last && last.concurrently === g) last.calls.push({ module, method });
+        else out.push({ concurrently: g, calls: [{ module, method }] });
+    }
+    for (const entry of out) {
+        if (entry.calls) entry.calls.sort((/** @type {any} */ a, /** @type {any} */ b) => `${a.module} ${a.method}`.localeCompare(`${b.module} ${b.method}`));
+    }
+    return out;
+}
+
 async function main() {
     const { STARTUP_PHASES, runStartupChecks } = require('./startupTasks');
     const lifecycle = require('./lifecycle');
+    // The compositions load for real, before the recording: what a module contributes is
+    // recorded where its rows run, not where the loader discovers them.
+    const loader = require('../modules/firstParty/loader');
+    loader.load();
+    /** The loader's drain and close, with their calls marked as one concurrent group each. @param {'drain' | 'close'} hook */
+    const grouped = (hook) => async (/** @type {any} */ opts) => {
+        group = hook;
+        try { await loader[hook](opts); } finally { group = null; }
+    };
+    const shutdownLoader = { drain: grouped('drain'), close: grouped('close') };
     const realExit = process.exit;
     process.exit = /** @type {any} */ ((code) => { calls.push({ phase: phase || '(none)', module: 'process', method: `exit(${code})` }); });
     intercepting = true;
@@ -178,7 +220,7 @@ async function main() {
         const proc = { on: (/** @type {string} */ sig, /** @type {Function} */ h) => { handlers[sig] = h; }, exit: (/** @type {number} */ code) => note('process', `exit(${code})`) };
         const otel = { shutdown: async () => note('otel', 'shutdown') };
         const disconnectRedis = async () => note('db', 'disconnectRedis');
-        lifecycle.installGracefulShutdown({ otel, disconnectRedis, server, proc: /** @type {any} */ (proc), log: { info() {}, warn() {} } });
+        lifecycle.installGracefulShutdown({ otel, disconnectRedis, server, proc: /** @type {any} */ (proc), log: { info() {}, warn() {} }, deps: { loader: shutdownLoader } });
         await handlers.SIGTERM();
     });
     intercepting = false;
@@ -190,7 +232,7 @@ async function main() {
             calls: unique(startup.filter((c) => c.phase === name)),
             requires: [...(requires.get(name) || [])].sort(),
         })),
-        shutdown: calls.filter((c) => c.phase === 'shutdown').map(({ module, method }) => ({ module, method })),
+        shutdown: groupConcurrent(calls.filter((c) => c.phase === 'shutdown')),
     };
     fs.writeFileSync(outFile, JSON.stringify(out));
     realExit(0);

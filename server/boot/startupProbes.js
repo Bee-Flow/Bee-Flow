@@ -8,6 +8,7 @@
 
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
+const loader = require('../modules/firstParty/loader');
 
 /** Boot probes: the connector-bootstrap table check, the scheduling of the CPU model warmups and the two PII Guard notices. */
 function startBootProbes() {
@@ -76,6 +77,7 @@ function startBootProbes() {
             log.warn('[PiiGuard] Could not determine whether PII detection is configured:', e.message);
         }
     });
+    loader.runStartupPhase('startBootProbes');
 }
 
 /** The licence refresh scheduler and the downloadable-module runtime. */
@@ -100,6 +102,7 @@ function startLicenseAndModuleRuntime() {
     } catch (e) {
         log.warn('[Modules] Failed to start module runtime:', e.message);
     }
+    loader.runStartupPhase('startLicenseAndModuleRuntime');
 }
 
 /** Optional browser warmup, the fetch of the community pricing feed and the Privacy Shield self-check. */
@@ -134,6 +137,7 @@ function startLateWarmups() {
     // so operators can spot guardrail drift in the startup log.
     const { selfCheckOrgShields } = require('../core/privacy/orgShield');
     selfCheckOrgShields().catch(err => log.warn('[OrgShieldSelfCheck] Error:', err.message));
+    loader.runStartupPhase('startLateWarmups');
 
     // The previous in-process PII pre-warm has been removed — PII detection
     // now runs only through the optional PII Guard service container, which

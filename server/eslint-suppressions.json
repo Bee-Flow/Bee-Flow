@@ -2250,11 +2250,6 @@
       "count": 1
     }
   },
-  "boot/startupJobs.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "cms/mcp/accessCheck.js": {
     "complexity": {
       "count": 1

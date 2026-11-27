@@ -7,6 +7,7 @@
  */
 
 const log = require('../telemetry/log');
+const loader = require('../modules/firstParty/loader');
 
 /** Seed the system agents, then point and check the support agent. */
 function seedSystemAgentsAtBoot() {
@@ -69,6 +70,7 @@ function seedSystemAgentsAtBoot() {
             }
         })
         .catch(err => log.error('[Server] System agents seed failed:', err.message));
+    loader.runStartupPhase('seedSystemAgentsAtBoot');
 }
 
 module.exports = { seedSystemAgentsAtBoot };

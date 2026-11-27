@@ -39,7 +39,7 @@ function start(initDB = async () => {}) {
             createServer,
             userStore: { initDB },
             authConfigStore: { migrate: async () => {} },
-            webpageRuntimeManager: { startReaper() {}, isEnabled: () => false },
+            loader: { afterListen() {} },
         },
     });
     return { server, started };
@@ -47,10 +47,10 @@ function start(initDB = async () => {}) {
 
 /**
  * The shutdown with every collaborator replaced; `order` records the calls.
- * @param {{ closeThrows?: boolean, server?: import('node:http').Server, drain?: Promise<unknown>, meetingRuns?: { failInFlight(o: { timeoutMs: number }): Promise<number> } }} [opts]
- *   `server`: a real one in place of the recording double; `drain`: what the automation drain waits for
+ * @param {{ closeThrows?: boolean, server?: import('node:http').Server, drain?: Promise<unknown> }} [opts]
+ *   `server`: a real one in place of the recording double; `drain`: what the modules' drain waits for
  */
-function shutdownWith({ closeThrows = false, server: realServer, drain, meetingRuns = { failInFlight: async () => 0 } } = {}) {
+function shutdownWith({ closeThrows = false, server: realServer, drain } = {}) {
     /** @type {string[]} */
     const order = [];
     /** @type {string[]} */
@@ -66,19 +66,19 @@ function shutdownWith({ closeThrows = false, server: realServer, drain, meetingR
         otel: { shutdown: async () => { order.push('otel.shutdown'); } },
         disconnectRedis: async () => { order.push('disconnectRedis'); },
         deps: {
-            automationRunner: { stop: async () => {
-                order.push('drain');
-                readinessDuringDrain.push(String(state.readiness().reason));
-                await drain;
-            } },
-            backgroundRun: { stop: async () => {} },
-            meetingRuns,
+            // The modules' drains and closes (firstParty/<id>.jobs.js) go through the loader.
+            loader: {
+                drain: async () => {
+                    order.push('drain');
+                    readinessDuringDrain.push(String(state.readiness().reason));
+                    await drain;
+                },
+                close: async () => {},
+            },
             usageOpenObservePush: { stop() {} },
             opsMetricsPush: { stop() {} },
             chatSignals: { flush: async () => {} },
             configStore: { _stopInvalidationListener() {} },
-            studioAppDbStore: { closeAll: async () => {} },
-            webpageDbStore: { closeAll: async () => {} },
         },
     });
     return { order, exits, shutdown, readinessDuringDrain };
@@ -150,18 +150,7 @@ test('graceful shutdown: stop accepting first, close idle connections after the 
     assert.deepStrictEqual(state.readiness(), { ready: false, reason: 'shutting_down' });
 });
 
-test('graceful shutdown: the meeting-notes runs of this process are failed, and a failure there does not stop the shutdown', async () => {
-    /** @type {number[]} */
-    const asked = [];
-    const f = shutdownWith({ meetingRuns: { failInFlight: async ({ timeoutMs }) => { asked.push(timeoutMs); return 2; } } });
-    await f.shutdown('SIGTERM');
-    assert.strictEqual(asked.length, 1, 'failInFlight is called once');
-    assert.ok(asked[0] > 0 && asked[0] < 60_000, 'bounded well under the termination grace');
-
-    const g = shutdownWith({ meetingRuns: { failInFlight: async () => { throw new Error('db gone'); } } });
-    await g.shutdown('SIGTERM');
-    assert.deepStrictEqual(g.exits, [0]);
-});
+// The meeting-notes runs of this process are failed by that module's drain: firstParty/meetingNotes.jobs.test.js.
 
 test('graceful shutdown: a server that cannot be closed does not stop the shutdown', async (t) => {
     t.mock.method(console, 'warn', () => {});

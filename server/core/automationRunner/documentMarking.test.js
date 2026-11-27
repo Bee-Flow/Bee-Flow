@@ -146,6 +146,6 @@ test('boot wires the compliance resolver into the port', () => {
     assert.ok(/documentMarking'\)\s*\n?\s*\.setMarkingResolver/.test(src) && /compliance\/marking'\)\.resolveMarking/.test(src),
         'boot/ports.js must call setMarkingResolver with compliance/marking.resolveMarking — without it every generated document is unmarked');
     const jobs = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'startupJobs.js'), 'utf8');
-    assert.ok(/require\('\.\/ports'\)\.wirePorts\(\{ compliance: isModuleAvailable\('compliance'\) \}\)/.test(jobs),
-        'boot/startupJobs.js must wire the ports with the compliance availability');
+    assert.ok(/require\('\.\/ports'\)\.wirePorts\(\{ compliance: moduleLoaded\('compliance'\) \}\)/.test(jobs),
+        'boot/startupJobs.js must wire the ports with whether the compliance module loaded');
 });

@@ -6,12 +6,13 @@
  *
  *   installProcessErrorHandlers  unhandledRejection / uncaughtException
  *   startServer                  auth-schema migrations, then listen, then the
- *                                startup checks, the webpage runtime reaper (and
- *                                its gated proxy) and the startup tasks
- *   installGracefulShutdown      SIGTERM / SIGINT: stop accepting connections, fail the
- *                                meeting-notes runs of this process, drain
- *                                the automation runner, stop the pushers, flush,
- *                                close Redis, the blob engines and OTEL, exit 0
+ *                                startup checks, the modules' afterListen (the
+ *                                webpage runtime reaper and its gated proxy) and
+ *                                the startup tasks
+ *   installGracefulShutdown      SIGTERM / SIGINT: stop accepting connections, drain
+ *                                the modules (meeting-notes runs, automation runner,
+ *                                App Studio actions), stop the pushers, flush, close
+ *                                Redis, the modules (blob engines) and OTEL, exit 0
  *
  * `deps` is the test seam (boot/bootChain.characterisation.test.js): each
  * collaborator falls back to the module the inline code required, at the moment
@@ -37,11 +38,10 @@ function installProcessErrorHandlers({ log = defaultLog, proc = process } = {}) 
  * The collaborators startServer takes from a test instead of requiring them.
  * @typedef {{ createServer?: typeof import('node:http').createServer,
  *   userStore?: { initDB(): Promise<unknown> }, authConfigStore?: { migrate(): Promise<unknown> },
- *   webpageRuntimeManager?: { startReaper(): void, isEnabled(): boolean },
- *   fullTierProxy?: { mountFullTierProxy(app: Express, server: import('node:http').Server): void } }} StartServerDeps
+ *   loader?: { afterListen(app: Express, server: import('node:http').Server, ctx: import('../modules/firstParty/contract').AfterListenContext): void } }} StartServerDeps
  */
 /**
- * What startServer is started with; `terminalErrorHandler` is re-registered after the full-tier proxy mounts.
+ * What startServer is started with; `terminalErrorHandler` goes to the modules' afterListen (a mount after listen registers it again).
  * @typedef {{ app: Express, port: string | number, terminalErrorHandler: import('express').ErrorRequestHandler,
  *   runStartupChecks: () => void, runStartupTasks: () => void, log?: Log, proc?: NodeJS.Process,
  *   deps?: StartServerDeps }} StartServerArgs
@@ -78,27 +78,10 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
             // the durable HMAC secrets — see boot/startupTasks.js.
             runStartupChecks();
 
-            // Webpage full-tier runtime (per-project Node/Vite dev container) — GATED
-            // + INERT by default. startReaper() is always safe to call: it no-ops
-            // unless WEBPAGE_FULL_RUNTIME_ENABLED=1 (see webpageRuntimeManager.js's
-            // own gate). The proxy mount (http-proxy-middleware + the WS 'upgrade'
-            // listener) is additionally only required — not just gated internally —
-            // when the flag is on, so installs that never touch this feature never
-            // load that dependency. No runner image is built from this repository
-            // any more; enabling it in production needs its own image and a security
-            // review first.
-            const webpageRuntimeManager = deps.webpageRuntimeManager || require('../services/webpageRuntimeManager');
-            webpageRuntimeManager.startReaper();
-            if (webpageRuntimeManager.isEnabled()) {
-                (deps.fullTierProxy || require('../routes/webpagesFullTierProxy')).mountFullTierProxy(app, server);
-                log.info('[Server] Webpage full-tier runtime proxy mounted (WEBPAGE_FULL_RUNTIME_ENABLED=1).');
-                // This proxy mounts once the server is already listening, i.e. BEHIND
-                // the terminal error handler — and Express never routes an error
-                // backwards. Re-register the handler so a proxy failure gets the same
-                // generic body instead of falling through to the stack-printing default.
-                // The earlier copy still wins for every layer that precedes it.
-                app.use(terminalErrorHandler);
-            }
+            // The modules' wiring that needs the listening server (the webpage full-tier
+            // runtime: firstParty/webpages.jobs.js). A mount added here sits BEHIND the
+            // terminal error handler, so it gets the handler to register again.
+            (deps.loader || require('../modules/firstParty/loader')).afterListen(app, server, { terminalErrorHandler, log });
 
             // Sanity probes, warmups, one-shot backfills and migrations, schedulers,
             // runners and periodic jobs — see boot/startupTasks.js.
@@ -119,7 +102,7 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
 /**
  * Register the SIGTERM / SIGINT handlers. Returns the shutdown function.
  * `server` is the one startServer returned; without it (a test) the connection steps are skipped.
- * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, server?: ClosableServer, log?: { info?: any, warn?: any }, proc?: NodeJS.Process, deps?: { automationRunner?: any, backgroundRun?: any, meetingRuns?: any, chatSignals?: any, configStore?: any, opsMetricsPush?: any, studioAppDbStore?: any, usageOpenObservePush?: any, webpageDbStore?: any } }} opts
+ * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, server?: ClosableServer, log?: { info?: any, warn?: any }, proc?: NodeJS.Process, deps?: { loader?: ShutdownLoader, chatSignals?: any, configStore?: any, opsMetricsPush?: any, usageOpenObservePush?: any } }} opts
  */
 function installGracefulShutdown({ otel, disconnectRedis, server, log = defaultLog, proc = process, deps = {} }) {
     let _shuttingDown = false;
@@ -140,41 +123,16 @@ function installGracefulShutdown({ otel, disconnectRedis, server, log = defaultL
         // close() waits for every connection, and one streaming chat (SSE) or
         // WebSocket would hold the shutdown for as long as it stays open.
         onServer((s) => s.close());
-        // Drain in-flight automation runs FIRST: stop claiming new scheduled work
-        // and wait (bounded) for running executions to finish, so a deploy doesn't
-        // abandon a run mid-step and re-fire its side effects after restart. Bound
-        // it under the orchestrator's termination grace (k8s default 30s).
-        // App Studio background actions drain in parallel under the same bound; what does not
-        // finish in time is marked interrupted (there is no resume).
+        // Drain the modules FIRST, concurrently, under one shared budget: the meeting-notes
+        // runs of this process are marked failed, in-flight automation runs finish (bounded)
+        // so a deploy doesn't abandon a run mid-step, App Studio background actions drain
+        // (firstParty/<id>.jobs.js drain). Bound it under the orchestrator's termination
+        // grace (k8s default 30s); each module keeps its own bound inside it.
         // Unset, not a number or not above 0 keeps the 25 s default (the behaviour of the old `|| 25_000`).
         const drainEnv = Number(process.env.AUTOMATION_DRAIN_TIMEOUT_MS);
         const drainMs = Number.isFinite(drainEnv) && drainEnv > 0 ? Math.floor(drainEnv) : 25_000;
-        await Promise.all([
-            // Meeting-notes runs live in this process and die with it: mark them
-            // failed now, so the user sees Retry instead of a spinner until the
-            // reaper comes round. First, while the database is surely there.
-            (async () => {
-                try {
-                    const meetingRuns = deps.meetingRuns || require('../core/meetingNotes/processingRuns.mts');
-                    const failed = await meetingRuns.failInFlight({ timeoutMs: 5000 });
-                    if (failed) log.info(`[Server] ${failed} meeting note run(s) interrupted by the shutdown, marked failed for a retry`);
-                } catch (e) { log.warn('[Server] marking interrupted meeting runs failed:', /** @type {Error} */ (e).message); }
-            })(),
-            (async () => {
-                try {
-                    const automationRunner = deps.automationRunner || require('../core/automationRunner');
-                    if (typeof automationRunner.stop === 'function') {
-                        await automationRunner.stop({ timeoutMs: drainMs });
-                    }
-                } catch (e) { log.warn('[Server] automation runner drain failed:', /** @type {Error} */ (e).message); }
-            })(),
-            (async () => {
-                try {
-                    const backgroundRun = deps.backgroundRun || require('../appStudio/backgroundRun.mts');
-                    await backgroundRun.stop({ timeoutMs: Math.max(1000, drainMs - 2000) });
-                } catch (e) { log.warn('[Server] background action drain failed:', /** @type {Error} */ (e).message); }
-            })(),
-        ]);
+        const loader = deps.loader || require('../modules/firstParty/loader');
+        await loader.drain({ timeoutMs: drainMs });
         // Connections whose request ended during the drain are idle now.
         onServer((s) => s.closeIdleConnections());
         try { (deps.usageOpenObservePush || require('../jobs/usageOpenObservePush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
@@ -183,20 +141,12 @@ function installGracefulShutdown({ otel, disconnectRedis, server, log = defaultL
         try { await Promise.race([(deps.chatSignals || require('../core/privacy/chatSignals')).flush(), new Promise(r => setTimeout(r, 2000).unref())]); } catch (err) { defaultLog.debug('best-effort', err); }
         try { (deps.configStore || require('../stores/configStore'))._stopInvalidationListener(); } catch (err) { defaultLog.debug('best-effort', err); }
         await disconnectRedis(); // shared ioredis client (caching and the session cache)
-        // Flush the SQLite blob engines' dirty handles BEFORE exiting. Their own
-        // SIGTERM listeners fire concurrently, but the process.exit() below used
-        // to race them to death — an unawaited flush loses up to the debounce
-        // window of committed app/webpage writes on every single deploy. Bounded
-        // so a hung RustFS can't stall the pod past its termination grace.
-        try {
-            await Promise.race([
-                Promise.allSettled([
-                    (deps.studioAppDbStore || require('../stores/studioAppDbStore')).closeAll(),
-                    (deps.webpageDbStore || require('../stores/webpageDbStore')).closeAll(),
-                ]),
-                new Promise((resolve) => setTimeout(resolve, 10_000).unref()),
-            ]);
-        } catch (e) { log.warn('[Server] Blob-engine shutdown flush failed:', /** @type {Error} */ (e).message); }
+        // Flush the modules' SQLite blob engines (App Studio, web pages) BEFORE exiting
+        // (firstParty/<id>.jobs.js close). Their own SIGTERM listeners fire concurrently,
+        // and the process.exit() below would race them: an unawaited flush loses the
+        // debounce window of committed writes. Bounded so a hung RustFS can't stall the
+        // pod past its termination grace.
+        await loader.close({ timeoutMs: 10_000 });
         // Flush any buffered spans/metrics so a deploy doesn't drop the last batch.
         await otel.shutdown();
         // What is still open now (a streaming chat that outlasted the drain) ends here.
@@ -211,3 +161,4 @@ function installGracefulShutdown({ otel, disconnectRedis, server, log = defaultL
 module.exports = { installProcessErrorHandlers, startServer, installGracefulShutdown };
 
 /** @typedef {typeof defaultLog} Log */
+/** The part of the first-party loader the shutdown calls. @typedef {{ drain(opts: { timeoutMs: number }): Promise<void>, close(opts?: { timeoutMs?: number }): Promise<void> }} ShutdownLoader */

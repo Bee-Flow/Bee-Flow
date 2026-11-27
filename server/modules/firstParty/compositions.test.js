@@ -1,8 +1,8 @@
 /**
  * The compositions of the real tree (firstParty/<id>.js): one per module of
  * scripts/module-map.json, with the same requires and uses (one source of truth later; until
- * then they may not drift), and the loader finds exactly those, all loaded. Nothing has been
- * moved into a composition yet, so each one holds its id, requires and uses only.
+ * then they may not drift), and the loader finds exactly those, all loaded. Each one holds its
+ * id, requires and uses, and what its part files (modules/firstParty/parts.js) add.
  *
  * Runs the loader in a child process with every module visible (no BEEFLOW_HIDE_MODULES), so
  * the outcome is the same when the suite itself runs in core mode.
@@ -17,6 +17,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const SERVER = path.resolve(__dirname, '..', '..');
+const PART_KEY_NAMES = new Set(Object.values(require('./parts').PART_KEYS).flat());
 const MAP = JSON.parse(fs.readFileSync(path.join(SERVER, '..', 'scripts', 'module-map.json'), 'utf8'));
 
 /** load() on the real tree, and the keys of each composition, from a clean child process. */
@@ -39,7 +40,7 @@ function loadRealTree() {
     return JSON.parse(r.stdout);
 }
 
-test('every module of scripts/module-map.json has a composition, all loaded and empty, requires and uses equal', () => {
+test('every module of scripts/module-map.json has a composition, all loaded, requires and uses equal, nothing but parts beyond them', () => {
     const got = loadRealTree();
     const ids = Object.keys(MAP.modules).sort();
     assert.deepStrictEqual(got.modules.map((/** @type {{ id: string }} */ m) => m.id), ids);
@@ -47,7 +48,8 @@ test('every module of scripts/module-map.json has a composition, all loaded and 
         assert.strictEqual(m.state, 'loaded', `${m.id}: ${m.detail}`);
         assert.deepStrictEqual(m.requires, MAP.modules[m.id].requires, `${m.id}: requires differ from scripts/module-map.json`);
         assert.deepStrictEqual(m.uses, MAP.modules[m.id].uses, `${m.id}: uses differ from scripts/module-map.json`);
-        assert.deepStrictEqual(got.keys[m.id], ['id', 'requires', 'uses'], `${m.id}: the composition holds more than its id, requires and uses`);
+        const beyond = got.keys[m.id].filter((/** @type {string} */ k) => !['id', 'requires', 'uses'].includes(k));
+        assert.deepStrictEqual(beyond.filter((/** @type {string} */ k) => !PART_KEY_NAMES.has(k)), [], `${m.id}: the composition holds more than its id, requires, uses and its parts' keys`);
     }
     assert.deepStrictEqual(got.stores, []);
     assert.deepStrictEqual(got.migrations, []);
