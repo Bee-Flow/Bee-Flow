@@ -10,7 +10,9 @@
  *   - any other `.xml` or `.txt`: 404. It fell through to the SPA shell, a 200
  *     of HTML claiming to be a sitemap or a text file (crawlers probe
  *     sitemap_index.xml, ads.txt and the like). `X-Beeflow-Render: not-found`
- *     keeps nginx from turning the 404 back into the shell (agent-hub/nginx.conf.template).
+ *     makes nginx keep the 404 status: @shell returns 404 and @shell_not_found
+ *     serves the shell HTML with that 404, not with a 200
+ *     (agent-hub/nginx.conf.template).
  *
  * Paths are compared with plain string operations: no regular expression runs
  * over the request.

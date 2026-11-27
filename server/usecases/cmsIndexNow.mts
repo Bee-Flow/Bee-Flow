@@ -1,7 +1,9 @@
 /**
  * IndexNow: tell Bing, Yandex, Seznam and the other IndexNow engines which
- * addresses of the live CMS site a publish added or changed, so they do not
- * wait for their next crawl of sitemap.xml.
+ * addresses of the live CMS site a publish (or a switch of the live site)
+ * added, changed or removed, so they do not wait for their next crawl of
+ * sitemap.xml. A removed address is sent too: the engine recrawls it, gets the
+ * 404 and drops it.
  *
  * Off unless INDEXNOW_KEY is set (8-128 letters, digits or dashes; the
  * protocol's rule). With a key, the public renderer serves it at
@@ -9,7 +11,7 @@
  * that the site owner sent the list.
  *
  * What a publish sends: the sitemap of the live site before and after the
- * publish, compared per address (new, or a different <lastmod>), at most
+ * publish, compared per address (new, a different <lastmod>, or gone), at most
  * INDEXNOW_MAX_URLS addresses (default 1000; 0 = the protocol's own limit of
  * 10 000). Both sides are built without the publish-time fallback date, so
  * the integration pages, whose only date is the publish, do not count as
@@ -98,15 +100,21 @@ export function sitemapLastmods(xml: string): Map<string, string> {
     return out;
 }
 
-/** Addresses that are new in `after`, or carry a different lastmod there; at most `cap`. */
+/**
+ * Addresses that are new in `after` or carry a different lastmod there, then
+ * the ones `after` no longer lists; at most `cap`.
+ */
 export function changedUrls(beforeXml: string, afterXml: string, cap: number): string[] {
     const before = sitemapLastmods(beforeXml);
+    const after = sitemapLastmods(afterXml);
     const changed: string[] = [];
-    for (const [url, lastmod] of sitemapLastmods(afterXml)) {
+    for (const [url, lastmod] of after) {
         if (!before.has(url) || before.get(url) !== lastmod) changed.push(url);
-        if (changed.length >= cap) break;
     }
-    return changed;
+    for (const url of before.keys()) {
+        if (!after.has(url)) changed.push(url);
+    }
+    return changed.slice(0, cap);
 }
 
 /** POST the list to the IndexNow endpoint; resolves to the HTTP status. */
@@ -181,8 +189,12 @@ async function withinTime<T>(work: Promise<T>, ms: number): Promise<T | typeof T
 }
 
 /** The live sitemap before the publish, or null when there is nothing to compare (not live, slow, failed). */
-async function sitemapBefore(siteId: string, origin: string, deps: IndexNowDeps): Promise<string | null> {
-    const work = (async () => (await deps.getLiveSiteId() === siteId ? deps.sitemapXml(siteId, origin) : null))();
+function sitemapBefore(siteId: string, origin: string, deps: IndexNowDeps): Promise<string | null> {
+    return readBefore((async () => (await deps.getLiveSiteId() === siteId ? deps.sitemapXml(siteId, origin) : null))(), deps);
+}
+
+/** `work` under the before-time-out; null when it is slow or fails (logged). */
+async function readBefore(work: Promise<string | null>, deps: IndexNowDeps): Promise<string | null> {
     // A failure after the time-out must not surface as an unhandled rejection.
     work.catch(() => undefined);
     try {
@@ -202,7 +214,10 @@ async function sitemapBefore(siteId: string, origin: string, deps: IndexNowDeps)
  * The sitemap before the publish is read under a time-out
  * (INDEXNOW_BEFORE_TIMEOUT_MS), so IndexNow never holds up a publish for long.
  */
-export async function publishWithIndexNow<T>(siteId: string, publish: () => Promise<T>, deps: IndexNowDeps = defaultDeps()): Promise<T> {
+export async function publishWithIndexNow<T>(siteId: string, publish: () => Promise<T>, given?: IndexNowDeps): Promise<T> {
+    // Off (no key, no injected deps): just publish, without loading the stores IndexNow reads.
+    if (!given && !indexNowKey()) return publish();
+    const deps = given ?? defaultDeps();
     const key = indexNowKey(deps.env);
     const origin = key ? String(deps.origin() || '') : '';
     const beforeXml = key && origin ? await sitemapBefore(siteId, origin, deps) : null;
@@ -215,9 +230,42 @@ export async function publishWithIndexNow<T>(siteId: string, publish: () => Prom
 }
 
 /**
- * `store` with its publishSite going through publishWithIndexNow. Both publish
- * paths (the admin publish route and the CMS MCP cms_publish) publish through
- * this, so neither can skip the announcement.
+ * Switch the live site to `siteId` (`doSwitch`); when IndexNow is on, announce
+ * afterwards, without waiting, what the switch changed: the sitemap of the
+ * site that was live (none: empty) against the sitemap of the new one. The
+ * new site is already published when it goes live (cmsShared
+ * ensurePublishedSnapshot runs before the switch). Going offline (null) or
+ * re-selecting the live site sends nothing.
+ */
+export async function switchLiveWithIndexNow<T>(siteId: string | null, doSwitch: () => Promise<T>, given?: IndexNowDeps): Promise<T> {
+    if (!given && !indexNowKey()) return doSwitch();
+    const deps = given ?? defaultDeps();
+    const key = indexNowKey(deps.env);
+    const origin = key ? String(deps.origin() || '') : '';
+    let beforeXml: string | null = null;
+    if (key && origin && siteId) {
+        beforeXml = await readBefore((async () => {
+            const previous = await deps.getLiveSiteId();
+            if (previous === siteId) return null;
+            return previous ? deps.sitemapXml(previous, origin) : '';
+        })(), deps);
+    }
+    const result = await doSwitch();
+    if (beforeXml !== null && key && siteId) {
+        announce(siteId, beforeXml, key, origin, deps)
+            .catch((e: unknown) => log.warn(`[IndexNow] announcing the new live site failed: ${(e as Error).message}`));
+    }
+    return result;
+}
+
+/**
+ * `store` with its publishSite going through publishWithIndexNow. The admin
+ * publish route calls publishWithIndexNow itself; the CMS MCP cms_publish gets
+ * its store through this (routes/mcpCms.js mcpCmsStore), and the background
+ * heal of a live site without a snapshot (routes/cmsPublicSite.js) publishes
+ * through publishWithIndexNow too. Making a site live is a switch, not a
+ * publish of the live site: cmsShared.setLiveSiteId announces it through
+ * switchLiveWithIndexNow.
  */
 export function withIndexNow<S extends { publishSite: (siteId: string) => Promise<unknown> }>(
     store: S, deps?: IndexNowDeps,

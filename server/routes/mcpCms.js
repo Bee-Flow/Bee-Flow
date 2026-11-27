@@ -244,4 +244,4 @@ function makeRouter(injected = {}) {
     return router;
 }
 
-module.exports = Object.assign(makeRouter(), { makeRouter, isCmsAdmin, mcpCmsStore });
+module.exports = Object.assign(makeRouter(), { makeRouter, isCmsAdmin, mcpCmsStore, buildRuntime });

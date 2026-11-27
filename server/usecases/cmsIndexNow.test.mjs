@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import {
-    indexNowKey, keyFilePath, maxUrls, sitemapLastmods, changedUrls, submitUrls, publishWithIndexNow,
+    indexNowKey, keyFilePath, maxUrls, sitemapLastmods, changedUrls, submitUrls, publishWithIndexNow, switchLiveWithIndexNow,
     INDEXNOW_ENDPOINT, PROTOCOL_MAX_URLS, DEFAULT_MAX_URLS,
 } from './cmsIndexNow.mts';
 
@@ -60,11 +60,12 @@ test('the cap: a generous default, 0 means the protocol limit', () => {
     }
 });
 
-test('the diff: new addresses and a changed lastmod count, the rest does not', () => {
+test('the diff: new addresses, a changed lastmod and removed addresses count, the rest does not', () => {
     const before = sitemap([[`${ORIGIN}/`, '2026-11-01'], [`${ORIGIN}/pricing`, '2026-11-01'], [`${ORIGIN}/gone`, '2026-11-01']]);
     const after = sitemap([[`${ORIGIN}/`, '2026-11-01'], [`${ORIGIN}/pricing`, '2026-11-27'], [`${ORIGIN}/new?a=1&amp;b=2`]]);
     assert.deepStrictEqual([...sitemapLastmods(after).keys()], [`${ORIGIN}/`, `${ORIGIN}/pricing`, `${ORIGIN}/new?a=1&b=2`]);
-    assert.deepStrictEqual(changedUrls(before, after, 100), [`${ORIGIN}/pricing`, `${ORIGIN}/new?a=1&b=2`]);
+    // The removed address comes last: the engine recrawls it and drops it on the 404.
+    assert.deepStrictEqual(changedUrls(before, after, 100), [`${ORIGIN}/pricing`, `${ORIGIN}/new?a=1&b=2`, `${ORIGIN}/gone`]);
     assert.deepStrictEqual(changedUrls(before, after, 1), [`${ORIGIN}/pricing`]);
     assert.deepStrictEqual(changedUrls('', after, 100).length, 3, 'a first publish announces every address');
 });
@@ -156,4 +157,55 @@ test('the POST releases the response body: only its status is read', async () =>
     // A body that refuses to cancel does not fail the ping.
     assert.strictEqual(await submitUrls({ origin: ORIGIN, key: KEY, urls: [] },
         async () => ({ status: 200, body: { cancel: async () => { throw new Error('locked'); } } })), 200);
+});
+
+/** A live switch: `sitemaps` per site id, the live id flips when the switch runs. */
+function switchHarness({ live, sitemaps, env = { INDEXNOW_KEY: KEY } }) {
+    const calls = { submits: /** @type {any[]} */ ([]), reads: /** @type {string[]} */ ([]) };
+    let current = live;
+    /** @type {(v?: unknown) => void} */
+    let done = () => {};
+    const sent = new Promise((resolve) => { done = resolve; });
+    const deps = {
+        env,
+        origin: () => ORIGIN,
+        getLiveSiteId: async () => current,
+        sitemapXml: async (/** @type {string} */ id) => { calls.reads.push(id); return sitemaps[id] || ''; },
+        submit: async (/** @type {any} */ args) => { calls.submits.push(args); done(); return 202; },
+    };
+    const doSwitch = (/** @type {string|null} */ id) => async () => { current = id; return id; };
+    return { deps, doSwitch, calls, sent };
+}
+
+test('making another site live announces its new, changed and dropped addresses against the old live site', async () => {
+    const h = switchHarness({ live: 'pj_old', sitemaps: {
+        pj_old: sitemap([[`${ORIGIN}/`, '2026-11-01'], [`${ORIGIN}/old-only`, '2026-11-01']]),
+        pj_new: sitemap([[`${ORIGIN}/`, '2026-11-01'], [`${ORIGIN}/new-only`, '2026-11-27']]),
+    } });
+    assert.strictEqual(await switchLiveWithIndexNow('pj_new', h.doSwitch('pj_new'), h.deps), 'pj_new');
+    await h.sent;
+    assert.deepStrictEqual(h.calls.reads, ['pj_old', 'pj_new'], 'the old live site before the switch, the new one after');
+    assert.deepStrictEqual(h.calls.submits, [{ origin: ORIGIN, key: KEY, urls: [`${ORIGIN}/new-only`, `${ORIGIN}/old-only`] }]);
+});
+
+test('the first live site announces every address', async () => {
+    const h = switchHarness({ live: null, sitemaps: { pj_new: sitemap([[`${ORIGIN}/`], [`${ORIGIN}/a`]]) } });
+    await switchLiveWithIndexNow('pj_new', h.doSwitch('pj_new'), h.deps);
+    await h.sent;
+    assert.deepStrictEqual(h.calls.submits[0].urls, [`${ORIGIN}/`, `${ORIGIN}/a`]);
+});
+
+test('going offline, re-selecting the live site or having no key sends nothing; the switch always runs', async () => {
+    const cases = [
+        { id: null, live: 'pj_old', env: { INDEXNOW_KEY: KEY } },
+        { id: 'pj_old', live: 'pj_old', env: { INDEXNOW_KEY: KEY } },
+        { id: 'pj_new', live: 'pj_old', env: {} },
+    ];
+    for (const c of cases) {
+        const h = switchHarness({ live: c.live, sitemaps: { pj_old: sitemap([[`${ORIGIN}/`]]), pj_new: sitemap([[`${ORIGIN}/n`]]) }, env: c.env });
+        assert.strictEqual(await switchLiveWithIndexNow(c.id, h.doSwitch(c.id), h.deps), c.id);
+        await new Promise((r) => setImmediate(r));
+        assert.strictEqual(h.calls.submits.length, 0, JSON.stringify(c));
+        assert.ok(!h.calls.reads.includes('pj_new'), JSON.stringify(c));
+    }
 });

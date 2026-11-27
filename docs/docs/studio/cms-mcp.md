@@ -260,6 +260,13 @@ formats (`.doc`, `.xls`, `.ppt`) are refused. A document is always served as a d
 inside the page; put its URL behind a button or a text link. Only images, video and
 captions are served inline.
 
+The check has two limits worth knowing. It expects the usual name of the main part
+(`word/document.xml`, `xl/workbook.xml`, `ppt/presentation.xml`), so the rare Office file
+whose generator names that part differently is refused; save it again from Word, Excel
+or PowerPoint. And it refuses only a VBA project: an Office file with an embedded object
+(another file inside the document) is accepted, as it is only ever offered as a download.
+A site import gives documents the same check.
+
 The standard frontend image already proxies `/mcp` and lets `PUT /mcp/cms/upload/`
 through with a body of up to 512 MB, unbuffered. If you run your own reverse proxy or
 ingress in front of Bee Flow instead, configure it the same way, as is done for

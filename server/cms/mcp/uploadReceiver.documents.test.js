@@ -109,3 +109,11 @@ test('every document type has an extension and a size cap; the cap is CMS_DOCUME
     assert.equal(maxBytesFor('application/msword'), null, 'old binary Office formats are not accepted');
     assert.equal(maxBytesFor('application/vnd.ms-word.document.macroenabled.12'), null);
 });
+
+test('with no document cap (CMS_DOCUMENT_MAX_MB=0) the storage deadline stays a delay a timer can hold', () => {
+    const { storeDeadlineMs } = require('./uploadTickets');
+    // Above 2^31 - 1 ms Node fires a timer at once: the store would time out immediately.
+    assert.equal(storeDeadlineMs(Number.MAX_SAFE_INTEGER), 2 ** 31 - 1);
+    assert.equal(storeDeadlineMs(3 * 1024 ** 4), 2 ** 31 - 1);
+    assert.equal(storeDeadlineMs(10 * 1024 * 1024), 70 * 1000);
+});

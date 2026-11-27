@@ -32,6 +32,8 @@ const { openZipGuarded, readEntryCapped, createByteBudget, ZipLimitError } = req
 const storageStore = require('../../stores/storageStore');
 const { sanitizeSvg } = require('../../utils/svgSanitizer');
 const { scheduleVariants } = require('./assetVariantStore');
+const { DOCUMENT_EXT_BY_TYPE, DOCUMENT_MIME_WHITELIST } = require('./uploadPolicy');
+const { looksLikeDocument, bufferReader } = require('./documentSniff.mts');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
@@ -240,6 +242,26 @@ async function fetchAssets(keys) {
  * stored raw.
  */
 /**
+ * The bytes to store for one restored asset, or why it is refused. An SVG is
+ * sanitized (and refused when that fails). A document gets the same byte
+ * check as an upload: a non-PDF named .pdf, or a macro-enabled Office file
+ * named .docx, is not stored.
+ * @param {Buffer} buffer
+ * @param {string} contentType
+ * @returns {Promise<{ body: Buffer, metadata: { sanitized: string } | null } | { problem: string }>}
+ */
+async function storableBody(buffer, contentType) {
+    if (contentType === 'image/svg+xml') {
+        const clean = sanitizeSvg(buffer);
+        return clean ? { body: clean, metadata: { sanitized: '1' } } : { problem: 'invalid or unsafe SVG' };
+    }
+    if (DOCUMENT_MIME_WHITELIST.has(contentType) && !(await looksLikeDocument(contentType, buffer.length, bufferReader(buffer)))) {
+        return { problem: `not a valid ${contentType} document` };
+    }
+    return { body: buffer, metadata: null };
+}
+
+/**
  * `overwrite` exists for the seeder, and defaults to false for imports.
  *
  * Asset keys are deliberately stable (`cms/beeflow-hive.svg`, no hash), so
@@ -270,18 +292,12 @@ async function restoreAssets(assets, { overwrite = false } = {}) {
             if (exists && !overwrite) { reused++; continue; }
 
             const contentType = asset.contentType || guessContentType(asset.key);
-            let body = asset.buffer;
-            /** @type {{ sanitized: string; } | null} */
-            let metadata = null;
-            if (contentType === 'image/svg+xml') {
-                const clean = sanitizeSvg(asset.buffer);
-                if (!clean) {
-                    failed.push(`${asset.key} (invalid or unsafe SVG)`);
-                    continue;
-                }
-                body = clean;
-                metadata = { sanitized: '1' };
+            const checked = await storableBody(asset.buffer, contentType);
+            if ('problem' in checked) {
+                failed.push(`${asset.key} (${checked.problem})`);
+                continue;
             }
+            const { body, metadata } = checked;
 
             await storageStore.uploadFile(asset.key, body, contentType, metadata ?? undefined);
             scheduleVariants({ key: asset.key, source: body, contentType, storage: storageStore })
@@ -300,6 +316,9 @@ const MIME_BY_EXT = {
     '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif',
     '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
     '.mp4': 'video/mp4', '.webm': 'video/webm', '.vtt': 'text/vtt',
+    // The document types an upload accepts (uploadPolicy), so an exported PDF
+    // comes back as a PDF and passes the same byte check on import.
+    ...Object.fromEntries(Object.entries(DOCUMENT_EXT_BY_TYPE).map(([type, ext]) => [ext, type])),
 };
 /** @param {string} key */
 function guessContentType(key) {

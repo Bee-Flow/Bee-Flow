@@ -123,7 +123,10 @@ async function setLiveSiteId(siteId) {
     }
     const project = await cmsStore.getProject(siteId);
     if (!project) throw new HttpError(404, 'cms_site_not_found', 'Site not found');
-    await configStore.setConfig(KEY_CMS_LIVE_SITE_ID, siteId);
+    // Every way a site goes live (admin, CMS MCP cms_set_live_site, swap) ends
+    // here, so this is where IndexNow hears about it (off without INDEXNOW_KEY).
+    const { switchLiveWithIndexNow } = require('../usecases/cmsIndexNow.mts');
+    await switchLiveWithIndexNow(siteId, () => configStore.setConfig(KEY_CMS_LIVE_SITE_ID, siteId));
     return siteId;
 }
 

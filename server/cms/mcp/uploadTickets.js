@@ -44,8 +44,11 @@ const BODY_MIN_BPS = 128 * 1024;   // slowest accepted upload, bytes per second
 const STORE_MIN_BPS = 1024 * 1024; // slowest accepted storage write
 /** @param {number} maxSize */
 const bodyDeadlineMs = (maxSize) => Math.min(30 * 60 * 1000, 60 * 1000 + Math.ceil(maxSize / BODY_MIN_BPS) * 1000);
+// The longest delay a Node timer takes; past it the timer fires at once. With
+// CMS_DOCUMENT_MAX_MB=0 (no limit) a declared size can be large enough to pass it.
+const MAX_TIMER_MS = 2 ** 31 - 1;
 /** @param {number} maxSize */
-const storeDeadlineMs = (maxSize) => 60 * 1000 + Math.ceil(maxSize / STORE_MIN_BPS) * 1000;
+const storeDeadlineMs = (maxSize) => Math.min(MAX_TIMER_MS, 60 * 1000 + Math.ceil(maxSize / STORE_MIN_BPS) * 1000);
 /** @param {number} maxSize */
 const stallMsFor = (maxSize) => bodyDeadlineMs(maxSize) + storeDeadlineMs(maxSize) + 60 * 1000;
 const TICKET_RE = /^([a-f0-9]{24})\.([A-Za-z0-9_-]{43})$/;

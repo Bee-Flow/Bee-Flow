@@ -137,6 +137,21 @@ function startModuleSchedulers(deps = {}) {
     }
 }
 
+/**
+ * Company-inbox retention: website-form tickets past SUPPORT_THREAD_RETENTION_DAYS
+ * (0/unset = keep, the default). Daily, advisory-locked, one pod per pass.
+ * Support-owned, so it follows the module switch. Started by startSupportAndSyncJobs.
+ * @param {{ isAvailable?: (id: string) => boolean, job?: Startable }} [deps] test seam
+ */
+function startSupportRetention(deps = {}) {
+    if (!(deps.isAvailable || isModuleAvailable)('support')) return;
+    try {
+        (deps.job || require('../jobs/supportThreadRetention.mts')).start();
+    } catch (err) {
+        log.warn('[Server] Support thread retention job load failed:', /** @type {Error} */ (err).message);
+    }
+}
+
 /** MCP, the automation runner, the project feeds and the OpenObserve pushes. */
 function startRunnersAndFeeds() {
     // Initialize MCP server connections (non-blocking)
@@ -235,13 +250,7 @@ function startSupportAndSyncJobs() {
     } catch (err) {
         log.warn('[Server] Support SLA enforcer load failed:', err.message);
     }
-    // Company-inbox retention: website-form tickets past SUPPORT_THREAD_RETENTION_DAYS
-    // (0/unset = keep, the default). Daily, advisory-locked, one pod per pass.
-    if (isModuleAvailable('support')) try {
-        require('../jobs/supportThreadRetention.mts').start();
-    } catch (err) {
-        log.warn('[Server] Support thread retention job load failed:', err.message);
-    }
+    startSupportRetention();
     // NC user/group sync backstop — covers gaps when real-time webhooks miss
     try {
         require('../services/ncSyncBackstop').start();
@@ -342,7 +351,7 @@ function startSupportAndSyncJobs() {
 
 module.exports = {
     startRetentionAndComplianceJobs, startConfigInvalidationListener, startModuleSchedulers,
-    startRunnersAndFeeds, startSupportAndSyncJobs,
+    startRunnersAndFeeds, startSupportAndSyncJobs, startSupportRetention,
 };
 
 /** A module whose background work boot starts by name. @typedef {{ start: () => unknown }} Startable */
