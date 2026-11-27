@@ -44,6 +44,21 @@ Branch `ccr-b6017e12-l1bxyh`. Updated at the end of every batch.
 | Full server suite | green (4,031 files) | green |
 | Core -> module static imports (agent-hub) | 173 static, 196 lazy | same |
 
+## Checked by hand against a real Postgres (16, empty databases)
+
+After the composition moved, commit 5a17db8c:
+
+| Check | Outcome |
+|---|---|
+| `npm run db:migrate` on an empty database, every module present | exit 0, 271 parts; the schema dump is identical to the one `main` produces (280 tables, 554 indexes, 0 differing lines), the same 264 ledger names, the same row count in every table, the same `config` content |
+| `node index.js` on that database | `/api/ready` 200 after 10 s, module routes mounted (401 without a session), SIGTERM: drained, exit 0 |
+| `BEEFLOW_HIDE_MODULES=all npm run db:migrate` on an empty database | exit 0, 216 parts, no error line; 138 tables |
+| `BEEFLOW_HIDE_MODULES=all node index.js` | stops at the first static edge that is left: `routes/ai/config/userSettings.js` requires `integrations/afasTools` ("module "int_erp_nl" is not present"). Step 1.4 removes it; the core boot is the practical measure of that step. |
+
+Found on `main` as well, not caused by the split: on an empty database the automation store runs
+four `datatable-*` migrations before the `datatables` table exists ("relation "datatables" does
+not exist", four error lines); the second `db:migrate` applies them, which is why CI runs it twice.
+
 ## Next
 
 1. **Step 1.4 and 1.5** (`phase1.4/` in this directory: the rules, one work list per source
