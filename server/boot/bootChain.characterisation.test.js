@@ -288,10 +288,12 @@ test('bridge: an unknown token changes nothing; a failing lookup or tier resolut
 
 // ── Static mounts ───────────────────────────────────────────────────────────
 
-test('static mounts outside production: the uploads allow-list gate, the uploads dir, then learn-media', () => {
+test('static mounts outside production: the uploads allow-list gate, the uploads dir, then learn-media (module learning, when it is here)', () => {
     const app = recordingApp();
     withEnv({ NODE_ENV: 'test' }, () => staticAssets.mountStaticAssets(app, { log: quietLog() }));
-    assert.deepEqual(app.calls.map(c => c[1]), ['/uploads', '/uploads', '/learn-media']);
+    // /learn-media is module learning's row of the 'static' slot: the composition mounts it when that module is here.
+    const learning = require('../modules/firstParty/moduleState').moduleStateOf('learning') !== 'absent';
+    assert.deepEqual(app.calls.map(c => c[1]), ['/uploads', '/uploads', ...(learning ? ['/learn-media'] : [])]);
     assert.equal(app.calls[0][2], require('../middleware/publicUploads').publicUploadsOnly,
         'the allow-list runs BEFORE express.static, or saved-recordings would be served');
     assert.equal(staticAssets.AGENT_HUB_DIST_PATH, path.resolve(__dirname, '../../agent-hub/dist'));

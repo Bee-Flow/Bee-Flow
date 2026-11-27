@@ -126,8 +126,9 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agen
         await resolveRuntimeAppGate({ userId, session, isAdmin, extraEnabledApps, enabledAppsOverride });
 
     const _isToolGranted = perActionGrantFilter(agentConfig);
+    // A toolset whose module is absent is not in TOOLSETS: nothing to offer.
     const addTools = (toolArray) => {
-        for (const tool of toolArray) {
+        for (const tool of toolArray || []) {
             if (_isToolGranted && !_isToolGranted(tool)) continue;
             if (!tools.find(t => t.function.name === tool.function.name)) {
                 tools.push(tool);

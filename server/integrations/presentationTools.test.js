@@ -45,6 +45,8 @@ installResolveStub({
         createDocument: async (input) => { if (library.fail) throw new Error('library down'); library.push(input); return { id: `doc-${library.length}`, name: input.name, versionId: 'v1' }; },
     },
 });
+// OneDrive is the integration client 'msGraph' (module int_microsoft), looked up by name.
+require('../core/integrations/integrationClients').registerIntegrationClients({ msGraph: () => msGraph });
 
 const { executePresentationTool, PRESENTATION_TOOLS, isPresentationTool, safePresentationFileName } = require('./presentationTools');
 

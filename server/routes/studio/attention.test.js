@@ -37,6 +37,7 @@ const assert = require('node:assert');
 
 const { createAttentionRouter, SOURCE_KEYS, CACHE_TTL_MS } = require('./attention');
 const { studioApp, studioServer } = require('./studioServer.testkit');
+const { optionalFeatureModule } = require('../../core/featureModules');
 
 // One app with no screens → the App Studio validator's `screens.missing`.
 const APP_BROKEN = { schemaVersion: 2, meta: { name: 'Order portal' }, screens: [] };
@@ -128,6 +129,9 @@ function makeDeps(overrides = {}) {
             for (let i = 0; i < items.length; i += 1) out.push(await fn(items[i], i));
             return out;
         },
+        // Module projects' own rules (app validation, the empty-base finding), as the route
+        // looks them up: null without that module, and the sources that need them are gated.
+        completeness: optionalFeatureModule('projects/completeness'),
         solutionCompleteness: async (projectId) => {
             bump('completeness'); calls.completenessIds = [...(calls.completenessIds || []), projectId];
             return { blocked: true, complete: true, findings: [{ severity: 'error' }, { severity: 'warning' }], unavailable: [] };

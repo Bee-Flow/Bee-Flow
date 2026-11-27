@@ -66,6 +66,8 @@ installResolveStub({
     // webdav.js reads the same client; the real one would pull in auth and the DB.
     '../nextcloudClient': ncClient,
 });
+// The delivery reads Nextcloud as the integration client 'nextcloud' (module int_nextcloud), by name.
+require('../core/integrations/integrationClients').registerIntegrationClients({ nextcloud: () => ncClient });
 
 const { setMarkingResolver } = require('../core/automationRunner/documentMarking');
 const { WORD_DOCUMENT_TOOLS, isWordDocumentTool, safeWordFileName } = require('./wordDocumentTools');

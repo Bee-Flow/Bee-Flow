@@ -119,8 +119,8 @@ const log = require('../../telemetry/log');
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX_ENTRIES = 5000;
 
-// Lazily-required production dependencies, each the module the producer of that source
-// already uses (a module's own by name, moduleDep: null when it is absent); no new data access.
+// Lazily-required production dependencies. Each is the module the producer of
+// that source already uses; nothing here is new data access.
 const DEFAULT_LOADERS = {
     modules: () => require('../../modules'),
     license: () => require('../../license/middleware'),
