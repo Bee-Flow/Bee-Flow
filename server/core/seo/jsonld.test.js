@@ -9,7 +9,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildJsonLd, faqPage, LICENSE_URL } = require('./jsonld');
+const { buildJsonLd, faqPage } = require('./jsonld');
 const { buildHead, footerProfiles } = require('./head');
 const { ogLocale } = require('./html');
 
@@ -65,7 +65,7 @@ test('the footer and header become the Organization: legal name, address, KvK nu
         const org = headGraph(head).find((/** @type {any} */ n) => n['@type'] === 'Organization');
         assert.deepEqual(org, {
             '@type': 'Organization', '@id': `${ORIGIN}/#organization`, name: 'Acme', url: `${ORIGIN}/`,
-            legalName: 'Acme B.V.', alternateName: 'Acme B.V.', email: 'info@acme.test',
+            legalName: 'Acme B.V.', email: 'info@acme.test',
             address: { '@type': 'PostalAddress', streetAddress: 'Main street 6', postalCode: '1185 XE', addressLocality: 'Amstelveen', addressCountry: 'NL' },
             identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: '97632430' },
             logo: `${ORIGIN}/api/cms/asset/cms/logo.png`,
@@ -74,11 +74,36 @@ test('the footer and header become the Organization: legal name, address, KvK nu
     }
 });
 
-test('the SoftwareApplication names its licence and only the free offer', () => {
-    const app = graphOf({ isProductPage: true }).find((n) => n['@type'] === 'SoftwareApplication');
-    assert.equal(app?.license, LICENSE_URL);
-    assert.equal(LICENSE_URL, 'https://github.com/Bee-Flow/Bee-Flow/blob/main/LICENSE.md');
+const LICENSE = 'https://git.acme.test/acme/blob/main/LICENSE.md';
+/** Facts of a site whose footer links a licence. */
+const LICENSED = {
+    name: 'Acme', legalName: null, description: null, email: null, address: null, registration: null, vat: null,
+    profiles: [], links: [{ title: 'Licence', url: LICENSE }], licenseUrl: LICENSE,
+};
+
+test('the SoftwareApplication names the licence the footer links, and only the free offer', () => {
+    const app = graphOf({ isProductPage: true, facts: LICENSED }).find((n) => n['@type'] === 'SoftwareApplication');
+    assert.equal(app?.license, LICENSE);
     assert.deepEqual(app?.offers, { '@type': 'Offer', price: '0', priceCurrency: 'EUR' });
+});
+
+test('a site whose footer links no licence gets no SoftwareApplication, product page or not', () => {
+    assert.ok(!graphOf({ isProductPage: true }).some((n) => n['@type'] === 'SoftwareApplication'));
+    assert.ok(!graphOf({ isProductPage: true, facts: { ...LICENSED, licenseUrl: null } })
+        .some((n) => n['@type'] === 'SoftwareApplication'));
+});
+
+test('the licence comes from the footer columns through buildHead', () => {
+    const footer = { columns: [{ heading: 'Company', links: [
+        { label: 'Docs', link: { kind: 'external', url: 'https://docs.acme.test' } },
+        { label: 'Sustainable Use License', link: { kind: 'external', url: LICENSE } },
+    ] }] };
+    const head = buildHead({
+        origin: ORIGIN, slug: '', locale: 'en', defaultLocale: 'en', locales: ['en'],
+        page: { title: 'Home', blocks: [] }, design: {}, siteName: 'Acme', footer, header: {},
+    });
+    const app = headGraph(head).find((/** @type {any} */ n) => n['@type'] === 'SoftwareApplication');
+    assert.equal(app?.license, LICENSE);
 });
 
 test('the footer social links become sameAs, without duplicates', () => {

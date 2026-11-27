@@ -2,18 +2,29 @@
  * What a public CMS site states about the organisation behind it, read from
  * the site settings every CMS site already has: the header brand and nav, the
  * footer blurb, copyright line, social links and accountability block
- * (address, registration, VAT number, contact links).
+ * (address, registration, VAT number, contact links) and the external links
+ * of the footer columns.
  *
- * The Organization node of the JSON-LD graph (core/seo/jsonld.js) and the
- * facts block of /llms.txt (core/seo/sitemap.js) both come from here, so they
- * cannot disagree with the footer a visitor sees. Nothing is hard-coded about
- * any one site: this code serves every CMS customer.
+ * The Organization node of the JSON-LD graph (core/seo/jsonld.js), the
+ * SoftwareApplication licence and the facts and links of /llms.txt
+ * (core/seo/sitemap.js) all come from here, so they cannot disagree with the
+ * footer a visitor sees. Nothing is hard-coded about any one site: this code
+ * serves every CMS customer.
  */
+
+export interface SiteLink {
+    title: string;
+    url: string;
+}
 
 export interface SiteFacts {
     /** The brand, as the header shows it. */
     name: string;
-    /** The legal name from the copyright line ("© Acme B.V." → "Acme B.V."), or null. */
+    /**
+     * The legal name from the copyright line ("© Acme B.V." → "Acme B.V."), or null.
+     * Only a name that ends in a legal form (B.V., GmbH, Ltd, Inc, ...): any other
+     * copyright text is not a legal name.
+     */
     legalName: string | null;
     /** The footer blurb: what the organisation is. */
     description: string | null;
@@ -26,6 +37,10 @@ export interface SiteFacts {
     vat: string | null;
     /** External profiles: the footer's social links, nothing else. */
     profiles: string[];
+    /** The external (absolute http(s)) links of the footer columns, with their labels. */
+    links?: SiteLink[];
+    /** The first footer column link whose label names a licence, or null. */
+    licenseUrl?: string | null;
 }
 
 type Doc = Record<string, unknown>;
@@ -74,21 +89,82 @@ export function footerProfiles(footer: unknown): string[] {
 }
 
 /**
+ * The external links of the footer columns (absolute http(s) URLs only), titled
+ * by their label: documentation, source code, a licence, an app store page.
+ */
+export function footerLinks(footer: unknown): SiteLink[] {
+    if (!isDoc(footer)) return [];
+    const out: SiteLink[] = [];
+    const seen = new Set<string>();
+    for (const col of list(footer.columns)) {
+        if (!isDoc(col) || col.enabled === false) continue;
+        for (const item of list(col.links)) {
+            if (!isDoc(item) || item.enabled === false) continue;
+            const url = absoluteUrl(linkHref(item));
+            const title = text(item.label);
+            if (!url || !title || seen.has(url)) continue;
+            seen.add(url);
+            out.push({ title, url });
+        }
+    }
+    return out;
+}
+
+/** Words in a link label that name a licence (English, Dutch, German). */
+const LICENSE_WORDS: readonly string[] = ['license', 'licence', 'licentie', 'lizenz'];
+
+/** The first footer link whose label names a licence, or null. */
+export function licenseLink(links: readonly SiteLink[]): string | null {
+    const hit = links.find(l => LICENSE_WORDS.some(w => l.title.toLowerCase().includes(w)));
+    return hit ? hit.url : null;
+}
+
+/**
+ * Legal forms, without dots or slashes and lower-cased ("B.V." → "bv", "A/S" → "as").
+ * A word only counts when it starts with a capital, as legal forms are written.
+ */
+const LEGAL_FORMS: ReadonlySet<string> = new Set([
+    'bv', 'nv', 'vof', 'cv', 'cvba', 'bvba', 'sprl', 'srl', 'sa', 'sas', 'sarl', 'spa', 'sl', 'slu',
+    'gmbh', 'ag', 'kg', 'ug', 'ohg', 'ev', 'eg', 'se', 'ltd', 'limited', 'plc', 'llp', 'llc', 'inc',
+    'incorporated', 'corp', 'corporation', 'co', 'pty', 'ab', 'as', 'aps', 'oy', 'oyj', 'kft', 'sro', 'pte',
+]);
+
+/** A copyright-line word without its trailing comma or semicolon. */
+function bareWord(word: string): string {
+    let w = word;
+    while (w.endsWith(',') || w.endsWith(';')) w = w.slice(0, -1);
+    return w;
+}
+
+function isLegalForm(word: string | undefined): boolean {
+    if (!word) return false;
+    const w = bareWord(word);
+    const first = w[0] ?? '';
+    if (first === first.toLowerCase()) return false;
+    return LEGAL_FORMS.has(w.toLowerCase().split('.').join('').split('/').join(''));
+}
+
+/**
  * The legal name in a copyright line: "© 2026 Acme B.V. All rights reserved." → "Acme B.V.".
- * Null when nothing is left.
+ * The name runs up to and including its legal form (B.V., GmbH, Ltd, Pty Ltd, ...).
+ * Null when the line names no legal form: "© 2026 Acme. Made with love in Amsterdam"
+ * states no legal entity, and a guess would put text in the structured data that
+ * the page does not claim.
  */
 export function legalNameFrom(copyright: unknown): string | null {
     let s = text(copyright);
     for (const mark of ['©', '(c)', '(C)', 'Copyright', 'copyright']) s = s.split(mark).join(' ');
     const words = s.split(/\s+/).filter(Boolean);
-    // Leading years ("2024", "2024-2026", "2024–") and a trailing "All rights reserved".
+    // Leading years ("2024", "2024-2026", "2024–").
     while (words.length && /^\d{4}([-–]\d{0,4})?,?$/.test(words[0])) words.shift();
-    let out = words.join(' ').trim();
-    const cut = out.toLowerCase().indexOf('all rights reserved');
-    if (cut !== -1) out = out.slice(0, cut).trim();
-    // A trailing comma or semicolon is punctuation; a trailing dot can be part of the name ("B.V.").
-    while (out.endsWith(',') || out.endsWith(';')) out = out.slice(0, -1).trim();
-    return out || null;
+    for (let i = 1; i < words.length; i++) {
+        if (!isLegalForm(words[i])) continue;
+        let end = i;
+        // A legal form of two words ("Pty Ltd", "Co. KG").
+        while (isLegalForm(words[end + 1])) end++;
+        return [...words.slice(0, end), bareWord(words[end])].join(' ');
+    }
+    return null;
 }
 
 /** The facts the site settings state. `site` is the published site (name, header, footer). */
@@ -100,6 +176,7 @@ export function siteFacts(site: unknown): SiteFacts {
     const name = text(header.logoText) || text(isDoc(header.logo) ? header.logo.text : '') || text(s.name);
     const legal = legalNameFrom(footer.copyright);
     const email = list(acc.links).map(linkHref).find(h => h.toLowerCase().startsWith('mailto:'));
+    const links = footerLinks(footer);
     return {
         name,
         legalName: legal,
@@ -109,6 +186,8 @@ export function siteFacts(site: unknown): SiteFacts {
         registration: text(acc.registration) || null,
         vat: text(acc.vat) || null,
         profiles: [...new Set(footerProfiles(footer))],
+        links,
+        licenseUrl: licenseLink(links),
     };
 }
 
@@ -165,10 +244,7 @@ export function registrationIdentifier(registration: string): { '@type': 'Proper
  */
 export function organizationFields(facts: SiteFacts): Record<string, unknown> {
     const out: Record<string, unknown> = {};
-    if (facts.legalName && facts.legalName !== facts.name) {
-        out.legalName = facts.legalName;
-        out.alternateName = facts.legalName;
-    }
+    if (facts.legalName && facts.legalName !== facts.name) out.legalName = facts.legalName;
     if (facts.description) out.description = facts.description;
     if (facts.email) out.email = facts.email;
     if (facts.address) out.address = postalAddress(facts.address);
@@ -183,9 +259,13 @@ const CURRENCY_WORDS: ReadonlySet<string> = new Set([
 ]);
 /** Multipliers that may sit between an amount and its currency ("6 k EUR", "2 million euro"). */
 const MULTIPLIERS: ReadonlySet<string> = new Set(['k', 'm', 'mln', 'million', 'miljoen']);
-/** "per user", "a month", "/month": a bare amount followed by one of these is a price. */
+/**
+ * "per user", "a seat", "/licence": a bare amount followed by one of these is a price.
+ * Only units of a sale: a bare amount per month or per year is as often a count
+ * ("Top 3 per year", "365 a year") as a price, so it needs a currency to count.
+ */
 const RATE_UNITS: ReadonlySet<string> = new Set([
-    'user', 'users', 'seat', 'seats', 'month', 'mo', 'year', 'yr', 'gebruiker', 'maand', 'jaar', 'licence', 'license',
+    'user', 'users', 'seat', 'seats', 'gebruiker', 'gebruikers', 'licence', 'licences', 'license', 'licenses',
 ]);
 const RATE_LEADS: ReadonlySet<string> = new Set(['per', 'a', '/']);
 const EDGE_PUNCTUATION = '.,;:!?()[]{}"\'«»-';
@@ -227,7 +307,8 @@ function priceTokens(s: string): string[] {
 /**
  * Does the text state an amount of money? An amount next to a currency sign,
  * code or word ("€6", "6 EUR", "$ 10", "6 euros", "10 dollars"), or a bare
- * amount followed by a rate ("6 per user per month", "9 a month", "6/user").
+ * amount followed by a sale unit ("6 per user per month", "6/user", "6 a seat").
+ * A bare amount per month or year without a currency is not a price here.
  * Used to keep prices out of what is written for language models: a price
  * belongs on the site's own pricing page, where it is kept current.
  */

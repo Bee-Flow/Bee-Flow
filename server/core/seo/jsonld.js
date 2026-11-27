@@ -14,15 +14,12 @@
 
 const { organizationFields } = require('./siteFacts.mts');
 
-/** The licence the footer links to (Sustainable Use License). */
-const LICENSE_URL = 'https://github.com/Bee-Flow/Bee-Flow/blob/main/LICENSE.md';
-
 /**
  * Organization — site-wide identity. Emitted on every page. Every fact beyond
  * the name comes from the site settings (core/seo/siteFacts.mts): the legal name
  * from the copyright line, address, registration and VAT number from the
- * footer's accountability block, the profiles from the footer socials and the
- * header nav. A fact the site does not state is left out.
+ * footer's accountability block, the profiles from the footer socials. A fact
+ * the site does not state is left out.
  * @param {{ siteName: string, origin: string, logoUrl?: string, sameAs?: string[],
  *   facts?: import('./siteFacts.mts').SiteFacts | null }} params
  */
@@ -57,7 +54,11 @@ function webSite({ siteName, origin, inLanguage }) {
 }
 
 /**
- * SoftwareApplication — for the pages that describe the product itself.
+ * SoftwareApplication — for the pages that describe the product itself, and
+ * only on a site whose footer links a licence (siteFacts licenseUrl): that link
+ * is what says the site offers software. A site without one gets no
+ * SoftwareApplication, so a customer's site never claims a licence or a free
+ * offer it does not state.
  *
  * The one offer stated is the free self-hosted edition (price 0): it needs no
  * licence key and is the same on every page. The paid prices live in the
@@ -66,9 +67,9 @@ function webSite({ siteName, origin, inLanguage }) {
  * hardcoded prices" rule exists to prevent, and a wrong price in structured
  * data is worse than none.
  *
- * @param {{ siteName: string, origin: string, description?: string, logoUrl?: string }} params
+ * @param {{ siteName: string, origin: string, licenseUrl: string, description?: string, logoUrl?: string }} params
  */
-function softwareApplication({ siteName, origin, description, logoUrl }) {
+function softwareApplication({ siteName, origin, licenseUrl, description, logoUrl }) {
     /** @type {{ '@type': string, '@id': string, name: string, applicationCategory: string, operatingSystem: string,
      *   publisher: { '@id': string }, license: string, offers: Record<string, string>, description?: string, image?: string }} */
     const node = {
@@ -78,12 +79,23 @@ function softwareApplication({ siteName, origin, description, logoUrl }) {
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web, Docker, Kubernetes',
         publisher: { '@id': `${origin}/#organization` },
-        license: LICENSE_URL,
+        license: licenseUrl,
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
     };
     if (description) node.description = description;
     if (logoUrl) node.image = logoUrl;
     return node;
+}
+
+/**
+ * The SoftwareApplication of a product page, or null on any other page and
+ * when the site's footer links no licence.
+ * @param {{ isProductPage?: boolean, siteName: string, origin: string, description?: string, logoUrl?: string,
+ *   facts?: import('./siteFacts.mts').SiteFacts | null }} params
+ */
+function licensedApplication({ isProductPage, facts, ...rest }) {
+    const licenseUrl = facts?.licenseUrl;
+    return isProductPage && licenseUrl ? softwareApplication({ ...rest, licenseUrl }) : null;
 }
 
 /**
@@ -177,7 +189,8 @@ function buildJsonLd(ctx) {
         webSite({ siteName, origin, inLanguage: siteLocales }),
         webPage({ url, title, description, locale, origin }),
     ];
-    if (isProductPage) graph.push(softwareApplication({ siteName, origin, description, logoUrl }));
+    const app = licensedApplication({ isProductPage, siteName, origin, description, logoUrl, facts });
+    if (app) graph.push(app);
 
     const faq = faqPage(blocks);
     if (faq) graph.push(faq);
@@ -201,5 +214,4 @@ function buildJsonLd(ctx) {
 
 module.exports = {
     buildJsonLd, faqPage, organization, softwareApplication, breadcrumbs, webSite,
-    LICENSE_URL,
 };

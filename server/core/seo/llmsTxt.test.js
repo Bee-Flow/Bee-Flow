@@ -37,18 +37,27 @@ test('vs-* pages are comparisons, not general pages', () => {
     assert.ok(!section(txt, 'Pages').some((l) => l.includes('vs-open-webui')));
 });
 
-test('the newest posts are listed as Guides, and the fixed links close the file', () => {
+test('the newest posts are listed as Guides, and the site\'s own footer links close the file', () => {
+    const facts = {
+        name: 'Acme', legalName: null, description: null, email: null, address: null, registration: null, vat: null,
+        profiles: [], links: [{ title: 'Documentation', url: 'https://docs.acme.test' }, { title: 'Source', url: 'https://git.acme.test/acme' }],
+    };
     const txt = buildLlmsTxt(PAGES, {
-        origin: ORIGIN, guides: [{ title: 'Why EU hosting', url: `${ORIGIN}/blog/why-eu-hosting` }, { title: '', url: 'x' }],
+        origin: ORIGIN, facts, guides: [{ title: 'Why EU hosting', url: `${ORIGIN}/blog/why-eu-hosting` }, { title: '', url: 'x' }],
     });
     assert.deepEqual(section(txt, 'Guides'), [`- [Why EU hosting](${ORIGIN}/blog/why-eu-hosting)`]);
     assert.deepEqual(section(txt, 'Links'), [
-        '- [Documentation](https://docs.beeflow.ai)',
-        '- [Source code (GitHub)](https://github.com/Bee-Flow/Bee-Flow)',
-        '- [Nextcloud App Store](https://apps.nextcloud.com/apps/bee_flow)',
+        '- [Documentation](https://docs.acme.test)',
+        '- [Source](https://git.acme.test/acme)',
     ]);
     assert.equal(LLMS_GUIDES, 15);
     assert.ok(txt.indexOf('## Guides') < txt.indexOf('## Links'));
+});
+
+test('a site without external footer links gets no Links section: nothing is fixed for one site', () => {
+    const txt = buildLlmsTxt(PAGES, { origin: ORIGIN });
+    assert.deepEqual(section(txt, 'Links'), []);
+    assert.ok(!txt.includes('beeflow.ai') && !txt.includes('apps.nextcloud.com') && !txt.includes('github.com/Bee-Flow'));
 });
 
 test('a translated page lists its other-language address after its own', () => {

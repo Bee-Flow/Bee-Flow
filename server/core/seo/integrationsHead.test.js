@@ -103,7 +103,8 @@ test('integration pages carry the site Organization from the site settings, and 
     const org = graph.find(n => n['@type'] === 'Organization');
     assert.equal(org['@id'], `${ORIGIN}/#organization`);
     assert.equal(org.name, 'Acme');
-    assert.equal(org.alternateName, 'Acme B.V.');
+    assert.equal(org.legalName, 'Acme B.V.');
+    assert.equal(org.alternateName, undefined);
     assert.deepEqual(org.identifier, { '@type': 'PropertyValue', propertyID: 'KvK', value: '12345678' });
     assert.deepEqual(org.sameAs, ['https://github.com/acme/acme']);
     const page = graph.find(n => n['@type'] === 'WebPage');
