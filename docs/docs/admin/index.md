@@ -162,14 +162,21 @@ page still asks the model, with the text you type there.
 By default the company support inbox keeps every ticket. To delete website contact-form
 messages after a fixed term, set `SUPPORT_THREAD_RETENTION_DAYS` on the server (for example
 `365` for 12 months after the last contact) and restart it. Once a day the server then deletes
-the tickets whose last message is older than that, with their messages, attachment details
-and audit rows.
+the tickets whose last message (or, without any message, whose creation) is older than that,
+with their messages, attachment details and audit rows.
+
+The ticket's own audit rows go too, on purpose: they hold the sender's IP address and browser
+details, and keeping them after the ticket is gone would keep that personal data with no end
+date (data minimisation). Before this setting existed, audit rows were kept when a ticket was
+deleted.
 
 Only tickets from people who are not a customer are deleted: tickets with no organisation and
 no signed-in account, which is what the website contact form produces. Tickets people open in
-the app, and every mailbox inbox in the Support studio, stay. Each run that deleted something
-adds one line to the support audit log (`retention_purge`) with the number of tickets and the
-term, never who they were from. See [Environment variables](../self-hosting/env.md).
+the app, and every mailbox inbox in the Support studio, stay. Tickets are deleted in batches;
+each batch adds one line to the support audit log (`retention_purge`, in the same transaction
+as the delete) with the number of tickets and the term, never who they were from. It sits in
+the company inbox's scope, like the audit rows it replaces. See
+[Environment variables](../self-hosting/env.md).
 
 ## Admin audit trail
 

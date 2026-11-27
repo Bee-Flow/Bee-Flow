@@ -10,7 +10,13 @@
  *
  * What goes: the thread row, and with it (ON DELETE CASCADE) its messages, their attachment
  * metadata, the legacy thread events and the issue links; plus the unified audit rows of that
- * thread, which carry the requester's IP address and user agent. All in one transaction per batch.
+ * thread, which carry the requester's IP address and user agent (data minimisation: an audit
+ * row kept for ever would keep that personal data for ever). All in one transaction per batch.
+ *
+ * Each batch that deleted something writes, in the SAME transaction, one `retention_purge` row
+ * to support_audit_log: the count and the term, never a thread or a person. Its scope is the
+ * company inbox's own (organization_id and inbox_id NULL, like the audit rows of the threads it
+ * removed), so it shows where those rows showed. A batch either deletes and records, or neither.
  */
 
 import { createRequire } from 'node:module';
@@ -48,6 +54,14 @@ export async function purgeExpiredCompanyThreads({ olderThanDays, limit }: { old
         if (!ids.length) return 0;
         await client.query(`DELETE FROM support_audit_log WHERE thread_id = ANY($1::uuid[])`, [ids]);
         const deleted = await client.query(`DELETE FROM support_threads WHERE id = ANY($1::uuid[])`, [ids]);
-        return Number(deleted.rowCount) || 0;
+        const n = Number(deleted.rowCount) || 0;
+        if (n > 0) {
+            await client.query(
+                `INSERT INTO support_audit_log (organization_id, inbox_id, thread_id, actor_kind, action, payload)
+                 VALUES (NULL, NULL, NULL, 'system', 'retention_purge', $1::jsonb)`,
+                [JSON.stringify({ threads: n, retentionDays: olderThanDays })],
+            );
+        }
+        return n;
     });
 }

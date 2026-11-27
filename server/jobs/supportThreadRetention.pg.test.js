@@ -7,7 +7,8 @@
  *   - on: website-form threads whose last message is older than the term go, with their
  *     messages, events and audit rows; recent ones, customer-linked ones (an organisation or a
  *     signed-in account) and tenant Support-studio mailbox threads stay;
- *   - one audit row per pass, holding the count and the term only.
+ *   - one audit row per batch, in the batch's own transaction, holding the count and the term only;
+ *   - batching and its cap, and a thread without messages judged by its creation time.
  *
  * Run: cd server && node --test jobs/supportThreadRetention.pg.test.js
  */
@@ -70,6 +71,7 @@ test('deletes expired website-form threads with their messages, events and audit
     const recent = await seed({ daysAgo: 300 });
     const customerOrg = await seed({ daysAgo: 400, source: 'in_app', organizationId: 'org-1', requesterUserId: 'u-1' });
     const customerUser = await seed({ daysAgo: 400, source: 'in_app', requesterUserId: 'u-2' });
+    const orgOnly = await seed({ daysAgo: 400, source: 'email', organizationId: 'org-3' });
     const tenantMailbox = await seed({ daysAgo: 400, source: 'email', organizationId: 'org-2', inboxId: '11111111-1111-4111-8111-111111111111' });
 
     assert.equal(await job.runOnce(), 1);
@@ -78,10 +80,10 @@ test('deletes expired website-form threads with their messages, events and audit
     assert.equal(await count('SELECT COUNT(*)::int AS n FROM support_messages WHERE thread_id = $1', [old]), 0);
     assert.equal(await count('SELECT COUNT(*)::int AS n FROM support_thread_events WHERE thread_id = $1', [old]), 0);
     assert.equal(await count('SELECT COUNT(*)::int AS n FROM support_audit_log WHERE thread_id = $1', [old]), 0);
-    for (const kept of [recent, customerOrg, customerUser, tenantMailbox]) assert.ok(await exists(kept), `kept ${kept}`);
+    for (const kept of [recent, customerOrg, customerUser, orgOnly, tenantMailbox]) assert.ok(await exists(kept), `kept ${kept}`);
 });
 
-test('one audit row per pass with the count and the term, no personal data', async () => {
+test('one audit row per batch with the count and the term, in the company inbox scope, no personal data', async () => {
     process.env[ENV] = '30';
     await seed({ daysAgo: 40 });
     await seed({ daysAgo: 50 });
@@ -90,8 +92,57 @@ test('one audit row per pass with the count and the term, no personal data', asy
     assert.equal(rows.length, 1);
     assert.deepEqual(rows[0].payload, { threads: 2, retentionDays: 30 });
     assert.equal(rows[0].thread_id, null);
+    assert.equal(rows[0].organization_id, null);
+    assert.equal(rows[0].inbox_id, null);
     assert.equal(rows[0].ip, null);
+    assert.equal(rows[0].ua, null);
     assert.equal(rows[0].actor_kind, 'system');
+    // The audit view's company-inbox filter (config events: inbox_id IS NULL) lists it.
+    const { events } = await audit.listAuditEvents({ inboxIdIn: [], action: 'retention_purge' });
+    assert.equal(events.length, 1);
+});
+
+test('batches: each batch deletes and records in one transaction; the pass stops at the batch cap', async () => {
+    process.env[ENV] = '30';
+    for (let i = 0; i < 5; i++) await seed({ daysAgo: 40 + i });
+    const base = { withNamedLock: async (_pool, _name, fn) => ({ ran: true, value: await fn() }), log: { info: () => {}, warn: () => {} } };
+    job._setDeps({ ...base, batchSize: 2, maxBatches: 2 });
+    try {
+        assert.equal(await job.runOnce(), 4, 'two batches of two, then the cap');
+        assert.equal(await count('SELECT COUNT(*)::int AS n FROM support_threads'), 1);
+        const { rows } = await query(`SELECT payload FROM support_audit_log WHERE action = 'retention_purge' ORDER BY created_at, id`);
+        assert.deepEqual(rows.map((r) => r.payload.threads).sort(), [2, 2]);
+        assert.equal(await job.runOnce(), 1, 'the next pass goes on; a short batch ends it');
+        assert.equal(await count(`SELECT COUNT(*)::int AS n FROM support_audit_log WHERE action = 'retention_purge'`), 3);
+    } finally {
+        job._setDeps({ ...base, log: { info: (m) => infos.push(m), warn: (...a) => infos.push(`WARN ${a.join(' ')}`) } });
+    }
+});
+
+test('a failed batch rolls back: the threads stay and no audit row claims them', async () => {
+    process.env[ENV] = '30';
+    const old = await seed({ daysAgo: 40 });
+    const { purgeExpiredCompanyThreads } = require('../stores/supportStore/retention.mts');
+    // A NOT NULL / CHECK failure on the audit insert is simulated by a trigger that refuses it.
+    await query(`CREATE OR REPLACE FUNCTION refuse_purge_row() RETURNS trigger AS $$ BEGIN
+        IF NEW.action = 'retention_purge' THEN RAISE EXCEPTION 'audit refused'; END IF; RETURN NEW; END $$ LANGUAGE plpgsql`);
+    await query(`CREATE TRIGGER refuse_purge BEFORE INSERT ON support_audit_log FOR EACH ROW EXECUTE FUNCTION refuse_purge_row()`);
+    try {
+        await assert.rejects(purgeExpiredCompanyThreads({ olderThanDays: 30, limit: 10 }), /audit refused/);
+    } finally {
+        await query('DROP TRIGGER refuse_purge ON support_audit_log');
+    }
+    assert.ok(await exists(old), 'the delete was rolled back with the audit insert');
+});
+
+test('a thread without any message is judged by its creation time', async () => {
+    process.env[ENV] = '30';
+    const oldEmpty = await seed({ daysAgo: 40 });
+    const newEmpty = await seed({ daysAgo: 5 });
+    await query('UPDATE support_threads SET last_message_at = NULL WHERE id = ANY($1::uuid[])', [[oldEmpty, newEmpty]]);
+    assert.equal(await job.runOnce(), 1);
+    assert.equal(await exists(oldEmpty), false);
+    assert.ok(await exists(newEmpty));
 });
 
 test('a pass with nothing to delete writes no audit row', async () => {

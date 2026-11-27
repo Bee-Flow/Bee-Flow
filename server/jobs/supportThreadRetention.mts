@@ -7,8 +7,9 @@
  * Off by default: SUPPORT_THREAD_RETENTION_DAYS unset or 0 keeps every ticket (a self-hosted
  * instance decides its own term). beeflow.nl sets 365, the term its privacy statement promises.
  *
- * Each pass that deleted something writes ONE row to support_audit_log (action
- * 'retention_purge') with the count and the term, never who the tickets were from.
+ * Each batch that deleted something writes one row to support_audit_log (action
+ * 'retention_purge') with the count and the term, never who the tickets were from, in the same
+ * transaction as the delete (stores/supportStore/retention.mts): no deletion goes unrecorded.
  *
  * MULTI-POD SAFE: one pass at a time across replicas, under a session advisory lock keyed by
  * name (core/scheduling/namedLock). Batches of BATCH_SIZE, each in its own transaction.
@@ -33,8 +34,10 @@ export interface RetentionDeps {
     pool: unknown;
     withNamedLock: (pool: unknown, name: string, fn: () => Promise<number>) => Promise<{ ran: boolean; value?: number }>;
     purge: (opts: { olderThanDays: number; limit: number }) => Promise<number>;
-    recordAudit: (event: { actorKind: string; action: string; payload: Record<string, unknown> }) => Promise<unknown>;
     retentionDays: () => number;
+    /** Threads per batch (default BATCH_SIZE) and batches per pass (default MAX_BATCHES); seams for tests. */
+    batchSize: number;
+    maxBatches: number;
     log: { info: (m: string) => void; warn: (m: string, ...rest: unknown[]) => void };
 }
 
@@ -43,8 +46,9 @@ function defaultDeps(): RetentionDeps {
         pool: nodeRequire('../db.js').pool,
         withNamedLock: nodeRequire('../core/scheduling/namedLock.js').withNamedLock,
         purge: (opts) => nodeRequire('../stores/supportStore/retention.mts').purgeExpiredCompanyThreads(opts),
-        recordAudit: (event) => nodeRequire('../stores/supportStore/audit.js').recordAuditEvent(event),
         retentionDays: () => nodeRequire('../utils/envNumber.mts').envInt(ENV_NAME, 0, { min: 0 }),
+        batchSize: BATCH_SIZE,
+        maxBatches: MAX_BATCHES,
         log: nodeRequire('../telemetry/log.js'),
     };
 }
@@ -61,10 +65,10 @@ export function _setDeps(next?: Partial<RetentionDeps> | null): void {
 
 async function purgeAll(dep: RetentionDeps, days: number): Promise<number> {
     let total = 0;
-    for (let i = 0; i < MAX_BATCHES; i++) {
-        const n = await dep.purge({ olderThanDays: days, limit: BATCH_SIZE });
+    for (let i = 0; i < dep.maxBatches; i++) {
+        const n = await dep.purge({ olderThanDays: days, limit: dep.batchSize });
         total += n;
-        if (n < BATCH_SIZE) break;
+        if (n < dep.batchSize) break;
     }
     return total;
 }
@@ -84,7 +88,6 @@ export async function runOnce(): Promise<number | null> {
         if (!out.ran) return null;
         const deleted = Number(out.value) || 0;
         if (deleted) {
-            await dep.recordAudit({ actorKind: 'system', action: 'retention_purge', payload: { threads: deleted, retentionDays: days } });
             dep.log.info(`[supportThreadRetention] deleted ${deleted} company-inbox ticket(s) older than ${days} days`);
         }
         return deleted;
