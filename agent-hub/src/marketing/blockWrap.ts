@@ -41,7 +41,30 @@ export function designStyleVars(style: BlockStyle): Record<string, string> {
     return px === null ? {} : { '--cms-bg-size': `${px}px auto` };
 }
 
-const DISPLAY_TRACKING_EM = new Map<string, string>([
+const ZERO_LENGTHS = new Set(['0', '0px', '0rem', '0em', '0%', '0vh']);
+
+function isZeroLength(value: unknown): boolean {
+    return typeof value === 'string' && ZERO_LENGTHS.has(value.trim().toLowerCase());
+}
+
+/**
+ * The wrapper carries a block's `spacing` padding, but the section inside it
+ * keeps its own rhythm padding, so the two add up. For a non-zero value that
+ * is how sites have always rendered, and it stays. A zero edge (the Style
+ * tab's "None") must really mean none: these classes let marketing.css drop
+ * the inner section's padding on that edge.
+ */
+export function spacingFlushClasses(style: BlockStyle): string[] {
+    const sp = style && typeof style === 'object' ? (style as { spacing?: unknown }).spacing : undefined;
+    if (!sp || typeof sp !== 'object') return [];
+    const { paddingTop, paddingBottom } = sp as { paddingTop?: unknown; paddingBottom?: unknown };
+    const out: string[] = [];
+    if (isZeroLength(paddingTop)) out.push('cms-block-wrap--flush-top');
+    if (isZeroLength(paddingBottom)) out.push('cms-block-wrap--flush-bottom');
+    return out;
+}
+
+const DISPLAY_TRACKING_EM =new Map<string, string>([
     ['tight', '-0.03em'],
     ['tighter', '-0.045em'],
     ['tightest', '-0.06em'],
