@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
 import { useSupportConfigQuery } from '@/api/queries/supportPanels';
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import { errorBody, RefusedError } from '@/api/mutate';
 import SectionHeader from '@/components/shared/SectionHeader';
-import { SAVE_BUTTON, SettingRow, SettingsList } from '@/components/shared/SettingsList';
+import { FIELD_INPUT, SAVE_BUTTON, SettingRow, SettingsList } from '@/components/shared/SettingsList';
 import Toggle from '@/components/shared/Toggle';
 import { ALERT_ERROR } from '@/components/mcpLibrary/ui';
 import { apiRequest } from '@/api/typedRequest';
+import type { SupportAiReplyMode } from '@/api/queries/supportPanels';
+
+const REPLY_MODES: readonly SupportAiReplyMode[] = ['off', 'draft', 'auto'];
 
 export default function SupportToolsTab() {
     const { t } = useTranslation();
@@ -16,6 +19,8 @@ export default function SupportToolsTab() {
     // The person's edits on top of the server answer.
     const [v2Draft, setV2Enabled] = useState<boolean | null>(null);
     const [thresholdDraft, setThreshold] = useState<number | null>(null);
+    const [replyModeDraft, setReplyMode] = useState<SupportAiReplyMode | null>(null);
+    const replyMode: SupportAiReplyMode = replyModeDraft ?? configQuery.data?.replyMode ?? 'auto';
     const v2Enabled = v2Draft ?? !!configQuery.data?.v2Enabled;
     const threshold = thresholdDraft ?? configQuery.data?.autoResolveThreshold ?? 0.78;
     const [busy, setBusy] = useState(false);
@@ -29,7 +34,7 @@ export default function SupportToolsTab() {
         setBusy(true); setError(null); setAttempted(true); setSaved(false);
         try {
             try {
-                await apiRequest('PUT /api/support/config', { body: { v2Enabled, autoResolveThreshold: Number(threshold) } });
+                await apiRequest('PUT /api/support/config', { body: { replyMode, v2Enabled, autoResolveThreshold: Number(threshold) } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};
@@ -49,6 +54,22 @@ export default function SupportToolsTab() {
             {error && <div className={ALERT_ERROR}>{error}</div>}
 
             <SettingsList>
+                <SettingRow
+                    htmlFor="support-ai-reply-mode"
+                    label={t('support.support_tools_ai_replies', 'AI replies')}
+                    hint={t('support.support_tools_ai_replies_hint', 'For messages from the website contact form and in-app tickets. Off: no message text goes to an AI model; staff read and answer every message.')}
+                >
+                    <select
+                        id="support-ai-reply-mode"
+                        value={replyMode}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setReplyMode(e.target.value as SupportAiReplyMode)}
+                        className={FIELD_INPUT}
+                    >
+                        {REPLY_MODES.map((mode) => (
+                            <option key={mode} value={mode}>{replyModeLabel(mode, t)}</option>
+                        ))}
+                    </select>
+                </SettingRow>
                 <SettingRow
                     label={t('support.support_tools_enable_tool_using_ai_v2', 'Enable tool-using AI (v2)')}
                     hint={t('support.support_tools_lets_the_support_agent_call_read_only', 'Lets the support agent call read-only lookups (customer profile, organization, subscription status, recent threads, knowledge base) before replying. Costs more per reply. When off, the agent answers from injected KB context only.')}
@@ -77,4 +98,11 @@ export default function SupportToolsTab() {
             </div>
         </div>
     );
+}
+
+/** The words for a reply mode in the select. */
+function replyModeLabel(mode: SupportAiReplyMode, t: TranslateFn): string {
+    if (mode === 'off') return t('support.support_tools_ai_replies_off', 'Off');
+    if (mode === 'draft') return t('support.support_tools_ai_replies_draft', 'Draft for staff');
+    return t('support.support_tools_ai_replies_auto', 'Answer automatically');
 }

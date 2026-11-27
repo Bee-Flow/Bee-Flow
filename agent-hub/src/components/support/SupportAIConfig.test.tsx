@@ -55,7 +55,19 @@ describe('SupportToolsTab', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         expect(await screen.findByText('Saved')).toBeInTheDocument();
         const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT');
-        expect(JSON.parse(String(put![1].body))).toEqual({ v2Enabled: true, autoResolveThreshold: 0.5 });
+        expect(JSON.parse(String(put![1].body))).toEqual({ replyMode: 'auto', v2Enabled: true, autoResolveThreshold: 0.5 });
+    });
+
+    it('switches AI replies off and says no message text goes to a model', async () => {
+        renderWithClient(<SupportToolsTab />);
+        const select = await screen.findByRole('combobox', { name: 'AI replies' });
+        expect(select).toHaveValue('auto');
+        expect(screen.getByText(/Off: no message text goes to an AI model/)).toBeInTheDocument();
+        await userEvent.selectOptions(select, 'Off');
+        await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+        expect(await screen.findByText('Saved')).toBeInTheDocument();
+        const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT');
+        expect(JSON.parse(String(put![1].body))).toMatchObject({ replyMode: 'off' });
     });
 });
 

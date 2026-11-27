@@ -3,6 +3,7 @@ import { usePublicLocalesQuery } from '../../api/queries/publicSite';
 import { API_BASE } from '../../utils/helpers';
 import AppIcon from '../../components/icons/AppIcon';
 import { logger } from '../../utils/logger';
+import { resolveInitialLocale } from '../../App.helpers';
 
 interface Locale {
     code: string;
@@ -20,14 +21,10 @@ interface Locale {
  * the CMS preview iframe (the admin switches locale from the editor instead).
  */
 
+// The language of the page being read: its path decides, not the browser or a
+// stored choice (a Dutch browser on an English URL reads English).
 function currentLocale() {
-    try {
-        const param = new URLSearchParams(window.location.search).get('locale');
-        if (param) return param.toLowerCase().split('-')[0];
-        const stored = localStorage.getItem('beeflow_locale');
-        if (stored) return stored.toLowerCase().split('-')[0];
-    } catch (err) { logger.debug('ignore', err); }
-    return (navigator.language || 'en').toLowerCase().split('-')[0];
+    return resolveInitialLocale() || 'en';
 }
 
 export default function LanguageSwitcher() {

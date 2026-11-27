@@ -34,19 +34,26 @@ export function readInlinedCms(expectedLocale: string) {
     }
 }
 
-/** The locale this visitor resolves to. Mirrors the effect below exactly. */
-export function resolveInitialLocale() {
+/**
+ * The locale a public URL asks for: its path prefix (`/nl/...`), else the
+ * legacy `?locale=` (honoured only for the instant before the server's 301
+ * onto the path), else '' = the site's default language, which is what the
+ * server renders for an unprefixed path.
+ *
+ * The browser language and the stored `beeflow_locale` choice are NOT read
+ * here: they made a Dutch browser on the English /blog/<post> fetch and paint
+ * the Dutch page over the English one the server had sent. Only the bare `/`
+ * follows the browser, and the server decides that (core/seo/homeLocale.mts).
+ */
+export function resolveInitialLocale(): string {
     try {
-        const params = new URLSearchParams(window.location.search);
-        let stored: string | null = null;
-        try { stored = localStorage.getItem('beeflow_locale'); } catch (err) { logger.debug('ignore', err); }
-        const parsed = parseCmsPath(window.location.pathname) || { locale: null };
-        return (parsed.locale
-            || params.get('locale')
-            || stored
-            || (navigator.language || 'en').split('-')[0]).toLowerCase();
-    } catch {
-        return 'en';
+        const parsed = parseCmsPath(window.location.pathname);
+        if (parsed?.locale) return parsed.locale.toLowerCase();
+        const param = new URLSearchParams(window.location.search).get('locale');
+        return param ? param.toLowerCase().split('-')[0] : '';
+    } catch (err) {
+        logger.debug('ignore', err);
+        return '';
     }
 }
 

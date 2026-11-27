@@ -88,8 +88,13 @@ async function afterStaffReply(thread, { userId, authorDisplay, body, msg }) {
 /** Re-run the AI on a requester follow-up; failure goes via the responder's escalate-on-error path. */
 function rerunAiOnFollowUp(thread) {
     Promise.resolve().then(() => runAiAutoResponder(thread.id))
-        .then((/** @type {{ message?: { body?: string, id?: string }, escalated?: boolean } | null} */ result) => {
+        .then((/** @type {{ message?: { body?: string, id?: string }, escalated?: boolean, sent?: boolean } | null} */ result) => {
             if (!(result && result.message)) return;
+            // A draft for staff (company inbox set to "draft") is an internal note: nothing goes to the customer.
+            if (result.sent === false) {
+                _emit('thread_updated', { threadId: thread.id });
+                return;
+            }
             sendOrNotifyStaff(
                 sendAiReplyEmail,
                 {

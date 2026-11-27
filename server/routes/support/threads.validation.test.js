@@ -63,6 +63,9 @@ const supportStore = {
 };
 
 const pass = (req, res, next) => next();
+// What the AI responder answers, and every mail the routes hand to the mailer.
+const ai = { result: null };
+const mails = [];
 const MOCKS = {
     '../../stores/supportStore': supportStore,
     '../../stores/userStore': { getUser: async () => null },
@@ -70,12 +73,12 @@ const MOCKS = {
     '../../core/http/sseHelpers': { setupSSE: () => ({ sendEvent() {}, markEnded() {} }), startSseHeartbeat: () => () => {} },
     '../../utils/appPaths': { supportThreadPath: () => '/x', clientHost: () => '', adminSupportTabPath: () => '/x', appRootPath: () => '/app' },
     '../../auth': { resolveUserOrgIds: async () => null },
-    '../../services/supportAiResponder': { runAiAutoResponder: async () => null },
+    '../../services/supportAiResponder': { runAiAutoResponder: async () => ai.result },
     '../../services/supportSlaEnforcer': { computeSlaDueAt: async () => ({ first: null, resolution: null }) },
     '../../support/emails': {
         sendThreadCreatedEmail: async () => {}, sendAiReplyEmail: async () => {},
         sendStaffReplyEmail: async () => {}, sendThreadResolvedEmail: async () => {},
-        sendOrNotifyStaff: () => {},
+        sendOrNotifyStaff: (_send, _args, meta) => { mails.push(meta.kind); },
     },
     './shared': {
         _redactEmail: () => '(x)', _shortId: (v) => String(v).slice(0, 8), _notifExcerpt: (v) => v,
@@ -279,6 +282,26 @@ test('the marketing form body — honeypot and render time included — still cr
     });
     assert.strictEqual(res.statusCode, 201);
     assert.ok(touched.some((t) => t.what === 'createThread'));
+});
+
+test('an AI draft for staff on a marketing ticket sends the customer no AI mail', async () => {
+    ai.result = { message: { id: 'm-ai', body: 'Draft reply for staff.' }, escalated: false, resolved: false, sent: false };
+    mails.length = 0;
+    try {
+        const res = await dispatch({
+            method: 'POST', url: '/threads',
+            body: {
+                source: 'marketing', name: 'A', email: 'a@example.org',
+                subject: 'Cannot log in', message: 'It says my password is wrong.',
+                website_url: '', rendered_at_ms: Date.now() - 10000,
+            },
+        });
+        assert.strictEqual(res.statusCode, 201);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        assert.deepStrictEqual(mails, ['thread_created'], 'only the receipt goes out, never the draft');
+    } finally {
+        ai.result = null;
+    }
 });
 
 test('a bot that fills the honeypot is still answered 200 with nothing stored', async () => {

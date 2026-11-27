@@ -16,15 +16,37 @@
  *   support_ai_agent_id  — UUID of an agent in agentStore that has the
  *                          "Bee Flow Support" system prompt and tools.
  *   support_ai_kb_ids    — JSON array of KB UUIDs to search.
+ *   support_ai_reply_mode — off | draft | auto (default auto) for the company
+ *                          inbox, see core/support/companyAiReplyMode.mts. `off`
+ *                          means no model call of any kind for those threads.
  */
-const supportStore = require('../stores/supportStore');
-const configStore = require('../stores/configStore');
-const { chatWithAgent } = require('../core/agentRuntime');
-const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
+let supportStore = require('../stores/supportStore');
+let configStore = require('../stores/configStore');
+let { chatWithAgent } = require('../core/agentRuntime');
+let { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
 const { trackTurn, supportQueryLog } = require('../core/kb/queryLog/hook.mts');
 const { buildSupportToolset, makeActionPolicy } = require('../integrations/supportTools');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+const { COMPANY_AI_REPLY_MODE_KEY, normalizeCompanyAiReplyMode, responderModeFor } = require('../core/support/companyAiReplyMode.mts');
+const { makeHandoff, AI_OFF_REASON } = require('./supportAiHandoff.mts');
+
+const handoff = makeHandoff(() => supportStore);
+
+/**
+ * Swap the stores and the two calls that reach a model provider (the agent
+ * turn and the knowledge-base search) for this process; returns a function
+ * that puts the real ones back. For tests.
+ * @param {{ supportStore?: any, configStore?: any, chatWithAgent?: any, quickKBSearch?: any }} overrides
+ */
+function init(overrides = {}) {
+    const before = { supportStore, configStore, chatWithAgent, quickKBSearch };
+    if (overrides.supportStore) supportStore = overrides.supportStore;
+    if (overrides.configStore) configStore = overrides.configStore;
+    if (overrides.chatWithAgent) chatWithAgent = overrides.chatWithAgent;
+    if (overrides.quickKBSearch) quickKBSearch = overrides.quickKBSearch;
+    return () => { ({ supportStore, configStore, chatWithAgent, quickKBSearch } = before); };
+}
 // @typecheck
 const ESCALATE_RE = /\[ESCALATE(?::\s*([^\]]+))?\]/i;
 const RESOLVED_RE = /\[RESOLVED\]/i;
@@ -99,10 +121,14 @@ async function _resolveEffectiveConfig(thread, opts = {}) {
         const c = await opts.resolveConfig(thread);
         if (c) return _normalizeConfig(c);
     }
+    // The company inbox's own switch: `off` stops here, before anything else
+    // about the AI is even read.
+    const replyMode = responderModeFor(normalizeCompanyAiReplyMode(await configStore.getConfig(COMPANY_AI_REPLY_MODE_KEY)));
+    if (replyMode === 'off') return { agentId: null, kbIds: [], replyMode, companyInbox: true };
     const { agentId, kbIds } = await _resolveConfig();
     const threshold = Number(await configStore.getConfig('support_ai_autoresolve_threshold')) || DEFAULT_AUTORESOLVE_THRESHOLD;
     const v2Enabled = !!(await configStore.getConfig('support_ai_v2_enabled'));
-    return { agentId, kbIds, replyMode: 'legacy', autoresolveThreshold: threshold, v2Enabled, toolsEnabled: v2Enabled };
+    return { agentId, kbIds, replyMode, autoresolveThreshold: threshold, v2Enabled, toolsEnabled: v2Enabled, companyInbox: true };
 }
 
 /**
@@ -328,81 +354,6 @@ Reply only to the customer's most recent message. If the knowledge base does not
     };
 }
 
-async function _safeRecordEvent(payload) {
-    try {
-        if (typeof supportStore.recordThreadEvent === 'function') {
-            await supportStore.recordThreadEvent(payload);
-        }
-    } catch (e) {
-        log.warn('[SupportAI] recordThreadEvent failed:', e.message);
-    }
-}
-
-/**
- * Escalate the thread to staff. Idempotent: caller may invoke this from any
- * failure path. Appends a system message + updates status + records an audit
- * event. Never throws — failures are logged.
- * @param {string} threadId @param {string} reason @param {{ systemMessage?: string }} [opts]
- */
-async function _escalate(threadId, reason, { systemMessage } = {}) {
-    try {
-        await supportStore.appendMessage({
-            threadId,
-            authorKind: 'system',
-            body: systemMessage || `AI handed off to a human agent (${reason}).`,
-        });
-    } catch (e) {
-        log.warn('[SupportAI] escalate appendMessage failed:', e.message);
-    }
-    try {
-        await supportStore.updateThread(threadId, {
-            status: 'awaiting_agent',
-            ai_handled: true,
-            ai_escalated_reason: reason,
-        });
-    } catch (e) {
-        log.warn('[SupportAI] escalate updateThread failed:', e.message);
-    }
-    await _safeRecordEvent({
-        threadId,
-        actorUserId: null,
-        actorKind: 'ai',
-        action: 'ai_escalated',
-        payload: { reason },
-    });
-    // Auto-assign to the next staff member if nobody is on it yet.
-    try {
-        await _maybeAutoAssign(threadId);
-    } catch (e) {
-        log.warn('[SupportAI] auto-assign failed:', e.message);
-    }
-}
-
-/**
- * Assign an unassigned escalated thread to the next staff member via the
- * round-robin cursor. No-op if already assigned or no eligible staff.
- */
-async function _maybeAutoAssign(threadId) {
-    const thread = await supportStore.getThread(threadId);
-    if (!thread || thread.assignee_user_id) return;
-    // Respect per-inbox group access when picking an assignee.
-    let sharedGroups = [];
-    if (thread.inbox_id) {
-        try {
-            const inbox = await require('../stores/supportInboxStore').getInbox(thread.inbox_id);
-            sharedGroups = Array.isArray(inbox?.shared_groups) ? inbox.shared_groups : [];
-        } catch (err) { fallback('services/supportAiResponder:_maybeAutoAssign', err); /* default open */ }
-    }
-    const { pickNextAssignee } = require('../core/support/supportAutoAssigner');
-    const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups, tenantInbox: !!thread.inbox_id });
-    if (!next) return;
-    await supportStore.updateThread(threadId, { assignee_user_id: next, auto_assigned: true });
-    await _safeRecordEvent({
-        threadId, actorUserId: null, actorKind: 'system',
-        action: 'auto_assigned', payload: { assignee_user_id: next },
-    });
-}
-
 /**
  * Fire-and-forget tag + category suggestion using the fast tier. Never throws.
  */
@@ -468,8 +419,14 @@ async function runAiAutoResponder(threadId, opts = {}) {
         }
 
         const cfg = await _resolveEffectiveConfig(thread, opts);
+        if (cfg.replyMode === 'off') {
+            // No model of any kind: no reply, no KB search, no tagging.
+            await handoff.handOffAiOff(thread);
+            settled = true;
+            return null;
+        }
         if (!cfg.agentId) {
-            await _escalate(threadId, 'AI not configured', {
+            await handoff.escalate(threadId, 'AI not configured', {
                 systemMessage: 'AI auto-responder is not configured (no agent selected). Escalated to staff.',
             });
             settled = true;
@@ -487,7 +444,7 @@ async function runAiAutoResponder(threadId, opts = {}) {
             composed = await _composeAiReply({ thread, messages, lastRequester, cfg, aiUserId });
         } catch (e) {
             log.error('[SupportAI] _composeAiReply failed:', e.message);
-            await _escalate(threadId, `ai_error: ${e.message}`, {
+            await handoff.escalate(threadId, `ai_error: ${e.message}`, {
                 systemMessage: `AI auto-responder failed (${e.message}). Escalated to staff.`,
             });
             settled = true;
@@ -511,6 +468,10 @@ async function runAiAutoResponder(threadId, opts = {}) {
             authorKind: 'ai',
             authorDisplay: mode === 'legacy' ? 'Bee Flow AI' : 'AI assistant',
             body: finalBody,
+            // The company inbox has no mailbox to hold a draft back: its
+            // requester reads the thread itself, so a draft there is a note
+            // only staff see.
+            internalNote: !!(cfg.companyInbox && wantsDraft),
             kbCitations: citations,
             aiModel: modelUsed,
             aiConfidence: kbCount ? Math.min(1, topScore) : null,
@@ -521,7 +482,7 @@ async function runAiAutoResponder(threadId, opts = {}) {
             emailSendStatus: mode === 'legacy' ? null : { state: wantsDraft ? 'draft' : 'queued' },
         });
 
-        await _safeRecordEvent({
+        await handoff.recordEvent({
             threadId,
             actorUserId: null,
             actorKind: 'ai',
@@ -546,9 +507,9 @@ async function runAiAutoResponder(threadId, opts = {}) {
                 ai_handled: true,
                 ai_escalated_reason: escalated ? (escalateReason || 'low_confidence') : null,
             });
-            try { await _maybeAutoAssign(threadId); } catch (e) { log.warn('[SupportAI] auto-assign failed:', e.message); }
+            try { await handoff.maybeAutoAssign(threadId); } catch (e) { log.warn('[SupportAI] auto-assign failed:', e.message); }
         } else if (escalated) {
-            await _escalate(threadId, escalateReason || 'low_confidence');
+            await handoff.escalate(threadId, escalateReason || 'low_confidence');
         } else if (aiResolved) {
             await supportStore.updateThread(threadId, {
                 status: 'resolved',
@@ -556,7 +517,7 @@ async function runAiAutoResponder(threadId, opts = {}) {
                 ai_handled: true,
                 ai_escalated_reason: null,
             });
-            await _safeRecordEvent({
+            await handoff.recordEvent({
                 threadId, actorUserId: null, actorKind: 'ai',
                 action: 'resolved', payload: { by: 'ai', awaitingCustomerConfirmation: true },
             });
@@ -584,7 +545,7 @@ async function runAiAutoResponder(threadId, opts = {}) {
         // Catch-all — any unexpected throw (DB hiccup, bad config, etc.).
         log.error('[SupportAI] runAiAutoResponder unexpected error:', outerErr.message);
         try {
-            await _escalate(threadId, `ai_error: ${outerErr.message}`, {
+            await handoff.escalate(threadId, `ai_error: ${outerErr.message}`, {
                 systemMessage: `AI auto-responder crashed (${outerErr.message}). Escalated to staff.`,
             });
         } catch (err) { log.warn('escalation after an AI responder crash failed', err); }
@@ -597,7 +558,7 @@ async function runAiAutoResponder(threadId, opts = {}) {
             try {
                 const t = await supportStore.getThread(threadId);
                 if (t && t.status === 'ai_responding') {
-                    await _escalate(threadId, 'unexpected_exit', {
+                    await handoff.escalate(threadId, 'unexpected_exit', {
                         systemMessage: 'AI auto-responder exited unexpectedly. Escalated to staff.',
                     });
                 }
@@ -605,10 +566,10 @@ async function runAiAutoResponder(threadId, opts = {}) {
         }
     }
 }
-module.exports = { runAiAutoResponder };
+module.exports = { runAiAutoResponder, init, AI_OFF_REASON };
 
 /**
- * @typedef {{ agentId?: string|null, kbIds?: string[], replyMode?: string, autoresolveThreshold?: number, v2Enabled?: boolean, toolsEnabled?: boolean, enabledToolIds?: string[], operatorUserId?: string|null, operatorOrgId?: string|null, orgId?: string|null }} SupportAiConfig
+ * @typedef {{ agentId?: string|null, kbIds?: string[], replyMode?: string, companyInbox?: boolean, autoresolveThreshold?: number, v2Enabled?: boolean, toolsEnabled?: boolean, enabledToolIds?: string[], operatorUserId?: string|null, operatorOrgId?: string|null, orgId?: string|null }} SupportAiConfig
  * @typedef {NonNullable<Awaited<ReturnType<typeof supportStore.getThread>>>} SupportThread
  * @typedef {Awaited<ReturnType<typeof supportStore.getThreadMessages>>} SupportMessages
  */

@@ -1,7 +1,8 @@
 // @typecheck
 /**
  * Configuration surface for the AI auto-responder: the configStore keys
- * (agent id, KB ids, v2 flag, auto-resolve threshold), the Bee Flow Support
+ * (agent id, KB ids, v2 flag, auto-resolve threshold, the company inbox's
+ * reply mode off | draft | auto), the Bee Flow Support
  * singleton agent itself, and the non-streaming preview the configuration UI
  * uses to dry-run a reply.
  *
@@ -25,9 +26,12 @@ const { isSuperAdmin } = require('../../auth');
 const { getUserId, requireStaffSupport } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, choice } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
+const {
+    COMPANY_AI_REPLY_MODE_KEY, COMPANY_AI_REPLY_MODES, normalizeCompanyAiReplyMode,
+} = require('../../core/support/companyAiReplyMode.mts');
 
 const SUPPORT_AGENT_ID = 'system-bee-flow-support';
 
@@ -51,6 +55,9 @@ const ConfigBody = bodyOf({
         .min(0, 'autoResolveThreshold is a number between 0 and 1.')
         .max(1, 'autoResolveThreshold is a number between 0 and 1.')
         .optional(),
+    // What the AI does with a company-inbox message: off (no model sees it),
+    // draft (an internal note for staff) or auto (answers the customer).
+    replyMode: choice(COMPANY_AI_REPLY_MODES, 'replyMode is off, draft or auto.').optional(),
 });
 
 const AgentBody = bodyOf({
@@ -84,11 +91,12 @@ function register(router) {
         }
         const v2Enabled = !!(await configStore.getConfig('support_ai_v2_enabled'));
         const autoResolveThreshold = Number(await configStore.getConfig('support_ai_autoresolve_threshold')) || 0.78;
-        res.json({ agentId: agentId || null, kbIds, v2Enabled, autoResolveThreshold });
+        const replyMode = normalizeCompanyAiReplyMode(await configStore.getConfig(COMPANY_AI_REPLY_MODE_KEY));
+        res.json({ agentId: agentId || null, kbIds, v2Enabled, autoResolveThreshold, replyMode });
     });
 
     router.put('/config', requireSuperAdmin, validate({ body: ConfigBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const { agentId, kbIds, v2Enabled, autoResolveThreshold } = req.body;
+        const { agentId, kbIds, v2Enabled, autoResolveThreshold, replyMode } = req.body;
         if (agentId !== undefined) {
             await configStore.setConfig('support_ai_agent_id', agentId || '');
         }
@@ -100,6 +108,9 @@ function register(router) {
         }
         if (autoResolveThreshold !== undefined) {
             await configStore.setConfig('support_ai_autoresolve_threshold', autoResolveThreshold);
+        }
+        if (replyMode !== undefined) {
+            await configStore.setConfig(COMPANY_AI_REPLY_MODE_KEY, replyMode);
         }
         res.json({ ok: true });
     });

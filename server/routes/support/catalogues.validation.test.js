@@ -245,6 +245,20 @@ test('the tools tab body still saves, and switching v2 off really writes false',
     assert.deepStrictEqual(touched.find((t) => t.args[0] === 'support_ai_autoresolve_threshold').args, ['support_ai_autoresolve_threshold', 0.9]);
 });
 
+test('the company inbox reply mode saves off, and an unknown mode is refused in words', async () => {
+    const res = await refuses({ method: 'PUT', url: '/config', body: { replyMode: 'never' } }, 'body.replyMode');
+    assert.strictEqual(res.body.error, 'replyMode is off, draft or auto.');
+    const ok = await dispatch({ method: 'PUT', url: '/config', body: { replyMode: 'off' } });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.deepStrictEqual(touched.find((t) => t.args[0] === 'support_ai_reply_mode').args, ['support_ai_reply_mode', 'off']);
+});
+
+test('the config answer names the reply mode, auto while nothing is stored', async () => {
+    const res = await dispatch({ method: 'GET', url: '/config' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.replyMode, 'auto');
+});
+
 test('a caller who is not a super-admin gets the 403 before the schema', async () => {
     access.superAdmin = false;
     const res = await dispatch({ method: 'PUT', url: '/config', body: { kbids: 'nonsense' } });

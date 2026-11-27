@@ -6,6 +6,7 @@ import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import { resolveInitialLocale } from '../../App.helpers';
 
 const isPreview = () =>
     typeof window !== 'undefined' &&
@@ -173,13 +174,8 @@ function FooterView({ data: rawData, isDark, onToggleTheme }: FooterProps) {
 // RootPathGate reads and persists; a full navigation is correct here
 // because the whole content payload is locale-resolved server-side.
 function FooterLocaleToggle() {
-    const current = (() => {
-        try {
-            const p = new URLSearchParams(window.location.search).get('locale');
-            const v = (p || window.localStorage.getItem('beeflow_locale') || navigator.language || 'en');
-            return v.toLowerCase().split('-')[0] === 'nl' ? 'nl' : 'en';
-        } catch { return 'en'; }
-    })();
+    // The page's own language (its path), never the browser's.
+    const current = resolveInitialLocale() === 'nl' ? 'nl' : 'en';
     const go = (loc: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         if (isPreview() || loc === current) return;

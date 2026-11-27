@@ -1,6 +1,5 @@
 import React, { Suspense } from 'react';
 import { lazyWithI18n } from './utils/lazyWithReload';
-import { logger } from './utils/logger';
 import { readInlinedCms, resolveInitialLocale, blogQuery } from './App.helpers';
 import ProductWebsite from './marketing/ProductWebsite';
 import { isCmsPathCandidate, hasCmsFallback, parseCmsPath } from './utils/cmsPublicRouting';
@@ -177,24 +176,14 @@ function RootPathGate() {
     React.useEffect(() => {
         let cancelled = false;
         const params = new URLSearchParams(window.location.search);
-        // Locale precedence: explicit ?locale= → the visitor's stored choice
-        // (shared with the app i18n picker) → browser language → English. The
-        // stored key lets the marketing language switcher persist across
-        // page-to-page navigation, where nav links carry no ?locale.
-        let storedLocale: string | null = null;
-        try { storedLocale = localStorage.getItem('beeflow_locale'); } catch (err) { logger.debug('ignore', err); }
         // Path-based routing: `/about` → slug "about", `/nl/about` → locale
         // "nl" + slug "about", `/` → the homepage. The legacy `?slug=` query
         // param still wins if present so old links keep working.
         const parsed = parseCmsPath(window.location.pathname) || { locale: null, slug: '' };
-        // The PATH now decides the language, ahead of ?locale= and the stored
-        // choice. It has to: /nl/pricing must be Dutch for a first-time visitor
-        // arriving from a search result, who has no stored preference and whose
-        // browser may be set to anything at all.
-        const locale = (parsed.locale
-            || params.get('locale')
-            || storedLocale
-            || (navigator.language || 'en').split('-')[0]).toLowerCase();
+        // The PATH decides the language (see resolveInitialLocale): /nl/pricing
+        // is Dutch and /blog/<post> is the site default, whatever the browser
+        // or a stored choice says. '' leaves the locale to the server.
+        const locale = resolveInitialLocale();
         const slug = (params.get('slug') || parsed.slug || '').toString();
 
         // Preview mode: always render the marketing site so the admin's iframe
@@ -209,7 +198,7 @@ function RootPathGate() {
             setCms({ content: {} });
             return;
         }
-        const qs = `locale=${encodeURIComponent(locale)}` +
+        const qs = (locale ? `locale=${encodeURIComponent(locale)}` : '') +
                    (slug && !parsed.blog ? `&slug=${encodeURIComponent(slug)}` : '') +
                    blogQuery(parsed, params);
         /* When the server already inlined the page, this request exists only

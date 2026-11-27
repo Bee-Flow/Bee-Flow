@@ -43,6 +43,11 @@ describe('AnalyticsTracker', () => {
         expect(tracker()!.getAttribute('data-exclude-hash')).toBe('true');
     });
 
+    it('asks the tracker to report uncaught browser errors', () => {
+        render(<AnalyticsTracker {...baseProps} consentMode="cookieless" />);
+        expect(tracker()!.getAttribute('data-errors')).toBe('true');
+    });
+
     it('replaces the tag when the config changes (attributes are read once, at eval)', () => {
         const { rerender } = render(<AnalyticsTracker {...baseProps} consentMode="cookieless" />);
         const first = tracker();

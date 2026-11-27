@@ -6033,6 +6033,7 @@ export interface ApiOperations {
         agentId?: string | null;
         autoResolveThreshold?: number;
         kbIds?: Array<string>;
+        replyMode?: 'off' | 'draft' | 'auto';
         v2Enabled?: boolean;
     }>;
     'GET /api/support/csat/{threadId}': Op<{ threadId: string | number }>;

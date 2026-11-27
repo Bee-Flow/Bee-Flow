@@ -41,6 +41,71 @@ function healSnapshotInBackground(siteId, now = Date.now()) {
 }
 
 /**
+ * The analytics envelope for one served page (a CMS page, the blog index or a
+ * post): Umami ids + consent mode, site-level GA and the per-page opt-out.
+ * Null when neither Umami nor GA is configured.
+ * @param {string} siteId
+ * @param {{ analytics?: { gaMeasurementId?: string } | null, page?: { noAnalytics?: boolean } | null }} eff
+ * @returns {Promise<Record<string, any> | null>}
+ */
+async function analyticsEnvelope(siteId, eff) {
+    // Analytics tracker config. Umami keys (websiteId / scriptUrl /
+    // consentMode) are emitted top-level — only when tracking is on,
+    // configured, and THIS live site has a provisioned Umami website.
+    // The client injects a tiny async <script> (cookieless by default)
+    // so page load stays fast. Best-effort: never let an analytics
+    // hiccup break the public render.
+    /** @type {Record<string, any> | null} */
+    let analytics = null;
+    try {
+        const aSettings = await getAnalyticsSettings();
+        if (aSettings.enabled && aSettings.url) {
+            const websiteId = (await getAnalyticsSiteMap())[siteId];
+            if (websiteId) {
+                const base = aSettings.url.replace(/\/+$/, '');
+                analytics = {
+                    websiteId,
+                    scriptUrl: `${base}/script.js`,
+                    consentMode: aSettings.consentMode,
+                    // Mirrored onto the <script> tag. /site is no-store, so
+                    // changing an option applies on the visitor's next page
+                    // load — no republish needed.
+                    trackerOptions: await cmsAnalytics.getTrackerOptions(),
+                };
+                // Session recording (heatmaps + replays) is a separate,
+                // per-site opt-in. Emitting the url does NOT mean it loads:
+                // the client gates the recorder on cookie-banner consent in
+                // EVERY consent mode, because recording a visitor's mouse,
+                // scroll and DOM is not cookieless-innocent the way a
+                // pageview count is.
+                if ((await getRecorderMap())[siteId]) {
+                    analytics.recorderUrl = `${base}/recorder.js`;
+                }
+            }
+        }
+    } catch (e) { log.warn('[CMS] /site analytics config skipped:', e.message); }
+    // Site-level Google Analytics + per-page opt-out ride in the same
+    // envelope. `ga` is null unless the site carries a valid measurement
+    // id (sanitized on save by cmsStore.sanitizeAnalytics; resolveEffective
+    // threads it through the published snapshot as eff.analytics), and
+    // `disabledForPage` reflects the served page's noAnalytics flag. The
+    // envelope is non-null when Umami OR GA is configured — a GA-only org
+    // gets `{ ga, disabledForPage }` without the Umami keys — and stays
+    // null when neither is.
+    const ga = eff.analytics?.gaMeasurementId
+        ? { measurementId: eff.analytics.gaMeasurementId }
+        : null;
+    if (analytics || ga) {
+        analytics = {
+            ...(analytics || {}),
+            ga,
+            disabledForPage: !!eff.page?.noAnalytics,
+        };
+    }
+    return analytics;
+}
+
+/**
  * GET /api/cms/site
  *   v=2 → { enabled, defaultLocale, locale, found, page, header, footer, pages }
  *   no v → legacy shape: { enabled, defaultLocale, locale, content }
@@ -112,7 +177,9 @@ async function getPublicSite(req, res) {
             locale,
             content: synthesizeLegacyContent(blogEff),
             design: blogEff.design,
-            analytics: null,
+            // A blog URL is a public page like any other: same tracker, same
+            // consent mode, same GA and recorder gating.
+            analytics: await analyticsEnvelope(siteId, blogEff),
         });
     }
 
@@ -136,59 +203,7 @@ async function getPublicSite(req, res) {
         ? ''
         : (eff.page?.slug || '');
 
-    // Analytics tracker config. Umami keys (websiteId / scriptUrl /
-    // consentMode) are emitted top-level — only when tracking is on,
-    // configured, and THIS live site has a provisioned Umami website.
-    // The client injects a tiny async <script> (cookieless by default)
-    // so page load stays fast. Best-effort: never let an analytics
-    // hiccup break the public render.
-    /** @type {Record<string, any> | null} */
-    let analytics = null;
-    try {
-        const aSettings = await getAnalyticsSettings();
-        if (aSettings.enabled && aSettings.url) {
-            const websiteId = (await getAnalyticsSiteMap())[siteId];
-            if (websiteId) {
-                const base = aSettings.url.replace(/\/+$/, '');
-                analytics = {
-                    websiteId,
-                    scriptUrl: `${base}/script.js`,
-                    consentMode: aSettings.consentMode,
-                    // Mirrored onto the <script> tag. /site is no-store, so
-                    // changing an option applies on the visitor's next page
-                    // load — no republish needed.
-                    trackerOptions: await cmsAnalytics.getTrackerOptions(),
-                };
-                // Session recording (heatmaps + replays) is a separate,
-                // per-site opt-in. Emitting the url does NOT mean it loads:
-                // the client gates the recorder on cookie-banner consent in
-                // EVERY consent mode, because recording a visitor's mouse,
-                // scroll and DOM is not cookieless-innocent the way a
-                // pageview count is.
-                if ((await getRecorderMap())[siteId]) {
-                    analytics.recorderUrl = `${base}/recorder.js`;
-                }
-            }
-        }
-    } catch (e) { log.warn('[CMS] /site analytics config skipped:', e.message); }
-    // Site-level Google Analytics + per-page opt-out ride in the same
-    // envelope. `ga` is null unless the site carries a valid measurement
-    // id (sanitized on save by cmsStore.sanitizeAnalytics; resolveEffective
-    // threads it through the published snapshot as eff.analytics), and
-    // `disabledForPage` reflects the served page's noAnalytics flag. The
-    // envelope is non-null when Umami OR GA is configured — a GA-only org
-    // gets `{ ga, disabledForPage }` without the Umami keys — and stays
-    // null when neither is.
-    const ga = eff.analytics?.gaMeasurementId
-        ? { measurementId: eff.analytics.gaMeasurementId }
-        : null;
-    if (analytics || ga) {
-        analytics = {
-            ...(analytics || {}),
-            ga,
-            disabledForPage: !!eff.page?.noAnalytics,
-        };
-    }
+    const analytics = await analyticsEnvelope(siteId, eff);
 
     if (v2) {
         return res.json({

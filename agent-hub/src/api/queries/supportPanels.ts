@@ -18,7 +18,11 @@ export interface SupportInsights {
     };
 }
 
+/** What the AI does with a company-inbox message: off (no model sees it), draft (a note for staff), auto (answers). */
+export type SupportAiReplyMode = 'off' | 'draft' | 'auto';
+
 export interface SupportAiConfig {
+    replyMode?: SupportAiReplyMode;
     v2Enabled?: boolean;
     autoResolveThreshold?: number | null;
 }

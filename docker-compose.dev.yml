@@ -268,7 +268,7 @@ services:
   # loads /script.js from http://localhost:3000 (set that as the public URL in
   # Admin ▸ Website Analytics ▸ Settings); the server talks to it via UMAMI_URL.
   umami:
-    image: ghcr.io/umami-software/umami:3.4.0
+    image: ghcr.io/umami-software/umami:3.5.0
     container_name: beeflow-umami-dev
     profiles: [analytics]
     ports:
@@ -277,6 +277,8 @@ services:
       - DATABASE_TYPE=postgresql
       - DATABASE_URL=postgresql://${DB_USER:-beeflow}:${DB_PASSWORD:-beeflow}@postgres:5432/umami
       - APP_SECRET=${UMAMI_APP_SECRET:-dev-umami-secret-change-me}
+      # Daily salt for the session hash (Umami's default is monthly).
+      - SALT_ROTATION=day
     depends_on:
       postgres:
         condition: service_healthy

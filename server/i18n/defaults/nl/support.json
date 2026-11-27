@@ -1,0 +1,10 @@
+{
+  "translations": {
+    "support.support_tools_ai_replies": "AI-antwoorden",
+    "support.support_tools_ai_replies_hint": "Voor berichten via het contactformulier op de website en tickets uit de app. Uit: er gaat geen berichttekst naar een AI-model; medewerkers lezen en beantwoorden elk bericht.",
+    "support.support_tools_ai_replies_off": "Uit",
+    "support.support_tools_ai_replies_draft": "Concept voor medewerkers",
+    "support.support_tools_ai_replies_auto": "Automatisch beantwoorden"
+  },
+  "sameAsEnglish": []
+}
