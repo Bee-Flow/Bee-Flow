@@ -2,8 +2,12 @@
 'use strict';
 
 /**
- * The feature modules the tree asks for and the ones boot/featureModules.js
- * registers are the same set.
+ * The feature modules the tree asks for and the ones that are registered are
+ * the same set. The registry is read after boot/featureModules.js has loaded,
+ * which opens its registration channel and so also holds every name a
+ * first-party module registers in its firstParty/<id>.register.js
+ * (modules/firstParty/registrationChannels.js): the registrations live in the
+ * core file and in each module's register part, and this reads what they did.
  *
  * featureModule(name) throws only when it is called: a name nobody registered
  * shows on the first request that reaches that line, and a registration nobody
@@ -40,6 +44,8 @@ const CALL = /\bfeatureModule\(\s*(['"`])([^'"`]+)\1/g;
 const LITERAL = /(['"`])([\w./-]+)\1/g;
 // Where the names are declared and registered: a name standing there is not a use.
 const REGISTRY = new Set(['boot/featureModules.js', 'core/featureModules.js']);
+// A module's register part and its provides file register and declare names too.
+const REGISTER_PART = /^firstParty\/[A-Za-z0-9_]+\.register\.js$/;
 
 /**
  * @param {string} dir
@@ -63,7 +69,7 @@ function scan() {
     const named = new Set();
     for (const file of sourceFiles(SERVER, [])) {
         const rel = path.relative(SERVER, file).split(path.sep).join('/');
-        if (REGISTRY.has(rel)) continue;
+        if (REGISTRY.has(rel) || REGISTER_PART.test(rel)) continue;
         fs.readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
             if (COMMENT_LINE.test(line)) return;
             for (const m of line.matchAll(CALL)) asked.set(m[2], [...(asked.get(m[2]) || []), `${rel}:${i + 1}`]);
@@ -76,22 +82,41 @@ function scan() {
 const registered = new Set(featureModuleNames());
 const { asked, named } = scan();
 
+/**
+ * The feature modules of a first-party module that is not loaded here (core mode,
+ * BEEFLOW_HIDE_MODULES): read from its provides file on disk, which the loader does not
+ * list for a hidden module. Such a name is not registered, and that is the point.
+ */
+function absentModuleNames() {
+    const loaded = new Set(require('../modules/firstParty/loader').modules().filter((m) => m.state === 'loaded').map((m) => m.id));
+    const dir = path.join(SERVER, 'firstParty');
+    /** @type {Set<string>} */
+    const out = new Set();
+    for (const name of fs.readdirSync(dir)) {
+        const m = /^([A-Za-z][A-Za-z0-9_]*)\.provides\.json$/.exec(name);
+        if (!m || loaded.has(/** @type {string} */ (m[1]))) continue;
+        for (const fm of JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8')).featureModules || []) out.add(fm);
+    }
+    return out;
+}
+const absent = absentModuleNames();
+
 test('the scan finds the calls it is meant to judge', () => {
     // A walker that silently finds nothing would pass both tests below.
     assert.ok(asked.size >= 20, `only ${asked.size} feature module names found in the source`);
-    assert.ok(registered.size >= 20, `only ${registered.size} feature modules registered`);
+    assert.ok(registered.size + absent.size >= 20, `only ${registered.size} feature modules registered (and ${absent.size} of absent modules)`);
 });
 
 test('every feature module the tree asks for is registered', () => {
     const unknown = [...asked]
-        .filter(([name]) => !registered.has(name))
+        .filter(([name]) => !registered.has(name) && !absent.has(name))
         .map(([name, where]) => `${name}  (${where.join(', ')})`);
     assert.deepEqual(unknown, [],
-        'featureModule() is called with a name boot/featureModules.js does not register; register it there and add it to FeatureModuleMap in core/featureModules.js');
+        'featureModule() is called with a name nobody registers; register it in boot/featureModules.js (core) or in its module\'s firstParty/<id>.register.js (and its provides file), and add it to FeatureModuleMap in core/featureModules.js');
 });
 
 test('every registered feature module is asked for somewhere', () => {
     const unused = [...registered].filter((name) => !asked.has(name) && !named.has(name));
     assert.deepEqual(unused, [],
-        'boot/featureModules.js registers a module no source file names; remove the registration and its line in FeatureModuleMap');
+        'a feature module is registered that no source file names; remove the registration (boot/featureModules.js or firstParty/<id>.register.js) and its line in FeatureModuleMap');
 });

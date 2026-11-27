@@ -35,11 +35,15 @@ const setterCalls = [];
 /** @type {Set<string>} */
 const unwrappable = new Set();
 const SETTER = /^set[A-Z]/;
+// The first-party loader's own bookkeeping (moduleState.setModuleState, once per module it
+// loads while boot/featureRegistrations.js registers the modules) is not a port.
+const NOT_PORTS = new Set(['modules/firstParty/moduleState.js']);
 
 /** @param {string} file @param {any} exports */
 function wrapSetters(file, exports) {
     if (!exports || (typeof exports !== 'object' && typeof exports !== 'function')) return;
     const rel = toTreePath(file) || file;
+    if (NOT_PORTS.has(rel)) return;
     for (const key of Object.keys(exports)) {
         const fn = exports[key];
         if (!SETTER.test(key) || typeof fn !== 'function' || fn.__compositionWrapped) continue;

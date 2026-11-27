@@ -142,9 +142,14 @@ test('boot wires the compliance resolver into the port', () => {
     // runStartupTasks() for real without starting a dozen other background
     // jobs and opening the DB.
     // The compliance block is runStartupTasks()'s startRetentionAndComplianceJobs phase.
-    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'ports.js'), 'utf8');
+    // The line is the compliance module's registration (firstParty/compliance.register.js, on the
+    // channel 'boot/ports' that boot/ports.js wirePorts opens), so it is looked for in the
+    // composition text: index.js and every composition and part file.
+    const src = require('../../testUtils/compositionText').compositionText();
     assert.ok(/documentMarking'\)\s*\n?\s*\.setMarkingResolver/.test(src) && /compliance\/marking'\)\.resolveMarking/.test(src),
-        'boot/ports.js must call setMarkingResolver with compliance/marking.resolveMarking — without it every generated document is unmarked');
+        'the compliance module must call setMarkingResolver with compliance/marking.resolveMarking — without it every generated document is unmarked');
+    const ports = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'ports.js'), 'utf8');
+    assert.ok(ports.includes("openChannel('boot/ports')"), 'boot/ports.js wirePorts must open the channel the compliance module wires the resolver on');
     const jobs = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'startupJobs.js'), 'utf8');
     assert.ok(/require\('\.\/ports'\)\.wirePorts\(\{ compliance: isModuleAvailable\('compliance'\) \}\)/.test(jobs),
         'boot/startupJobs.js must wire the ports with the compliance availability');

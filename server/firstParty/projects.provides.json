@@ -1,0 +1,6 @@
+{
+  "featureModules": [
+    "projects/chatModel",
+    "projects/documentFiling"
+  ]
+}

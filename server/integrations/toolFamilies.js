@@ -14,48 +14,24 @@
  * predicates overlap — every n8n workflow tool is also an n8n_* tool, so the
  * workflow family (with its permission check) must come first — and
  * toolFamilies.test.js pins the whole sequence.
+ *
+ * Only the core's families are listed here. A first-party module's families
+ * (Google, Microsoft, Nextcloud, the SaaS and ERP integrations, notebooks,
+ * support, ...) are in its firstParty/<id>.register.js, each with the order
+ * number it had in this list, contributed to the channel
+ * 'integrations/toolFamilies' (modules/firstParty/registrationChannels.js)
+ * that this file opens once its own families are in: requiring it still
+ * registers every family of every module that is present.
  */
 const { registerToolFamily } = require('../core/tools/toolFamilyRegistry');
-const { hasPermission } = require('../auth/permissions');
-const { isGmailTool, executeGmailTool } = require('./gmailTools');
-const { isCalendarTool, executeCalendarTool } = require('./calendarTools');
-const { isDriveTool, executeDriveTool } = require('./driveTools');
-const { isDocsTool, executeDocsTool } = require('./docsTools');
-const { isSheetsTool, executeSheetsTool } = require('./sheetsTools');
-const { isSlidesTool, executeSlidesTool } = require('./slidesTools');
-const { isContactsTool, executeContactsTool } = require('./contactsTools');
-const { isKeepTool, executeKeepTool } = require('./keepTools');
-const { isGoogleGroupsTool, executeGoogleGroupsTool } = require('./googleGroupsTools');
-const { isFirefliesTool, executeFirefliesTool } = require('./firefliesTools');
-const { isYouTrackTool, executeYouTrackTool } = require('./youtrackTools');
-const { isSignRequestTool, executeSignRequestTool } = require('./signrequestTools');
-const { isGammaTool, executeGammaTool } = require('./gammaTools');
-const { isAfasTool, executeAfasTool } = require('./afasTools');
-const { isNmbrsTool, executeNmbrsTool } = require('./nmbrsTools');
-const { isVplanTool, executeVplanTool } = require('./vplanTools');
-const { isScalewayBillingTool, executeScalewayBillingTool } = require('./scalewayBillingTools');
-const { isN8nTool, executeN8nTool } = require('./n8nTools');
-const { isN8nWorkflowTool, executeN8nWorkflowTool, getN8nToolPermission } = require('./n8nWorkflowTools');
 const { isAgentSearchTool, executeWebSearch } = require('./agentSearchTools');
 const { isReadUrlTool, executeReadUrlTool } = require('./readUrlTools');
 const { isBrowseWebTool, executeBrowseWebTool } = require('./browserFetchTools');
 const { isRegexGeneratorTool, executeRegexGeneratorTool } = require('./regexGeneratorTools');
-const { executeWorkspaceTool } = require('./workspaceTools');
 const { isKbSearchTool, executeKbSearchTool } = require('./kbSearchTools');
 const { agentToolLog } = require('../core/kb/queryLog/hook.mts');
 const { isKbIngestTool, executeKbIngestTool } = require('./kbIngestTools');
-const { isMapsTool, executeMapsTool } = require('./mapsTools');
-const { isLinkedInTool, executeLinkedInTool } = require('./linkedinTools');
-const { isGitHubTool, executeGitHubTool } = require('./githubTools');
-const { isOutlookTool, executeOutlookTool } = require('./outlookTools');
-const { outlookSessionFor } = require('./outlookSession');
-const { isMsCalendarTool, executeMsCalendarTool } = require('./msCalendarTools');
-const { isOneDriveTool, executeOneDriveTool } = require('./oneDriveTools');
-const { isMsContactsTool, executeMsContactsTool } = require('./msContactsTools');
-const { isTranscriptionTool, executeTranscriptionTool } = require('./transcriptionTools');
-const { isSupportTool, executeSupportTool } = require('./supportTools');
-const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('./webpageAutomationTools');
-const { executeNextcloudFamilyTool, executeGuardedNextcloudTool, executeCheckedNextcloudTool, isNextcloudFamilyToolName } = require('./nextcloudToolFamily');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * The dispatcher's context, with the fields these families read named.
@@ -80,33 +56,20 @@ function documentOrgId({ orgId, session }) {
     return orgId || session?.connectorOrgId || session?.user?.organizationId || null;
 }
 
-// ─── Custom Integrations (AI Integration Builder) ──────────────
-// Org-scoped cint_<slug>_<tool> calls go straight to the hardened runner
-// — org match, status, capability backstop, origin pin, SSRF re-check,
-// method gate and secret scrub all live there. First in the walk (order 0)
-// so no prefix collision can shadow it.
-// `unattended`: context.autoSend is the dispatch-side headless marker —
-// the automation runner sets it on LIVE automation runs and webpageApiRuntime
-// sets it on backend handler calls. The custom-integration runner refuses
-// unattended===true outright for now, and the capability backstop still
-// gates every call regardless of path.
-//
-// The task/cowork runner needs the two halves apart. It must auto-send
-// email (nobody is there to approve a draft — see the aiTaskRunner call
-// site), but flipping its custom-integration calls to unattended would
-// turn working automations into refusals, which is a policy change and not
-// this fix's business. So `unattended` can be set explicitly and only
-// falls back to autoSend when it wasn't.
 /**
- * @param {string} toolName
-  * @param {ToolArgs} toolArgs
- * @param {ToolCtx} context
+ * The Nextcloud family's executor behind its scope guard, or null when the
+ * int_nextcloud module is absent (core mode): the deck is then built locally
+ * and the answer says Nextcloud is not available. An optional lookup until
+ * the Nextcloud side has a port of its own.
+ * @returns {((name: string, args: ToolArgs, ctx: ToolCtx) => Promise<unknown>) | null}
  */
-async function executeCustomIntegration(toolName, toolArgs, context) {
-    return await require('./customIntegrationRunner').executeCustomIntegrationTool(toolName, toolArgs, {
-        userId: context.userId,
-        unattended: context.unattended !== undefined ? !!context.unattended : !!context.autoSend,
-    });
+function checkedNextcloudTool() {
+    try {
+        return require('./nextcloudToolFamily').executeCheckedNextcloudTool;
+    } catch (err) {
+        if (/** @type {NodeJS.ErrnoException} */ (err).code !== 'MODULE_NOT_FOUND') throw err;
+        return null;
+    }
 }
 
 // ─── Presentations (.pptx) ─────────────────────────────────────
@@ -129,7 +92,8 @@ async function executeCreatePresentation(toolName, toolArgs, context) {
     const { nextcloudPath, fileName, ...rest } = toolArgs;
     const path = /\.(pptx|odp)$/i.test(ncPath) ? ncPath : `${ncPath.replace(/\/+$/, '')}/${String(fileName || rest.title || 'presentation').replace(/\.pptx$/i, '')}.pptx`;
     // Through the scope guard, exactly like a direct nextcloud_* call.
-    const nc = /** @type {{ error?: string } | null} */ (await executeCheckedNextcloudTool('nextcloud_create_presentation', { ...rest, path }, context));
+    const executeChecked = checkedNextcloudTool();
+    const nc = /** @type {{ error?: string } | null} */ (executeChecked ? await executeChecked('nextcloud_create_presentation', { ...rest, path }, context) : null);
     if (nc && !nc.error) return nc;
     /** @type {{ error?: string, message?: string }} */
     const local = await executePresentationTool(toolArgs, { userId, session, orgId: documentOrgId(context) });
@@ -148,28 +112,6 @@ async function executeOfficeFile(toolName, toolArgs, context) {
     const { userId, session } = context;
     const { executeOfficeFileTool } = require('./officeFileDelivery');
     return await executeOfficeFileTool(toolName, toolArgs, { userId, session, orgId: documentOrgId(context) });
-}
-
-// ─── n8n workflow tools ────────────────────────────────────────
-// Read-only n8n tools are implicit for every member of an org with n8n
-// configured (umbrella 'n8n' integration toggle gates injection). Only
-// the write/execute bucket is permission-gated via modify_n8n_workflows.
-// Non-LLM callers (pipelines, schedules) also flow through here, so we
-// re-check writes as defense-in-depth vs. the registration-time filter.
-/**
- * @param {string} toolName
-  * @param {ToolArgs} toolArgs
- * @param {ToolCtx} context
- */
-async function executeN8nWorkflow(toolName, toolArgs, context) {
-    const { userId, session, orgId } = context;
-    if (userId && getN8nToolPermission(toolName) === 'modify_n8n_workflows') {
-        const granted = await hasPermission(userId, 'modify_n8n_workflows', session);
-        if (!granted) {
-            return { error: 'You do not have permission to modify n8n workflows. Ask your organisation admin to grant the "Modify n8n Workflows" permission.' };
-        }
-    }
-    return await executeN8nWorkflowTool(toolName, toolArgs, orgId);
 }
 
 // ─── Interactive browser ───────────────────────────────────────
@@ -221,56 +163,6 @@ function recordBrowserPeers(startUrl, answer) {
     } catch (err) { fallback('integrations/toolFamilies:recordBrowserPeers', err); /* a missing peer must never fail the browse */ }
 }
 
-// ─── Notebook Tools (formerly Workspace) ───────────────────────
-const { NOTEBOOK_TOOLS } = require('../core/integrations/notebookToolNames');
-const { fallback } = require('../utils/bestEffort');
-
-/**
- * BFSF-207 backstop: notebook tools are entitlement-gated at registration;
- * re-check at dispatch so no other injection path can execute them. Mirrors
- * registration's org resolution (the user's own org — context.orgId is absent
- * in agent chat and may be the LENDER's org under connection lending).
- * Returns the refusal, or null when the user may use notebooks.
- * @param {string} userId
- * @param {Express.Session} session
- */
-async function notebookRefusal(userId, session) {
-    try {
-        const { hasCapability } = require('../core/entitlements/entitlements');
-        let resolveOrgId = null;
-        try { resolveOrgId = (await require('../stores/userStore').getUser(userId))?.organizationId || null; } catch (_) { fallback('integrations/toolFamilies:notebookRefusal', _); /* user lookup failed, the capability check runs without an org */ }
-        const ok = !!userId
-            && await hasCapability('notebooks', { userId, orgId: resolveOrgId, session })
-            && await hasPermission(userId, 'use_notebooks', session);
-        if (!ok) {
-            return { error: 'The notebook is not available for this user — the notebooks feature is not included in their plan or has not been enabled for them. Briefly let the user know the notebook is unavailable and continue helping them directly in chat.' };
-        }
-        return null;
-    } catch (_) {
-        return { error: 'The notebook is temporarily unavailable. Continue helping the user directly in chat.' };
-    }
-}
-
-/**
- * @param {string} toolName
- * @param {ToolArgs} toolArgs
- * @param {ToolCtx} context
- */
-async function executeNotebook(toolName, toolArgs, context) {
-    const { userId, session } = context;
-    const refusal = await notebookRefusal(userId, session);
-    if (refusal) return refusal;
-    // `userId` is REQUIRED here: the tool's cross-user guard keys off it, and
-    // conversationId arrives from the client, so without a caller identity the
-    // guard has nothing to compare against and every notebook is reachable.
-    return await executeWorkspaceTool(toolName, toolArgs, {
-        conversationId: context.conversationId,
-        agentId: context.agentId,
-        userId,
-        session,
-    });
-}
-
 // ─── Memory ────────────────────────────────────────────────────
 /**
  * @param {string} toolName
@@ -314,101 +206,21 @@ async function executeKbSearch(toolName, toolArgs, context) {
     });
 }
 
-// ─── Outlook ───────────────────────────────────────────────────
-// A Google (or Nextcloud) session may carry Outlook tools when the user
-// connected Microsoft 365 separately (getIntegrationTools adds them off
-// the vault credential). Graph must then get a Microsoft-only shim,
-// never this session's foreign token; a Microsoft session passes
-// through unchanged. `autoSend` follows gmail_compose exactly.
-/**
- * @param {string} toolName
-  * @param {ToolArgs} toolArgs
- * @param {ToolCtx} context
- */
-async function executeOutlook(toolName, toolArgs, context) {
-    const msSession = await outlookSessionFor(toolArgs, context);
-    return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend, mailTrigger: context.mailTrigger || null });
-}
-
-/**
- * Families whose executor takes (toolName, toolArgs, userId).
- * @param {(n: string, a: ToolArgs, userId: string) => unknown} execute
- * @returns {IntegrationToolFamily['execute']}
- */
-const byUser = execute => (name, args, ctx) => execute(name, args, ctx.userId);
-/**
- * Families whose executor takes (toolName, toolArgs, session).
- * @param {(n: string, a: ToolArgs, session: Express.Session) => unknown} execute
- * @returns {IntegrationToolFamily['execute']}
- */
-const bySession = execute => (name, args, ctx) => execute(name, args, ctx.session);
-
 /** @type {IntegrationToolFamily[]} */
 const INTEGRATION_TOOL_FAMILIES = [
-    // `parseName` gives core's progressive disclosure the cint_<slug>_<tool> grammar.
-    { name: 'custom_integration', order: 0, isTool: (/** @type {string} */ n) => require('./customIntegrationRunner').isCustomIntegrationTool(n), execute: executeCustomIntegration, parseName: (/** @type {string} */ n) => require('./customIntegrationRunner').parsePrefixedName(n) },
     { name: 'create_presentation', order: 40, isTool: (/** @type {string} */ n) => n === 'create_presentation', execute: executeCreatePresentation },
     { name: 'create_word_document', order: 50, isTool: (/** @type {string} */ n) => n === 'create_word_document' || n === 'create_spreadsheet', execute: executeOfficeFile },
-    { name: 'fireflies', order: 100, isTool: isFirefliesTool, execute: byUser(executeFirefliesTool) },
     { name: 'regex_generator', order: 110, isTool: isRegexGeneratorTool, execute: (n, a) => executeRegexGeneratorTool(n, a) },
-    { name: 'youtrack', order: 120, isTool: isYouTrackTool, execute: byUser(executeYouTrackTool) },
-    { name: 'signrequest', order: 130, isTool: isSignRequestTool, execute: byUser(executeSignRequestTool) },
-    { name: 'gamma', order: 140, isTool: isGammaTool, execute: byUser(executeGammaTool) },
-    { name: 'afas', order: 150, isTool: isAfasTool, execute: byUser(executeAfasTool) },
-    { name: 'nmbrs', order: 160, isTool: isNmbrsTool, execute: (n, a, ctx) => executeNmbrsTool(n, a, ctx.userId, { orgId: ctx.orgId }) },
-    { name: 'vplan', order: 170, isTool: isVplanTool, execute: byUser(executeVplanTool) },
-    { name: 'firebird', order: 175, isTool: n => require('./firebirdTools').isFirebirdTool(n), execute: byUser((n, a, u) => require('./firebirdTools').executeFirebirdTool(n, a, u)) }, // lazy: the driver loads on first use
-    { name: 'frappe_crm', order: 177, isTool: n => require('./frappeCrmTools.mts').isFrappeCrmTool(n), execute: byUser((n, a, u) => require('./frappeCrmTools.mts').executeFrappeCrmTool(n, a, u)) },
-    { name: 'twoba', order: 178, isTool: n => n.startsWith('twoba_') && require('./twobaTools.mts').isTwobaTool(n), execute: (n, a, ctx) => require('./twobaTools.mts').executeTwobaTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) }, // the run scope: upload a file of this run
-    { name: 'scaleway_billing', order: 180, isTool: isScalewayBillingTool, execute: (n, a, ctx) => executeScalewayBillingTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) }, // the run scope: keep the PDF for this run, hand on a generated_file handle
-    // Lazily required: withingsTools pulls in automationAuth (and through it the credential vault), which nothing else on this hot path needs.
-    { name: 'withings', order: 190, isTool: n => require('./withingsTools').isWithingsTool(n), execute: (n, a, ctx) => require('./withingsTools').executeWithingsTool(n, a, ctx.userId) },
-    // `autoSend` is opt-in per-call: only the automation runner sets it (no
-    // user is present to confirm a draft). Direct chat / agent chat leave it
-    // false so the email_draft → user approves → send flow stays.
-    { name: 'gmail', order: 200, isTool: isGmailTool, execute: (n, a, ctx) => executeGmailTool(n, a, ctx.session, { autoSend: !!ctx.autoSend, mailTrigger: ctx.mailTrigger || null }) },
-    // BFSF-254: pass the requester's IANA timezone through so drafts and the
-    // approved create/update carry it — Google rejects bare local dateTimes
-    // ("Missing time zone definition for start time").
-    { name: 'google_calendar', order: 210, isTool: isCalendarTool, execute: (n, a, ctx) => executeCalendarTool(n, a, ctx.session, { timezone: ctx.timezone || null }) },
-    { name: 'google_docs', order: 220, isTool: isDocsTool, execute: bySession(executeDocsTool) },
-    { name: 'google_sheets', order: 230, isTool: isSheetsTool, execute: bySession(executeSheetsTool) },
-    { name: 'google_slides', order: 240, isTool: isSlidesTool, execute: bySession(executeSlidesTool) },
-    { name: 'google_drive', order: 250, isTool: isDriveTool, execute: (n, a, ctx) => executeDriveTool(n, a, ctx.session, { runScope: ctx.runScope || null }) },
-    { name: 'google_contacts', order: 260, isTool: isContactsTool, execute: bySession(executeContactsTool) },
-    { name: 'google_keep', order: 270, isTool: isKeepTool, execute: bySession(executeKeepTool) },
-    { name: 'google_groups', order: 280, isTool: isGoogleGroupsTool, execute: bySession(executeGoogleGroupsTool) },
-    // Before 'n8n': every workflow tool is an n8n_* name too.
-    { name: 'n8n_workflow', order: 290, isTool: isN8nWorkflowTool, execute: executeN8nWorkflow },
-    // Webhook-trigger tools are implicit for every member once the org has n8n
-    // configured — gated only by the umbrella 'n8n' integration toggle at
-    // injection time (see core/integrations/integrationTools.js).
-    { name: 'n8n', order: 300, isTool: isN8nTool, execute: (n, a, ctx) => executeN8nTool(n, a, ctx.orgId, ctx.attachments) },
     // Routed by the admin-configured search provider (bing / node-search /
     // agent-search service, with node-search fallback for CPU-only deploys).
     { name: 'agent_search', order: 310, isTool: isAgentSearchTool, execute: (n, a) => executeWebSearch(n, a) },
     // Plain GET through the SSRF-guarded fetch; the egress probe records the host.
     { name: 'read_url', order: 320, isTool: isReadUrlTool, execute: (n, a) => executeReadUrlTool(n, a) },
     { name: 'browse_web', order: 330, isTool: isBrowseWebTool, execute: executeBrowseWeb },
-    { name: 'notebook', order: 420, isTool: n => NOTEBOOK_TOOLS.has(n), execute: executeNotebook },
     { name: 'memory', order: 430, isTool: n => require('./memoryTools').isMemoryTool(n), execute: executeMemory },
-    // Self-scoped: context.automationId is set by the automation runner only.
-    { name: 'automation_evolution', order: 440, isTool: n => require('./automationEvolutionTools').isAutomationEvolutionTool(n), execute: (n, a, ctx) => require('./automationEvolutionTools').executeAutomationEvolutionTool(n, a, { userId: ctx.userId, orgId: ctx.orgId, automationId: ctx.automationId || null, autoSend: ctx.autoSend === true }) },
     { name: 'kb_search', order: 450, isTool: isKbSearchTool, execute: executeKbSearch },
     // Automation-only WRITE (Support Studio template). sanctions: local screening, the executor re-checks the licence.
     { name: 'kb_ingest', order: 470, isTool: isKbIngestTool, execute: (n, a, ctx) => executeKbIngestTool(n, a, { orgId: ctx.orgId, userId: ctx.userId }) },
-    { name: 'sanctions', order: 475, isTool: n => require('./sanctionsTools.mts').isSanctionsTool(n), execute: (n, a, ctx) => require('./sanctionsTools.mts').executeSanctionsTool(n, a, { userId: ctx.userId, orgId: ctx.orgId }) },
-    { name: 'maps', order: 480, isTool: isMapsTool, execute: (n, a) => executeMapsTool(n, a) },
-    { name: 'linkedin', order: 490, isTool: isLinkedInTool, execute: bySession(executeLinkedInTool) },
-    { name: 'github', order: 500, isTool: isGitHubTool, execute: byUser(executeGitHubTool) },
-    { name: 'nextcloud', order: 510, isTool: isNextcloudFamilyToolName, execute: executeGuardedNextcloudTool, executeFamily: executeNextcloudFamilyTool },
-    { name: 'support', order: 520, isTool: isSupportTool, execute: (n, a, ctx) => executeSupportTool(n, a, { userId: ctx.userId, session: ctx.session, userAuth: ctx.userAuth, supportThreadId: ctx.supportThreadId, supportActionPolicy: ctx.userAuth?.supportActionPolicy || null }) },
-    { name: 'webpage_automation', order: 530, isTool: isWebpageAutomationTool, execute: (n, a, ctx) => executeWebpageAutomationTool(n, a, { userId: ctx.userId, organizationId: ctx.orgId, userGroupIds: ctx.userGroupIds || [], userOrgIds: ctx.userOrgIds || (ctx.orgId ? [ctx.orgId] : []) }) },
-    { name: 'outlook', order: 540, isTool: isOutlookTool, execute: executeOutlook },
-    { name: 'ms_calendar', order: 550, isTool: isMsCalendarTool, execute: bySession(executeMsCalendarTool) },
-    { name: 'onedrive', order: 560, isTool: isOneDriveTool, execute: bySession(executeOneDriveTool) },
-    { name: 'ms_contacts', order: 570, isTool: isMsContactsTool, execute: bySession(executeMsContactsTool) },
-    { name: 'transcription', order: 580, isTool: isTranscriptionTool, execute: (n, a, ctx) => executeTranscriptionTool(n, a, { userId: ctx.userId, session: ctx.session, attachments: ctx.attachments, req: ctx.req }) },
 ];
 
 function registerIntegrationToolFamilies() {
@@ -416,5 +228,6 @@ function registerIntegrationToolFamilies() {
 }
 
 registerIntegrationToolFamilies();
+require('../modules/firstParty/registrationChannels').openChannel('integrations/toolFamilies');
 
 module.exports = { INTEGRATION_TOOL_FAMILIES, registerIntegrationToolFamilies, recordBrowserPeers };

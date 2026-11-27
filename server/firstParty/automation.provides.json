@@ -1,0 +1,32 @@
+{
+  "featureModules": [
+    "automation/agentCallableTools",
+    "automation/datatableUsageSync",
+    "automation/formTriggerContract",
+    "automation/goLive",
+    "automation/aiActCheck",
+    "automation/subscriptionSync",
+    "automation/approvalEvents",
+    "automation/approvalNotify",
+    "automation/portability",
+    "automation/datatableUsage",
+    "automation/validate"
+  ],
+  "runnerPorts": [
+    "approvals",
+    "triggerBus",
+    "formQueue",
+    "evolution",
+    "codeSandbox",
+    "outputSchemas",
+    "shapeCache",
+    "summarise",
+    "forms",
+    "automationGraph",
+    "runOutcome",
+    "stepTypes",
+    "toolRegistry",
+    "formJourney",
+    "periodicJobs"
+  ]
+}

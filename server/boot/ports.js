@@ -6,20 +6,26 @@
  *  - stores/agent/tokenDisplay: a reopened conversation restores its Privacy
  *    Shield tokens through core/dlp/dlpRunner, the one module that decrypts a
  *    stored token map. Without it a reopened chat shows its placeholders.
+ *
+ * A port whose policy belongs to a first-party module is filled in that
+ * module's firstParty/<id>.register.js, contributed to the channel 'boot/ports'
+ * (modules/firstParty/registrationChannels.js) that wirePorts opens, so it is
+ * wired when wirePorts runs:
+ *
  *  - core/automationRunner/documentMarking (Art. 50(2)): core owns the port,
- *    compliance owns the policy. Without it a generated document renders
- *    unmarked.
+ *    compliance owns the policy (firstParty/compliance.register.js). Without
+ *    it, or without the compliance module, a generated document renders unmarked.
  */
 
 'use strict';
 
-/** @param {{ compliance: boolean }} available  which optional modules are installed */
-function wirePorts({ compliance }) {
+/**
+ * @param {{ compliance?: boolean }} [_available]  which optional modules are installed; not read: a module that
+ *   is not available does not register (the parameter keeps boot/startupJobs.js's call valid)
+ */
+function wirePorts(_available) {
     require('../stores/agent/tokenDisplay').setTokenMapReader(require('../core/dlp/dlpRunner').getConversationTokenMapAsync);
-    if (compliance) {
-        require('../core/automationRunner/documentMarking')
-            .setMarkingResolver((/** @type {string} */ orgId, /** @type {{ automationId?: string | null; aiStepIds?: string[]; provider?: string | null; now?: Date; } | undefined} */ info) => require('../compliance/marking').resolveMarking(orgId, info));
-    }
+    require('../modules/firstParty/registrationChannels').openChannel('boot/ports');
 }
 
 module.exports = { wirePorts };

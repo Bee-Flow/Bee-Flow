@@ -1,0 +1,5 @@
+{
+  "featureModules": [
+    "services/webpageSnapshot"
+  ]
+}

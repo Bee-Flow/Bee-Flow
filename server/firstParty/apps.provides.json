@@ -1,0 +1,9 @@
+{
+  "featureModules": [
+    "appStudio/definitionGate",
+    "appStudio/appAssets",
+    "appStudio/portabilityReport",
+    "appStudio/automationUsageSync",
+    "appStudio/triggers/deploySync"
+  ]
+}
