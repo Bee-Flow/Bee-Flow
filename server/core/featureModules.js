@@ -80,6 +80,21 @@ const { assertProviderNotFailed } = require('../modules/firstParty/moduleState')
  *   'appStudio/triggers/deploySync': typeof import('../appStudio/triggers/deploySync.mts'),
  *   'agents/memory/extractor': typeof import('../agents/memory/extractor'),
  *   'projects/chatModel': typeof import('../projects/chatModel'),
+ *   'stores/studioAppStore': typeof import('../stores/studioAppStore'),
+ *   'stores/studioAppData/actionRuns': typeof import('../stores/studioAppData/actionRuns.mts'),
+ *   'stores/studioAppData/runLogStore': typeof import('../stores/studioAppData/runLogStore.mts'),
+ *   'stores/studioAppData/webhookTriggers': typeof import('../stores/studioAppData/webhookTriggers.mts'),
+ *   'stores/studioAppData/runPolicy': typeof import('../stores/studioAppData/runPolicy.mts'),
+ *   'stores/automationStore/webhookDeliveries': typeof import('../stores/automationStore/webhookDeliveries'),
+ *   'stores/complianceStore': typeof import('../stores/complianceStore'),
+ *   'compliance/events': typeof import('../compliance/events'),
+ *   'stores/transcriptionStore': typeof import('../stores/transcriptionStore'),
+ *   'stores/transcriptCrypto': typeof import('../stores/transcriptCrypto'),
+ *   'stores/webpageStore': typeof import('../stores/webpageStore'),
+ *   'stores/datatableStore': typeof import('../stores/datatableStore'),
+ *   'stores/datatableDbStore': typeof import('../stores/datatableDbStore'),
+ *   'stores/githubSyncStore': typeof import('../stores/githubSyncStore'),
+ *   'workers/paygDrain': typeof import('../workers/paygDrain'),
  * }} FeatureModuleMap
  */
 

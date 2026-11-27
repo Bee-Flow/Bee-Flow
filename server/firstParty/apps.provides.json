@@ -4,6 +4,11 @@
     "appStudio/appAssets",
     "appStudio/portabilityReport",
     "appStudio/automationUsageSync",
-    "appStudio/triggers/deploySync"
+    "appStudio/triggers/deploySync",
+    "stores/studioAppStore",
+    "stores/studioAppData/actionRuns",
+    "stores/studioAppData/runLogStore",
+    "stores/studioAppData/webhookTriggers",
+    "stores/studioAppData/runPolicy"
   ]
 }

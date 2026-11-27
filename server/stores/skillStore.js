@@ -77,7 +77,8 @@ async function _notifySkillSync(orgId, skillId, action = 'pending', projectId = 
     if (!orgId) return;
     try {
         if (projectId && await managedParts.managedInfo(projectId)) return;
-        const syncStore = require('./githubSyncStore');
+        const syncStore = require('../modules/firstParty/moduleData').lookupFeatureModule('stores/githubSyncStore');
+        if (!syncStore) return; // without the int_saas module nothing is synced
         const config = await syncStore.getOrgSyncConfig(orgId);
         if (!config) return;
         if (action === 'deleted') {

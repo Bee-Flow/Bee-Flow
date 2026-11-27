@@ -1,3 +1,6 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "stores/datatableStore",
+    "stores/datatableDbStore"
+  ]
 }

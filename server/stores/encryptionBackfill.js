@@ -39,7 +39,7 @@
  *       messageEncryption v2 blob). On `zk` ctx.key is the session DEK, which
  *       a batch job never has, so that surface reports noKey there.
  *   transcriptions.*                             org transcript DEK
- *       (stores/transcriptCrypto.js), on zk as well.
+ *       (stores/transcriptCrypto.js, module meetingNotes: skipped when neither it nor its data is here), on zk as well.
  *
  *   pii_vault_entries.value_enc / .norm_key      vault keys derived from ctx.backgroundKey
  *       (piiVaultStore.vaultKeysFromDek). Not a policy surface: sealed on every
@@ -102,7 +102,7 @@ function newStats() {
 /**
  * @typedef {Pick<typeof import('../db'), 'getAll'|'getOne'|'run'> & {
  *   resolveCrypto: typeof import('./agent/messageCrypto').resolveCrypto,
- *   resolveTranscriptCrypto: typeof import('./transcriptCrypto').resolveTranscriptCrypto
+ *   resolveTranscriptCrypto?: typeof import('./transcriptCrypto').resolveTranscriptCrypto
  * }} BackfillDependencies
  * @typedef {Partial<BackfillDependencies> & {
  *   batch?: number,
@@ -123,7 +123,6 @@ function lazyDeps(deps = {}) {
         d.run = d.run || db.run;
     }
     if (!d.resolveCrypto) d.resolveCrypto = require('./agent/messageCrypto').resolveCrypto;
-    if (!d.resolveTranscriptCrypto) d.resolveTranscriptCrypto = require('./transcriptCrypto').resolveTranscriptCrypto;
     return /** @type {BackfillOverrides & BackfillDependencies} */ (d); // every dependency is filled in above
 }
 
@@ -430,8 +429,9 @@ async function backfillNotebookMessages(env) {
 
 /** @param {BackfillEnv} env */
 async function backfillTranscripts(env) {
-    const tc = require('./transcriptCrypto');
-    const tctx = await env.deps.resolveTranscriptCrypto(env.orgId);
+    const tc = await require('../modules/firstParty/moduleData').moduleForDataDuty('meetingNotes', 'stores/transcriptCrypto', { duty: 'encrypt the meeting notes written before encryption was switched on', whenDataPresent: 'warn' });
+    if (!tc) return;
+    const tctx = await (env.deps.resolveTranscriptCrypto || tc.resolveTranscriptCrypto)(env.orgId);
     if (!tctx || !tctx.encrypt || !tctx.key) {
         const r = await env.deps.getOne('SELECT COUNT(*)::int AS n FROM transcriptions WHERE organization_id = $1', [env.orgId]);
         env.stats.noKey += (r && r.n) || 0;

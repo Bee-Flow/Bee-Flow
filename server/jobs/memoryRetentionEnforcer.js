@@ -56,12 +56,20 @@
  */
 
 const { run, getOne } = require('../db');
-const complianceStore = require('../stores/complianceStore');
+const { moduleForDataDuty } = require('../modules/firstParty/moduleData');
 const userStore = require('../stores/userStore');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The compliance module's store: each organisation's retention switch lives in its
+ * compliance_settings. Without the module (and without its data) no organisation has switched
+ * the age sweep on; with its data but not its code the sweep stays off, with one warning.
+ */
+const complianceStore = () => moduleForDataDuty('compliance', 'stores/complianceStore',
+    { duty: 'read the memory retention settings of organisations', whenDataPresent: 'warn' });
 
 /** The window used when an org enables retention without declaring one. */
 const DEFAULT_RETENTION_DAYS = 365;
@@ -98,7 +106,9 @@ let _running = false;
 async function getRetentionPolicy(orgId) {
     let settings;
     try {
-        settings = await complianceStore.getSettings(orgId);
+        const store = await complianceStore();
+        if (!store) return { enabled: false, days: DEFAULT_RETENTION_DAYS, reason: 'compliance_absent' };
+        settings = await store.getSettings(orgId);
     } catch (e) {
         // Unknown must narrow to "do nothing", never to "sweep on the default".
         log.warn(`[MemoryRetentionEnforcer] settings for "${orgId}" unreadable — retention OFF:`, /** @type {Error} */ (e).message);
@@ -269,8 +279,10 @@ async function _listOrgIds() {
  * @param {Set<string>} orgIds
  */
 async function _stampHeartbeats(orgIds) {
+    const store = await complianceStore();
+    if (!store) return;
     for (const orgId of orgIds) {
-        try { await complianceStore.markRetentionRun(orgId); }
+        try { await store.markRetentionRun(orgId); }
         catch (e) { log.warn(`[MemoryRetentionEnforcer] heartbeat for "${orgId}" failed:`, /** @type {Error} */ (e).message); }
     }
 }

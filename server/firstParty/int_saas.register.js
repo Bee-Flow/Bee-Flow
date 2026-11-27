@@ -98,6 +98,7 @@ function registerToolsets() {
 function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
+        'stores/githubSyncStore': () => require('../stores/githubSyncStore'),
     }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', registerToolsets);

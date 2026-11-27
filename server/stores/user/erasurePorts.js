@@ -59,9 +59,37 @@ function erasurePort(name) {
     return /** @type {ErasurePorts[K]} */ (port);
 }
 
+/**
+ * A teardown that refuses at its first use: the account owns a project, the projects module's
+ * code is not here to tear it down (its folding back, detaching and files base), and skipping it
+ * would report an erasure that left the project behind.
+ */
+function refusingTeardown() {
+    const refuse = async () => {
+        const { ModuleDataPresentError } = require('../../modules/firstParty/moduleData');
+        throw new ModuleDataPresentError('projects', 'erase the projects an account owns');
+    };
+    return { teardownRefusal: refuse, deleteProject: refuse };
+}
+
+/**
+ * The project teardown of account erasure. The projects module registers its port when it is
+ * loaded. When it is absent (core mode, an edition without it) the projects themselves are still
+ * in the core's tables: its teardown file runs when it is in the tree, and an owned project
+ * refuses the erasure when it is not (an account that owns none is erased as before).
+ * A loaded or failed module without its port refuses as before.
+ */
+function projectTeardown() {
+    const { moduleStateOf } = require('../../modules/firstParty/moduleState');
+    if (ports.projects || moduleStateOf('projects') !== 'absent') return erasurePort('projects').makeTeardown();
+    const file = /** @type {typeof import('../../projects/projectTeardown') | null} */ (
+        require('../../modules/firstParty/moduleData').moduleFileInTree('projects/projectTeardown'));
+    return file ? file.makeProjectTeardown() : refusingTeardown();
+}
+
 /** Both ports at once (the notebooks port and a project teardown), so a caller can refuse before its first write. */
 function resolveErasurePorts() {
-    return { notebooks: erasurePort('notebooks'), teardown: erasurePort('projects').makeTeardown() };
+    return { notebooks: erasurePort('notebooks'), teardown: projectTeardown() };
 }
 
 /**
@@ -77,4 +105,4 @@ function resetErasurePortsForTests() {
     ports = {};
 }
 
-module.exports = { registerErasurePorts, erasurePort, resolveErasurePorts, erasurePortNames, resetErasurePortsForTests };
+module.exports = { registerErasurePorts, erasurePort, projectTeardown, resolveErasurePorts, erasurePortNames, resetErasurePortsForTests };

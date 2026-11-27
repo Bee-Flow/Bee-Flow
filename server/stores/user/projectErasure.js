@@ -32,6 +32,7 @@
 
 const log = require('../../telemetry/log');
 const { isMissingTable } = require('../../utils/isMissingTable');
+const { moduleForDataDuty } = require('../../modules/firstParty/moduleData');
 
 /**
  * @param {string} userId
@@ -47,7 +48,11 @@ async function eraseProjectTraces(userId, opts = {}) {
         ['AI participation', (id) => require('../projectAiParticipationStore').eraseUser(id)],
         ['AI participation preference', (id) => require('../configStore')
             .deleteConfig(`${require('../lib/orgConfigKeyPrefixes').USER_AI_PARTICIPATION_KEY_PREFIX}${id}`)],
-        ['compliance hint dismissals', (id) => require('../complianceStore').eraseHintDismissals(id)],
+        ['compliance hint dismissals', async (id) => {
+            const compliance = await moduleForDataDuty('compliance', 'stores/complianceStore',
+                { duty: 'erase the compliance hints an account dismissed', whenDataPresent: 'refuse' });
+            return compliance ? compliance.eraseHintDismissals(id) : { rows: 0 };
+        }],
     ];
     /** @type {Record<string, any>} */
     const report = {};
@@ -99,7 +104,7 @@ async function eraseOwnedProjects(userId, opts = {}) {
     const countSharedThreads = opts.countSharedThreads
         || ((projectId) => require('../projectStore').countSharedThreads(projectId));
     const handOver = opts.handOver || ((projectId, fromOwnerId) => require('../projectStore').handOverProject(projectId, fromOwnerId));
-    const teardown = opts.teardown || require('./erasurePorts').erasurePort('projects').makeTeardown();
+    const teardown = opts.teardown || require('./erasurePorts').projectTeardown();
 
     const report = { deleted: 0, kept: 0, failed: 0, handedOver: 0 };
     if (!userId) return report;

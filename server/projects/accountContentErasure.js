@@ -15,6 +15,19 @@
 
 const { getAll } = require('../db');
 const { isMissingTable } = require('../utils/isMissingTable');
+const { moduleForDataDuty } = require('../modules/firstParty/moduleData');
+
+/**
+ * A module's store for one erasure, or null when neither the module nor its data is here (then
+ * its tables are not asked either). With its data but not its code the erasure refuses.
+ * @template {'stores/transcriptionStore' | 'stores/webpageStore' | 'stores/studioAppStore'} K
+ * @param {string} moduleId
+ * @param {K} name
+ * @param {string} duty
+ */
+function storeFor(moduleId, name, duty) {
+    return moduleForDataDuty(moduleId, name, { duty, whenDataPresent: 'refuse' });
+}
 
 /**
  * Meeting notes: through the store, which also removes the recording (the
@@ -22,9 +35,10 @@ const { isMissingTable } = require('../utils/isMissingTable');
  * @param {string} userId
  */
 async function eraseTranscriptions(userId) {
+    const store = await storeFor('meetingNotes', 'stores/transcriptionStore', 'erase the meeting notes of an account');
+    if (!store) return 0;
     const rows = await getAll('SELECT id, tags FROM transcriptions WHERE user_id = $1', [userId]);
-    const { deleteTranscription } = require('../stores/transcriptionStore');
-    for (const r of rows) await deleteTranscription(r.id, userId);
+    for (const r of rows) await store.deleteTranscription(r.id, userId);
     await rearmMeetingSourcesFor(rows);
     return rows.length;
 }
@@ -35,9 +49,10 @@ async function eraseTranscriptions(userId) {
  * @param {string} orgId
  */
 async function eraseOrgTranscriptions(orgId) {
+    const store = await storeFor('meetingNotes', 'stores/transcriptionStore', 'erase the meeting notes of an organisation');
+    if (!store) return 0;
     const rows = await getAll('SELECT id, user_id, tags FROM transcriptions WHERE organization_id = $1', [orgId]);
-    const { deleteTranscription } = require('../stores/transcriptionStore');
-    for (const r of rows) await deleteTranscription(r.id, r.user_id);
+    for (const r of rows) await store.deleteTranscription(r.id, r.user_id);
     await rearmMeetingSourcesFor(rows);
     return rows.length;
 }
@@ -71,8 +86,9 @@ async function rearmMeetingSourcesFor(rows) {
  * @param {string} userId
  */
 async function eraseWebpages(userId) {
+    const webpageStore = await storeFor('webpages', 'stores/webpageStore', 'erase the web pages of an account');
+    if (!webpageStore) return 0;
     const rows = await getAll('SELECT id FROM webpages WHERE user_id = $1', [userId]);
-    const webpageStore = require('../stores/webpageStore');
     const { run } = require('../db');
     for (const r of rows) {
         await webpageStore.purgeWebpageObjects(userId, r.id);
@@ -87,8 +103,9 @@ async function eraseWebpages(userId) {
  * @param {string} userId
  */
 async function eraseStudioApps(userId) {
+    const studioAppStore = await storeFor('apps', 'stores/studioAppStore', 'erase the App Studio apps of an account');
+    if (!studioAppStore) return 0;
     const rows = await getAll('SELECT id FROM studio_apps WHERE user_id = $1', [userId]);
-    const studioAppStore = require('../stores/studioAppStore');
     for (const r of rows) await studioAppStore.deleteStudioApp(r.id, userId);
     return rows.length;
 }

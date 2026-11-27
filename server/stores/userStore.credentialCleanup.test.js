@@ -71,6 +71,19 @@ const dbStub = {
 
 let hasPersonalModel = false;
 
+const datatableStoreStub = {
+    purgeGrantsForUser: async (userId) => { datatableCalls.push({ fn: 'purgeGrantsForUser', userId }); return 2; },
+    listOwnedBy: async (userId) => { datatableCalls.push({ fn: 'listOwnedBy', userId }); return ownedTables; },
+    transferOwner: async (id, scope, heir) => { datatableCalls.push({ fn: 'transferOwner', id, scope, heir }); },
+};
+const datatableDbStoreStub = {
+    scopeKey: (scope) => `${scope.kind}:${scope.id}`,
+    orgScopeKey: (orgId) => `org:${orgId}`,
+    dropDatatable: async (id, scope) => { datatableCalls.push({ fn: 'dropDatatable', id, scope }); return true; },
+    reset: async (ownerId, entityId) => { datatableCalls.push({ fn: 'reset', ownerId, entityId }); },
+    invalidate: (key) => { datatableCalls.push({ fn: 'invalidate', key }); },
+};
+
 const restore = installResolveStub({
     // Every depth the cascade requires the db from — see note 1 above.
     './db': dbStub,
@@ -110,18 +123,11 @@ const restore = installResolveStub({
     '../projectChatStore': {
         eraseAuthor: async (userId) => { teamChatErasures.push(userId); return { messages: 3, reads: 1 }; },
     },
-    '../datatableStore': {
-        purgeGrantsForUser: async (userId) => { datatableCalls.push({ fn: 'purgeGrantsForUser', userId }); return 2; },
-        listOwnedBy: async (userId) => { datatableCalls.push({ fn: 'listOwnedBy', userId }); return ownedTables; },
-        transferOwner: async (id, scope, heir) => { datatableCalls.push({ fn: 'transferOwner', id, scope, heir }); },
-    },
-    '../datatableDbStore': {
-        scopeKey: (scope) => `${scope.kind}:${scope.id}`,
-        orgScopeKey: (orgId) => `org:${orgId}`,
-        dropDatatable: async (id, scope) => { datatableCalls.push({ fn: 'dropDatatable', id, scope }); return true; },
-        reset: async (ownerId, entityId) => { datatableCalls.push({ fn: 'reset', ownerId, entityId }); },
-        invalidate: (key) => { datatableCalls.push({ fn: 'invalidate', key }); },
-    },
+    '../datatableStore': datatableStoreStub,
+    '../datatableDbStore': datatableDbStoreStub,
+    // The same two as the datatables module's registration requires them (core asks for them by name).
+    '../stores/datatableStore': datatableStoreStub,
+    '../stores/datatableDbStore': datatableDbStoreStub,
 
     './notificationStore': { deleteNotificationsForUser: async () => {} },
     '../notificationStore': { deleteNotificationsForUser: async () => {} },

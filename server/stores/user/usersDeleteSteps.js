@@ -13,6 +13,7 @@ const { run, getOne, getAll } = require('../../db');
 const log = require('../../telemetry/log');
 const { isMissingTable } = require('../../utils/isMissingTable');
 const { perUserConfigStems } = require('./userSecretKeys.mts');
+const { moduleForDataDuty } = require('../../modules/firstParty/moduleData');
 
 /** @typedef {(name: string, fn: () => Promise<unknown>) => Promise<void>} Step runs one named step and notes its failure */
 /** @typedef {(name: string, e: unknown) => void} Fail notes a failed step */
@@ -304,14 +305,15 @@ async function eraseOwnedAgents(userId, step) {
  * included; a published or granted one goes to the organisation's oldest admin.
  * @param {string} userId
  * @param {typeof import('../datatableStore')} datatableStore
+ * @param {typeof import('../datatableDbStore')} datatableDbStore
  */
-async function dropOrHandOverOwnedTables(userId, datatableStore) {
+async function dropOrHandOverOwnedTables(userId, datatableStore, datatableDbStore) {
     // A stored table always has its scope; the row mapper's type leaves it optional.
     const owned = /** @type {Array<Awaited<ReturnType<typeof datatableStore.listOwnedBy>>[number] & { scope: { kind: 'org'|'user', id: string } }>} */ (await datatableStore.listOwnedBy(userId));
     const heirs = new Map();   // organizationId → heir id | null, resolved once per org
     for (const t of owned) {
         if (!t.isPublished && !t.grantCount) {
-            const dropped = await require('../datatableDbStore').dropDatatable(t.id, t.scope);
+            const dropped = await datatableDbStore.dropDatatable(t.id, t.scope);
             log.info(`[UserStore] Private datatable '${t.key}' (${t.id}) ${dropped ? 'deleted with' : 'NOT deleted with'} account '${userId}'`);
             continue;
         }
@@ -331,14 +333,13 @@ async function dropOrHandOverOwnedTables(userId, datatableStore) {
     }
 }
 
-/** @param {string} userId */
-async function dropPersonalDatatableSchema(userId) {
+/** @param {string} userId @param {typeof import('../datatableDbStore')} datatableDbStore */
+async function dropPersonalDatatableSchema(userId, datatableDbStore) {
     // The account's PERSONAL tenancy, once its tables are gone: a Postgres
     // schema of its own plus one `datatable_models` row keyed on the user
     // id. Dropping the tables leaves both behind, and the row is itself an
     // identifier of a person who asked to be erased. Nothing else can reach
     // this scope, so nothing else would ever clean it up.
-    const datatableDbStore = require('../datatableDbStore');
     const personalKey = datatableDbStore.scopeKey({ kind: 'user', id: userId });
     const hasPersonalModel = await getOne(
         `SELECT 1 AS present FROM datatable_models WHERE scope_kind = 'user' AND scope_id = $1`, [userId]);
@@ -371,11 +372,15 @@ async function dropPersonalDatatableSchema(userId) {
 /** @param {string} userId @param {Step} step */
 async function eraseDatatables(userId, step) {
     await step('datatables', async () => {
-        const datatableStore = require('../datatableStore');
+        // The datatables module's: without it and its data there is nothing to erase.
+        const duty = /** @type {const} */ ({ duty: 'erase the datatables of an account', whenDataPresent: 'refuse' });
+        const datatableStore = await moduleForDataDuty('datatables', 'stores/datatableStore', duty);
+        const datatableDbStore = await moduleForDataDuty('datatables', 'stores/datatableDbStore', duty);
+        if (!datatableStore || !datatableDbStore) return;
         const removedGrants = await datatableStore.purgeGrantsForUser(userId);
         if (removedGrants) log.info(`[UserStore] Removed ${removedGrants} datatable grant(s) for '${userId}'`);
-        await dropOrHandOverOwnedTables(userId, datatableStore);
-        await dropPersonalDatatableSchema(userId);
+        await dropOrHandOverOwnedTables(userId, datatableStore, datatableDbStore);
+        await dropPersonalDatatableSchema(userId, datatableDbStore);
     });
 }
 

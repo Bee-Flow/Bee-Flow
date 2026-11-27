@@ -16,7 +16,8 @@ const { bestEffort } = require('../../utils/bestEffort');
 async function _notifySync(orgId, agentId, action = 'pending') {
     if (!orgId) return;
     try {
-        const syncStore = require('../githubSyncStore');
+        const syncStore = require('../../modules/firstParty/moduleData').lookupFeatureModule('stores/githubSyncStore');
+        if (!syncStore) return; // without the int_saas module nothing is synced
         const config = await syncStore.getOrgSyncConfig(orgId);
         if (!config) return; // Sync not configured for this org
         if (action === 'deleted') {

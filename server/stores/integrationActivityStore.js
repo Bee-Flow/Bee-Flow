@@ -172,10 +172,10 @@ async function _claimAndEmitTransferSignal(orgId, signalKey, payload) {
     }
     if (!claimed) return;
     try {
-        // Lazy-require: events.js lazy-loads the runner, and requiring it at
-        // module scope here would create a boot cycle via runner → checks.
-        const events = require('../compliance/events');
-        events.emit(events.EVENTS.EXTERNAL_TRANSFER_DETECTED, payload);
+        // Looked up here: events.js lazy-loads the runner (a boot cycle at module
+        // scope); without the compliance module there is no compliance bus to tell.
+        const events = require('../modules/firstParty/moduleData').lookupFeatureModule('compliance/events');
+        if (events) events.emit(events.EVENTS.EXTERNAL_TRANSFER_DETECTED, payload);
     } catch (err) { bestEffort('stores/integrationActivityStore:_claimAndEmitTransferSignal', err); /* compliance bus is best-effort */ }
 }
 

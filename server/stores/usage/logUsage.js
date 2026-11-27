@@ -304,7 +304,8 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
         // (process crash), the worker catches up.
         setImmediate(() => {
             try {
-                _paygDrain().drainOne(identifier).catch((e) => bestEffort('stores/usage/logUsage:paygDrainOne', e));
+                const drain = _paygDrain();
+                if (drain) drain.drainOne(identifier).catch((/** @type {unknown} */ e) => bestEffort('stores/usage/logUsage:paygDrainOne', e));
             } catch (err) { bestEffort('stores/usage/logUsage:loadPaygDrain', err); }
         });
     }

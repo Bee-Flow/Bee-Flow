@@ -1,5 +1,7 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "stores/githubSyncStore"
+  ],
   "integrationClients": [
     "github",
     "youtrack"

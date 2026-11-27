@@ -10,7 +10,8 @@
     "automation/approvalNotify",
     "automation/portability",
     "automation/datatableUsage",
-    "automation/validate"
+    "automation/validate",
+    "stores/automationStore/webhookDeliveries"
   ],
   "runnerPorts": [
     "approvals",

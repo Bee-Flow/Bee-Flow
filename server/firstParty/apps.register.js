@@ -19,6 +19,11 @@ function register() {
         'appStudio/portabilityReport': () => require('../appStudio/portabilityReport.mts'),
         'appStudio/automationUsageSync': () => require('../appStudio/automationUsageSync'),
         'appStudio/triggers/deploySync': () => require('../appStudio/triggers/deploySync.mts'),
+        'stores/studioAppStore': () => require('../stores/studioAppStore'),
+        'stores/studioAppData/actionRuns': () => require('../stores/studioAppData/actionRuns.mts'),
+        'stores/studioAppData/runLogStore': () => require('../stores/studioAppData/runLogStore.mts'),
+        'stores/studioAppData/webhookTriggers': () => require('../stores/studioAppData/webhookTriggers.mts'),
+        'stores/studioAppData/runPolicy': () => require('../stores/studioAppData/runPolicy.mts'),
     }));
 }
 

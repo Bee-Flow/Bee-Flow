@@ -1,3 +1,5 @@
 {
-  "featureModules": []
+  "featureModules": [
+    "workers/paygDrain"
+  ]
 }
