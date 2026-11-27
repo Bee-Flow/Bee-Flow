@@ -9,8 +9,8 @@
  *   - HTTP: an express app built from the same boot pieces index.js uses
  *     (boot/httpMiddleware body parsers, boot/session's cookie session over the
  *     PostgreSQL session store, the session bridge), the real routers mounted
- *     behind the SAME middleware chain index.js gives them (MOUNTS below names
- *     the index.js line each one copies), then the terminal error handler.
+ *     behind the SAME chain index.js or a module's mount row gives them (MOUNTS
+ *     below names the line or row each copies), then the terminal error handler.
  *   - Sessions: nobody is handed a session. An actor signs in through the real
  *     POST /auth/admin-login and carries the session cookie it got back, the way
  *     a browser does.
@@ -107,7 +107,8 @@ const { stubModel, stubEmbedder, parseSse, STUB_MODEL, PRICES } = require('./stu
 
 /**
  * The mounts a journey can ask for: each is the path and the middleware chain
- * of one `app.use(...)` line of server/index.js (named in the comment), built
+ * of one `app.use(...)` line of server/index.js, or of one mount row of a
+ * first-party module (firstParty/<id>.mounts.js; named in the comment), built
  * lazily so a journey loads only the routers it uses.
  *
  * @type {Record<string, () => Array<[string, ...Handler[]]>>}
@@ -130,14 +131,14 @@ const MOUNTS = {
         const { requireTraining } = require('../learning/requireTraining');
         return [['/api/kb', requireTraining('knowledge'), require('../routes/knowledgeBases')]];
     },
-    // index.js: app.use('/api/automation', requireModule('automation'), requireLicenseFeature('automations'), requireTraining('automations'), require('./routes/automation'))
+    // firstParty/automation.mounts.js, row 'automation:/api/automation': [requireModule('automation'), requireLicenseFeature('automations'), requireTraining('automations'), require('../routes/automation')]
     automation: () => {
         const { requireModule } = require('../modules');
         const { requireFeature } = require('../license/middleware');
         const { requireTraining } = require('../learning/requireTraining');
         return [['/api/automation', requireModule('automation'), requireFeature('automations'), requireTraining('automations'), require('../routes/automation')]];
     },
-    // index.js: app.use('/api/datatables', requireModule('automation'), requireAuthedUser, requireLicenseFeature('automations'), requireTraining('datatables'), require('./routes/datatables'))
+    // firstParty/datatables.mounts.js, row 'datatables:/api/datatables': [requireModule('automation'), requireAuthedUser, requireLicenseFeature('automations'), requireTraining('datatables'), require('../routes/datatables')]
     datatables: () => {
         const { requireModule } = require('../modules');
         const { requireAuth } = require('../auth');
@@ -145,7 +146,7 @@ const MOUNTS = {
         const { requireTraining } = require('../learning/requireTraining');
         return [['/api/datatables', requireModule('automation'), requireAuth, requireFeature('automations'), requireTraining('datatables'), require('../routes/datatables')]];
     },
-    // index.js: the five app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), ...) lines
+    // firstParty/apps.mounts.js: four of the '/api/studio-apps' rows with [requireModule('apps'), requireCapability('app_studio'), ...]
     studioApps: () => {
         const { requireModule } = require('../modules');
         const { requireCapability } = require('../core/entitlements/entitlements');
@@ -158,7 +159,7 @@ const MOUNTS = {
             ['/api/studio-apps', ...gate(), require('../routes/studioAppData')],
         ];
     },
-    // index.js: app.use('/api/projects', requireModule('projects'), requireAuthedUser, requireCapability('projects'), projectFeatureGate, require('./routes/projects'))
+    // firstParty/projects.mounts.js, row 'projects:/api/projects': [requireModule('projects'), requireAuthedUser, requireCapability('projects'), featureGate('projects', 'Projects'), require('../routes/projects')]
     projects: () => {
         const { requireModule } = require('../modules');
         const { requireAuth } = require('../auth');
@@ -166,7 +167,7 @@ const MOUNTS = {
         const { featureGate } = require('../boot/featureGate');
         return [['/api/projects', requireModule('projects'), requireAuth, requireCapability('projects'), featureGate('projects', 'Projects'), require('../routes/projects')]];
     },
-    // index.js: app.use('/api/dsr', requireModule('compliance'), require('./routes/dsr'))
+    // firstParty/compliance.mounts.js, row 'compliance:/api/dsr': [requireModule('compliance'), require('../routes/dsr')]
     dsr: () => {
         const { requireModule } = require('../modules');
         return [['/api/dsr', requireModule('compliance'), require('../routes/dsr')]];
@@ -175,7 +176,7 @@ const MOUNTS = {
     license: () => [['/api/license', require('../routes/license')]],
     // index.js: app.use('/api/documents', require('./routes/documents'))
     documents: () => [['/api/documents', require('../routes/documents')]],
-    // index.js: app.use('/api/webpages', requireModule('webpages'), requireCapability('webpages'), requireTraining('webpages'), require('./routes/webpages'))
+    // firstParty/webpages.mounts.js, row 'webpages:/api/webpages': [requireModule('webpages'), requireCapability('webpages'), requireTraining('webpages'), require('../routes/webpages')]
     webpages: () => {
         const { requireModule } = require('../modules');
         const { requireCapability } = require('../core/entitlements/entitlements');

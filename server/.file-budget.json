@@ -216,7 +216,7 @@
     "core/webpages/bfElements.js": 977,
     "core/webpages/webpageUsageSync.js": 445,
     "db.js": 447,
-    "index.js": 740,
+    "index.js": 490,
     "integrations/calendarTools.js": 457,
     "integrations/customIntegrationRunner.js": 615,
     "integrations/documentBuilderTools.js": 542,

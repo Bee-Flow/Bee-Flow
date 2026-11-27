@@ -5,8 +5,8 @@
  * opposite ends of the chain:
  *
  *   mountStaticAssets  ahead of every router: the built SPA's assets (production
- *                      only), the allow-listed /uploads and the Learning Center
- *                      video pack
+ *                      only), the allow-listed /uploads and the modules' 'static'
+ *                      mount rows (the Learning Center video pack)
  *   mountSpaFallback   after every router and the marketing renderer: index.html
  *                      for whatever path is left (production only)
  */
@@ -19,7 +19,7 @@ const AGENT_HUB_DIST_PATH = path.resolve(__dirname, '../../agent-hub/dist');
 const { UPLOADS_DIR, INLINE_UPLOAD_EXTS } = require('../middleware/uploadedImage');
 
 /**
- * @param {{ use: Function }} app
+ * @param {{ use: (...args: any[]) => unknown }} app
  * @param {{ log?: { info: Function } }} [opts]
  */
 function mountStaticAssets(app, { log = defaultLog } = {}) {
@@ -60,10 +60,9 @@ function mountStaticAssets(app, { log = defaultLog } = {}) {
             res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
         },
     }));
-    // Learning Center video pack (LEARN_MEDIA_DIR, outside git and the image).
-    // Public, allow-listed file types, a bare 404 on a miss so the SPA renderer
-    // never answers for it. See learning/learnMedia.js.
-    app.use('/learn-media', require('../learning/learnMedia').createLearnMediaRouter());
+    // The 'static' slot of the first-party mount rows, last: module learning's
+    // video pack (/learn-media, firstParty/learning.mounts.js).
+    require('../modules/firstParty/loader').mount(app, require('./gates').getGates(), 'static');
 }
 
 /** @param {{ use: Function }} app */

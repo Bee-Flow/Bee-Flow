@@ -521,7 +521,10 @@ test('the terminal error handler is the last top-level app.use', () => {
 
 test('the JSON 404 is mounted above the marketing renderer and the SPA fallback', () => {
     const notFoundAt = SRC.indexOf("return res.status(404).json({ error: 'Not found' });");
-    const publicRenderAt = SRC.indexOf("app.use(require('./routes/publicRender'));");
+    // The marketing renderer is module cms's row in the 'fallback' slot
+    // (firstParty/cms.mounts.js); index.js mounts that slot here. That the recorded
+    // renderer sits behind the JSON 404: boot/composition.mounts.characterisation.test.js.
+    const publicRenderAt = SRC.indexOf("firstParty.mount(app, gates, 'fallback');");
     // The SPA fallback is mounted from boot/staticAssets.js; that the call there
     // is the index.html catch-all is pinned on its own source.
     const spaFallbackAt = SRC.indexOf('staticAssets.mountSpaFallback(app);');

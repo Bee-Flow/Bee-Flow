@@ -55,6 +55,8 @@
  *   requireAuthedUser: RequestHandler,
  *   requireAnyPermission: GateFactory,
  *   featureGate: GateFactory,
+ *   googleSessionHydration: RequestHandler,
+ *   microsoftSessionHydration: RequestHandler,
  *   [name: string]: GateFactory | RequestHandler | undefined,
  * }} Gates
  */

@@ -18,13 +18,13 @@ const executeRouter = require('./routes/execute');
 const { router: agentsRouter } = require('./routes/agents');
 const memoryRouter = require('./routes/memory');
 const reportsRouter = require('./routes/reports');
-const appsRouter = require('./routes/apps');
 
-// Platform-module gate — 404-conceals a modular route when its module is not imported
-// (defense in depth in FRONT of the capability gate, which already omits inactive-module
-// capabilities from the ceiling). Required up here because the first gated mounts
-// (/apps, /api/compliance, /api/dsr) run before the route section further down.
-const { requireModule } = require('./modules');
+// The gate factories (requireModule, requireCapability, requireTraining, ...) of the core's
+// mounts below and of every first-party module's mount rows (boot/gates.js), and the loader
+// that mounts those rows, slot by slot (modules/firstParty/loader.js; order:
+// modules/firstParty/order.json).
+const gates = require('./boot/gates').getGates();
+const firstParty = require('./modules/firstParty/loader');
 const log = require('./telemetry/log');
 
 const app = express();
@@ -226,10 +226,14 @@ storageStore.init().then(ok => {
 
 // ── Optional-consent overrides cache ─────────────────────────────────────────
 // Load the admin override for the optional-consent catalog into the in-memory
-// cache the synchronous consent registry reads from.
-require('./legal/legalStore').refresh()
-    .then(() => log.info('[Server] Consent overrides loaded'))
-    .catch(err => log.warn('[Server] Consent overrides init error:', err.message));
+// cache the synchronous consent registry reads from. The store belongs to module
+// compliance: without it there is no override to load.
+const legalStore = require('./boot/optionalModuleFile').optionalModuleFile(() => require('./legal/legalStore'));
+if (legalStore) {
+    legalStore.refresh()
+        .then(() => log.info('[Server] Consent overrides loaded'))
+        .catch(err => log.warn('[Server] Consent overrides init error:', err.message));
+}
 
 // ── Mount routes ──────────────────────────────────────────────────────────────
 app.use('/auth', authRouter);
@@ -248,13 +252,13 @@ app.use('/', executeRouter);
 // can be AUTHORED (server/learning/trainingGates.js). Mounted beside each
 // area's capability gate so it covers every sub-route; it locks the authoring
 // paths only, never reading and never running, and fails open whenever it
-// cannot answer confidently.
-const { requireTraining } = require('./learning/requireTraining');
+// cannot answer confidently. Module learning owns it: without learning,
+// gates.requireTraining lets every request through (boot/gates.js).
+const { requireTraining } = gates;
 
 app.use('/agents/memory', memoryRouter);   // Must be before /agents
 app.use('/agents', requireTraining('agents'), agentsRouter);
 app.use('/reports', reportsRouter);
-app.use('/apps', requireModule('apps'), appsRouter);
 
 app.use('/versions', require('./routes/versions'));
 // The non-Overview Usage & Monitoring tabs (Safety / Integrations / Azure
@@ -288,27 +292,12 @@ app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/client-errors', require('./routes/clientErrors'));
 app.use('/api/web-vitals', require('./routes/webVitals'));
 app.use('/api/csp-report', require('./routes/cspReport'));
-// Anonymous marketing endpoint (github-stats block on the public site).
-app.use('/api/public', require('./routes/publicGithubStats'));
 app.use('/api/org-privacy-shield', require('./routes/orgPrivacyShield'));
 app.use('/api/org-ai-context', require('./routes/orgAiContext'));
 app.use('/api/org-memory', require('./routes/orgMemory'));
-// The AI that decides by itself when to join a team chat or comment thread:
-// the org policy (members read, admins write) and each person's own opt-out.
-// requireAuth sits on every route of the router.
-app.use('/api/ai-participation', require('./routes/aiParticipation'));
-// The org switches for co-editing notebooks and pages, and for showing images to AI in automations.
-app.use('/api/org-collab', require('./routes/orgCollab'));
-app.use('/api/org-automation-image-ai', require('./routes/orgAutomationImageAi.mts').orgAutomationImageAiRouter);
 app.use('/api/org-integration-cache', require('./routes/orgIntegrationCache'));
 app.use('/api/org-azure-config', require('./routes/orgAzureConfig'));
 app.use('/api/house-styles', require('./routes/houseStyles'));
-// Compliance Hub — Enterprise-tier feature.
-app.use('/api/compliance', requireModule('compliance'), (req, res, next) => require('./core/entitlements/entitlements').requireCapability('compliance_hub_gdpr')(req, res, next), require('./routes/compliance'));
-// DSR — public submission must remain reachable (GDPR Art. 12). Admin endpoints
-// inside the router enforce admin_compliance permission; the router is mounted
-// without the license gate so unauthenticated subjects can submit requests.
-app.use('/api/dsr', requireModule('compliance'), require('./routes/dsr'));
 app.use('/api/chat/dlp-decision', require('./routes/dlpDecision'));
 // The user's own tokenization vault. Self-scoped only — see the header in the
 // router for why there is deliberately no admin equivalent.
@@ -319,9 +308,6 @@ app.use('/api/privacy/shield-status', require('./routes/privacyShieldStatus'));
 // The caller's own "Don't count my chat turns" preference for chat signals.
 // Self-scoped; requireAuth on each route; no admin equivalent by design.
 app.use('/api/privacy/chat-signals', require('./routes/privacyChatSignals'));
-// CMS AI builder — mounted BEFORE /api/cms so the more-specific prefix wins.
-app.use('/api/cms/builder', require('./routes/ai/cmsBuilder'));
-app.use('/api/cms', require('./routes/cms'));
 // Nextcloud webhook + admin sync — mounted under /auth so they share the
 // auth router's session middleware (admin endpoints require requireAuth).
 // The webhook itself uses HMAC over the body, so it sits BEFORE auth gates.
@@ -358,21 +344,10 @@ app.get('/api/admin/metrics', _requirePlatformAdminForMetrics('manage_users'), (
 });
 app.use('/api/admin/guard', require('./routes/guardInstall'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
-app.use('/api/stripe', require('./routes/stripe'));
-app.use('/api/billing', require('./routes/billing'));
 app.use('/api/license', require('./routes/license'));
 app.use('/api/admin/licenses', require('./routes/adminLicense'));
-// Platform modules (instance-level import/remove of modular features) and the imported sanctions lists: super-admin only, the routers enforce it.
+// Platform modules (instance-level import/remove of modular features): super-admin only, the router enforces it.
 app.use('/api/admin/modules', require('./routes/admin/modules'));
-app.use('/api/admin/sanctions-lists', require('./routes/admin/sanctionsLists.mts').sanctionsListsRouter);
-const { requireFeature: requireLicenseFeature } = require('./license/middleware');
-// Unified entitlement gate — folds tier + plan-grant + beta opt-in + org/group
-// grant into one decision (compound betas enforce license AND beta). Replaces
-// the requireLicenseFeature(+requireBetaFeature) pairs below where the route is a
-// compound beta or a user-facing core capability. Routes whose gate is a
-// community-licensed GA feature (automations/ai-tasks) keep
-// requireLicenseFeature to avoid over-gating.
-const { requireCapability } = require('./core/entitlements/entitlements');
 app.use('/api/documents', require('./routes/documents'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/me/notification-prefs', require('./routes/notificationPrefs'));
@@ -380,141 +355,14 @@ app.use('/api/me/notification-prefs', require('./routes/notificationPrefs'));
 // it rolls the Deployments, so open sessions get warning + an ETA instead of a
 // stream that just dies. Write paths are token-gated (CI calls them, not a user).
 app.use('/api/maintenance', require('./routes/maintenance'));
-// Release notes. /ingest is token-gated (CI drafts on every build), /public is
-// anonymous but serves PUBLISHED entries only — machine-written copy always
-// passes a human via /admin/:id/publish before a customer sees it.
-app.use('/api/release-notes', require('./routes/releaseNotes'));
-const { featureGate } = require('./boot/featureGate');
-const projectFeatureGate = featureGate('projects', 'Projects');
-// Licence gate fires BEFORE the configStore feature gate so a community
-// user sees the actionable `feature_locked` upgrade body rather than the
-// less informative "Projects feature is disabled" string. The configStore
-// gate remains as an operator override for enterprise installs that want
-// to disable Projects per deployment.
-// `requireAuth` fronts the chain so the capability and feature gates never run
-// for an unauthenticated caller, and so the "user still exists in the DB"
-// revalidation applies here as it does on sibling routers. The handlers also
-// self-check `req.session.user.id`, but that was the ONLY thing standing between
-// an anonymous request and the gates — an invariant nothing pinned.
-const { requireAuth: requireAuthedUser } = require('./auth');
-app.use('/api/projects', requireModule('projects'), requireAuthedUser, requireCapability('projects'), projectFeatureGate, require('./routes/projects'));
-// The drain-exempt half of the stage API (design D13): reading a stage, on/off,
-// pause / resume, non-steering values and detach. Deliberately NO module,
-// capability or licence gate: the /api/projects mount above needs `projects`,
-// which sits in the same tier list as `blueprint_packaging`, so a lapse there
-// would strand production. Roles are resolved per route on the stage project
-// itself (projects/stages/stageAuth.js).
-app.use('/api/solution-stages', requireAuthedUser, require('./routes/solutionStages').makeSolutionStagesDrainRouter());
+// `requireAuth` of auth/index.js, the identity gate of the core mounts below.
+const { requireAuthedUser, requireCapability } = gates;
 app.use('/api/reminders', require('./routes/reminders'));
-// Cowork — scheduled work from the Chat ⇄ Work switch, with per-run history.
-// Ungated: running an item as an agent is beta-gated (agent_routines) per route.
-// The old /api/ai-tasks is gone; its rows moved here (agent-tasks-to-cowork-2026-10).
-app.use('/api/cowork', requireTraining('cowork'), require('./routes/cowork'));
-app.use('/api/automation/builder', requireModule('automation'), requireLicenseFeature('automations'), require('./routes/ai/automationBuilder'));
-app.use('/api/automation', requireModule('automation'), requireLicenseFeature('automations'), requireTraining('automations'), require('./routes/automation'));
-app.use('/api/step', requireModule('automation'), requireLicenseFeature('automations'), require('./routes/step'));
-// Datatables: organisation-scoped tables automations read and write. Same module
-// and licence key as automations — the Community line. SHARING inside the
-// router is separately gated on 'automation_sharing' (Enterprise), while
-// reads and row writes stay ungated so a licence lapse never strands a
-// running automation. Mounted on its own path, not under /api/automation, whose
-// route table is frozen by automation.routetable.test.js.
-app.use('/api/datatables', requireModule('automation'), requireAuthedUser, requireLicenseFeature('automations'), requireTraining('datatables'), require('./routes/datatables'));
-// App Studio over MCP — the builder toolset for an external coding agent, so a
-// customer app can be authored against a live instance instead of shipped as a
-// template module in a new image. FULLY GATED: without STUDIO_MCP_ENABLED=1 the
-// path does not exist and the module is never loaded. Mounted BEFORE /mcp so
-// the more specific path wins regardless of Express match order.
-const studioMcp = require('./appStudio/mcpBuilder');
-if (studioMcp.isEnabled()) {
-    app.use('/mcp/studio', require('./routes/mcpStudio'));
-    log.info('[Server] App Studio MCP endpoint mounted at /mcp/studio (STUDIO_MCP_ENABLED=1).');
-}
-// Automations over MCP — the same story for the automation builder, so an automation
-// can be authored against a live instance instead of driven turn by turn
-// through the chat builder. Same gating shape as the Studio endpoint above:
-// without AUTOMATION_MCP_ENABLED=1 the path does not exist and the module is
-// never loaded. Also mounted BEFORE /mcp so the more specific path wins.
-const automationMcp = require('./automation/mcpBuilder');
-if (automationMcp.isEnabled()) {
-    app.use('/mcp/automations', require('./routes/mcpAutomations'));
-    log.info('[Server] Automations MCP endpoint mounted at /mcp/automations (AUTOMATION_MCP_ENABLED=1).');
-}
-// The product website (CMS) over MCP — edit pages, header/footer, translations,
-// upload local media, screenshot and (with the cms.publish scope) publish from an
-// external coding agent. Same gating shape: without CMS_MCP_ENABLED=1 the path
-// does not exist and the module is never loaded. Also mounted BEFORE /mcp.
-const cmsMcp = require('./cms/mcp');
-if (cmsMcp.isEnabled()) {
-    app.use('/mcp/cms', require('./routes/mcpCms'));
-    log.info('[Server] CMS MCP endpoint mounted at /mcp/cms (CMS_MCP_ENABLED=1).');
-}
-// Bee Flow AS an MCP server. Deliberately NOT under /api: MCP clients are
-// configured with a bare URL, and the endpoint authenticates with its own
-// Bearer token rather than a session cookie (see routes/mcpServer.js).
-app.use('/mcp', require('./routes/mcpServer'));
-// Nextcloud Task Processing execution. Machine-to-machine: authenticated by
-// the connector's tenant-key HMAC, not a session (see the route's header).
-app.use('/api/nextcloud/task-processing', require('./routes/nextcloudTaskProcessing'));
-// Studio apps the connector should expose in the Nextcloud app menu. Same
-// machine-to-machine tenant-key HMAC as task-processing (no session).
-app.use('/api/nextcloud/studio-apps', requireModule('apps'), require('./routes/nextcloudStudioApps'));
-// Self-service token management for the above — session-authenticated.
-app.use('/api/mcp-server', requireAuthedUser, require('./routes/mcpServerTokens'));
-// Named MCP access tokens (scopes, expiry, IP allow-list), per user, session-authenticated.
-// The org-wide policy those tokens answer to is org-admin only, on the caller's own org.
-app.use('/api/mcp-tokens', requireAuthedUser, require('./routes/mcpTokens'));
+// The org-wide policy the named MCP access tokens (module mcp_server) answer to is
+// org-admin only, on the caller's own org.
 app.use('/api/org/mcp-access', requireAuthedUser, require('./routes/orgMcpAccess'));
-// BFSF-255: hydrate password-account sessions from the encrypted vault so the
-// session-based Google surfaces (pickers, /status) work after connecting via
-// Settings → Connections, not only after Google-SSO login.
-const { googleSessionHydration } = require('./auth/googleSessionHydration');
-app.use('/api/integrations/google', require('./routes/integrations/googleWorkspace'));
-// The Microsoft counterpart. Without it, Outlook only ever worked for users who
-// logged in via Microsoft SSO, and nobody could grant the shared-mailbox scopes.
-app.use('/api/integrations/microsoft', require('./routes/integrations/microsoft365'));
-// requireAuthedUser first: the hydration reads the signed-in user's vault.
-app.use('/api/integrations/gdrive', requireAuthedUser, googleSessionHydration, require('./routes/integrations/googleDrive'));
-app.use('/api/integrations/gmail', requireAuthedUser, googleSessionHydration, require('./routes/integrations/gmail'));
-app.use('/api/integrations/calendar', requireAuthedUser, googleSessionHydration, require('./routes/integrations/calendar'));
-app.use('/api/integrations/contacts', requireAuthedUser, googleSessionHydration, require('./routes/integrations/contacts'));
-app.use('/api/integrations/keep', requireAuthedUser, googleSessionHydration, require('./routes/integrations/keep'));
 app.use('/api/storage', require('./routes/storageProxy'));
-app.use('/api/integrations/linkedin', require('./routes/integrations/linkedin'));
-app.use('/api/integrations/withings', require('./routes/integrations/withings'));
-app.use('/api/integrations/nmbrs', require('./routes/integrations/nmbrs'));
-app.use('/api/integrations/twoba', require('./routes/integrations/twoba.mts').twobaRouter);
-app.use('/api/integrations/github', require('./routes/integrations/github'));
-app.use('/api/integrations/github-sync', require('./routes/integrations/githubSync'));
-app.use('/api/integrations/gamma', require('./routes/integrations/gamma'));
-// These routers read tokens straight off the session, so hydrate it from the vault first — otherwise a
-// connector-acquired Microsoft grant reports "not connected" until the user re-logs in via Microsoft SSO.
-const { microsoftSessionHydration } = require('./auth/microsoftSessionHydration');
-app.use('/api/integrations/outlook', microsoftSessionHydration, require('./routes/integrations/outlook'));
-app.use('/api/integrations/onedrive', microsoftSessionHydration, require('./routes/integrations/oneDrive'));
 app.use('/api/integrations/connections', require('./routes/integrations/connections'));
-// AI Integration Builder — org-admin API for org-scoped custom integrations.
-// Double gate at mount: the 'ai_integration_builder' beta capability AND the
-// dark-ship kill switch (feature_custom_integrations_enabled, fail-closed 404).
-const { customIntegrationsFeatureGate } = require('./core/customIntegrations/featureFlag');
-app.use('/api/organizations/:orgId/custom-integrations',
-    requireCapability('ai_integration_builder'),
-    customIntegrationsFeatureGate,
-    require('./routes/orgIntegrations/builder'));
-// MCP library — organisation admins install remote MCP servers for their own
-// organisation; members add their own keys; the server admin sets the policy.
-// Gates live in the router (requirePrimaryOrgAdmin + mcp_marketplace licence,
-// requireSuperAdmin for the policy). Remote-only: nothing here spawns a process.
-app.use('/api/mcp-library', require('./routes/mcpLibrary'));
-app.use('/api/templates', require('./routes/templates'));
-const notebookFeatureGate = featureGate('notebooks', 'Notebooks');
-// Licence gate fires before notebookFeatureGate so the frontend gets the
-// actionable `feature_locked` body it already knows how to render; the
-// configStore.feature_notebooks_enabled flag remains as an operator
-// kill-switch for enterprise installs that want to disable the feature
-// per deployment.
-app.use('/api/notebooks', requireModule('notebooks'), requireCapability('notebooks'), notebookFeatureGate, require('./routes/notebooks'));
-app.use('/api/notebooks', requireModule('notebooks'), requireCapability('notebooks'), notebookFeatureGate, require('./routes/notebookExport'));
 // Studio Documents — printable documents (invoices, quotes, letters) authored
 // by the chat and hand-edited by the user. Deliberately NOT behind a licence or
 // beta gate: it replaces the ```quote``` block that every chat could render, so
@@ -524,39 +372,6 @@ app.use('/api/notebooks', requireModule('notebooks'), requireCapability('noteboo
 // legacy mobile "Generated" PDF lister above, whose /list this router's /:id
 // would otherwise swallow.)
 app.use('/api/studio-documents', require('./routes/studioDocuments'));
-// Webpages — compound beta (license 'webpages' AND the webpages beta). The
-// unified gate enforces both via the resolver's effective.beta set and honours
-// per-group grants.
-app.use('/api/webpages', requireModule('webpages'), requireCapability('webpages'), requireTraining('webpages'), require('./routes/webpages'));
-app.use('/api/webpages', requireModule('webpages'), requireCapability('webpages'), require('./routes/webpageExport'));
-// Mount the builder before CRUD so /builder resolves before /:id.
-const { requireAnyPermission } = require('./auth/permissions');
-const { requireManageApps } = require('./routes/studioApps/access');
-// Both the published directory and Studio use this API. Each resource still checks its audience or owner.
-app.use('/api/studio-apps', requireAnyPermission('use_apps', 'manage_apps'));
-app.use('/api/studio-apps/builder', requireModule('apps'), requireCapability('app_studio'), requireManageApps, requireTraining('apps'), require('./routes/ai/appStudioBuilder'));
-// Usage aggregate (APPS-08): GET /usage-counts, read-only and org-scoped.
-// Mounted BEFORE the CRUD router for the same reason the builder router is —
-// otherwise studioApps.js's GET /:id captures /usage-counts.
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppUsage'));
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), requireTraining('apps'), require('./routes/studioApps'));
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppsRun'));
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppData'));
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppConnectors'));
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppFiles'), require('./routes/studioAppAssets.mts').studioAppAssetsRouter);
-// LARGE datasets (multi-GB genome files): multipart upload + status, on
-// /:id/large-datasets. Not /:id/datasets: that is studioAppData's BI datasets
-// above, and the first match wins (the choice is in the router's header). The
-// large_datasets licence gate is the first handler of each of its routes, never
-// path-less on the router, so requests for the routers after it pass untouched.
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppDatasets'));
-// AI browsing (the ONE streaming ai_browse step endpoint) and Studio documents in an app (viewer, picker, compare).
-app.use('/api/studio-apps', requireModule('apps'), requireCapability('app_studio'), require('./routes/studioAppBrowse'), require('./routes/studioAppDocuments'));
-// Studio Playbooks — phased AI builds (table → automation → fill → app →
-// approvals). A playbook owns an automation AND an app, so both modules and both
-// gates apply; writes need manage_apps (router-level); the approvals phase is
-// locked without the approvals capability (checked in the handler).
-app.use('/api/playbooks', requireModule('apps'), requireModule('automation'), requireCapability('app_studio'), requireLicenseFeature('automations'), requireTraining('playbooks'), require('./routes/playbooks'));
 // Studio rail counts — ONE gate-aware aggregate for the sidebar's per-section
 // numbers. Auth only at the mount: the router applies each kind's own
 // module/licence/capability/permission gate per key and OMITS what the caller
@@ -581,88 +396,20 @@ app.use('/api/studio', requireAuthedUser, require('./routes/studio/attention'));
 // caller may not build is never even a word the answer could contain
 // (routes/studio/aiRoute.js).
 app.use('/api/studio', requireAuthedUser, require('./routes/studio/aiRoute'));
-// Cross-origin endpoints called from the sandboxed preview iframe — guarded
-// by HMAC bearer tokens (issued by the session-authenticated route above),
-// not by the session itself, since the iframe has no cookies.
-app.use('/api/webpages-preview', requireModule('webpages'), require('./routes/webpagesPreview'));
-// Anonymous AI bridge for externally-shared webpages — guarded by a
-// share-scoped HMAC bridge token (minted at content-serve time only when the
-// author opted the share into public AI). Sibling of /share so the strict
-// /share CSP stays untouched. Chat/stream only; acts-as-author with rate
-// limits + spend cap.
-app.use('/api/public-share', requireModule('webpages'), require('./routes/publicShareBridge'));
-// The public surface of a Studio app — an anonymous visitor filling in the
-// intake screens of an app whose back-office stays behind requireAuth. The URL
-// token is the credential; what it exposes is a whitelist of SCREENS in the
-// app's own definition (appStudio/publicAccess.js). No capability gate: its visitors are anonymous third
-// parties, as for /share below. /api/app-hooks: a signed delivery to a webhook trigger (routes/studioAppWebhook.mts).
-app.use('/api/public-app', requireModule('apps'), require('./routes/studioAppPublic'), require('./routes/studioAppPublicAssets.mts').publicAppAssetsRouter);
-app.use('/api/app-hooks', requireModule('apps'), require('./routes/studioAppWebhook.mts').studioAppWebhookRouter);
-// Public webpage viewer — unauthenticated `/share/:token` route for external
-// recipients of a published webpage. Has its own rate limiter, strict CSP,
-// HMAC-signed magic links and unlock cookies. License/beta gates do NOT
-// apply: once a publisher (whose org is gated) creates a share, recipients
-// are anonymous third parties.
-app.use('/share', requireModule('webpages'), require('./routes/publicViewer'));
-// The same viewer file, second address: /w/<slug> — the address of the PAGE instead of that of the
-// share (W3 step 4). The page points, via `public_share_id`, at one canonical share; that is served
-// here with exactly the same gate, rate limits, CSP and sandbox. One router on two mounts, on purpose:
-// a second viewer would be a second access check.
-app.use('/w', requireModule('webpages'), require('./routes/publicViewer'));
-// Public certificate verification — unauthenticated `/verify/:token` for a
-// LinkedIn-shareable Bee Flow AI certificate. Token-gated (only certs the owner
-// opted public are resolvable), per-IP rate limited, strict CSP, og:image. Mounted
-// before the SPA catch-all so the SPA doesn't swallow it.
-app.use('/verify', requireModule('learning'), require('./routes/verifyCertificate'));
 // Dictation (speak into any composer). Auth only — deliberately NOT behind the
-// meetingNotes module/capability the transcriptions router below sits behind:
+// meetingNotes module/capability the transcriptions router sits behind:
 // talking instead of typing is not a Meeting Notes feature, and gating it there
 // would switch the microphone off for most installs.
 app.use('/api/dictate', require('./routes/dictate'));
-// Meeting Notes — compound beta (license 'meeting_notes' AND the beta).
-app.use('/api/transcriptions', requireModule('meetingNotes'), requireCapability('meeting_notes'), requireTraining('meeting_notes'), require('./routes/transcriptions'));
-// Nextcloud Talk → Meeting Notes settings (org + user toggles). Licence AND
-// the meeting_notes capability: Meeting Notes can be rolled out per group
-// (groupScoped), and a person outside that rollout must not reach its
-// settings, templates or connectors either. The org-level endpoints are
-// administration: an org admin outside the rollout still configures it for the
-// people inside it (auth/capabilityOrOrgAdmin.js), the personal ones are not.
-const { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor, teamsSetupOrgIdFor } = require('./auth/capabilityOrOrgAdmin');
-const _meetingNotesGate = (orgIdFor) => requireCapabilityOrOrgAdmin(requireCapability('meeting_notes'), {
-    orgIdFor, isOrgAdminForOrg: require('./auth/permissions').isOrgAdminForOrg, log,
-});
-app.use('/api/talk-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/talkNotesSettings'));
 // Per-user Nextcloud access scope ("What Bee Flow may access"). Deliberately
 // NO license gate: narrowing what an assistant may touch is a privacy
 // control, never a premium feature.
 app.use('/api/nc-scope', require('./routes/ncScope'));
-// Google Meet → Meeting Notes settings (org + user toggles). Same gates as
-// talk-notes-settings above.
-app.use('/api/gmeet-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/gmeetNotesSettings'));
-// Microsoft Teams → Meeting Notes settings. Same gates.
-app.use('/api/teams-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/teamsNotesSettings'));
-// Teams setup and diagnostics. Same gates; every path is administration, so an org admin passes without the capability.
-app.use('/api/teams-setup', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(teamsSetupOrgIdFor), require('./routes/teamsSetup.mts').teamsSetupRouter);
-// Custom summary-regeneration templates (user / org / group scopes).
-app.use('/api/summary-templates', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(summaryTemplateOrgIdFor), require('./routes/summaryTemplates'));
-// Per-person voiceprints for pyannoteAI speaker identification. Same compound
-// gate as /api/transcriptions — the templates only have value there, and the
-// router additionally refuses everything unless pyannoteAI is the active
-// transcription provider.
-app.use('/api/voiceprints', requireModule('meetingNotes'), requireCapability('meeting_notes'), require('./routes/voiceprints'));
 app.use('/api/skills', requireCapability('skills'), requireTraining('skills'), require('./routes/skills'));
-// Customer Support — Bee Flow's own AI-first support inbox. Mounted publicly
-// (no license/beta gate) because the POST /threads endpoint accepts anonymous
-// submissions from the marketing site; staff-only endpoints enforce
-// admin_support inside the router.
-app.use('/api/support', requireModule('support'), require('./routes/support'));
 
 // Security Scan was a built-in module here; it now ships as a downloadable
 // .bfmod from the Hub marketplace (Modules → Marketplace) and mounts its own
 // /api/security routes at install time via the module runtime.
-// Support Studio — tenant customer-support inbox (Studio → Support). Compound
-// beta; the org-level support_inbox permission is additionally enforced inside.
-app.use('/api/support-inbox', requireModule('support'), requireCapability('support_inbox'), require('./routes/supportInbox'));
 
 // The per-agent knowledge router (/agents/:id/knowledge) has been WITHDRAWN — Track Z, Z5.
 // It wrote to the table knowledge_metadata, which nothing in the product read. The Studio knowledge bases
@@ -672,6 +419,15 @@ if (process.env.SEARCH_ROUTER_ENABLED !== '0') app.use('/api/search', require('.
 app.use('/api/languages', require('./routes/admin/languageRoutes'));
 app.use('/api/icons', require('./routes/icons'));
 app.use('/api/branding', require('./routes/branding'));
+
+// ── First-party module routes ─────────────────────────────────────────────────
+// Every router a first-party module owns (App Studio, automations, webpages,
+// notebooks, meeting notes, the integrations, ...) is a row of that module's
+// composition (firstParty/<id>.mounts.js), with its gates, in the order of
+// modules/firstParty/order.json. Here, after the core's routes: no core mount
+// above shares a path with a module mount, so this keeps every overlapping pair
+// in its order (boot/composition.mounts.characterisation.test.js).
+firstParty.mount(app, gates, 'main');
 
 // ── Downloadable remote modules ───────────────────────────────────────────────
 // One dispatcher for every active remote module's API (/api/mod/<id>/…), the
@@ -702,16 +458,10 @@ app.use((req, res, next) => {
 });
 
 // ── Server-rendered marketing pages, robots.txt and sitemap.xml ──────────────
-// Mounted LAST and deliberately: it claims no path of its own, it only answers
-// what every route above declined. A request that is not a published CMS page
-// falls straight through via next().
-//
-// This is what crawlers and social scrapers receive. Until it existed the
-// marketing site served `<div id="root"></div>` plus the app's own default
-// title, so every link shared to LinkedIn or Slack — which do not run
-// JavaScript — rendered as "Bee Flow - AI / Chat with AI agents powered by Bee
-// Flow" no matter which page it pointed at.
-app.use(require('./routes/publicRender'));
+// The 'fallback' slot: after the JSON 404 above, before the SPA fallback. Module
+// cms mounts its marketing renderer here (firstParty/cms.mounts.js); it claims
+// no path of its own and only answers what every route above declined.
+firstParty.mount(app, gates, 'fallback');
 
 // ── SPA fallback (production) ─────────────────────────────────────────────────
 // index.html for whatever path is left — see boot/staticAssets.js.

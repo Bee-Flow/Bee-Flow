@@ -9,6 +9,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { compositionText } from '@/features/forms/testing/sources';
+
 import { AUTH_METHOD_IDS } from '../model/profile';
 import { FONT_IDS, RADIUS_RANGE, THEME_PRESET_IDS } from '../model/theme';
 
@@ -139,7 +141,8 @@ describe('the organisation theme, icon packs and the Academy', () => {
 
     it('keeps the Academy overview route and its member fields', () => {
         expect(read('routes/ai/learning.js')).toContain("router.get('/org-overview'");
-        expect(read('routes/ai.js')).toContain("require('./ai/learning')");
+        // A row of module learning on the /ai router (server/firstParty/learning.mounts.js aiMounts).
+        expect(compositionText()).toContain("require('../routes/ai/learning')");
         expectAll(read('learning/orgOverview.js'), [
             'userId: u.id',
             'coursesDone,',

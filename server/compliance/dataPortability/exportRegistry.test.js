@@ -115,7 +115,7 @@ test('declaredRoutes flattens primary, extra and render-only routes with their r
 
 // ── The honesty check: real routers, real mounts ────────────────────────────
 
-test('the mount prefix of every declared route is what server/index.js mounts its parent at', () => {
+test('the mount prefix of every declared route is what the composition (index.js and the mount rows) mounts its parent at', () => {
     // Genuinely textual: server/index.js calls app.listen() unconditionally at
     // module scope and is never require()'d in a test — doing so here would
     // open a real port and a real db connection. The next test gets to
@@ -128,9 +128,13 @@ test('the mount prefix of every declared route is what server/index.js mounts it
         if (seen.has(prefix + mod)) continue;
         seen.add(prefix + mod);
         const parent = via || mod;
-        const re = new RegExp(`app\\.use\\('${prefix.replace(/[/]/g, '\\/')}'[^\\n]*require\\('\\./${parent.replace(/[/]/g, '\\/')}'\\)|const \\w+ = require\\('\\./${parent.replace(/[/]/g, '\\/')}'\\)`);
-        assert.match(INDEX_SRC, re, `${r.kind}: server/index.js mounts ${parent} — expected at ${prefix}`);
-        assert.ok(INDEX_SRC.includes(`app.use('${prefix}'`), `${r.kind}: index.js has an app.use('${prefix}', …)`);
+        // A core mount is an app.use line of index.js (`require('./routes/x')`); a module's is a
+        // row of its firstParty/<id>.mounts.js (`path: '/api/x', handlers: ... require('../routes/x')`).
+        const p = prefix.replace(/[/]/g, '\\/');
+        const m = parent.replace(/[/]/g, '\\/');
+        const re = new RegExp(`app\\.use\\('${p}'[^\\n]*require\\('\\./${m}'\\)|const \\w+ = require\\('\\./${m}'\\)|path: '${p}'[^\\n]*require\\('\\.\\./${m}'\\)`);
+        assert.match(INDEX_SRC, re, `${r.kind}: the composition mounts ${parent} — expected at ${prefix}`);
+        assert.ok(INDEX_SRC.includes(`app.use('${prefix}'`) || INDEX_SRC.includes(`path: '${prefix}'`), `${r.kind}: index.js or a mount row mounts something at '${prefix}'`);
     }
 });
 
