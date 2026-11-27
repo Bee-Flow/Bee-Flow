@@ -303,6 +303,7 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `jsx-extract.mjs` | jsx-extract: shorten a React component over 200 lines by lifting its largest JSX blocks into components of their own, with the TypeScript language service doing the work |
 | `learn-media-fetch.mjs` | Install a Learning Center video pack from a tarball into LEARN_MEDIA_DIR: the OFFLINE route (the server fetches the pinned pack by itself at startup, see server/learning/learnMediaSync.js). |
 | `link-module-node-modules.mjs` | Link every module root to the core's installed packages. |
+| `module-boundary.mjs` | The module boundary ratchet: what the core still needs from the first-party modules may only go down, and a module may only use the modules it declares. |
 | `module-map-edges.mjs` | The run-time import edges of a source tree, for the ownership map (scripts/module-map.mjs). |
 | `module-map.mjs` | The ownership map: which first-party module owns which file of the server (scripts/module-map.json). |
 | `mts-coverage.mjs` | `.mts` coverage ratchet — the floor under the line coverage of a package's TypeScript sources, which may only rise. |

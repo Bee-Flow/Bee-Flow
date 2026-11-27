@@ -194,6 +194,15 @@ and `npm run lint:secrets`.
   `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in
   `<package>/.scc-ratchet.json`, `--update` only lowers, `--list` prints the files of the
   largest cycle). A red gate means a new import closed a loop: move the shared piece down.
+- `npm run lint:module-boundary-ratchet` (`scripts/module-boundary.mjs`): per first-party module,
+  the run-time import edges from core-owned server files into that module's files, and the core's
+  literal `featureModule('<path>')` lookups of them, may only go down (budget in
+  `server/.module-boundary-ratchet.json`, `--list` prints every one as file:line, `--update` only
+  lowers and drops zeros; `optionalFeatureModule` is not counted). An edge from module A into
+  module B needs B in A's `requires` or `uses`, `requires` has no cycle, and once
+  `modules/<id>/server` exists no file of `<id>` stays in `server/` (no budget for these). The
+  ownership map is `scripts/module-map.json` (`node scripts/module-map.mjs --owner <path>` /
+  `--summary`).
 - `npm run lint:source-text`: tests that read a source file and run a regex over it may only
   go down (`scripts/source-text-tests.mjs`).
 - **Route contract**: `server/auth/routes.contract.json` records, per route the router mounts, the

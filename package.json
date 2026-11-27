@@ -66,6 +66,7 @@
     "lint:scripts-index": "node scripts/gen-scripts-index.mjs --check",
     "lint:layering-ratchet": "node --test server/layering.test.js",
     "lint:scc-ratchet": "node scripts/scc-ratchet.mjs server agent-hub mobile",
+    "lint:module-boundary-ratchet": "node scripts/module-boundary.mjs",
     "lint:duplication": "node scripts/duplication-ratchet.mjs",
     "lint:bundle": "node scripts/bundle-ratchet.mjs agent-hub",
     "lint:entry-budget": "node scripts/entry-budget.mjs agent-hub",
