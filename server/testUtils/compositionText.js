@@ -9,7 +9,7 @@
  * The plan moves the mount and registration lines of the modules out of
  * index.js into those files. A test that reads index.js alone would then lose
  * its needle; one that reads compositionText() still finds it, wherever the
- * line went. Today no composition file exists and the text is index.js.
+ * line went.
  *
  * Behaviour (what is mounted, in which order) is pinned by
  * boot/composition.mounts.characterisation.test.js; this is for the tests that

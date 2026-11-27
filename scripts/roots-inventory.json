@@ -1737,6 +1737,16 @@
       "group": "test-kits"
     },
     {
+      "file": "server/testUtils/compositionText.js",
+      "status": "root-aware",
+      "what": "the text of index.js plus every composition file, found through listTreeDir('firstParty')"
+    },
+    {
+      "file": "server/testUtils/compositionText.test.js",
+      "status": "root-aware",
+      "what": "checks that helper against the real tree"
+    },
+    {
       "file": "server/testUtils/crudRouteStubs.js",
       "status": "pending",
       "what": "stub keys from path.join(server, rel)",

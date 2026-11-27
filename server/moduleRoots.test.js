@@ -34,6 +34,9 @@ const FILES = {
     ].join('\n'),
     [`${M1}/feat/pkgs.js`]: 'module.exports = { pkg: require("pkg").name, onlyM1: require("onlyM1").name };',
     [`${M1}/lib/own.js`]: 'module.exports = "m1-own";',
+    // beside the core root, outside the tree (as agent-hub/ is beside server/)
+    'sibling/outside.js': 'module.exports = "beside-core";',
+    [`${M1}/feat/leaves.js`]: 'module.exports = require("../../sibling/outside");',
     [`${M1}/feat/e.mts`]: [
         'import { esmCore } from "../lib/esmCore.mts";',
         'import { createRequire } from "node:module";',
@@ -107,6 +110,12 @@ describe('require across roots', () => {
 
     test('a JSON file in another root', () => {
         assert.deepStrictEqual(value('json', 'out(require("../data/conf.json"));'), { from: 'm2-json' });
+    });
+});
+
+describe('a relative request that leaves the tree', () => {
+    test('from a module root it means the place beside the core root, as before the file moved', () => {
+        assert.strictEqual(value('leavesTree', 'out(require("../feat/leaves"));'), 'beside-core');
     });
 });
 

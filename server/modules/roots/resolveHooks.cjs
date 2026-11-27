@@ -50,10 +50,25 @@ function alternatives(request, parentFile) {
     let target = null;
     if (path.isAbsolute(request)) target = path.normalize(request);
     else if (RELATIVE.test(request) && parentFile) target = path.resolve(path.dirname(parentFile), request);
-    const from = target && rootOf(target);
-    if (!target || !from) return [];
+    if (!target) return [];
+    const from = rootOf(target);
+    if (!from) return besideCore(request, parentFile, target);
     const rel = path.relative(from.dir, target);
     return ROOTS.filter((root) => root !== from).map((root) => path.join(root.dir, rel));
+}
+
+/**
+ * A relative request that leaves a module root (a test reaching `../../agent-hub/...`)
+ * means the place beside the core root it meant before the file moved there.
+ * @param {string} request
+ * @param {string | null | undefined} parentFile
+ * @param {string} target the absolute place the request points at, outside every root
+ * @returns {string[]}
+ */
+function besideCore(request, parentFile, target) {
+    const parentRoot = parentFile && !path.isAbsolute(request) ? rootOf(parentFile) : null;
+    if (!parentRoot || parentRoot.id === null) return [];
+    return [path.join(CORE_ROOT, path.relative(parentRoot.dir, target))];
 }
 
 /** @param {string} request */

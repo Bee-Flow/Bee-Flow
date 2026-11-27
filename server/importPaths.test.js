@@ -106,7 +106,7 @@ const ALLOWED_PER_FILE = new Map([
     ['moduleRoots.test.js', fixtureTree([
         '../feat/a', '../lib/shared', '../other/b', '../lib/own', '../lib/fromCore', '../other/fromM2',
         '../thing', '../data/conf.json', '../feat/e.mts', '../feat/pkgs', '../use/pkg', '../use/pkg.mjs',
-        '../lib/esmCore.mts', '../nowhere/x', '../nowhere/x.mjs',
+        '../lib/esmCore.mts', '../nowhere/x', '../nowhere/x.mjs', '../../sibling/outside', '../feat/leaves',
     ])],
     ['modules/roots/rootSet.test.js', fixtureTree(['../n', '../n8', '../feat/a', '../feat/e.mjs'])],
     // The same for the dictionary loaders and the test runner: probe sources that run in
