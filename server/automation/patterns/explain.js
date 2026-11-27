@@ -31,7 +31,7 @@ const log = require('../../telemetry/log');
 const { toEvidenceCard } = require('./evidenceCard');
 const { normaliseApp, humaniseTool } = require('./builderMapping');
 const { stripTokens } = require('../suggestions');
-const { MAX_TITLE, MAX_WHY, MAX_PROMPT, MAX_CARDS, NAMING_OPTIONS, NAME_PATTERNS_TOOL, SYSTEM_PROMPT, APP_LABELS, NUMBER_RE } = require('./explainMaxTitle');
+const { MAX_TITLE, MAX_WHY, MAX_PROMPT, MAX_CARDS, NAMING_OPTIONS, NAME_PATTERNS_TOOL, SYSTEM_PROMPT, appLabels, NUMBER_RE } = require('./explainMaxTitle');
 
 // ── App names ────────────────────────────────────────────────────────────────
 
@@ -41,7 +41,8 @@ const { MAX_TITLE, MAX_WHY, MAX_PROMPT, MAX_CARDS, NAMING_OPTIONS, NAME_PATTERNS
  */
 function appLabel(id) {
     const app = normaliseApp(id);
-    if (APP_LABELS.has(app)) return /** @type {string} */ (APP_LABELS.get(app));
+    const label = appLabels().get(app);
+    if (label !== undefined) return label;
     const words = app.split('-').filter(Boolean);
     return words.length ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'your apps';
 }

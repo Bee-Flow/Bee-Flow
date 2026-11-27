@@ -37,6 +37,7 @@ function registerFeatureModules() {
         'automation/agentBinding': () => require('../automation/agentBinding'),
         'automation/access': () => require('../automation/access'),
         'stores/automationStore/agentBindingsSweep': () => require('../stores/automationStore/agentBindingsSweep'),
+        'integrations/automationEvolutionToolDefs': () => require('../integrations/automationEvolutionToolDefs'),
     });
 }
 

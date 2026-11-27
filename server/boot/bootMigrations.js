@@ -317,11 +317,12 @@ async function runLooseMigrations(opts) {
  * catalogue of a module installed later must not run after a sweep that was already
  * recorded. A module's `nlTranslations` are therefore not run (compositions.test.js holds
  * that none declares any); a listed catalogue whose module is not here is skipped by the
- * ladder (boot/migrationLadder.js).
+ * ladder (boot/migrationLadder.js). A core catalogue seeds no key of a module that is not here
+ * (i18n/defaults/moduleNamespaces.js); the salt reruns it once that set of modules changes.
  * @param {Parameters<typeof runList>[1]} [opts]
  */
 async function runNlTranslations(opts) {
-    return runList(NL_TRANSLATIONS, opts);
+    return runList(NL_TRANSLATIONS, { salt: require('../i18n/defaults/moduleNamespaces').absentNamespacesSalt(), ...opts });
 }
 
 module.exports = {

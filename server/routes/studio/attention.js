@@ -71,7 +71,8 @@
  *
  * ── A row's deep link opens ────────────────────────────────────────────────
  *
- * `deepLink` is projects/completeness.js's own helper: the builder's screen for
+ * `deepLink` is core/findings/builderFindings.js deepLinkFor, the helper a Solution's
+ * completeness uses too: the builder's screen for
  * that kind, or null when the producer had no id (a link to
  * /app/studio/apps/null is worse than no button). One source overrides it —
  * Solutions, whose kind is shared with the graph's synthetic nodes; see
@@ -104,8 +105,8 @@ const { validate } = require('../../core/http/validate');
 
 const { makeLazyDeps, moduleDep, lacksModule, userIdOf, orgIdOf } = require('./shared');
 const { SOURCES, SOURCE_KEYS, MAX_ROWS_PER_SOURCE } = require('./attentionChecks');
-const { optionalFeatureModule } = require('../../core/featureModules');
 const { bySeverity } = require('../../core/findings/finding');
+const { deepLinkFor } = require('../../core/findings/builderFindings');
 const log = require('../../telemetry/log');
 
 /**
@@ -192,9 +193,10 @@ function toRow(source, finding) {
         kind: finding.kind,
         targetId: finding.targetRef?.id ?? null,
         message: finding.message,
-        // completeness.js's helper (none without module projects), unless the source can prove
-        // a link its general map is not allowed to build (see solutionDeepLink).
-        deepLink: source.linkFor ? source.linkFor(finding) : (optionalFeatureModule('projects/completeness')?.deepLinkFor(finding) ?? null),
+        // The builder's screen for the finding (core/findings/builderFindings.js, the helper a
+        // Solution's completeness uses too), unless the source can prove a link its general map
+        // is not allowed to build (see solutionDeepLink).
+        deepLink: source.linkFor ? source.linkFor(finding) : deepLinkFor(finding),
     };
     if (finding.remediation) row.remediation = finding.remediation;
     return row;

@@ -34,7 +34,20 @@
     "add-nl-ai-act-register-2026-11-translations": "compliance",
     "add-nl-teams-setup-2026-11-translations": "meetingNotes",
     "update-nl-learn-action-limits-2026-11": "learning",
-    "update-nl-learn-cowork-2026-11": "learning"
+    "update-nl-learn-cowork-2026-11": "learning",
+    "add-nl-datatables-nextcloud-translations": "datatables",
+    "add-nl-datatables-spreadsheets-translations": "datatables",
+    "add-nl-builder-redesign-translations": "automation",
+    "add-nl-builder-values-translations": "automation",
+    "add-nl-topic-rules-translations": "automation",
+    "add-nl-table-nodes-translations": "automation",
+    "add-nl-hardcoded-automation-builder-2026-10-translations": "automation",
+    "add-nl-app-studio-builder-translations": "apps",
+    "add-nl-app-archive-import-translations": "apps",
+    "add-nl-project-tasks-translations": "projects",
+    "add-nl-hardcoded-website-admin-2026-10-translations": "cms",
+    "add-nl-cms-redirects-translations": "cms",
+    "add-nl-cms-share-image-translations": "cms"
   },
   "_storeUnitsComment": "Which module owns a unit of the schema ledger (stores/lib/ddlLedger.js): \"store:<tag>\" -> module id, for every literal makeStoreInit(<tag>, ...) in a file of the tree that scripts/module-map.json gives to a module. modules/firstParty/moduleData.js reads it to tell whether this database holds a module's schema while the module is not here to ask. modules/firstParty/moduleData.storeUnits.test.js holds it equal to the tree.",
   "storeUnits": {

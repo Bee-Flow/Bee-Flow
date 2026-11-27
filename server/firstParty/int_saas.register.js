@@ -102,6 +102,15 @@ function register() {
         'integrations/n8nTools': () => require('../integrations/n8nTools'),
         'integrations/n8nHttp': () => require('../integrations/n8nHttp'),
         'usecases/ai/config/scalewayBillingFields': () => require('../usecases/ai/config/scalewayBillingFields'),
+        'integrations/firefliesTools': () => require('../integrations/firefliesTools'),
+        'integrations/youtrackTools': () => require('../integrations/youtrackTools'),
+        'integrations/signrequestTools': () => require('../integrations/signrequestTools'),
+        'integrations/gammaTools': () => require('../integrations/gammaTools'),
+        'integrations/scalewayBillingTools': () => require('../integrations/scalewayBillingTools'),
+        'integrations/linkedinTools': () => require('../integrations/linkedinTools'),
+        'integrations/withingsTools': () => require('../integrations/withingsTools'),
+        'integrations/githubTools': () => require('../integrations/githubTools'),
+        'integrations/n8nWorkflowTools': () => require('../integrations/n8nWorkflowTools'),
     }));
     contribute('integrations/toolFamilies', () => require('../integrations/toolFamilyAdapters').registerFamilies(toolFamilies()));
     contribute('integrations/coreToolsets', registerToolsets);

@@ -1,5 +1,10 @@
 {
-  "featureModules": [],
+  "featureModules": [
+    "integrations/outlookTools",
+    "integrations/msCalendarTools",
+    "integrations/oneDriveTools",
+    "integrations/msContactsTools"
+  ],
   "integrationClients": [
     "msGraph"
   ]

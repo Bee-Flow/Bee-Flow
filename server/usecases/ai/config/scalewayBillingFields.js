@@ -4,6 +4,7 @@
  * The Scaleway Billing connection settings as the settings form sends them: fields of
  * POST /ai/user-settings (routes/ai/config/userSettings.js), which asks for them by name. The
  * shapes use this module's own patterns, and an installation without the module has no such fields.
+ * readStatus is this module's part of the GET answer.
  */
 
 const { shaped } = require('./settingsFieldShapes');
@@ -17,4 +18,13 @@ const scalewayBillingFields = {
     scalewayBillingOrgId: shaped(SCALEWAY_ORG_ID_RE, 'Scaleway Organization ID is invalid. Paste the ID from Organization settings, a UUID like 11111111-2222-3333-4444-555555555555.'),
 };
 
-module.exports = { scalewayBillingFields };
+/**
+ * GET /ai/user-settings: whether the Scaleway Billing connection is set up (never the key).
+ * @param {(key: string) => Promise<unknown>} getSecret
+ * @param {string} userId
+ */
+async function readStatus(getSecret, userId) {
+    return { hasScalewayBillingConfig: !!(await getSecret(`scaleway_billing_secret_key_user_${userId}`)) };
+}
+
+module.exports = { scalewayBillingFields, readStatus };

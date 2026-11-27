@@ -22,6 +22,7 @@ test('every English playbooks key has a Dutch one (or is declared identical)', (
 });
 
 test('the playbook speaks the builders\' words for the shared states', () => {
-    const app = require('./add-nl-app-studio-builder-translations').NL_TRANSLATIONS;
+    // The apps module's catalogue, read from the whole tree (i18n/defaults/treeI18n.testkit.js).
+    const app = require('../i18n/defaults/treeI18n.testkit').catalogue('add-nl-app-studio-builder-translations').NL_TRANSLATIONS;
     assert.strictEqual(NL_TRANSLATIONS['playbooks.state.running'], app['app_studio.builder.act.building']);
 });

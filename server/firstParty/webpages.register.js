@@ -23,6 +23,7 @@ function register() {
         'integrations/webpagePlanTool': () => require('../integrations/webpagePlanTool'),
         'core/kb/sources/webpage': () => require('../core/kb/sources/webpage'),
         'stores/webpage/accountErasure': () => require('../stores/webpage/accountErasure'),
+        'integrations/webpageAutomationTools': () => require('../integrations/webpageAutomationTools'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

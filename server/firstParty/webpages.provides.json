@@ -9,6 +9,7 @@
     "auth/webpagePreviewToken",
     "stores/webpageStore",
     "core/webpages/webpageUsageSync",
+    "integrations/webpageAutomationTools",
     "stores/webpage/accountErasure"
   ]
 }

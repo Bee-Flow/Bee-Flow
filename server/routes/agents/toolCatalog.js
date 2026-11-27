@@ -99,7 +99,7 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { requireAuth } = require('../../auth');
-const { ALL_TOOL_APPS, loadToolsResult } = require('../../automation/toolRegistry');
+const toolRegistry = require('../../automation/toolRegistry');
 const { effectOf } = require('../../automation/sideEffectMap');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -164,11 +164,11 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (/*
     // then assessed.
     const entries = [];
     const namesOf = new Map();
-    for (const entry of ALL_TOOL_APPS || []) {
+    for (const entry of toolRegistry.ALL_TOOL_APPS || []) {
         if (!entry || !entry.app) continue;
         // NOT `res` — that is the express response of this handler.
         let loaded;
-        try { loaded = loadToolsResult(entry); } catch (_) { loaded = null; }
+        try { loaded = toolRegistry.loadToolsResult(entry); } catch (_) { loaded = null; }
         // A tool that declares itself for automations only (nextcloud_request)
         // is never offered to an agent, so the picker does not show it.
         const tools = loaded && loaded.ok === true && Array.isArray(loaded.tools) ? loaded.tools.filter(isAgentTool) : null;

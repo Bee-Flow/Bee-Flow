@@ -16,7 +16,8 @@
  *
  * `ALL_TOOL_APPS` is the place where those two readers see the same list. What is pinned here is
  * therefore not "the list contains X", but that there is ONE list: two hand-maintained lists is
- * precisely the fault that this was supposed to solve.
+ * precisely the fault that this was supposed to solve. The assertions about one module's rows are
+ * in toolRegistry.<moduleId>.test.js beside this file.
  *
  * Run: node --test --test-force-exit automation/toolRegistry.test.js
  */
@@ -139,17 +140,7 @@ test('grantsVia wijst naar een bestaande app, levert een subset, en ketent niet'
     }
 });
 
-test('outlook-readonly is de bekende gedeelde entry, en is als zodanig gedeclareerd', () => {
-    // Not a "the list contains X" pin: this is the entry on which the finding sat, and the declaration is what
-    // takes it out of the silent-dead-grant state.
-    const ro = appEntryFor('outlook-readonly');
-    assert.ok(ro, 'outlook-readonly hoort in het registry te staan');
-    assert.strictEqual(ro.grantsVia, 'outlook');
-    assert.strictEqual(ro.module, appEntryFor('outlook').module, 'dezelfde module, dezelfde namen');
-});
-
 test('appEntryFor vindt inline apps net zo goed als registry-apps', () => {
-    assert.strictEqual(appEntryFor('gmail')?.arrayName, 'GMAIL_TOOLS');
     assert.strictEqual(appEntryFor('browser-fetch')?.arrayName, 'BROWSE_WEB_TOOLS');
     assert.strictEqual(appEntryFor('nope'), null);
     assert.strictEqual(appEntryFor(null), null);

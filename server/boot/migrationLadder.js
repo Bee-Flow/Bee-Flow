@@ -53,10 +53,10 @@ function absentModule(name, owners = RECORDED_OWNERS) {
  * @param {string} name
  * @param {Map<string, { checksum: string, applied_at: unknown }>} ledger
  * @param {LadderReport} out
- * @param {{ log: Pick<Console, 'warn' | 'log'>, force: boolean, load: (name: string) => { up: () => Promise<unknown> }, store: Ledger }} ctx
+ * @param {{ log: Pick<Console, 'warn' | 'log'>, force: boolean, load: (name: string) => { up: () => Promise<unknown> }, store: Ledger, salt: string }} ctx
  */
-async function runOne(name, ledger, out, { log, force, load, store }) {
-    const checksum = checksumOf(name);
+async function runOne(name, ledger, out, { log, force, load, store, salt }) {
+    const checksum = checksumOf(name, salt);
     const prior = ledger.get(name);
     if (prior && !force && prior.checksum === checksum) {
         out.skipped.push(name);
@@ -80,16 +80,17 @@ async function runOne(name, ledger, out, { log, force, load, store }) {
  * back the rest — but it is NOT silent: the caller receives the failures and decides
  * itself whether that is a warn (boot) or an exit 1 (migration runner).
  *
+ * `salt` goes into every checksum of this run (migrationChecksum.js checksumOf); '' changes nothing.
  * `load`, `ledger` and `absentOf` are the test seam (boot/composition.migrations.characterisation.test.js
  * records the order the runner asks for its migrations); boot and migrateDb pass none.
  *
  * @param {readonly string[]} names
  * @param {{ log?: Pick<Console, 'warn' | 'log'>, force?: boolean, load?: (name: string) => { up: () => Promise<unknown> },
- *   ledger?: Ledger, absentOf?: (name: string) => string | null }} [opts]
+ *   ledger?: Ledger, absentOf?: (name: string) => string | null, salt?: string }} [opts]
  *   `log` is a Console or the telemetry logger
  * @returns {Promise<LadderReport>}
  */
-async function runList(names, { log = require('../telemetry/log'), force = false, load = loadMigration, ledger: store = LEDGER, absentOf = absentModule } = {}) {
+async function runList(names, { log = require('../telemetry/log'), force = false, load = loadMigration, ledger: store = LEDGER, absentOf = absentModule, salt = '' } = {}) {
     /** @type {LadderReport} */
     const out = { ok: [], skipped: [], absent: [], failed: [] };
     let ledger = new Map();
@@ -105,7 +106,7 @@ async function runList(names, { log = require('../telemetry/log'), force = false
                 out.absent.push(name);
                 continue;
             }
-            await runOne(name, ledger, out, { log, force, load, store });
+            await runOne(name, ledger, out, { log, force, load, store, salt });
         } catch (e) {
             out.failed.push({ name, error: /** @type {Error} */ (e).message });
             log.warn(`[BootMigrations] ${name} faalde: ${/** @type {Error} */ (e).message}`);

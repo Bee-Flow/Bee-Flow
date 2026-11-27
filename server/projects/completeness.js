@@ -51,7 +51,10 @@
  */
 'use strict';
 
-const { makeFinding, fromLegacy, bySeverity } = require('../core/findings/finding');
+const { fromLegacy, bySeverity } = require('../core/findings/finding');
+// The deep link of a finding and the empty-knowledge-base rule are core: Studio Home asks them
+// of every organisation, with or without this module (core/findings/builderFindings.js).
+const { deepLinkFor, emptyKnowledgeBaseFinding } = require('../core/findings/builderFindings');
 const log = require('../telemetry/log');
 
 /**
@@ -74,54 +77,6 @@ function toFindingKind(kind) {
     return FINDING_KIND[kind] || kind;
 }
 
-/**
- * Where "Show me" goes, per kind — the BUILDER's screen, not the consumer's.
- *
- * A finding is something to fix, so an app opens in App Studio
- * (`/app/studio/apps/:id`) rather than in its run view (`/app/apps/:id`); the
- * two are different pages and the second one cannot repair anything.
- *
- * Deliberately NOT carrying `?screen=`/`?node=`/`?step=` yet. App Studio does
- * not read the query string at all, and `?step=` already means "this step of
- * the open RUN" (parseStudioQuery → ExecutionsPanel), not "select this node in
- * the editor". A link that claims to land on the broken button and lands on the
- * app's first screen is a worse promise than a link to the app. The segments
- * mirror studioApps.jsx's `urlSegment`; when the editors learn to read a
- * selection out of the URL, this map is the one place that gains it.
- */
-const DEEP_LINK = Object.freeze({
-    app: (id) => `/app/studio/apps/${id}`,
-    automation: (id) => `/app/studio/automations/${id}`,
-    webpage: (id) => `/app/studio/webpages/${id}`,
-    datatable: (id) => `/app/studio/datatables/${id}`,
-    agent: (id) => `/app/studio/agents/${id}`,
-    kb: (id) => `/app/studio/knowledge/${id}`,
-    skill: (id) => `/app/studio/skills/${id}`,
-    meeting: (id) => `/app/studio/meeting-notes/${id}`,
-});
-
-/**
- * Ids are opaque tokens today, and the day one is not, an unescaped `?` or `..`
- * in a path the client hands to `location.assign` is a navigation somewhere
- * nobody asked for. Encoded once, here, rather than trusted per builder.
- */
-function safeSegment(id) { return encodeURIComponent(String(id)); }
-
-/**
- * The deep link for a finding, or null.
- *
- * Null when the producer had no id — a validator that only saw a definition, or
- * a synthetic node (an approval, a form, "every meeting tagged X") that is not a
- * row anywhere. A "Show me" button that leads to `/app/studio/apps/null` is
- * worse than no button, so the caller gets `null` and renders nothing.
- */
-function deepLinkFor(finding) {
-    const ref = finding?.targetRef;
-    const build = ref && DEEP_LINK[ref.kind];
-    if (!build || !ref.id) return null;
-    return build(safeSegment(ref.id));
-}
-
 /** Attach `deepLink` to a Finding. Kept separate so the shape stays validated. */
 function withDeepLink(finding) {
     return { ...finding, deepLink: deepLinkFor(finding) };
@@ -136,26 +91,6 @@ function withDeepLink(finding) {
  * nobody.
  */
 const KB_WRITE_EDGES = new Set(['feeds']);
-
-/**
- * The empty-knowledge-base rule.
- *
- * Not `blockedAt: 'publish'`, deliberately: a Blueprint carries the SHELL of a
- * knowledge base and never its documents (packaging/scrub.js
- * KNOWLEDGE_BASE_CONTENT), so an empty base is exactly what the recipient is
- * supposed to get. It is a problem for the LIVE Solution, which is what makes
- * it advice here rather than a gate.
- */
-function emptyKnowledgeBaseFinding(kb) {
-    return makeFinding({
-        code: 'knowledge_base.empty_in_use',
-        severity: 'warning',
-        kind: 'kb',
-        targetRef: { kind: 'kb', id: kb.id, title: kb.name || null },
-        message: `"${kb.name || 'A knowledge base'}" is used for answers but holds no documents, so anything grounded on it finds nothing.`,
-        remediation: 'Add a document or a source to the knowledge base, or disconnect it from what reads it.',
-    });
-}
 
 /** Which stage an automation is validated at: what is live must be finishable. */
 function stageFor(automation) {

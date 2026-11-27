@@ -78,6 +78,20 @@ function register() {
     contribute('boot/featureModules', () => require('../core/featureModules').registerFeatureModules({
         // what the core asks of this module by name (optionalFeatureModule): one getter per line
         'integrations/nextcloudToolFamily': () => require('../integrations/nextcloudToolFamily'),
+        'integrations/nextcloudTools': () => require('../integrations/nextcloudTools'),
+        'integrations/nextcloudCalendarTools': () => require('../integrations/nextcloudCalendarTools'),
+        'integrations/nextcloudContactsTools': () => require('../integrations/nextcloudContactsTools'),
+        'integrations/nextcloudDeckTools': () => require('../integrations/nextcloudDeckTools'),
+        'integrations/nextcloudTalkTools': () => require('../integrations/nextcloudTalkTools'),
+        'integrations/nextcloudTasksTools': () => require('../integrations/nextcloudTasksTools'),
+        'integrations/nextcloudNotesTools': () => require('../integrations/nextcloudNotesTools'),
+        'integrations/nextcloudMailTools': () => require('../integrations/nextcloudMailTools'),
+        'integrations/nextcloudActivityTools': () => require('../integrations/nextcloudActivityTools'),
+        'integrations/nextcloudNotificationsTools': () => require('../integrations/nextcloudNotificationsTools'),
+        'integrations/nextcloudTablesTools': () => require('../integrations/nextcloudTablesTools'),
+        'integrations/nextcloudFormsTools': () => require('../integrations/nextcloudFormsTools'),
+        'integrations/nextcloudTeamsTools': () => require('../integrations/nextcloudTeamsTools'),
+        'integrations/nextcloudStatusTools': () => require('../integrations/nextcloudStatusTools'),
     }));
     contribute('integrations/toolFamilies', registerToolFamily);
     contribute('integrations/coreToolsets', registerToolsets);

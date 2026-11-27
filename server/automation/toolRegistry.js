@@ -41,42 +41,50 @@
  * declaration — that is the whole point of it being there.
  */
 const log = require('../telemetry/log');
+const { optionalFeatureModule, hasFeatureModule } = require('../core/featureModules');
 
 const DEFAULT_AVAILABILITY = ['agent', 'automation_step'];
 
-const TOOL_REGISTRY = [
-    { app: 'gmail',                   label: 'Gmail',                  module: '../integrations/gmailTools',                arrayName: 'GMAIL_TOOLS',                enabledKey: 'gmail' },
-    { app: 'google-calendar',         label: 'Google Calendar',        module: '../integrations/calendarTools',             arrayName: 'CALENDAR_TOOLS',             enabledKey: 'google-calendar' },
-    { app: 'google-drive',            label: 'Google Drive',           module: '../integrations/driveTools',                arrayName: 'DRIVE_TOOLS',                enabledKey: 'google-drive' },
-    { app: 'google-docs',             label: 'Google Docs',            module: '../integrations/docsTools',                 arrayName: 'DOCS_TOOLS',                 enabledKey: 'google-docs' },
-    { app: 'google-sheets',           label: 'Google Sheets',          module: '../integrations/sheetsTools',               arrayName: 'SHEETS_TOOLS',               enabledKey: 'google-sheets' },
-    { app: 'google-slides',           label: 'Google Slides',          module: '../integrations/slidesTools',               arrayName: 'SLIDES_TOOLS',               enabledKey: 'google-slides' },
-    { app: 'google-contacts',         label: 'Google Contacts',        module: '../integrations/contactsTools',             arrayName: 'CONTACTS_TOOLS',             enabledKey: 'google-contacts' },
-    { app: 'google-keep',             label: 'Google Keep',            module: '../integrations/keepTools',                 arrayName: 'KEEP_TOOLS',                 enabledKey: 'google-keep' },
-    { app: 'google-groups',           label: 'Google Groups',          module: '../integrations/googleGroupsTools',         arrayName: 'GOOGLE_GROUPS_TOOLS',        enabledKey: 'google-groups' },
-    { app: 'fireflies',               label: 'Fireflies',              module: '../integrations/firefliesTools',            arrayName: 'FIREFLIES_TOOLS',            enabledKey: 'fireflies' },
-    { app: 'youtrack',                label: 'YouTrack',               module: '../integrations/youtrackTools',             arrayName: 'YOUTRACK_TOOLS',             enabledKey: 'youtrack' },
-    { app: 'signrequest',             label: 'SignRequest',            module: '../integrations/signrequestTools',          arrayName: 'SIGNREQUEST_TOOLS',          enabledKey: 'signrequest' },
-    { app: 'gamma',                   label: 'Gamma',                  module: '../integrations/gammaTools',                arrayName: 'GAMMA_TOOLS',                enabledKey: 'gamma' },
-    { app: 'afas-profit',             label: 'AFAS Profit',            module: '../integrations/afasTools',                 arrayName: 'AFAS_TOOLS',                 enabledKey: 'afas-profit' },
-    { app: 'nmbrs',                   label: 'NMBRS',                  module: '../integrations/nmbrsTools',                arrayName: 'NMBRS_TOOLS',                enabledKey: 'nmbrs' },
-    { app: 'vplan',                   label: 'vPlan',                  module: '../integrations/vplanTools',                arrayName: 'VPLAN_TOOLS',                enabledKey: 'vplan' },
-    { app: 'firebird',                label: 'Firebird database',      module: '../integrations/firebirdTools',             arrayName: 'FIREBIRD_TOOLS',             enabledKey: 'firebird' },
-    { app: 'frappe-crm',              label: 'Frappe CRM',             module: '../integrations/frappeCrmTools.mts',        arrayName: 'FRAPPE_CRM_TOOLS',           enabledKey: 'frappe-crm' },
-    { app: 'twoba',                   label: '2BA',                    module: '../integrations/twobaTools.mts',            arrayName: 'TWOBA_TOOLS',                enabledKey: 'twoba' },
-    { app: 'scaleway-billing',        label: 'Scaleway Billing',      module: '../integrations/scalewayBillingTools',      arrayName: 'SCALEWAY_BILLING_TOOLS',     enabledKey: 'scaleway-billing' },
+/*
+ * `module` says where an app's TOOLS array lives. A relative path ('../integrations/kbSearchTools')
+ * is a core file, required. A name ('integrations/gmailTools': the tree path, without extension)
+ * is a first-party module's file, asked for by that name (optionalFeatureModule; the module
+ * registers it in firstParty/<id>.register.js). A row of a module that is not here is not listed:
+ * the exported lists below leave it out, in the order of these rows.
+ */
+const TOOL_REGISTRY_ROWS = [
+    { app: 'gmail',                   label: 'Gmail',                  module: 'integrations/gmailTools',                arrayName: 'GMAIL_TOOLS',                enabledKey: 'gmail' },
+    { app: 'google-calendar',         label: 'Google Calendar',        module: 'integrations/calendarTools',             arrayName: 'CALENDAR_TOOLS',             enabledKey: 'google-calendar' },
+    { app: 'google-drive',            label: 'Google Drive',           module: 'integrations/driveTools',                arrayName: 'DRIVE_TOOLS',                enabledKey: 'google-drive' },
+    { app: 'google-docs',             label: 'Google Docs',            module: 'integrations/docsTools',                 arrayName: 'DOCS_TOOLS',                 enabledKey: 'google-docs' },
+    { app: 'google-sheets',           label: 'Google Sheets',          module: 'integrations/sheetsTools',               arrayName: 'SHEETS_TOOLS',               enabledKey: 'google-sheets' },
+    { app: 'google-slides',           label: 'Google Slides',          module: 'integrations/slidesTools',               arrayName: 'SLIDES_TOOLS',               enabledKey: 'google-slides' },
+    { app: 'google-contacts',         label: 'Google Contacts',        module: 'integrations/contactsTools',             arrayName: 'CONTACTS_TOOLS',             enabledKey: 'google-contacts' },
+    { app: 'google-keep',             label: 'Google Keep',            module: 'integrations/keepTools',                 arrayName: 'KEEP_TOOLS',                 enabledKey: 'google-keep' },
+    { app: 'google-groups',           label: 'Google Groups',          module: 'integrations/googleGroupsTools',         arrayName: 'GOOGLE_GROUPS_TOOLS',        enabledKey: 'google-groups' },
+    { app: 'fireflies',               label: 'Fireflies',              module: 'integrations/firefliesTools',            arrayName: 'FIREFLIES_TOOLS',            enabledKey: 'fireflies' },
+    { app: 'youtrack',                label: 'YouTrack',               module: 'integrations/youtrackTools',             arrayName: 'YOUTRACK_TOOLS',             enabledKey: 'youtrack' },
+    { app: 'signrequest',             label: 'SignRequest',            module: 'integrations/signrequestTools',          arrayName: 'SIGNREQUEST_TOOLS',          enabledKey: 'signrequest' },
+    { app: 'gamma',                   label: 'Gamma',                  module: 'integrations/gammaTools',                arrayName: 'GAMMA_TOOLS',                enabledKey: 'gamma' },
+    { app: 'afas-profit',             label: 'AFAS Profit',            module: 'integrations/afasTools',                 arrayName: 'AFAS_TOOLS',                 enabledKey: 'afas-profit' },
+    { app: 'nmbrs',                   label: 'NMBRS',                  module: 'integrations/nmbrsTools',                arrayName: 'NMBRS_TOOLS',                enabledKey: 'nmbrs' },
+    { app: 'vplan',                   label: 'vPlan',                  module: 'integrations/vplanTools',                arrayName: 'VPLAN_TOOLS',                enabledKey: 'vplan' },
+    { app: 'firebird',                label: 'Firebird database',      module: 'integrations/firebirdTools',             arrayName: 'FIREBIRD_TOOLS',             enabledKey: 'firebird' },
+    { app: 'frappe-crm',              label: 'Frappe CRM',             module: 'integrations/frappeCrmTools',        arrayName: 'FRAPPE_CRM_TOOLS',           enabledKey: 'frappe-crm' },
+    { app: 'twoba',                   label: '2BA',                    module: 'integrations/twobaTools',            arrayName: 'TWOBA_TOOLS',                enabledKey: 'twoba' },
+    { app: 'scaleway-billing',        label: 'Scaleway Billing',      module: 'integrations/scalewayBillingTools',      arrayName: 'SCALEWAY_BILLING_TOOLS',     enabledKey: 'scaleway-billing' },
     { app: 'agent-search',            label: 'Web Search',             module: '../integrations/agentSearchTools',          arrayName: 'AGENT_SEARCH_TOOLS',         enabledKey: 'agent-search',         availableTo: ['agent', 'automation_step'] },
     // Sanctions lists (first-party, local, no credentials): screening against the imported public
     // lists and the PEP function check. Org switch + licence feature sanctions_screening.
-    { app: 'sanctions-lists',         label: 'Sanctions lists',        module: '../integrations/sanctionsTools.mts',        arrayName: 'SANCTIONS_TOOLS',            enabledKey: 'sanctions-lists',    availableTo: ['agent', 'automation_step'] },
-    { app: 'maps',                    label: 'Google Maps',            module: '../integrations/mapsTools',                 arrayName: 'MAPS_TOOLS',                 enabledKey: 'maps' },
-    { app: 'linkedin',                label: 'LinkedIn',               module: '../integrations/linkedinTools',             arrayName: 'LINKEDIN_TOOLS',             enabledKey: 'linkedin' },
-    { app: 'withings',                label: 'Withings',               module: '../integrations/withingsTools',             arrayName: 'WITHINGS_TOOLS',             enabledKey: 'withings' },
-    { app: 'github',                  label: 'GitHub',                 module: '../integrations/githubTools',               arrayName: 'GITHUB_TOOLS',               enabledKey: 'github' },
-    { app: 'outlook',                 label: 'Outlook',                module: '../integrations/outlookTools',              arrayName: 'OUTLOOK_TOOLS',              enabledKey: 'outlook' },
-    { app: 'ms-calendar',             label: 'Microsoft Calendar',     module: '../integrations/msCalendarTools',           arrayName: 'MS_CALENDAR_TOOLS',          enabledKey: 'ms-calendar' },
-    { app: 'onedrive',                label: 'OneDrive',               module: '../integrations/oneDriveTools',             arrayName: 'ONEDRIVE_TOOLS',             enabledKey: 'onedrive' },
-    { app: 'ms-contacts',             label: 'Microsoft Contacts',     module: '../integrations/msContactsTools',           arrayName: 'MS_CONTACTS_TOOLS',          enabledKey: 'ms-contacts' },
+    { app: 'sanctions-lists',         label: 'Sanctions lists',        module: 'integrations/sanctionsTools',        arrayName: 'SANCTIONS_TOOLS',            enabledKey: 'sanctions-lists',    availableTo: ['agent', 'automation_step'] },
+    { app: 'maps',                    label: 'Google Maps',            module: 'integrations/mapsTools',                 arrayName: 'MAPS_TOOLS',                 enabledKey: 'maps' },
+    { app: 'linkedin',                label: 'LinkedIn',               module: 'integrations/linkedinTools',             arrayName: 'LINKEDIN_TOOLS',             enabledKey: 'linkedin' },
+    { app: 'withings',                label: 'Withings',               module: 'integrations/withingsTools',             arrayName: 'WITHINGS_TOOLS',             enabledKey: 'withings' },
+    { app: 'github',                  label: 'GitHub',                 module: 'integrations/githubTools',               arrayName: 'GITHUB_TOOLS',               enabledKey: 'github' },
+    { app: 'outlook',                 label: 'Outlook',                module: 'integrations/outlookTools',              arrayName: 'OUTLOOK_TOOLS',              enabledKey: 'outlook' },
+    { app: 'ms-calendar',             label: 'Microsoft Calendar',     module: 'integrations/msCalendarTools',           arrayName: 'MS_CALENDAR_TOOLS',          enabledKey: 'ms-calendar' },
+    { app: 'onedrive',                label: 'OneDrive',               module: 'integrations/oneDriveTools',             arrayName: 'ONEDRIVE_TOOLS',             enabledKey: 'onedrive' },
+    { app: 'ms-contacts',             label: 'Microsoft Contacts',     module: 'integrations/msContactsTools',           arrayName: 'MS_CONTACTS_TOOLS',          enabledKey: 'ms-contacts' },
     { app: 'kb-search',               label: 'Knowledge Base',         module: '../integrations/kbSearchTools',             enabledKey: 'kb-search',          arrayName: 'KB_SEARCH_TOOLS',            availableTo: ['agent', 'automation_step'] },
     // Personal memory (first-party, no credentials, org-exempt): an automation
     // reads what its owner told the chat assistant, and writes what it learned
@@ -85,28 +93,28 @@ const TOOL_REGISTRY = [
     // Automation evolution (automation-only, self-scoped): an automation reads its own run
     // history and proposes/applies changes to its own definition after human
     // approval. See integrations/automationEvolutionTools.js + automation/evolution.js.
-    { app: 'automation-evolution',       label: 'Automation evolution',      module: '../integrations/automationEvolutionToolDefs',     arrayName: 'AUTOMATION_EVOLUTION_TOOLS',    enabledKey: 'automation-evolution',  availableTo: ['automation_step'] },
+    { app: 'automation-evolution',       label: 'Automation evolution',      module: 'integrations/automationEvolutionToolDefs',     arrayName: 'AUTOMATION_EVOLUTION_TOOLS',    enabledKey: 'automation-evolution',  availableTo: ['automation_step'] },
     { app: 'kb-ingest',               label: 'Knowledge Base Ingest',  module: '../integrations/kbIngestTools',             enabledKey: 'kb-ingest',          arrayName: 'KB_INGEST_TOOLS',            availableTo: ['automation_step'] },
     // NEXTCLOUD_CATALOG_TOOLS = NEXTCLOUD_TOOLS + the automation-only
     // nextcloud_request, so the catalog, the side-effect map and activation
     // attribute it to Nextcloud. Who is OFFERED it is getIntegrationTools'
     // call (automation steps only), not this list.
-    { app: 'nextcloud',               label: 'Nextcloud',              module: '../integrations/nextcloudTools',            arrayName: 'NEXTCLOUD_CATALOG_TOOLS',    enabledKey: 'nextcloud' },
-    { app: 'nextcloud-calendar',      label: 'Nextcloud Calendar',     module: '../integrations/nextcloudCalendarTools',    arrayName: 'NEXTCLOUD_CALENDAR_TOOLS',   enabledKey: 'nextcloud-calendar' },
-    { app: 'nextcloud-contacts',      label: 'Nextcloud Contacts',     module: '../integrations/nextcloudContactsTools',    arrayName: 'NEXTCLOUD_CONTACTS_TOOLS',   enabledKey: 'nextcloud-contacts' },
-    { app: 'nextcloud-deck',          label: 'Nextcloud Deck',         module: '../integrations/nextcloudDeckTools',        arrayName: 'NEXTCLOUD_DECK_TOOLS',       enabledKey: 'nextcloud-deck' },
-    { app: 'nextcloud-talk',          label: 'Nextcloud Talk',         module: '../integrations/nextcloudTalkTools',        arrayName: 'NEXTCLOUD_TALK_TOOLS',       enabledKey: 'nextcloud-talk' },
-    { app: 'nextcloud-tasks',         label: 'Nextcloud Tasks',        module: '../integrations/nextcloudTasksTools',       arrayName: 'NEXTCLOUD_TASKS_TOOLS',      enabledKey: 'nextcloud-tasks' },
-    { app: 'nextcloud-notes',         label: 'Nextcloud Notes',        module: '../integrations/nextcloudNotesTools',       arrayName: 'NEXTCLOUD_NOTES_TOOLS',      enabledKey: 'nextcloud-notes' },
-    { app: 'nextcloud-mail',          label: 'Nextcloud Mail',         module: '../integrations/nextcloudMailTools',        arrayName: 'NEXTCLOUD_MAIL_TOOLS',       enabledKey: 'nextcloud-mail' },
-    { app: 'nextcloud-activity',      label: 'Nextcloud Activity',     module: '../integrations/nextcloudActivityTools',    arrayName: 'NEXTCLOUD_ACTIVITY_TOOLS',   enabledKey: 'nextcloud-activity' },
-    { app: 'nextcloud-notifications', label: 'Nextcloud Notifications',module: '../integrations/nextcloudNotificationsTools', arrayName: 'NEXTCLOUD_NOTIFICATIONS_TOOLS', enabledKey: 'nextcloud-notifications' },
-    { app: 'nextcloud-tables',        label: 'Nextcloud Tables',       module: '../integrations/nextcloudTablesTools',      arrayName: 'NEXTCLOUD_TABLES_TOOLS',     enabledKey: 'nextcloud-tables' },
-    { app: 'nextcloud-forms',         label: 'Nextcloud Forms',        module: '../integrations/nextcloudFormsTools',       arrayName: 'NEXTCLOUD_FORMS_TOOLS',      enabledKey: 'nextcloud-forms' },
-    { app: 'nextcloud-teams',         label: 'Nextcloud Teams',        module: '../integrations/nextcloudTeamsTools',       arrayName: 'NEXTCLOUD_TEAMS_TOOLS',      enabledKey: 'nextcloud-teams' },
-    { app: 'nextcloud-status',        label: 'Nextcloud Status',       module: '../integrations/nextcloudStatusTools',      arrayName: 'NEXTCLOUD_STATUS_TOOLS',     enabledKey: 'nextcloud-status' },
-    { app: 'n8n',                     label: 'n8n',                    module: '../integrations/n8nWorkflowTools',          arrayName: 'N8N_WORKFLOW_TOOLS',         enabledKey: 'n8n' },
-    { app: 'webpages',                label: 'Webpages',               module: '../integrations/webpageAutomationTools',    arrayName: 'WEBPAGE_AUTOMATION_TOOLS',   enabledKey: 'webpages' },
+    { app: 'nextcloud',               label: 'Nextcloud',              module: 'integrations/nextcloudTools',            arrayName: 'NEXTCLOUD_CATALOG_TOOLS',    enabledKey: 'nextcloud' },
+    { app: 'nextcloud-calendar',      label: 'Nextcloud Calendar',     module: 'integrations/nextcloudCalendarTools',    arrayName: 'NEXTCLOUD_CALENDAR_TOOLS',   enabledKey: 'nextcloud-calendar' },
+    { app: 'nextcloud-contacts',      label: 'Nextcloud Contacts',     module: 'integrations/nextcloudContactsTools',    arrayName: 'NEXTCLOUD_CONTACTS_TOOLS',   enabledKey: 'nextcloud-contacts' },
+    { app: 'nextcloud-deck',          label: 'Nextcloud Deck',         module: 'integrations/nextcloudDeckTools',        arrayName: 'NEXTCLOUD_DECK_TOOLS',       enabledKey: 'nextcloud-deck' },
+    { app: 'nextcloud-talk',          label: 'Nextcloud Talk',         module: 'integrations/nextcloudTalkTools',        arrayName: 'NEXTCLOUD_TALK_TOOLS',       enabledKey: 'nextcloud-talk' },
+    { app: 'nextcloud-tasks',         label: 'Nextcloud Tasks',        module: 'integrations/nextcloudTasksTools',       arrayName: 'NEXTCLOUD_TASKS_TOOLS',      enabledKey: 'nextcloud-tasks' },
+    { app: 'nextcloud-notes',         label: 'Nextcloud Notes',        module: 'integrations/nextcloudNotesTools',       arrayName: 'NEXTCLOUD_NOTES_TOOLS',      enabledKey: 'nextcloud-notes' },
+    { app: 'nextcloud-mail',          label: 'Nextcloud Mail',         module: 'integrations/nextcloudMailTools',        arrayName: 'NEXTCLOUD_MAIL_TOOLS',       enabledKey: 'nextcloud-mail' },
+    { app: 'nextcloud-activity',      label: 'Nextcloud Activity',     module: 'integrations/nextcloudActivityTools',    arrayName: 'NEXTCLOUD_ACTIVITY_TOOLS',   enabledKey: 'nextcloud-activity' },
+    { app: 'nextcloud-notifications', label: 'Nextcloud Notifications',module: 'integrations/nextcloudNotificationsTools', arrayName: 'NEXTCLOUD_NOTIFICATIONS_TOOLS', enabledKey: 'nextcloud-notifications' },
+    { app: 'nextcloud-tables',        label: 'Nextcloud Tables',       module: 'integrations/nextcloudTablesTools',      arrayName: 'NEXTCLOUD_TABLES_TOOLS',     enabledKey: 'nextcloud-tables' },
+    { app: 'nextcloud-forms',         label: 'Nextcloud Forms',        module: 'integrations/nextcloudFormsTools',       arrayName: 'NEXTCLOUD_FORMS_TOOLS',      enabledKey: 'nextcloud-forms' },
+    { app: 'nextcloud-teams',         label: 'Nextcloud Teams',        module: 'integrations/nextcloudTeamsTools',       arrayName: 'NEXTCLOUD_TEAMS_TOOLS',      enabledKey: 'nextcloud-teams' },
+    { app: 'nextcloud-status',        label: 'Nextcloud Status',       module: 'integrations/nextcloudStatusTools',      arrayName: 'NEXTCLOUD_STATUS_TOOLS',     enabledKey: 'nextcloud-status' },
+    { app: 'n8n',                     label: 'n8n',                    module: 'integrations/n8nWorkflowTools',          arrayName: 'N8N_WORKFLOW_TOOLS',         enabledKey: 'n8n' },
+    { app: 'webpages',                label: 'Webpages',               module: 'integrations/webpageAutomationTools',    arrayName: 'WEBPAGE_AUTOMATION_TOOLS',   enabledKey: 'webpages' },
     // ── AI-only integrations promoted to first-class automation actions ──
     // Tool dispatchers for these already exist in core/toolDispatcher.js
     // (chat path uses them too); registry entries surface them in the
@@ -114,11 +122,11 @@ const TOOL_REGISTRY = [
     { app: 'image-gen',               label: 'Image Generation',       module: '../core/tools/imageGenTool',                 arrayName: 'IMAGE_GEN_TOOLS',            enabledKey: 'image-gen' },
     { app: 'video-gen',               label: 'Video Generation',       module: '../core/tools/videoGenTool',                 arrayName: 'VIDEO_GEN_TOOLS',            enabledKey: 'video-gen' },
     { app: 'elevenlabs',              label: 'ElevenLabs',             module: '../core/tools/elevenLabsTools',              arrayName: 'ELEVENLABS_TOOLS',           enabledKey: 'elevenlabs' },
-    { app: 'transcription',           label: 'Transcription',          module: '../integrations/transcriptionTools',        arrayName: 'TRANSCRIPTION_TOOLS',        enabledKey: 'transcription' },
+    { app: 'transcription',           label: 'Transcription',          module: 'integrations/transcriptionTools',        arrayName: 'TRANSCRIPTION_TOOLS',        enabledKey: 'transcription' },
     // The same module, the same credentials, a strict subset of the same tool
     // names as `outlook`. Two apps for the org gate, one grant subject: see
     // `grantsVia` in the header.
-    { app: 'outlook-readonly',        label: 'Outlook (read-only)',    module: '../integrations/outlookTools',              arrayName: 'OUTLOOK_READONLY_TOOLS',     enabledKey: 'outlook-readonly',   grantsVia: 'outlook' },
+    { app: 'outlook-readonly',        label: 'Outlook (read-only)',    module: 'integrations/outlookTools',              arrayName: 'OUTLOOK_READONLY_TOOLS',     enabledKey: 'outlook-readonly',   grantsVia: 'outlook' },
 ];
 
 /**
@@ -174,11 +182,11 @@ const TOOL_REGISTRY = [
  *       "deze installatie heeft hem niet" to a colleague who only lacks
  *       `use_notebooks`. With more than one, the picker names both.
  */
-const INLINE_TOOL_APPS = [
+const INLINE_TOOL_APP_ROWS = [
     // Injected at core/integrations/integrationTools.js — behind dockerAvailable().
     { app: 'browser-fetch',   label: 'Browse Web',   module: '../integrations/browserFetchTools',  arrayName: 'BROWSE_WEB_TOOLS',       enabledKey: 'browser-fetch', availableTo: ['agent'], availability: ['installation', 'permission'], grantsRequireEntry: true },
     // Injected behind the notebooks feature flag + entitlement + use_notebooks.
-    { app: 'workspace',       label: 'Notebooks',    module: '../integrations/workspaceTools',     arrayName: 'WORKSPACE_TOOLS',        enabledKey: 'workspace',     availableTo: ['agent'], availability: ['installation', 'permission'], grantsRequireEntry: true },
+    { app: 'workspace',       label: 'Notebooks',    module: 'integrations/workspaceTools',     arrayName: 'WORKSPACE_TOOLS',        enabledKey: 'workspace',     availableTo: ['agent'], availability: ['installation', 'permission'], grantsRequireEntry: true },
     // Injected for admins only — no enabledKey, so `isAppOn` never sees it.
     { app: 'regex-generator', label: 'Regex Rules',  module: '../integrations/regexGeneratorTools', arrayName: 'REGEX_GENERATOR_TOOLS', enabledKey: null,            availableTo: ['agent'], availability: 'permission',   grantsRequireEntry: true },
     // Injected for every non-simple-mode user — a first-party artefact tool
@@ -200,12 +208,49 @@ const INLINE_TOOL_APPS = [
  * Anything that needs the narrower "is this a TOOLS-array module" answer keeps
  * reading TOOL_REGISTRY.
  */
-const ALL_TOOL_APPS = TOOL_REGISTRY.concat(INLINE_TOOL_APPS);
+/** @type {ToolAppEntry[]} */
+const ALL_TOOL_APP_ROWS = TOOL_REGISTRY_ROWS.concat(INLINE_TOOL_APP_ROWS);
+
+/** @param {ToolAppEntry} entry */
+const isModuleRow = (entry) => !entry.module.startsWith('.');
+
+/**
+ * Is the module file of a row here? Registered by its module (or by a test's double), or
+ * declared by a module that FAILED to load: a broken module never looks absent, its row stays
+ * listed and loadToolsResult reports it unreadable. Asks the registry as optionalFeatureModule
+ * does, without loading the file.
+ * @param {string} name
+ */
+function moduleFilePresent(name) {
+    if (!hasFeatureModule(name)) require('../modules/firstParty/registrationChannels').ensureOpen('boot/featureModules');
+    if (hasFeatureModule(name)) return true;
+    const { providerOf, moduleStateOf } = require('../modules/firstParty/moduleState');
+    const owner = providerOf('featureModules', name);
+    return owner !== null && moduleStateOf(owner) === 'failed';
+}
+
+/** @type {Map<ToolAppEntry[], { shape: string, list: ToolAppEntry[] }>} */
+const listed = new Map();
+
+/**
+ * The rows whose app is here, in row order: the same array while the answer does not change.
+ * @param {ToolAppEntry[]} rows
+ * @returns {ToolAppEntry[]}
+ */
+function presentRows(rows) {
+    const here = rows.map((e) => !isModuleRow(e) || moduleFilePresent(e.module));
+    const shape = here.map((h) => (h ? '1' : '0')).join('');
+    const last = listed.get(rows);
+    if (last && last.shape === shape) return last.list;
+    const list = rows.filter((_, i) => here[i]);
+    listed.set(rows, { shape, list });
+    return list;
+}
 
 /** The entry for an app id, from the combined list. `null` when nothing owns it. */
 function appEntryFor(appId) {
     if (typeof appId !== 'string' || !appId) return null;
-    return ALL_TOOL_APPS.find(e => e && e.app === appId) || null;
+    return presentRows(ALL_TOOL_APP_ROWS).find(e => e && e.app === appId) || null;
 }
 
 /**
@@ -234,11 +279,14 @@ function loadToolsResult(entry) {
     }
     let mod;
     try {
-        mod = require(entry.module);
+        mod = isModuleRow(entry)
+            ? optionalFeatureModule(/** @type {keyof import('../core/featureModules').FeatureModuleMap} */ (entry.module))
+            : require(entry.module);
     } catch (e) {
         log.warn(`[toolRegistry] Failed to load ${entry.app} (${entry.module}):`, /** @type {Error} */ (e).message);
         return { tools: [], ok: false, reason: 'require_failed' };
     }
+    if (mod === null) return { tools: [], ok: false, reason: 'module_absent' };
     const arr = mod ? mod[entry.arrayName] : undefined;
     if (!Array.isArray(arr)) {
         log.warn(`[toolRegistry] ${entry.app} (${entry.module}) has no array export "${entry.arrayName}"`);
@@ -272,7 +320,7 @@ function toolNamesForApps(appIds) {
     const wanted = new Set(Array.isArray(appIds) ? appIds : []);
     const names = new Set();
     if (!wanted.size) return names;
-    for (const entry of TOOL_REGISTRY) {
+    for (const entry of presentRows(TOOL_REGISTRY_ROWS)) {
         if (!wanted.has(entry.app)) continue;
         for (const t of loadTools(entry)) {
             const n = t?.function?.name;
@@ -288,7 +336,7 @@ function toolNamesForApps(appIds) {
  * @param {string} toolName
  */
 function findOwnerOfTool(toolName) {
-    for (const entry of TOOL_REGISTRY) {
+    for (const entry of presentRows(TOOL_REGISTRY_ROWS)) {
         const tools = loadTools(entry);
         if (tools.some(t => t?.function?.name === toolName)) return entry;
     }
@@ -313,14 +361,18 @@ function availabilityFor(entry) {
  * row controls whether the tool surfaces in chats vs canvases.
  */
 function availableForContext(context) {
-    if (!context) return TOOL_REGISTRY.slice();
-    return TOOL_REGISTRY.filter(entry => availabilityFor(entry).includes(context));
+    const rows = presentRows(TOOL_REGISTRY_ROWS);
+    if (!context) return rows.slice();
+    return rows.filter(entry => availabilityFor(entry).includes(context));
 }
 
 module.exports = {
-    TOOL_REGISTRY,
-    INLINE_TOOL_APPS,
-    ALL_TOOL_APPS,
+    /** @returns {ToolAppEntry[]} the TOOLS-array apps that are here */
+    get TOOL_REGISTRY() { return presentRows(TOOL_REGISTRY_ROWS); },
+    /** @returns {ToolAppEntry[]} the inline apps that are here */
+    get INLINE_TOOL_APPS() { return presentRows(INLINE_TOOL_APP_ROWS); },
+    /** @returns {ToolAppEntry[]} both, registry first */
+    get ALL_TOOL_APPS() { return presentRows(ALL_TOOL_APP_ROWS); },
     appEntryFor,
     DEFAULT_AVAILABILITY,
     loadTools,

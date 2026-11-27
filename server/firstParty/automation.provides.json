@@ -18,6 +18,7 @@
     "automation/agentBinding",
     "automation/access",
     "stores/automationStore/webhookDeliveries",
+    "integrations/automationEvolutionToolDefs",
     "stores/automationStore/agentBindingsSweep"
   ],
   "runnerPorts": [

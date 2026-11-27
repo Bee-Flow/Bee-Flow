@@ -267,23 +267,10 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasYouTrackConfig: !!(await configStore.getSecret(`youtrack_url_user_${userId}`)) && !!(await configStore.getSecret(`youtrack_token_user_${userId}`)),
         hasSignRequestConfig: !!(await configStore.getSecret(`signrequest_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`signrequest_token_user_${userId}`)),
         hasGammaKey: !!(await configStore.getSecret(`gamma_api_key_user_${userId}`)),
-        hasAfasConfig: !!(await configStore.getSecret(`afas_token_user_${userId}`)) && !!(await configStore.getSecret(`afas_member_number_user_${userId}`)),
-        hasNmbrsConfig: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) === 'rest'
-            ? !!(await configStore.getSecret(`nmbrs_subscription_key_user_${userId}`))
-            : !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`)),
-        // REST secrets are never returned, only whether they are set.
-        hasNmbrsSubscriptionKey: !!(await configStore.getSecret(`nmbrs_subscription_key_user_${userId}`)),
-        hasNmbrsClient: !!(await configStore.getSecret(`nmbrs_client_id_user_${userId}`)) && !!(await configStore.getSecret(`nmbrs_client_secret_user_${userId}`)),
-        hasVplanConfig: !!(await configStore.getSecret(`vplan_api_key_user_${userId}`)) && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`)),
-        hasFirebirdConfig: !!(await configStore.getSecret(`firebird_host_user_${userId}`)) && !!(await configStore.getSecret(`firebird_database_user_${userId}`))
-            && !!(await configStore.getSecret(`firebird_user_user_${userId}`)) && !!(await configStore.getSecret(`firebird_password_user_${userId}`)),
-        hasFrappeCrmConfig: !!(await configStore.getSecret(`frappe_crm_url_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_key_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_secret_user_${userId}`)), ...(await require('../../../core/integrations/twobaConfigured.mts').twobaStatus((/** @type {string} */ k) => configStore.getSecret(k), userId)),
-        hasScalewayBillingConfig: !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`)),
-        // Non-secret NMBRS fields so the settings form can pre-fill (the token is never returned).
-        nmbrsApiMode: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) || 'soap',
-        nmbrsSubdomain: (await configStore.getSecret(`nmbrs_subdomain_user_${userId}`)) || '',
-        nmbrsEmail: (await configStore.getSecret(`nmbrs_email_user_${userId}`)) || '',
-        nmbrsEnv: (await configStore.getSecret(`nmbrs_env_user_${userId}`)) || 'production',
+        // The connection status of the integration modules that are here, each module's part in
+        // this place ("int_erp_nl": AFAS, NMBRS, vPlan, Firebird, Frappe CRM, 2BA; "int_saas":
+        // Scaleway Billing; then the NMBRS form fields). Without the module: no such keys.
+        ...(await require('../../../usecases/ai/config/settingsModuleStatus').settingsModuleStatus((/** @type {string} */ k) => configStore.getSecret(k), userId)),
         hasLinkedInConfig: !!(await configStore.getSecret('linkedin_client_id')) && !!(await configStore.getSecret('linkedin_client_secret')),
         hasWithingsConfig: !!(await configStore.getSecret('withings_client_id')) && !!(await configStore.getSecret('withings_client_secret')),
         hasGoogleKey: !!(await configStore.getSecret('google_api_key')), ...(await require('../../../core/media/imageSettings.mts').imageSettingsFor(userId)), // + imageModels, hasImageGen, imageQuota

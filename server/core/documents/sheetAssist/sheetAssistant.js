@@ -36,7 +36,7 @@
 
 'use strict';
 
-const { optionalFeatureModule } = require('../../featureModules');
+const { featureModule } = require('../../featureModules');
 const { HttpError } = require('../../http/errors');
 const { parseRange, cellsIn, fillRange } = require('./sheetRefs');
 const { pivotWrites } = require('./sheetPivot');
@@ -148,7 +148,7 @@ function systemPrompt(readOnly, activeTabName) {
  * @param {(cells: Record<string, string>) => any} [deps.evaluate]   shared/expr/sheet.mjs evaluateSheet
  * @param {any} [deps.llm]          core/llm/llmClient surface ({ runToolLoop })
  * @param {(o: any) => Promise<{ modelId: string, options?: any, tier?: string } | null>} [deps.resolveModel]
- *   the chat's depth-tier resolver (projects/chatModel.js; without the projects module a 409 module_absent): Fast,
+ *   the chat's depth-tier resolver (projects/chatModel.js, a core file the core registers by name): Fast,
  *   Think, Deep Thinking … or Auto, which lets the same classifier as a chat pick one
  * @param {(o: any) => Promise<any>} [deps.privacy]   ({ text, orgId, userId, modelId, conversationId }) → { action, text, tokenMap }
  * @param {(row: any) => Promise<void>} [deps.logUsage]
@@ -157,7 +157,7 @@ function makeSheetAssistant(deps = {}) {
     const cellsApi = () => deps.cells || require('../sheetCells');
     const evaluate = (/** @type {Record<string, string>} */ c, /** @type {any} */ options = {}) => (deps.evaluate || require('../../../shared/expr/sheet.mjs').evaluateSheet)(c, options);
     const llm = () => deps.llm || require('../../llm/llmClient');
-    const resolveModel = deps.resolveModel || ((/** @type {any} */ o) => { const chatModel = optionalFeatureModule('projects/chatModel'); if (!chatModel) throw new HttpError(409, 'module_absent', 'The spreadsheet assistant is not available on this installation.'); return chatModel.resolveChatModel(o); });
+    const resolveModel = deps.resolveModel || ((/** @type {any} */ o) => featureModule('projects/chatModel').resolveChatModel(o));
     const privacy = deps.privacy || realPrivacy;
     const logUsage = deps.logUsage || (async (row) => require('../../../stores/usageStore').logUsage(row));
 

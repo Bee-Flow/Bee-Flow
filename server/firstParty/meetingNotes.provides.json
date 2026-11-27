@@ -4,6 +4,7 @@
     "stores/transcriptCrypto",
     "routes/transcriptions/shared",
     "routes/teamsProviderTest",
+    "integrations/transcriptionTools",
     "stores/transcription/accountErasure"
   ],
   "runnerPorts": [
