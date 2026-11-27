@@ -6,11 +6,11 @@
 
 import fs from 'node:fs';
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { ERROR_TITLES, errorKindOf, LIMIT_WORDS } from './errorKind';
 
-const SRC = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/MessageItem/MessageContentBody.tsx`, 'utf8');
+const SRC = fs.readFileSync(webPath('components/chat/MessageItem/MessageContentBody.tsx'), 'utf8');
 // The web tests `cardText`: the error alone, without the reply a turn that
 // failed after some of its tools ran keeps above it (BFSF-349). The phone's
 // `error` is already only that.

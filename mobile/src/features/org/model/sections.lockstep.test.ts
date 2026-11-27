@@ -1,37 +1,30 @@
 /**
  * The org index is the web's, in the web's order: orgInfoShared.tsx SECTIONS,
  * then AdvancedSettings.jsx BASE_ORG_SUB_ITEMS after its `...ORG_SECTIONS`
- * spread, then AZURE_SUB_ITEM. Ids and label keys are compared textually.
+ * spread, then AZURE_SUB_ITEM. The web's list is read from its GUI inventory
+ * golden (authedApp/settingsRoutes.inventory.golden.json `phoneOrgList`,
+ * recorded by settingsRoutes.inventory.test.ts: the spread expanded from the
+ * running SECTIONS, the rest read from AdvancedSettings' syntax tree). Ids and
+ * label keys are compared.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
+import { webGolden } from '@/shared/testing/webModule';
 
 import { WEB_ONLY_ORG_SECTIONS, WEB_ORG_SECTIONS } from './sections';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src');
-
-function rows(src: string, marker: RegExp): { id: string; labelKey: string }[] {
-    const body = marker.exec(src)?.[1] ?? '';
-    return [...body.matchAll(/\{\s*id:\s*'([^']+)',\s*labelKey:\s*'([^']+)'/g)].map((m) => ({
-        id: m[1] as string,
-        labelKey: m[2] as string,
-    }));
+interface GoldenRow {
+    id?: string;
+    labelKey?: string;
 }
 
 describe('the organisation sections', () => {
-    const shared = fs.readFileSync(path.join(WEB, 'components/admin/org/orgInfo/orgInfoShared.tsx'), 'utf8');
-    const settings = fs.readFileSync(path.join(WEB, 'pages/AdvancedSettings.tsx'), 'utf8');
-    const web = [
-        // Typed (`const SECTIONS: OrgSettingsSection[] = [`) since the TS move.
-        ...rows(shared, /const SECTIONS(?:\s*:[^=]*)?\s*=\s*\[([\s\S]*?)\];/),
-        ...rows(settings, /const BASE_ORG_SUB_ITEMS\s*=\s*\[([\s\S]*?)\];/),
-        ...rows(settings, /const AZURE_SUB_ITEM\s*=\s*(\{[^}]*\})/),
-    ];
+    const golden = webGolden<{ phoneOrgList: GoldenRow[] }>('authedApp/settingsRoutes.inventory.golden.json');
+    const web = golden.phoneOrgList.map(({ id, labelKey }) => ({ id: id as string, labelKey: labelKey as string }));
 
-    it('reads both web lists', () => {
+    it('reads the web list', () => {
         expect(web.length).toBeGreaterThanOrEqual(16);
-        expect(settings).toMatch(/BASE_ORG_SUB_ITEMS\s*=\s*\[\s*\.\.\.ORG_SECTIONS/);
+        // A row the inventory could not read (a spread of something else) has no id.
+        expect(web.every((r) => r.id && r.labelKey)).toBe(true);
     });
 
     it('lists the same sections, with the same label keys, in the same order', () => {

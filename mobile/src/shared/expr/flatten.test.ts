@@ -7,6 +7,8 @@
  * the same rows as the run", not just "the same rows as the file says".
  */
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { flattenPlan, flattenRows, listNounKey, routeLevels } from './index';
 import type { FlattenOutput, FlattenStepLike } from './index';
 
@@ -23,9 +25,9 @@ interface Corpus {
     flattenMailRoot: () => unknown;
 }
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const corpus = require('../../../../agent-hub/src/shared/expr/corpus.mjs') as Corpus;
+const corpus = require(webPath('shared/expr/corpus.mjs')) as Corpus;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require('../../../../agent-hub/src/shared/expr/index.mjs') as { flattenRows: typeof flattenRows };
+const web = require(webPath('shared/expr/index.mjs')) as { flattenRows: typeof flattenRows };
 
 /** One corpus expectation against an output (`keys`, `first`, `last`, `rowN`, else the output key). */
 function expected(out: FlattenOutput, key: string): unknown {

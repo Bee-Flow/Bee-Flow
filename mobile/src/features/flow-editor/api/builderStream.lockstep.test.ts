@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { accounts } from '@/shared/stream';
+import { webPath } from '@/shared/testing/webModule';
 
 import { builderFrames } from './builderStream';
 
@@ -53,8 +54,8 @@ function serverEvents(): string[] {
     return [...new Set([...names, 'ping'])].sort();
 }
 
-const WEB_HOOK = path.join(REPO, 'agent-hub/src/hooks/useAutomationBuilderStream.ts');
-const WEB_REDUCER = path.join(REPO, 'agent-hub/src/hooks/automationBuilder/reducer.ts');
+const WEB_HOOK = webPath('hooks/useAutomationBuilderStream.ts');
+const WEB_REDUCER = webPath('hooks/automationBuilder/reducer.ts');
 
 function webEvents(): string[] {
     const source = fs.readFileSync(WEB_REDUCER, 'utf8');

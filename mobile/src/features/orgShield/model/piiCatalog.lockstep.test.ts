@@ -7,14 +7,14 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { PII_CATALOG, PII_GROUP_KEYS } from './piiCatalog';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src');
-const catalog = fs.readFileSync(path.join(WEB, 'config/piiCategories.ts'), 'utf8');
+const catalog = fs.readFileSync(webPath('config/piiCategories.ts'), 'utf8');
 const matrix = fs.readFileSync(
-    path.join(WEB, 'components/admin/security/guardrails/orgShield/parts/categoryMatrixModel.ts'),
+    webPath('components/admin/security/guardrails/orgShield/parts/categoryMatrixModel.ts'),
     'utf8',
 );
 

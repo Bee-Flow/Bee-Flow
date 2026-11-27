@@ -8,13 +8,13 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { newFlowSeed } from './seed';
 import { defaultFormDeclaration } from '../model/formDefaults';
 
-const AGENT_HUB = path.resolve(__dirname, '../../../../../agent-hub/src');
-const read = (rel: string) => fs.readFileSync(path.join(AGENT_HUB, rel), 'utf8');
+const read = (rel: string) => fs.readFileSync(webPath(rel), 'utf8');
 const CREATE_DRAFT = read('api/queries/automation/createDraft.ts');
 const GATES = read('components/admin/Studio/studioGates.ts');
 const BARREL = read('components/admin/Studio/studioApps.tsx');

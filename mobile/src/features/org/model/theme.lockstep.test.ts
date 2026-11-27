@@ -7,11 +7,11 @@
 
 import path from 'node:path';
 
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 import { ACCENT_PRESETS, FONT_IDS, THEME_PRESET_IDS } from './theme';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/appearance');
+const WEB = webPath('components/appearance');
 const read = (rel: string) => webSourceText(path.join(WEB, rel));
 
 function idsOf(src: string, marker: string): string[] {

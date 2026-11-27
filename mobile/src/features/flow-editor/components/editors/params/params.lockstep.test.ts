@@ -11,12 +11,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 import { addParam, APP_TRIGGER_TYPES, applyBindingRename, CONTRACT_TYPES, nameProblem, PLACEHOLDER_NAME_RE } from './paramsModel';
 import type { Msg } from '../declarative/spec';
 
-const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow');
+const FLOW = webPath('components/automation/Builder/flow');
 const src = webSourceText(path.join(FLOW, 'settings/FieldRow.tsx'));
 const editors = fs.readFileSync(path.join(FLOW, 'settings/triggerEditors.tsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */

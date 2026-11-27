@@ -5,11 +5,11 @@
 
 import fs from 'node:fs';
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { controlValue, MEDIA_PANELS, panelsFor } from './mediaPanels';
 
-const read = (name: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/${name}`, 'utf8');
+const read = (name: string) => fs.readFileSync(webPath(`components/chat/${name}`), 'utf8');
 const WEB = {
     image: read('ImageGenSettings.tsx') + read('imageModelChoice.ts'),
     video: read('VideoGenSettings.tsx'),

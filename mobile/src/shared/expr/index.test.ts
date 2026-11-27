@@ -9,6 +9,8 @@
  * "same answer as the file says".
  */
 
+import { webPath } from '@/shared/testing/webModule';
+
 import {
     EXPR_FUNCTION_NAMES,
     EXPR_FUNCTIONS,
@@ -26,9 +28,9 @@ interface Corpus {
     REJECT: string[];
 }
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const corpus = require('../../../../agent-hub/src/shared/expr/corpus.mjs') as Corpus;
+const corpus = require(webPath('shared/expr/corpus.mjs')) as Corpus;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require('../../../../agent-hub/src/shared/expr/index.mjs') as { evaluate: typeof evaluate };
+const web = require(webPath('shared/expr/index.mjs')) as { evaluate: typeof evaluate };
 
 describe('the golden corpus', () => {
     it('is loaded, and is not empty — an empty corpus would pass everything', () => {

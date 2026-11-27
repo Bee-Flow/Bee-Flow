@@ -10,14 +10,13 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import * as port from './phaseMachine';
 import type { Phase, PhaseStatus } from './types';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/phaseMachine.ts');
+const WEB = webPath('components/admin/Studio/Playbooks/phaseMachine.ts');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;

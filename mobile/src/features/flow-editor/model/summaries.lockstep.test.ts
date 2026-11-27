@@ -7,12 +7,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as display from './displayHelpers';
 import * as summaries from './nodeSummaries';
 import { FIXTURES, templateDefinitions } from './testing/fixtures';
 import type { FlowDefinition } from './types';
 
-const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webSummaries = require(`${FLOW}/nodeSummaries.ts`);
 const webDisplay = require(`${FLOW}/displayHelpers.ts`);

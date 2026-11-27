@@ -3,13 +3,12 @@
  * the same inputs. When this fails the web side changed — update when.ts.
  */
 
-import path from 'node:path';
 
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { dateBlockParts, meetingDurationMinutes, parseWhen, timeRange } from './when';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/pages/meeting-notes/lib/upcomingWhen.ts');
+const WEB = webPath('pages/meeting-notes/lib/upcomingWhen.ts');
 const web = loadWebModule<{
     parseWhen: typeof parseWhen;
     meetingDurationMinutes: typeof meetingDurationMinutes;

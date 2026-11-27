@@ -6,14 +6,13 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 
 import { NODE_DEFS, NODE_TYPE_KEYS } from '@/features/flow-editor/model';
+import { webPath } from '@/shared/testing/webModule';
 
 import { ADVANCED_SECTION_KEYS, hiddenInSimple, hiddenSectionCount, sectionShown } from './density';
 
-const REPO = path.resolve(__dirname, '../../../../../..');
-const SRC = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/formDensity.ts'), 'utf8');
+const SRC = fs.readFileSync(webPath('components/automation/Builder/flow/settings/formDensity.ts'), 'utf8');
 
 describe('against formDensity.ts', () => {
     it('hides the same section keys by default', () => {

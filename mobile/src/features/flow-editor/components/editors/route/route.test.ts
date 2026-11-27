@@ -11,6 +11,7 @@ import path from 'node:path';
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState } from '@/features/flow-editor/formState';
 import type { Route } from '@/features/flow-editor/model';
+import { webPath } from '@/shared/testing/webModule';
 
 import { configuredRules, losingWires, sampleRowsFor } from './assistModel';
 import { canUseVisual, conditionState, fieldAsExpression, fieldFromExpression, isTrivialValue, readsListAsValue, withoutRow } from './conditionState';
@@ -247,7 +248,7 @@ describe('the fields a rule is built from', () => {
 describe('accepting "Suggest outputs"', () => {
     // The split moved the handler out of routeEditors.jsx into useRouteEdits.ts.
     const WEB = ['routeEditors.tsx', 'useRouteEdits.ts']
-        .map((f) => fs.readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings', f), 'utf8'))
+        .map((f) => fs.readFileSync(path.join(webPath('components/automation/Builder/flow/settings'), f), 'utf8'))
         .join('\n');
 
     it('replaces the outputs, clears the old default, and fans out only when growing from one', () => {

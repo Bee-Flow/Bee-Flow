@@ -6,7 +6,8 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { CAP, COALESCE_MS, canRedo, canUndo, commitDraft, emptyHistory, redoDraft, sameDraft, undoDraft, type HistoryState } from './history';
 
@@ -46,7 +47,7 @@ function harness(initial: Draft) {
 
 describe('the web hook\'s constants', () => {
     it('are 600 ms and 50 entries, as in useDraftHistory.ts', () => {
-        const src = fs.readFileSync(path.resolve(__dirname, '../../../../../agent-hub/src/hooks/useDraftHistory.ts'), 'utf8');
+        const src = fs.readFileSync(webPath('hooks/useDraftHistory.ts'), 'utf8');
         expect(src).toContain(`const COALESCE_MS = ${COALESCE_MS};`);
         expect(src).toContain(`const CAP = ${CAP};`);
     });

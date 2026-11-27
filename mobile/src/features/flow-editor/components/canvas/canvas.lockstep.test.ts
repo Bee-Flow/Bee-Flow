@@ -19,6 +19,7 @@ import path from 'node:path';
 
 import type { FlowDefinition, FlowStep } from '@/features/flow-editor/model';
 import { clone, FIXTURES, templateDefinitions } from '@/features/flow-editor/model/testing/fixtures';
+import { webPath } from '@/shared/testing/webModule';
 
 import * as colors from './edgeColors';
 import { classifyEdges } from './edgeModel';
@@ -28,7 +29,7 @@ import { topPositions } from './scene';
 
 jest.mock('lucide-react', () => new Proxy({}, { get: (_t, name) => (name === '__esModule' ? false : String(name)) }), { virtual: true });
 
-const BUILDER = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder');
+const BUILDER = webPath('components/automation/Builder');
 const FLOW = `${BUILDER}/flow`;
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webLayout = require(`${FLOW}/layout.ts`);

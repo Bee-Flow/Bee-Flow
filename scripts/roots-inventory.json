@@ -749,6 +749,16 @@
       "group": "build-ci"
     },
     {
+      "file": "scripts/gui-screenshots.mjs",
+      "status": "root-aware",
+      "what": "one screenshot per screen of the web client against a running stack; reads the GUI inventory goldens by tree path through scripts/lib/roots.mjs resolveTreePath (agent-hub/ or modules/<id>/frontend/)"
+    },
+    {
+      "file": "scripts/gui-screenshots.test.mjs",
+      "status": "root-aware",
+      "what": "unit test of gui-screenshots.mjs on made-up goldens, and on the real ones read over every root"
+    },
+    {
       "file": "scripts/i18n-key-guard.mjs",
       "status": "root-aware",
       "what": "archives server/i18n/defaults, the resolver and modules/*/server/i18n/defaults of the base, loads each dictionary in a child with its own roots, compares by key"
@@ -1371,6 +1381,16 @@
       "status": "not-applicable",
       "what": "unit test of vuln-watch-gate.mjs",
       "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when vuln-watch-gate.mjs is converted"
+    },
+    {
+      "file": "scripts/web-build-sources.mjs",
+      "status": "root-aware",
+      "what": "the source modules of the web client's production build: runs vite build with agent-hub's config and names each module by tree path through scripts/lib/roots.mjs locate() (agent-hub/ or modules/<id>/frontend/), owners per module-map.json"
+    },
+    {
+      "file": "scripts/web-build-sources.test.mjs",
+      "status": "root-aware",
+      "what": "unit test of web-build-sources.mjs on a made-up bundle with a core root and a modules/<id>/frontend root"
     },
     {
       "file": "server/.c8rc.json",

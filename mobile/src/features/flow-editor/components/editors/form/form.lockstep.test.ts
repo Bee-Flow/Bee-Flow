@@ -14,11 +14,11 @@ import path from 'node:path';
 import ts from 'typescript';
 
 import type { FormField } from '@/features/flow-editor/model';
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { activePreset, addDisplayField, addQuestion, COLOR_PRESETS, DISPLAY_FIELD_TYPES, FIELD_TYPES, moveField, normaliseOptions, optionLines, slugifyFieldName, THEME_KNOBS } from './formModel';
 
-const SETTINGS = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings');
+const SETTINGS = webPath('components/automation/Builder/flow/settings');
 const src = fs.readFileSync(path.join(SETTINGS, 'FormBuilderFields.jsx'), 'utf8');
 const styleSrc = (file: string) => fs.readFileSync(path.join(SETTINGS, 'formStyle', file), 'utf8');
 
@@ -48,7 +48,7 @@ function themeKnobs(file: string): [string, [string, string], string[]][] {
 // normaliseOptions moved to the form renderer's own module (agent-hub
 // `components/forms/formOptions.ts`, shared by the editor preview and every
 // form page, BFSF-483): run that file itself, its types stripped.
-const optionsSrc = fs.readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/forms/formOptions.ts'), 'utf8');
+const optionsSrc = fs.readFileSync(webPath('components/forms/formOptions.ts'), 'utf8');
 const optionsJs = ts.transpileModule(optionsSrc, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2019 } }).outputText;
 const optionsModule: { exports: { normaliseOptions?: (o: unknown) => unknown } } = { exports: {} };
 new Function('module', 'exports', optionsJs)(optionsModule, optionsModule.exports);
@@ -90,7 +90,7 @@ describe('the form page against the web’s form editor', () => {
 
     it('has the web’s display types (the fields that give instead of ask)', () => {
         const preview = fs.readFileSync(
-            path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/formPreview.ts'),
+            webPath('components/automation/Builder/flow/settings/formPreview.ts'),
             'utf8',
         );
         const list = /export const DISPLAY_FIELD_TYPES = \[([^\]]*)\]/.exec(preview)?.[1] ?? '';

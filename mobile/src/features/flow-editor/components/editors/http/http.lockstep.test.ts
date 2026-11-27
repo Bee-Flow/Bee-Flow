@@ -13,16 +13,16 @@ import ts from 'typescript';
 import type { CatalogDatatable } from '@/features/flow-editor/api';
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState } from '@/features/flow-editor/formState';
+import { webPath } from '@/shared/testing/webModule';
 
 import { addHeader, answerTables, cacheDays, cacheForDays, cacheTable, HTTP_KIND_NAMES, HTTP_METHODS, removeHeader, renameHeader, reuseAvailability, TABLE_AUDIENCE } from './httpModel';
 import type { Msg } from '../declarative/spec';
 
-const AGENT_HUB = path.resolve(__dirname, '../../../../../../../agent-hub/src');
-const SETTINGS = path.join(AGENT_HUB, 'components/automation/Builder/flow/settings');
+const SETTINGS = webPath('components/automation/Builder/flow/settings');
 const src = fs.readFileSync(path.join(SETTINGS, 'actionEditors/httpRequestFields.tsx'), 'utf8');
 const cacheSrc = fs.readFileSync(path.join(SETTINGS, 'actionEditors/cacheIntoRow.tsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const kinds = require(path.join(AGENT_HUB, 'utils/httpCredentialTypes.ts'));
+const kinds = require(webPath('utils/httpCredentialTypes.ts'));
 
 const english = (m: Msg | null): string | null => {
     if (!m) return null;

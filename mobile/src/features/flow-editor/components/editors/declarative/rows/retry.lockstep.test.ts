@@ -4,9 +4,8 @@
  * the two closed lists, the default, the long-wait line and the row cap.
  */
 
-import path from 'node:path';
 
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 import {
     activeRetry,
@@ -21,8 +20,7 @@ import {
     retryWaitTotal,
 } from './retry';
 
-const REPO = path.resolve(__dirname, '../../../../../../../..');
-const SRC = webSourceText(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/collectionEditors.tsx'));
+const SRC = webSourceText(webPath('components/automation/Builder/flow/settings/collectionEditors.tsx'));
 const numbers = (name: string) =>
     (new RegExp(`const ${name} = \\[([^\\]]*)\\]`).exec(SRC)?.[1] ?? '').split(',').map((n) => Number(n.trim().replace(/_/g, '')));
 

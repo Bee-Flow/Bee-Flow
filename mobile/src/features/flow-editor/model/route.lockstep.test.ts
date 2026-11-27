@@ -4,6 +4,8 @@
  * binding helpers they serialise with — against the web builder's modules.
  */
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { bindingFromInput, detectTemplate, isCleanPath, renderBindingValue } from './route/bindingText';
 import * as cm from './route/conditionModel';
 import { parseExprToRows } from './route/conditionParse';
@@ -13,13 +15,13 @@ import { mergeStepPatchIntoDefinition, reconcileSwitchEdges, uniqueCaseName } fr
 import { clone, FIXTURES } from './testing/fixtures';
 import type { FlowDefinition, FlowStep } from './types';
 
-const BUILDER = '../../../../../agent-hub/src/components/automation/Builder';
+const BUILDER = webPath('components/automation/Builder');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webRoute = require(`${BUILDER}/flow/routeModel.ts`);
 const webRouteEdges = require(`${BUILDER}/flow/routeEdges.ts`);
 const webSwitch = require(`${BUILDER}/flow/switchCaseOps.ts`);
 const webCond = require(`${BUILDER}/utils/conditionModel.ts`);
-const webBinding = require('../../../../../agent-hub/src/utils/bindingHelpers.ts');
+const webBinding = require(webPath('utils/bindingHelpers.ts'));
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const ROUTE_STEPS: Record<string, unknown>[] = [

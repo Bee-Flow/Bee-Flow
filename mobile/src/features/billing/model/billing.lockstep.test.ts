@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { AGENT_HUB_SRC, loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { currencySymbol, hasPaidBillingRelationship, PORTAL_ELIGIBLE_PAYMENT_STATUSES } from './subscription';
 
@@ -40,7 +40,7 @@ describe('billing lockstep', () => {
     });
 
     it('writes currencies with orgInfoShared.tsx’s glyphs', () => {
-        const shared = fs.readFileSync(`${AGENT_HUB_SRC}/components/admin/org/orgInfo/orgInfoShared.tsx`, 'utf8');
+        const shared = fs.readFileSync(webPath('components/admin/org/orgInfo/orgInfoShared.tsx'), 'utf8');
         expect(shared).toContain("{ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€')");
         expect([currencySymbol('EUR'), currencySymbol('USD'), currencySymbol('GBP')]).toEqual(['€', '$', '£']);
     });

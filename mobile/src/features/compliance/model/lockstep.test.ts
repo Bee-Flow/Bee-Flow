@@ -11,14 +11,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule , webPath } from '@/shared/testing/webModule';
 
 import { AUDIT_STATUSES, INCIDENT_SEVERITIES, INCIDENT_STATUSES, NC_STATUSES, OBJECTIVE_STATUSES, OBLIGATION_KINDS, RISK_STATUSES, SOA_DECISIONS, TREATMENT_OPTIONS } from './choices';
 import { SECTIONS } from './sections';
 import { SETTING_GROUPS } from './settingsFields';
 
 const REPO = path.resolve(__dirname, '../../../../..');
-const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), 'utf8');
+const WEB_PREFIX = 'agent-hub/src/';
+/** A repository file; a web one (agent-hub/src/…) is found by its path under src/ in whichever root holds it. */
+const read = (rel: string) => fs.readFileSync(rel.startsWith(WEB_PREFIX) ? webPath(rel.slice(WEB_PREFIX.length)) : path.join(REPO, rel), 'utf8');
 const WEB = 'agent-hub/src/components/admin/compliance';
 const WEB_DIR = 'components/admin/compliance';
 

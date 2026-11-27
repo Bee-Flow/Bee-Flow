@@ -8,7 +8,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src/components/shared/illustrations.tsx');
+import { webPath } from '@/shared/testing/webModule';
+
+const WEB = webPath('components/shared/illustrations.tsx');
 const PHONE = path.join(__dirname, 'illustrations.tsx');
 
 /** Each drawing element as `tag attrs`, tag lower-cased, attributes in source order. */

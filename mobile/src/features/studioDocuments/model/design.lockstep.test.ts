@@ -8,11 +8,12 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { DESIGN_NUMBERS, DESIGN_PRESETS } from './design';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/pages/documents/DocumentWorkspacePanel.tsx');
+const WEB = webPath('pages/documents/DocumentWorkspacePanel.tsx');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 /** `{neutral:{accent:'#334155',fontSize:11}}` → a plain object. */

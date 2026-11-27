@@ -26,7 +26,7 @@ import type { FlowCatalog } from '@/features/flow-editor/api';
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import type { FormDraft } from '@/features/flow-editor/formState';
 import { nodeDef } from '@/features/flow-editor/model';
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 import { fieldId, resolveOptions, specDraft, writeField } from './runtime';
 import type { EditorSpec, FieldSpec, Msg, SpecContext, Words } from './spec';
@@ -44,8 +44,7 @@ import {
 } from './specs';
 import { specContext } from './testing';
 
-const REPO = path.resolve(__dirname, '../../../../../../..');
-const BUILDER = path.join(REPO, 'agent-hub/src/components/automation/Builder');
+const BUILDER = webPath('components/automation/Builder');
 const read = (rel: string) => webSourceText(path.join(BUILDER, rel));
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const webPrivacy = require(path.join(BUILDER, 'flow/privacyModel.ts'));
@@ -330,7 +329,7 @@ describe('against the web editors', () => {
     });
 
     it('the PII categories, with the web’s label keys, in the web’s order', () => {
-        const src = fs.readFileSync(path.join(REPO, 'agent-hub/src/config/piiCategories.ts'), 'utf8');
+        const src = fs.readFileSync(webPath('config/piiCategories.ts'), 'utf8');
         const web = [...src.matchAll(/\{ id: '([^']+)',[^}]*i18nKey: '([^']+)' \}/g)].map((m) => [m[1], m[2]]);
         expect(web.length).toBeGreaterThan(15);
         expect(PII_CATEGORY_KEYS.map(([id, key]) => [id, key])).toEqual(web);

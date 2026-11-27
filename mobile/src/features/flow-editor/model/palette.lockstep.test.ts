@@ -11,6 +11,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as palette from './palette';
 import type { PaletteCatalog } from './palette';
 
@@ -19,8 +21,9 @@ jest.mock('../../../../../agent-hub/src/hooks/useIconPack', () => ({ useIconPack
 jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/stepIcons', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const src: string = require('node:fs').readFileSync(
+        // A jest.mock factory may not use the imports of this file: the root-aware lookup is required here.
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require('node:path').resolve(__dirname, '../../../../../agent-hub/src/components/automation/Builder/flow/stepIcons.tsx'),
+        require('@/shared/testing/webModule').webPath('components/automation/Builder/flow/stepIcons.tsx'),
         'utf8',
     );
     const names = [...src.matchAll(/\['([A-Za-z0-9]+)', [A-Za-z0-9]+\]/g)].map((m) => m[1]);
@@ -28,13 +31,13 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/stepI
 });
 
 const REPO = path.resolve(__dirname, '../../../../..');
-const FLOW = path.join(REPO, 'agent-hub/src/components/automation/Builder/flow');
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const web = require(path.join(FLOW, 'stepPalette.ts'));
 const webAppLabels = require(path.join(FLOW, 'appLabels.ts'));
 const webRibbon = require(path.join(FLOW, 'appsRibbonLayout.ts'));
-const webIcons = require(path.join(REPO, 'agent-hub/src/utils/integrationIcons.ts'));
-const webCatalog = require(path.join(REPO, 'agent-hub/src/config/integrationCatalog.ts'));
+const webIcons = require(webPath('utils/integrationIcons.ts'));
+const webCatalog = require(webPath('config/integrationCatalog.ts'));
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const CATALOG: PaletteCatalog = {

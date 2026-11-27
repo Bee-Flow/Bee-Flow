@@ -6,7 +6,7 @@
 
 import fs from 'node:fs';
 
-import { AGENT_HUB_SRC, loadWebFunctions, loadWebModule, webFileExists } from '@/shared/testing/webModule';
+import { loadWebFunctions, loadWebModule, webFileExists, webPath } from '@/shared/testing/webModule';
 
 import { boolValue, cellText, dateInputValue, displayValue, listValue, optionPairs } from './cellValues';
 import type { Column } from './types';
@@ -25,7 +25,7 @@ type Web = {
 
 /** A top-level `const NAME = <literal>;` of the web file, evaluated. */
 function webConstant(name: string): unknown {
-    const src = fs.readFileSync(`${AGENT_HUB_SRC}/${UI_BITS}`, 'utf8');
+    const src = fs.readFileSync(webPath(`${UI_BITS}`), 'utf8');
     const literal = new RegExp(`^(?:export )?const ${name} = (.+);$`, 'm').exec(src)?.[1];
     return new Function(`return ${literal};`)();
 }

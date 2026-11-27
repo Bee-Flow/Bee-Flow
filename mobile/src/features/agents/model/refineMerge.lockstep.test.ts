@@ -4,10 +4,12 @@
  * the port, never the fixtures.
  */
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as port from './refineMerge';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require('../../../../../agent-hub/src/components/agents/AgentWizard/state/refineMerge.ts');
+const web = require(webPath('components/agents/AgentWizard/state/refineMerge.ts'));
 
 const base: port.RefineState = {
     name: 'Helpdesk',

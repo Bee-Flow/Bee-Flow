@@ -16,11 +16,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 
 const HERE = __dirname;
-const BUILDER = path.resolve(HERE, '../../../../../../agent-hub/src/components/automation/Builder');
+const BUILDER = path.resolve(HERE, webPath('components/automation/Builder'));
 
 /** Each bespoke editor folder, and the web files it ports. */
 const WEB: Record<string, string[]> = {

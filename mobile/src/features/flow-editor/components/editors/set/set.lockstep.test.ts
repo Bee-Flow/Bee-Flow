@@ -12,11 +12,12 @@ import ts from 'typescript';
 
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState } from '@/features/flow-editor/formState';
+import { webPath } from '@/shared/testing/webModule';
 
 import { flip, pickRows } from './jsonPick';
 import { addJsonField, baseColumnsOf, collisionOf, columnsAt, jsonCandidates, keyRows, parseSampleSource, SET_OP_DEFS, setKeyAt, suggestFieldName } from './setModel';
 
-const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow');
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const webOps = require(path.join(FLOW, 'setOperations.ts'));
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */

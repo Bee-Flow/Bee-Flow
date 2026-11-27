@@ -289,6 +289,7 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `gen-shared-mirror.mjs` | gen-shared-mirror — write the generated copies of server/shared code that other packages need in their own tree, from a manifest. |
 | `gen-step-kinds.mjs` | Write server/shared/appDefinition/stepKinds.generated.mjs from the App Studio step registry (server/appStudio/componentSpecs/steps/\<kind>.js), or check that it is current. |
 | `generate-sbom.sh` | Software Bill of Materials generator for Bee Flow. |
+| `gui-screenshots.mjs` | One screenshot per screen of the signed-in web client, for the before/after comparison of plan phase 2 ("with every module present the GUI stays exactly as it is"). |
 | `i18n-key-guard.mjs` | i18n-key-guard — no English key disappears without saying so. |
 | `i18n-ratchet.mjs` | Untranslated-string ratchet — the OTHER direction of the i18n guard. |
 | `i18n-split.mjs` | i18n-split — split the monolithic English dictionary into one file per namespace. |
@@ -353,4 +354,5 @@ comment. A new script needs nothing here but a header whose first sentence says 
 | `typecheck-settle.mjs` | Make a mechanical round clean again by undoing what broke it. |
 | `vendor-name-ratchet.mjs` | Vendor-name ratchet: English UI strings in the admin namespaces that name an AI vendor or model may only go down. |
 | `vuln-watch-gate.mjs` | vuln-watch gate — turns the OSV-Scanner report and the runtime-watch report into one verdict, one SARIF file for the Security tab and one summary. |
+| `web-build-sources.mjs` | The source modules of the production build of the web client (agent-hub), by tree path, and how the build divides between the core and the first-party modules (plan phase 2, step 2.0: the baseline that proves a later … |
 <!-- scripts-index:end -->

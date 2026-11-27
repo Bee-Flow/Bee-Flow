@@ -17,7 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { AiActSignals } from '@/features/flow-editor/api';
-import { loadWebFunctions, webSourceText } from '@/shared/testing/webModule';
+import { loadWebFunctions, webPath, webSourceText } from '@/shared/testing/webModule';
 
 import { disclosureCard, markingCard } from './ladderCards';
 import { answerDomain, art5FromDenied, canRecord, orderByHints, prefill, step2State, toggleDenied } from './ladderModel';
@@ -25,7 +25,7 @@ import { ANNEX_III_CATEGORIES, ART5_PRACTICES, outcome, type Verdict } from './l
 import { ANNEX_QUESTIONS, ART5_CHIPS, containsAiWords, outcomeText, step2Verdict, step3Verdict } from './ladderWords';
 
 const LADDER = 'components/admin/compliance/ladder';
-const WEB_DIR = path.resolve(__dirname, `../../../../../../agent-hub/src/${LADDER}`);
+const WEB_DIR = webPath(`${LADDER}`);
 const MODAL = webSourceText(`${WEB_DIR}/AiActLadderModal.tsx`);
 const BLOCK = webSourceText(`${WEB_DIR}/ComplianceBlock.tsx`);
 

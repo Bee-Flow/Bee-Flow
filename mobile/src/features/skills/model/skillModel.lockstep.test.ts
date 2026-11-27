@@ -9,9 +9,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as port from './skillModel';
 
-const STUDIO = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio');
+const STUDIO = webPath('components/admin/Studio');
 
 /**
  * The web module, evaluated from its source text. It is an ES module with one

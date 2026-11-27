@@ -7,6 +7,7 @@
 
 import type { FlowDefinition } from '@/features/flow-editor/model';
 import { insertStep } from '@/features/flow-editor/model/outline';
+import { webPath } from '@/shared/testing/webModule';
 
 import { autoMapInserted } from './autoMapInsert';
 import { autoMapStep } from './autoMapStep';
@@ -19,7 +20,7 @@ interface Corpus {
     flattenMailRoot: () => { steps: Record<string, { output: unknown }> };
 }
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const corpus = require('../../../../../agent-hub/src/shared/expr/corpus.mjs') as Corpus;
+const corpus = require(webPath('shared/expr/corpus.mjs')) as Corpus;
 
 const catalog = { apps: [] };
 const mailOutput = () => corpus.flattenMailRoot().steps.g_read_many?.output;

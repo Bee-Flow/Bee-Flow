@@ -10,11 +10,12 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { RECENT_SOURCES } from './recentSources';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/utils/studioRecentSources.ts');
+const WEB = webPath('utils/studioRecentSources.ts');
 
 type Row = Record<string, unknown>;
 

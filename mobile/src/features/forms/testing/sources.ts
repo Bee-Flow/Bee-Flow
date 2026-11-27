@@ -8,10 +8,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath as webTreeFile } from '@/shared/testing/webModule';
+
 const REPO = path.resolve(__dirname, '../../../../..');
 
 export const serverPath = (rel: string): string => path.join(REPO, 'server', rel);
-export const webPath = (rel: string): string => path.join(REPO, 'agent-hub/src', rel);
+/** A web file by its path under src/, in whichever root holds it (agent-hub/ or modules/<id>/frontend/). */
+export const webPath = (rel: string): string => webTreeFile(rel);
 
 export const readServer = (rel: string): string => fs.readFileSync(serverPath(rel), 'utf8');
 export const readWeb = (rel: string): string => fs.readFileSync(webPath(rel), 'utf8');

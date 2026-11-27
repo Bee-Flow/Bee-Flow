@@ -13,9 +13,8 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import {
     LAWFUL_BASES,
@@ -34,7 +33,7 @@ import {
     writtenWords,
 } from './complianceView';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/stages/complianceView.ts');
+const WEB = webPath('components/admin/Studio/Playbooks/stages/complianceView.ts');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;

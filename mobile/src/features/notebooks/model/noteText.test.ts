@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { appendToNote, editableNote, HTML_LIKE, looksLikeHtml, readableMarkdown, storableMarkdown } from './noteText';
 
@@ -17,7 +17,7 @@ const REPO = path.resolve(__dirname, '../../../../..');
 // the mobile CI filter, so the store's use of it is what is pinned here.
 describe('the HTML sniff is the web’s, where the store decides', () => {
     it('matches the web editor’s looksLikeHtml', () => {
-        const web = fs.readFileSync(`${AGENT_HUB_SRC}/editor/serialization/util.ts`, 'utf8');
+        const web = fs.readFileSync(webPath('editor/serialization/util.ts'), 'utf8');
         expect(web).toContain(`export const looksLikeHtml = (s: string) => ${HTML_LIKE.toString()}.test(s || '');`);
     });
 

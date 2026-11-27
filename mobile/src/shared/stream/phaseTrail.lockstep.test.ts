@@ -5,18 +5,18 @@
  * fixtures are the cases the web's phaseTrail.test.js pins.
  */
 
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { appendPhase, MAX_TRAIL_STEPS, traceSpanMs, type PhaseEvent } from './phaseTrail';
 import type { PhaseTrailEntry } from './types';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src');
 /* eslint-disable @typescript-eslint/no-require-imports */
-const web = require(path.join(WEB, 'hooks/useChatEngine/phaseTrail.ts')) as {
+const web = require(webPath('hooks/useChatEngine/phaseTrail.ts')) as {
     appendPhase: (t: unknown, d: unknown, now?: number) => unknown;
     MAX_TRAIL_STEPS: number;
 };
-const webTrace = require(path.join(WEB, 'components/chat/answerTrace.ts')) as { traceSpanMs: (t: unknown) => unknown };
+const webTrace = require(webPath('components/chat/answerTrace.ts')) as { traceSpanMs: (t: unknown) => unknown };
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const start = (stage: string, detail?: string): PhaseEvent => ({ stage, status: 'start', detail });

@@ -6,7 +6,8 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { contrast, readableForeground, saturation, shift } from './color';
 import {
@@ -20,7 +21,7 @@ import {
 import { WEB_TOKENS } from './generated/webTokens.generated';
 import { PALETTES, RADII } from './tokens';
 
-const APPLY_THEME = path.resolve(__dirname, '../../../../agent-hub/src/components/theme/applyTheme.ts');
+const APPLY_THEME = webPath('components/theme/applyTheme.ts');
 
 describe('color', () => {
     it('measures WCAG contrast, and treats a non-hex value as no contrast', () => {

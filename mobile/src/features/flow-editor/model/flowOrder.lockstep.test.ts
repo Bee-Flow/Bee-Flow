@@ -7,13 +7,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { flowOrder, flowPosition, stepNumbers } from './flowOrder';
 import { LOOP_ENTRY_ID, loopBodyEdges, orderLoopBody } from './loopBodyEdges';
 import { isTerminalStep, isTerminalStepType, TERMINAL_STEP_TYPES } from './terminalSteps';
 import { clone, FIXTURES, templateDefinitions } from './testing/fixtures';
 import type { FlowDefinition, FlowStep } from './types';
 
-const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
+const FLOW = webPath('components/automation/Builder/flow');
 const REPO = path.resolve(__dirname, '../../../../..');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webOrder = require(`${FLOW}/flowOrder.ts`);

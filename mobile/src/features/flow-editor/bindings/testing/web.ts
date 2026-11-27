@@ -6,9 +6,7 @@
  * this file.
  */
 
-import path from 'node:path';
-
-const AGENT_HUB_SRC = path.resolve(__dirname, '../../../../../../agent-hub/src');
+import { webPath as webTreeFile } from '@/shared/testing/webModule';
 
 /** The web builder's folder, where most originals live. */
 export const BUILDER = 'components/automation/Builder';
@@ -16,8 +14,9 @@ export const BUILDER = 'components/automation/Builder';
 /** A web module's exports, called with whatever the test hands them. */
 export type WebModule = Record<string, (...args: unknown[]) => unknown>;
 
+/** A web file by its path under src/, in whichever root holds it (agent-hub/ or modules/<id>/frontend/). */
 export function webPath(rel: string): string {
-    return path.join(AGENT_HUB_SRC, rel);
+    return webTreeFile(rel);
 }
 
 export function requireWeb(rel: string): WebModule {

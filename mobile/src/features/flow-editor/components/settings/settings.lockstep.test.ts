@@ -18,12 +18,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import {
     CHANNELS, channelLabel, eventQualifier, eventSummary, eventTitle, EVENTS, normalizeNotificationSettings, recipientKey, recipientLabel,
     THROTTLE_OPTIONS, throttleLabel, toggleChannel, URGENCIES, urgencyLabel, whoLine, type Recipient,
 } from './notificationsModel';
 
-const SETTINGS = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder/settings');
+const SETTINGS = webPath('components/automation/Builder/settings');
 const EDITOR = fs.readFileSync(`${SETTINGS}/NotificationEventEditor.tsx`, 'utf8');
 const SECTION = fs.readFileSync(`${SETTINGS}/NotificationsSection.tsx`, 'utf8');
 // eslint-disable-next-line @typescript-eslint/no-require-imports

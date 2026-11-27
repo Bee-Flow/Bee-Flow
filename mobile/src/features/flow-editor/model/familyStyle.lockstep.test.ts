@@ -10,6 +10,7 @@
 
 import { WEB_TOKENS } from '@/core/theme/generated/webTokens.generated';
 import type { Theme } from '@/core/theme/types';
+import { webPath } from '@/shared/testing/webModule';
 
 import * as fs from './familyStyle';
 import { NODE_FAMILIES, NODE_TYPE_KEYS } from './nodeDefs';
@@ -18,7 +19,7 @@ jest.mock('lucide-react', () => new Proxy({}, { get: (_t, name) => (name === '__
 jest.mock('@/shared/ui/tint', () => ({ tint: (c: string, p: number) => `color-mix(in srgb, ${c} ${p}%, transparent)` }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require('../../../../../agent-hub/src/components/automation/Builder/flow/nodeTypeColors.ts');
+const web = require(webPath('components/automation/Builder/flow/nodeTypeColors.ts'));
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 const CSS_THEME = {

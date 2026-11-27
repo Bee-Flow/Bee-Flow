@@ -6,13 +6,13 @@
 import fs from 'node:fs';
 
 import { ApiError } from '@/core/api/client';
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { KB_REFUSAL_WORDS, kbRefusalOf, MAX_ATTACHED_KBS, sameSelection } from './kbSelection';
 
-const API = fs.readFileSync(`${AGENT_HUB_SRC}/api/conversationKbApi.ts`, 'utf8');
-const PANEL = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/InputArea/KnowledgeBasePanel.tsx`, 'utf8');
-const CLAIM = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/knowledgeBaseClaim.ts`, 'utf8');
+const API = fs.readFileSync(webPath('api/conversationKbApi.ts'), 'utf8');
+const PANEL = fs.readFileSync(webPath('components/chat/InputArea/KnowledgeBasePanel.tsx'), 'utf8');
+const CLAIM = fs.readFileSync(webPath('components/chat/knowledgeBaseClaim.ts'), 'utf8');
 
 const refused = (status: number, body?: unknown) => Object.assign(new ApiError('x'), { status, body });
 

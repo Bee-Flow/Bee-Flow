@@ -8,13 +8,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as edgesPort from './branchEdges';
 import * as opsPort from './nodeOps';
 import * as normalizePort from './normalize';
 import { clone, FIXTURES, templateDefinitions } from './testing/fixtures';
 import type { FlowDefinition } from './types';
 
-const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webEdges = require(`${FLOW}/branchEdges.ts`);
 const webNormalize = require(`${FLOW}/normalizeDefinition.ts`);

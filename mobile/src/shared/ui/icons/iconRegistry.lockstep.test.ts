@@ -19,10 +19,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { ICON_REGISTRY, WEB_FALLBACK_ICON, WEB_ICON_NAMES } from './registry.generated';
 
 const MOBILE = path.resolve(__dirname, '../../../..');
-const WEB_REGISTRY = path.resolve(MOBILE, '../agent-hub/src/components/icons/iconRegistry.ts');
+const WEB_REGISTRY = path.resolve(MOBILE, webPath('components/icons/iconRegistry.ts'));
 const LUCIDE_BARREL = path.join(MOBILE, 'node_modules/lucide-react-native/dist/esm/lucide-react-native.mjs');
 
 const webSrc = fs.readFileSync(WEB_REGISTRY, 'utf8');

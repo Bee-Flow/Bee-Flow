@@ -7,10 +7,10 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 
 import { _reset } from '@/core/i18n';
 import type { DocumentContract, DocumentParameter, DocumentTemplate } from '@/features/flow-editor/api';
+import { webPath } from '@/shared/testing/webModule';
 
 import {
     duplicateNameSuffix,
@@ -33,10 +33,10 @@ import {
 import { specFor } from '../declarative/specs';
 
 const WEB = fs
-    .readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/actionEditors/documentFields.tsx'), 'utf8')
+    .readFileSync(webPath('components/automation/Builder/flow/settings/actionEditors/documentFields.tsx'), 'utf8')
     .replace(/\s+/g, ' ');
 const WEB_LABEL = fs
-    .readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/actionEditors/documentOptionLabel.ts'), 'utf8')
+    .readFileSync(webPath('components/automation/Builder/flow/settings/actionEditors/documentOptionLabel.ts'), 'utf8')
     .replace(/\s+/g, ' ');
 
 const param = (over: Partial<DocumentParameter>): DocumentParameter => ({
