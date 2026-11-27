@@ -7,7 +7,6 @@
  * required at mount time.
  */
 
-const { bestEffort } = require('../utils/bestEffort');
 
 /** @typedef {import('../modules/firstParty/contract').MountRow} MountRow */
 /** @typedef {import('../modules/firstParty/contract').Gates} Gates */
@@ -38,7 +37,7 @@ const notebookKillSwitch = async (req, res, next) => {
         if (enabled === false) {
             return res.status(403).json({ error: 'Notebooks feature is disabled' });
         }
-    } catch (err) { bestEffort('routes/ai:notebookKillSwitch', err); /* fail open on the operator kill-switch only */ }
+    } catch (err) { require('../utils/bestEffort').bestEffort('routes/ai:notebookKillSwitch', err); /* fail open on the operator kill-switch only */ }
     next();
 };
 

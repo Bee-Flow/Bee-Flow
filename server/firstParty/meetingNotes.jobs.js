@@ -9,7 +9,7 @@
 
 'use strict';
 
-const defaultLog = require('../telemetry/log');
+const defaultLog = require('../modules/firstParty/partLog');
 
 /** @type {import('../modules/firstParty/contract').JobRow[]} */
 const jobs = [

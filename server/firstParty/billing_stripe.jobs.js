@@ -8,8 +8,7 @@
 
 'use strict';
 
-const log = require('../telemetry/log');
-const { bestEffort } = require('../utils/bestEffort');
+const log = require('../modules/firstParty/partLog');
 
 /**
  * Stripe configuration sanity check. If Stripe is enabled but the webhook
@@ -89,7 +88,7 @@ async function runPaygDrain() {
             log.info(`[PaygDrain] delivered=${r.delivered} failed=${r.failed} hard_failed=${r.hardFailed}`);
         }
     } catch (e) { ok = false; log.error('[PaygDrain] tick error:', /** @type {Error} */ (e).message); }
-    finally { try { require('../telemetry/metrics').recordJobRun({ job: 'payg_drain', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 }); } catch (err) { bestEffort('boot/startupBilling:runPaygDrain', err); /* best-effort */ } }
+    finally { try { require('../telemetry/metrics').recordJobRun({ job: 'payg_drain', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 }); } catch (err) { require('../utils/bestEffort').bestEffort('boot/startupBilling:runPaygDrain', err); /* best-effort */ } }
 }
 
 /**

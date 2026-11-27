@@ -8,7 +8,7 @@
 
 'use strict';
 
-const defaultLog = require('../telemetry/log');
+const defaultLog = require('../modules/firstParty/partLog');
 
 /**
  * Webpage full-tier runtime (per-project Node/Vite dev container) — GATED + INERT by default.

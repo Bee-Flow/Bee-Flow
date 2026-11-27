@@ -11,7 +11,6 @@
  * so an absent apps never fails this module.
  */
 
-const { optionalModuleFile } = require('../boot/optionalModuleFile');
 
 /** @typedef {import('../modules/firstParty/contract').MountRow} MountRow */
 
@@ -19,7 +18,7 @@ const { optionalModuleFile } = require('../boot/optionalModuleFile');
  * Is the builder toolset switched on? False when the module that owns it is absent.
  * @param {() => { isEnabled: () => boolean }} load requires the toolset's mcpBuilder
  */
-const switchedOn = (load) => optionalModuleFile(load)?.isEnabled() === true;
+const switchedOn = (load) => require('../boot/optionalModuleFile').optionalModuleFile(load)?.isEnabled() === true;
 
 /** @type {MountRow[]} */
 const mounts = [
