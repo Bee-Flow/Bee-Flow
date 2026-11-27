@@ -17,10 +17,7 @@ function register() {
         'compliance/events': () => require('../compliance/events'),
         'legal/legalStore': () => require('../legal/legalStore'),
         'compliance/dataPortability/stampExport': () => require('../compliance/dataPortability/stampExport'),
-        'compliance/events': () => require('../compliance/events'),
         'compliance/marking': () => require('../compliance/marking'),
-        'stores/complianceStore': () => require('../stores/complianceStore'),
-        'compliance/events': () => require('../compliance/events'),
         'stores/dpiaStore': () => require('../stores/dpiaStore'),
         'compliance/kbQueryLogEvidence': () => require('../compliance/kbQueryLogEvidence'),
     }));

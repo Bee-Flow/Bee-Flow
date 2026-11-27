@@ -16,7 +16,6 @@ function register() {
         'services/webpageSnapshot': () => require('../services/webpageSnapshot'),
         'stores/webpageStore': () => require('../stores/webpageStore'),
         'auth/webpagePreviewToken': () => require('../auth/webpagePreviewToken'),
-        'stores/webpageStore': () => require('../stores/webpageStore'),
         'core/webpages/webpageUsageSync': () => require('../core/webpages/webpageUsageSync'),
         'core/webpages/sidePanelWebpageContext': () => require('../core/webpages/sidePanelWebpageContext'),
         'integrations/webpageBuilderTools': () => require('../integrations/webpageBuilderTools'),

@@ -33,7 +33,6 @@ function registerFeatureModules() {
         'automation/mcpBuilder': () => require('../automation/mcpBuilder'),
         'stores/automationStore/core': () => require('../stores/automationStore/core'),
         'stores/automationStore': () => require('../stores/automationStore'),
-        'stores/automationStore': () => require('../stores/automationStore'),
         'core/runEventBus': () => require('../core/runEventBus'),
         'automation/agentBinding': () => require('../automation/agentBinding'),
         'automation/access': () => require('../automation/access'),
