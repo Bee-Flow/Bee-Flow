@@ -1,21 +1,37 @@
 import type { TranslateFn } from '@/hooks/useTranslation';
+import type { ActivityTone } from './coworkOrbFrame';
+import type { OrbWork } from './CoworkOrbSources';
 
-export function coworkIntroStory(t: TranslateFn) {
+/** One moment of the tour: what Bee says, what the orb does, and what is shown under the line. */
+export interface IntroBeat {
+    id: string;
+    line: string;
+    action: NonNullable<OrbWork['action']>;
+    tone: ActivityTone;
+    /** The step of the plan that is in progress. The step rail shows only while there is one. */
+    step?: string;
+    /** What you say to Bee, as a chat bubble. */
+    said?: string;
+    /** What Bee shows you, as a card (Markdown). */
+    sample?: string;
+    /** The team desk card, before or after Noor accepted. */
+    desk?: 'invited' | 'connected';
+}
+
+/** The tour as one conversation: you ask, Bee builds and tests, you get the result, the team joins. */
+export function coworkIntroStory(t: TranslateFn): IntroBeat[] {
     return [
-        { id: 'hello', action: 'rest', line: t("cowork_home.tour.hello", "Hi, I’m Bee. It’s Friday afternoon and your team has just wrapped up its last meeting."), sample: '' },
-        { id: 'request', action: 'thinking', line: t("cowork_home.tour.request", "On Monday you’ll want this week’s decisions in one place. Just ask, in your own words."), sample: t("cowork_home.story.request_sample", "“Make me a weekly meeting digest.”") },
-        { id: 'time', action: 'ask', line: t("cowork_home.tour.time", "Weekly, got it. When should it be ready?"), sample: t("cowork_home.story.time_sample", "**When should I run?**\n\nMonday · 09:00") },
-        { id: 'integrations', action: 'thinking', line: t("cowork_home.tour.integrations", "I look up your meetings in Meeting Notes, using only what you’re allowed to see."), sample: t("cowork_home.story.integrations_sample", "**Meeting Notes · Search results**\n\nPilot meeting · 20 November · Selected") },
-        { id: 'fetch_note', action: 'executing', line: t("cowork_home.tour.fetch_note", "Here’s Friday’s pilot meeting. I save it to your team’s table, so Monday’s run has something to read."), sample: t("cowork_home.story.fetch_sample", "**Pilot meeting · 20 November**\n\nDecision · The pilot starts Monday.\n\nAction · Alex shares the checklist on Friday.") },
-        { id: 'plan', action: 'creating', line: t("cowork_home.tour.plan", "Every Monday at nine, I look back at the week before."), sample: '' },
-        { id: 'try', action: 'testing', line: t("cowork_home.tour.try", "Before anything goes live, I test it. One note turns out to have no summary."), sample: '' },
-        { id: 'fix', action: 'repair', line: t("cowork_home.tour.fix", "So I adjust the check and test again. Empty notes are skipped and counted."), sample: t("cowork_home.story.fix_sample", "**Second trial** · 2 rows in the date range\n\n1 summary usable · 1 empty row skipped\n\nIf the usable count is zero, stop before the writing step.") },
-        { id: 'digest', action: 'thinking', line: t("cowork_home.tour.digest", "Test passed. Here’s your digest: decisions, owners and deadlines."), sample: t("cowork_home.story.digest_sample", "### Weekly digest\n\n**Decision** · The pilot starts Monday.\n\n**Action** · Alex will share the checklist on Friday.") },
-        { id: 'edit', action: 'edit', line: t("cowork_home.tour.edit", "Rather see it per person? Just say so."), sample: t("cowork_home.story.edit_sample", "“Group actions by owner and show the deadline.”") },
-        { id: 'approve', action: 'saving', line: t("cowork_home.tour.approve", "Done. Approve it once and I’ll run it every Monday."), sample: t("cowork_home.story.approve_sample", "### Alex\n\nShare the pilot checklist · **Friday**\n\n**Ready for your approval** · Mondays at 09:00") },
-        { id: 'share', action: 'deliver', line: t("cowork_home.tour.share", "Want Noor to follow along? Share the task, or link it to hers."), sample: t("cowork_home.story.share_sample", "**Share task with Noor** · View results\n\n**Team desk** · Weekly digest → Prepare team agenda") },
-        { id: 'desk', action: 'creating', line: t("cowork_home.tour.desk", "On a team desk, your digest can kick off Noor’s Monday agenda."), sample: '' },
-        { id: 'handoff', action: 'executing', line: t("cowork_home.tour.handoff", "She runs her part with her own apps and permissions. Only the result is passed on."), sample: '' },
-        { id: 'control', action: 'edit', line: t("cowork_home.tour.control", "Prefer to steer yourself? Advanced puts the schedule, model and steps in one place."), sample: t("cowork_home.story.control_sample", "**Schedule** · Monday, 09:00\n\n**Model** · Thinking\n\n**Source** · Selected Meeting Notes summaries in your Bee Flow table") },
-    ] as const;
+        { id: 'hello', action: 'rest', tone: 'rest', line: t("cowork_home.tour.hello", "Hi, I’m Bee. Give me a minute and I’ll show you how we work together.") },
+        { id: 'request', action: 'rest', tone: 'rest', line: t("cowork_home.tour.request", "Imagine a week full of meetings. Just tell me what you need, in your own words."), said: t("cowork_home.tour.request_said", "Make me a weekly digest of our meetings.") },
+        { id: 'time', action: 'ask', tone: 'thinking', line: t("cowork_home.tour.time", "A weekly digest, got it. When do you want it?"), said: t("cowork_home.tour.time_said", "Monday morning at nine.") },
+        { id: 'find', action: 'executing', tone: 'executing', line: t("cowork_home.tour.find", "First I find your meetings in Meeting Notes. I only see what you’re allowed to see."), sample: t("cowork_home.tour.find_sample", "**Meeting Notes** · Pilot meeting\n\nDecision · The pilot starts Monday.\n\nAction · Alex shares the checklist on Friday.") },
+        { id: 'plan', action: 'creating', tone: 'thinking', step: 'week', line: t("cowork_home.tour.plan", "Then I turn your request into steps. They run every Monday at nine.") },
+        { id: 'try', action: 'testing', tone: 'executing', step: 'check', line: t("cowork_home.tour.try", "Before anything goes live, I try it out. One note turns out to be empty.") },
+        { id: 'fix', action: 'repair', tone: 'repair', step: 'check', line: t("cowork_home.tour.fix", "So I skip empty notes and try again."), sample: t("cowork_home.tour.fix_sample", "**Second try** · passed\n\n1 note read · 1 empty note skipped") },
+        { id: 'digest', action: 'thinking', tone: 'thinking', step: 'write', line: t("cowork_home.tour.digest", "It works. Here’s your digest: decisions, owners and deadlines."), sample: t("cowork_home.story.digest_sample", "### Weekly digest\n\n**Decision** · The pilot starts Monday.\n\n**Action** · Alex will share the checklist on Friday.") },
+        { id: 'edit', action: 'edit', tone: 'rest', step: 'write', line: t("cowork_home.tour.edit", "Want it differently? Just say so."), said: t("cowork_home.tour.edit_said", "Group the actions per person, with the deadline.") },
+        { id: 'approve', action: 'saving', tone: 'rest', step: 'result', line: t("cowork_home.tour.approve", "Done. Approve it once and I’ll run it every Monday."), sample: t("cowork_home.story.approve_sample", "### Alex\n\nShare the pilot checklist · **Friday**\n\n**Ready for your approval** · Mondays at 09:00") },
+        { id: 'desk', action: 'creating', tone: 'rest', desk: 'invited', line: t("cowork_home.tour.desk", "Working with others? On a team desk, your digest kicks off Noor’s agenda.") },
+        { id: 'handoff', action: 'deliver', tone: 'executing', desk: 'connected', line: t("cowork_home.tour.handoff", "Noor runs her part with her own apps and permissions. Only the result is passed on.") },
+    ];
 }

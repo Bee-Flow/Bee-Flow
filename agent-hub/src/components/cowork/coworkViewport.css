@@ -196,47 +196,110 @@
     }
 }
 
-.cowork-intro { flex: 1; min-height: 0; overflow: auto; text-align: center; align-content: safe center; padding: 1rem; }
-.cowork-intro .cowork-orb { width: min(34vh, 20rem, 85%); margin-inline: auto; }
-.cowork-intro-line { max-width: 37rem; margin: .75rem auto; font-size: clamp(1.1rem, 2vw, 1.5rem); line-height: 1.35; }
-.cowork-intro-sample { max-width: 25rem; margin: 1rem auto; text-align: start; }
-.cowork-intro-controls { display: flex; justify-content: center; flex-wrap: wrap; align-items: center; gap: .75rem; }
-@media (prefers-reduced-motion: no-preference) {
-    .cowork-intro-line { animation: cowork-intro-speak .48s ease-out both; }
-    @keyframes cowork-intro-speak { from { opacity: 0; transform: translateY(.2rem); } to { opacity: 1; transform: none; } }
+/* The introduction: Bee (the orb) says one line at a time and shows something under it.
+   Every region keeps its size from scene to scene, so the content changes and the layout never does:
+   the step rail is always laid out and only fades, the caption reserves its lines, the stage its height. */
+.cowork-intro {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+    gap: .5rem;
+    padding: 1rem;
+    text-align: center;
+    --cowork-intro-orb: min(32vh, 20rem, 85cqw);
+}
+.cowork-intro > small { flex: none; font-size: .8125rem; color: var(--text-secondary); }
+.cowork-intro-workspace { flex: none; display: grid; justify-items: center; align-items: center; width: min(100%, 72rem); }
+.cowork-intro-orb { width: var(--cowork-intro-orb); }
+.cowork-intro .cowork-orb { width: 100%; }
+.cowork-intro-rail { min-width: 0; max-width: 100%; text-align: start; }
+.cowork-intro-rail[data-shown="false"] { visibility: hidden; opacity: 0; }
+.cowork-intro-rail .cowork-step-rail ol { max-height: none; overflow: visible; padding: 0; }
+.cowork-intro-rail .cowork-step-rail small { display: none; }
+.cowork-intro-rail .cowork-step-rail li[aria-current] ~ li { opacity: .45; }
+
+/* Next to Bee where there is room for it. */
+@container (min-width: 50rem) {
+    .cowork-intro-workspace { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: clamp(1rem, 3cqw, 2.5rem); }
+    .cowork-intro-orb { grid-column: 2; }
+    .cowork-intro-rail { grid-column: 3; justify-self: start; width: min(100%, 17rem); }
+    .cowork-intro-rail .cowork-step-rail li + li { margin-top: .1rem; }
+    .cowork-intro-rail .cowork-step-rail button { padding: .35rem .6rem; }
+}
+/* Under Bee in a narrow pane: the steps as one row of tiles, and only the step in progress has its name. */
+@container (max-width: 49.99rem) {
+    .cowork-intro-rail .cowork-step-rail h2 { display: none; }
+    .cowork-intro-rail .cowork-step-rail ol { display: flex; justify-content: center; gap: .25rem; }
+    .cowork-intro-rail .cowork-step-rail li { min-width: 0; margin: 0; }
+    .cowork-intro-rail .cowork-step-rail li:not([aria-current]) { flex: none; }
+    .cowork-intro-rail .cowork-step-rail button { display: flex; gap: .4rem; width: auto; max-width: 100%; padding: .125rem; }
+    .cowork-intro-rail .cowork-step-rail li[aria-current] button { padding-inline-end: .6rem; }
+    .cowork-intro-rail .cowork-step-rail li:not([aria-current]) button > :last-child { display: none; }
+    .cowork-intro-rail .cowork-step-rail strong { font-size: .75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
-.cowork-intro-guided { display: flex; flex-direction: column; align-items: center; justify-content: safe center; }
-.cowork-intro-stage { width: min(100%, 42rem); min-height: 15rem; }
-.cowork-intro-guided > small { margin-bottom: .5rem; }
-.cowork-intro-guided > button { margin-block-end: -2.25rem; }
-
-.cowork-story-caption { min-height: 5.5rem; }
-.cowork-intro-stage { min-height: min(23rem, 43vh); }
-.cowork-story-paper { padding: .85rem 1.15rem; background: var(--bg-card); border-inline-start: 2px solid var(--border-default); }
-@media (prefers-reduced-motion: no-preference) {
-    .cowork-story-caption .cowork-intro-line { animation: none; }
-    .cowork-story-caption span { animation: cowork-story-phrase .6s cubic-bezier(.2, .7, .2, 1) backwards; }
-    .cowork-story-evidence > div { animation: cowork-intro-speak .6s .25s cubic-bezier(.2, .7, .2, 1) backwards; }
-    .cowork-story-evidence .cowork-step-rail li { transition: opacity .45s ease; }
-    .cowork-story-evidence .cowork-step-rail li:not([aria-current]) { opacity: .65; }
-    @keyframes cowork-story-phrase { from { opacity: 0; filter: blur(3px); transform: translateY(.3rem); } to { opacity: 1; filter: blur(0); transform: none; } }
+.cowork-intro-stage { flex: none; width: min(100%, 42rem); min-height: min(18rem, 42vh); }
+/* Three lines of Bee at phone width, two where a line is wider. */
+.cowork-story-caption { font-size: clamp(1.1rem, 2vw, 1.5rem); line-height: 1.35; min-height: calc(4.05em + 1rem); }
+@container (min-width: 36rem) {
+    .cowork-story-caption { min-height: calc(2.7em + 1rem); }
 }
+.cowork-intro-stage:has(.cowork-intro-choices) .cowork-story-caption { min-height: 0; }
+.cowork-intro-line { max-width: 37rem; margin: .5rem auto; font-size: inherit; line-height: inherit; text-wrap: balance; }
+.cowork-intro-sample { width: min(100%, 25rem); margin: .75rem auto 0; text-align: start; }
+.cowork-story-paper { padding: .85rem 1.15rem; border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-card); }
+/* Your own words, as in the conversation: the bubble of .cowork-turn-user. */
+.cowork-story-said { width: fit-content; max-width: min(100%, 25rem); padding: .5rem .95rem; border-radius: 1rem; background: var(--bg-secondary); }
 
-@media (prefers-reduced-motion: no-preference) {
-    .cowork-intro-stage { transition: opacity .3s ease, transform .3s ease, filter .3s ease; }
-    .cowork-intro-stage[data-leaving="true"] { opacity: 0; transform: translateY(-.3rem); filter: blur(2px); }
-}
-
-.cowork-intro-orb { width: 100%; }
-.cowork-intro-desk { display: grid; gap: .4rem; padding: .9rem 1.15rem; border-radius: var(--radius-md); background: var(--bg-card); }
+.cowork-intro-desk { display: grid; gap: .4rem; padding: .9rem 1.15rem; border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-card); }
 .cowork-intro-desk :is(strong, div, small) { display: flex; align-items: center; gap: .6rem; }
 .cowork-intro-desk strong { margin-bottom: .35rem; }
-.cowork-intro-desk small { color: var(--text-secondary); }
+.cowork-intro-desk small { margin-top: .35rem; font-size: .75rem; color: var(--text-secondary); }
+.cowork-intro-desk > svg, .cowork-intro-desk small svg { color: var(--text-tertiary); }
+.cowork-intro-desk[data-connected="true"] > svg, .cowork-intro-desk[data-connected="true"] small svg { color: var(--success); }
 
-.cowork-intro-guided { container-type: inline-size; }
-.cowork-intro-workspace { width: min(100%, 72rem); flex: none; }
-.cowork-intro-workspace .cowork-workspace-steps { text-align: start; }
-@container (max-width: 35.99rem) {
-    .cowork-intro-workspace.has-steps { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: .5rem; }
+.cowork-intro-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .6rem; width: 100%; margin-top: .75rem; }
+.cowork-intro-choices button { display: grid; align-content: start; justify-content: start; justify-items: start; gap: .15rem; height: 100%; padding: .7rem .9rem; text-align: start; }
+.cowork-intro-choices strong { font-size: .875rem; font-weight: 600; }
+.cowork-intro-choices small { font-size: .75rem; font-weight: 400; line-height: 1.35; opacity: .8; text-wrap: balance; }
+
+.cowork-intro-footer { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .25rem .5rem; min-height: 2.75rem; color: var(--text-secondary); font-size: .8125rem; }
+.cowork-intro-footer button { color: inherit; }
+.cowork-intro-footer button:hover:enabled { color: var(--text-primary); }
+.cowork-intro-footer button:disabled { opacity: .35; }
+.cowork-intro-dots { display: flex; align-items: center; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+.cowork-intro-dots li { width: .3rem; height: .3rem; border-radius: 1rem; background: color-mix(in srgb, var(--text-secondary) 30%, transparent); }
+.cowork-intro-dots li[data-state="done"] { background: color-mix(in srgb, var(--text-secondary) 75%, transparent); }
+.cowork-intro-dots li[data-state="now"] { width: 1rem; background: var(--text-primary); }
+/* With room for it, Back, the dots and Next sit under Bee, and Skip stands beside them. */
+@container (min-width: 36rem) {
+    .cowork-intro-footer[data-tour] { display: grid; grid-template-columns: 1fr auto auto auto 1fr; width: 100%; }
+    .cowork-intro-footer[data-tour] > :first-child { grid-column: 2; }
+    .cowork-intro-footer[data-tour] > :last-child { justify-self: start; }
+}
+
+/* A scene fades out upwards, the next line arrives sentence by sentence as Bee says it, and what she shows follows.
+   Nothing here leaves a transform or a filter on text at rest. */
+@media (prefers-reduced-motion: no-preference) {
+    .cowork-story-caption, .cowork-story-evidence { transition: opacity .26s ease, translate .26s ease; }
+    .cowork-intro-stage > [data-leaving="true"] { opacity: 0; translate: 0 -.3rem; }
+    .cowork-intro-line span { animation: cowork-intro-say .5s ease-out backwards; }
+    .cowork-intro-line span:nth-child(2) { animation-delay: .32s; }
+    .cowork-intro-line span:nth-child(n + 3) { animation-delay: .64s; }
+    .cowork-story-evidence > :not(.cowork-intro-choices), .cowork-intro-choices > button { animation: cowork-intro-show .5s .4s cubic-bezier(.2, .7, .2, 1) backwards; }
+    .cowork-intro-choices > button:nth-child(1) { animation-delay: .3s; }
+    .cowork-intro-choices > button:nth-child(3) { animation-delay: .5s; }
+    .cowork-intro-rail { transition: opacity .35s ease, translate .35s ease; }
+    .cowork-intro-rail[data-shown="false"] { translate: 0 -.3rem; transition: opacity .25s ease, translate .25s ease, visibility 0s .25s; }
+    .cowork-intro-rail .cowork-step-rail li { transition: opacity .4s ease; }
+    .cowork-intro-rail .cowork-step-rail button { transition: background-color .4s ease; }
+    .cowork-intro-dots li { transition: width .3s ease, background-color .3s ease; }
+    .cowork-intro-desk svg { transition: color .4s ease; }
+    @keyframes cowork-intro-say { from { opacity: 0; filter: blur(3px); } }
+    @keyframes cowork-intro-show { from { opacity: 0; translate: 0 .35rem; } }
 }
