@@ -21,10 +21,13 @@ const teamsNotes = require('../core/meetingNotes/teamsNotesSettings');
 const { fallback } = require('../utils/bestEffort');
 const { sessionUser } = require('../core/http/sessionUser');
 
+const SOURCE_TEXT = "source is 'recording', 'transcript', or null for no opinion.";
+
 const SettingsBody = bodyOf({
     ...toggleFields,
     language: z.string({ error: typeError({ invalid: LANGUAGE_TEXT }) }).trim().min(1, LANGUAGE_TEXT).max(35, LANGUAGE_TEXT).nullable().optional(),
     lookbackHours: lookbackHoursField,
+    source: z.enum(['recording', 'transcript'], { error: () => SOURCE_TEXT }).nullable().optional(),
     // The settings screens send back the GET they loaded; the stamp is rewritten on save.
     updatedAt: z.string().nullish(),
     updatedBy: z.string().nullish(),

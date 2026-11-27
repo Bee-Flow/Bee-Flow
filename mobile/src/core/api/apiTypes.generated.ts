@@ -6186,6 +6186,7 @@ export interface ApiOperations {
         autoRecordConfig?: boolean | null;
         language?: string | null;
         lookbackHours?: number | null;
+        source?: 'recording' | 'transcript' | null;
         updatedAt?: string | null;
         updatedBy?: string | null;
     }>;
@@ -6195,6 +6196,7 @@ export interface ApiOperations {
         autoRecordConfig?: boolean | null;
         language?: string | null;
         lookbackHours?: number | null;
+        source?: 'recording' | 'transcript' | null;
         updatedAt?: string | null;
         updatedBy?: string | null;
     }>;

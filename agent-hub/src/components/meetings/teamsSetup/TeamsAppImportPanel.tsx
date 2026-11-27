@@ -153,7 +153,7 @@ interface AppImportFormProps {
 function AutoImportHint({ orgAutoImport }: { orgAutoImport: boolean | null | undefined }) {
     const { t } = useTranslation();
     if (orgAutoImport === false) return <p className="text-[12px] text-[var(--warning-ink)]">{t('teams_setup.app_import.auto_import_off_hint')}</p>;
-    if (orgAutoImport === null) return <p className="text-[12px] text-[var(--warning-ink)]">{t('teams_setup.app_import.auto_import_members_decide_hint')}</p>;
+    if (orgAutoImport === null) return <p className="text-[12px] text-[var(--warning-ink)]">{t('teams_setup.app_import.auto_import_members_decide_note')}</p>;
     return null;
 }
 
@@ -259,21 +259,28 @@ function AppImportTest({ members }: { members: TeamsMemberRow[] }) {
  * switched on (tenant linked, app registration, instance switch) and who is covered. The
  * member list comes from the members overview, so nothing here asks Microsoft.
  */
-export default function TeamsAppImportPanel() {
+interface TeamsAppImportPanelProps {
+    /** Drawn inside the organisation-wide card of the setup guide, which already names and explains it: no heading of its own. */
+    embedded?: boolean;
+}
+
+export default function TeamsAppImportPanel({ embedded = false }: TeamsAppImportPanelProps) {
     const { t } = useTranslation();
     const state = useTeamsAppImport();
     const overview = useTeamsOrgOverview(OVERVIEW_DAYS);
     const members = overview.data?.members ?? [];
 
     return (
-        <section className="flex flex-col gap-3" aria-labelledby="teams-app-import-title" data-testid="teams-app-import">
-            <div>
-                <h4 id="teams-app-import-title" className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
-                    <Building2 className="w-4 h-4 text-[var(--accent-secondary)]" aria-hidden="true" />
-                    {t('teams_setup.app_import.title')}
-                </h4>
-                <p className="text-[12px] text-[var(--text-muted)]">{t('teams_setup.app_import.intro')}</p>
-            </div>
+        <section className="flex flex-col gap-3" aria-label={t('teams_setup.app_import.title')} data-testid="teams-app-import">
+            {!embedded && (
+                <div>
+                    <h4 className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
+                        <Building2 className="w-4 h-4 text-[var(--accent-secondary)]" aria-hidden="true" />
+                        {t('teams_setup.app_import.title')}
+                    </h4>
+                    <p className="text-[12px] text-[var(--text-muted)]">{t('teams_setup.app_import.intro')}</p>
+                </div>
+            )}
             {state.isLoading && (
                 <div className={`flex items-center gap-2 px-4 py-3 ${BOX}`}>
                     <Loader2 className="w-4 h-4 animate-spin text-[var(--accent-secondary)]" aria-hidden="true" />

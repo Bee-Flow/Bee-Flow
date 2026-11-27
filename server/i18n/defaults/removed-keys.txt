@@ -3806,3 +3806,22 @@ cowork_home.story.step_write
 cowork_home.story.step_result
 cowork_home.story.desk_backup
 cowork_home.intro.choose
+
+# Teams meeting notes setup, plain-language round (2026-11): the two ways got
+# plain names, the setup group its own description, and reworded texts new keys.
+azure.m365_teams_setup_desc
+teams_setup.app_import.auto_import_members_decide_hint
+teams_setup.consent.intro
+teams_setup.consent.title
+teams_setup.guide.intro
+teams_setup.guide.option_a_desc
+teams_setup.guide.option_a_needs
+teams_setup.guide.option_a_title
+teams_setup.guide.option_b_desc
+teams_setup.guide.option_b_needs
+teams_setup.guide.option_b_title
+teams_setup.guide.step_auto_import
+teams_setup.guide.title
+teams_setup.members.intro
+teams_setup.members.title
+teams_setup.ui.admin_intro

@@ -67,7 +67,7 @@ test('rows, totals and org settings from stored state', async () => {
     assert.equal(o.windowDays, 14);
     assert.equal(o.generatedAt, '2026-11-10T08:00:00.000Z');
     assert.equal(o.truncated, true);
-    assert.deepEqual(o.settings, { autoImport: false, autoRecordConfig: null });
+    assert.deepEqual(o.settings, { autoImport: false, autoRecordConfig: null, source: null });
 
     const [amy, bob, cy, dee] = o.members;
     assert.deepEqual(amy, {

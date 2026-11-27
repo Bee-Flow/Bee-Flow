@@ -34,7 +34,7 @@ describe('TeamsConsentLinkCard', () => {
         expect(open.getAttribute('href')).toBe(URL_);
         expect(open.getAttribute('target')).toBe('_blank');
         expect(open.getAttribute('rel')).toContain('noopener');
-        expect((screen.getByRole('textbox', { name: 'Admin consent link' }) as HTMLInputElement).value).toBe(URL_);
+        expect((screen.getByRole('textbox', { name: 'Approval link for Microsoft (admin consent)' }) as HTMLInputElement).value).toBe(URL_);
         expect(screen.queryByRole('button', { name: 'Make the link' })).toBeNull();
         expect(screen.getByText(`Bee Flow records the answer if it comes back before ${new Date(AVAILABLE.expiresAt).toLocaleTimeString()}. The approval itself counts at any time.`)).toBeTruthy();
 
