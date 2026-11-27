@@ -7352,9 +7352,6 @@
   "routes/cmsPublicSite.js": {
     "complexity": {
       "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "routes/compliance/accessAudit.js": {
