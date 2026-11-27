@@ -234,8 +234,13 @@ function featureModuleNames() {
     return [...getters.keys()];
 }
 
-/** Test seam: drop one module, or all of them. */
+/**
+ * Test seam: drop one module, or all of them. The modules register their names first, so a
+ * dropped name stays dropped: without that, the first miss of optionalFeatureModule in a run
+ * without the runner's preload would register them and bring the real module back.
+ */
 function _clearFeatureModulesForTests(name) {
+    require('../modules/firstParty/registrationChannels').ensureOpen('boot/featureModules');
     if (name) getters.delete(name);
     else getters.clear();
 }
