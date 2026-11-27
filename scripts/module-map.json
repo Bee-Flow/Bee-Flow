@@ -770,7 +770,6 @@
         "migrations/add-nl-meeting-import-translations-2026-10.js",
         "migrations/add-nl-teams-setup-2026-11-translations.js",
         "core/media/ffmpeg.meetingNotes.test.js",
-        "projects/accountContentErasure.pg.test.js",
         "stores/adoption/kinds.meetingNotes.js",
         "routes/usageAdoption.authz.meetingNotes.test.js"
       ],
