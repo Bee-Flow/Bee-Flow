@@ -519,10 +519,12 @@ async function deleteOrganization(orgId) { // stepwise: cross-store erasure; eve
         // groups above, user shares with the users.
         step = 'projects';
         await run('DELETE FROM projects WHERE organization_id = $1', [orgId]);
+        // Legacy tables (./orgErasure.js onLegacyTable): erased where an older installation still has them.
+        const { onLegacyTable, dropCustomTables, eraseDashboards, eraseOrgKeyedRows } = require('./orgErasure');
         step = 'group_chats';
-        await run('DELETE FROM group_chats WHERE organization_id = $1', [orgId]);
+        await onLegacyTable(() => run('DELETE FROM group_chats WHERE organization_id = $1', [orgId]));
         step = 'tasks';
-        await run('DELETE FROM tasks WHERE organization_id = $1', [orgId]);
+        await onLegacyTable(() => run('DELETE FROM tasks WHERE organization_id = $1', [orgId]));
 
         step = 'datatable rows';
         const datatableDbStore = await require('../../modules/firstParty/moduleData').moduleForDataDuty('datatables', 'stores/datatableDbStore',
@@ -530,20 +532,10 @@ async function deleteOrganization(orgId) { // stepwise: cross-store erasure; eve
         if (datatableDbStore) await eraseOrgDatatables(orgId, datatableDbStore, (name) => { step = name; });
 
         step = 'custom_tables';
-        const customTables = await getAll('SELECT table_name FROM custom_tables WHERE organization_id = $1', [orgId]);
-        for (const ct of customTables) {
-            const safeName = ct.table_name.replace(/[^a-zA-Z0-9_]/g, '');
-            await run(`DROP TABLE IF EXISTS "${safeName}"`);
-        }
-        await run('DELETE FROM custom_tables WHERE organization_id = $1', [orgId]);
-
+        await onLegacyTable(() => dropCustomTables(orgId));
         step = 'dashboards';
-        const dashboards = await getAll('SELECT id FROM dashboards WHERE organization_id = $1', [orgId]);
-        if (dashboards.length > 0) {
-            await run('DELETE FROM dashboard_panels WHERE dashboard_id = ANY($1)', [dashboards.map(d => d.id)]);
-        }
-        await run('DELETE FROM dashboards WHERE organization_id = $1', [orgId]);
-        await require('./orgErasure').eraseOrgKeyedRows(orgId, (name) => { step = name; });
+        await onLegacyTable(() => eraseDashboards(orgId));
+        await eraseOrgKeyedRows(orgId, (name) => { step = name; });
         step = 'organizations';
         await run('DELETE FROM organizations WHERE id = $1', [orgId]);
     } catch (e) {

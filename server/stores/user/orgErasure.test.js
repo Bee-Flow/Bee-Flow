@@ -100,3 +100,50 @@ test('a missing core table is skipped; a missing module table fails the rung', a
     await pg.exec('DROP TABLE "playbooks"');
     await assert.rejects(eraseOrgKeyedRows(ORG, () => {}), /relation "playbooks" does not exist/);
 });
+
+// ── Legacy tables: group_chats, tasks, custom_tables, dashboards, dashboard_panels ──────────────
+// No file of the tree creates them. An older installation has them; a database migrated from
+// empty does not, and deleting an organisation there must not fail at the first of them.
+
+const { onLegacyTable, dropCustomTables, eraseDashboards } = require('./orgErasure');
+
+const LEGACY = ['group_chats', 'tasks', 'custom_tables', 'dashboards', 'dashboard_panels', 'ct_org_gone_orders'];
+const dropLegacy = async () => { for (const t of LEGACY) await pg.exec(`DROP TABLE IF EXISTS "${t}"`); };
+const present = async (/** @type {string} */ table) => (await pg.query('SELECT to_regclass($1) IS NOT NULL AS present', [table])).rows[0].present;
+const rowsOf = async (/** @type {string} */ table) => (await pg.query(`SELECT * FROM "${table}"`)).rows;
+
+test('a legacy table that is not there is skipped; any other failure still fails the step', async () => {
+    await dropLegacy();
+    assert.equal(await onLegacyTable(() => pg.query('DELETE FROM group_chats WHERE organization_id = $1', [ORG])), undefined);
+    assert.equal(await onLegacyTable(() => dropCustomTables(ORG)), undefined);
+    assert.equal(await onLegacyTable(() => eraseDashboards(ORG)), undefined);
+    await assert.rejects(onLegacyTable(() => pg.query('SELECT 1 FROM organizations_no WHERE nope = ', [])), (/** @type {any} */ e) => e.code !== '42P01');
+    await assert.rejects(onLegacyTable(async () => { throw new Error('connection lost'); }), /connection lost/);
+});
+
+test('where an older installation has them, the organisation\'s rows and its custom tables go, another organisation\'s stay', async () => {
+    await dropLegacy();
+    await pg.exec(`CREATE TABLE custom_tables (table_name TEXT, organization_id TEXT);
+        CREATE TABLE ct_org_gone_orders (id TEXT);
+        CREATE TABLE dashboards (id TEXT, organization_id TEXT);
+        CREATE TABLE dashboard_panels (dashboard_id TEXT)`);
+    await pg.query(`INSERT INTO custom_tables VALUES ('ct_org_gone_orders', $1), ('ct_other', 'org-stays')`, [ORG]);
+    await pg.query(`INSERT INTO dashboards VALUES ('d1', $1), ('d2', 'org-stays')`, [ORG]);
+    await pg.query(`INSERT INTO dashboard_panels VALUES ('d1'), ('d2')`);
+
+    await onLegacyTable(() => dropCustomTables(ORG));
+    await onLegacyTable(() => eraseDashboards(ORG));
+
+    assert.equal(await present('ct_org_gone_orders'), false, 'the physical custom table is dropped');
+    assert.deepEqual(await rowsOf('custom_tables'), [{ table_name: 'ct_other', organization_id: 'org-stays' }]);
+    assert.deepEqual(await rowsOf('dashboards'), [{ id: 'd2', organization_id: 'org-stays' }]);
+    assert.deepEqual(await rowsOf('dashboard_panels'), [{ dashboard_id: 'd2' }]);
+});
+
+test('dashboards without a panel table still lose the organisation\'s dashboards', async () => {
+    await dropLegacy();
+    await pg.exec('CREATE TABLE dashboards (id TEXT, organization_id TEXT)');
+    await pg.query(`INSERT INTO dashboards VALUES ('d1', $1), ('d2', 'org-stays')`, [ORG]);
+    await onLegacyTable(() => eraseDashboards(ORG));
+    assert.deepEqual(await rowsOf('dashboards'), [{ id: 'd2', organization_id: 'org-stays' }]);
+});

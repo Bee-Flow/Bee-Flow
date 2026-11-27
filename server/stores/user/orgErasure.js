@@ -16,7 +16,7 @@
 
 'use strict';
 
-const { run } = require('../../db');
+const { run, getAll } = require('../../db');
 const { isMissingTable } = require('../../utils/isMissingTable');
 const { erasurePort } = require('./erasurePorts');
 const { moduleOfTable, erasesTable } = require('./erasureCoverage');
@@ -70,4 +70,43 @@ async function eraseOrgKeyedRows(orgId, at) {
     }
 }
 
-module.exports = { ORG_KEYED_TABLES, eraseOrgKeyedRows };
+/**
+ * One step of the cascade on a LEGACY table: group_chats, tasks, custom_tables, dashboards and
+ * dashboard_panels belong to features that are gone, and no file of this tree creates them. An
+ * installation from before has them and its rows must go with the organisation; a database
+ * migrated from empty does not, and the step is skipped there. Without this skip the missing
+ * table fails the whole cascade, and an organisation of a fresh installation cannot be deleted.
+ * @template T
+ * @param {() => Promise<T>} step
+ * @returns {Promise<T | undefined>}
+ */
+async function onLegacyTable(step) {
+    try {
+        return await step();
+    } catch (e) {
+        if (!isMissingTable(e)) throw e;
+        return undefined;
+    }
+}
+
+/** The organisation's custom tables (legacy): each physical table, then the rows that named them. @param {string} orgId */
+async function dropCustomTables(orgId) {
+    const customTables = await getAll('SELECT table_name FROM custom_tables WHERE organization_id = $1', [orgId]);
+    for (const ct of customTables) {
+        const safeName = ct.table_name.replace(/[^a-zA-Z0-9_]/g, '');
+        await run(`DROP TABLE IF EXISTS "${safeName}"`);
+    }
+    await run('DELETE FROM custom_tables WHERE organization_id = $1', [orgId]);
+}
+
+/** The organisation's dashboards (legacy): their panels first. @param {string} orgId */
+async function eraseDashboards(orgId) { // stepwise: part of deleteOrganization's erasure; panels before dashboards, each statement idempotent, deleting again finishes it
+    const dashboards = await getAll('SELECT id FROM dashboards WHERE organization_id = $1', [orgId]);
+    if (dashboards.length > 0) {
+        // Its own step: a database with dashboards but no panel table still loses the dashboards.
+        await onLegacyTable(() => run('DELETE FROM dashboard_panels WHERE dashboard_id = ANY($1)', [dashboards.map((d) => d.id)]));
+    }
+    await run('DELETE FROM dashboards WHERE organization_id = $1', [orgId]);
+}
+
+module.exports = { ORG_KEYED_TABLES, eraseOrgKeyedRows, onLegacyTable, dropCustomTables, eraseDashboards };
