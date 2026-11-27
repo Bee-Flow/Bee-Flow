@@ -268,26 +268,27 @@ license server.
 
 ## Composition — `firstParty/`
 
-The server is composed by hand in a few lists: the route table in `index.js` and
-`routes/ai.js`, the registries in `boot/` and `integrations/`, the startup jobs in
+The server used to be composed by hand in a few lists: the route table in `index.js`
+and `routes/ai.js`, the registries in `boot/` and `integrations/`, the startup jobs in
 `boot/startupJobs.js`, the shutdown in `boot/lifecycle.js`, the store list in
-`storeModules.js` and the migrations in `boot/bootMigrations.js`. The rows of those
-lists that belong to a first-party module move, one kind at a time, into that
-module's **composition**: `firstParty/<id>.js` (its id, `requires` and `uses`) plus
-one part file per kind, `firstParty/<id>.mounts.js`, `.register.js`, `.jobs.js` and
-`.stores.js`. The files belong to their module (`scripts/module-map.json`) and move
-with it to `modules/<id>/server/firstParty/` without changing their tree path.
+`storeModules.js` and the migrations in `boot/bootMigrations.js`. Those files now hold
+the core's rows only. The rows that belong to a first-party module live in that
+module's **composition**: `firstParty/<id>.js` (its id, `requires` and `uses`) plus one
+part file per kind, `firstParty/<id>.mounts.js`, `.register.js`, `.jobs.js` and
+`.stores.js`, and `firstParty/<id>.provides.json` for the names it registers. The files
+belong to their module (`scripts/module-map.json`) and move with it to
+`modules/<id>/server/firstParty/` without changing their tree path.
 `layering.test.js` classifies `firstParty/` as an **entry**: wiring is its whole job.
 
 The core asks `modules/firstParty/loader.js` for those rows (the contract is
 `modules/firstParty/contract.js`). The loader finds the compositions by listing the
-tree, never by a require, so nothing in the core names a module's file. Every module
-it sees is in one of three states (`modules/firstParty/moduleState.js`): **absent**
-(no composition, hidden in core mode, or unavailable in this edition), **loaded**, or
-**failed** (its composition throws or breaks the contract, it requires a module that
-is absent or failed, or a mount or registration of it throws). A failed module
-contributes nothing more, and an optional lookup of a name it provides throws instead
-of answering "absent".
+tree, never by a require, so nothing in the core names a composition. Every module it
+sees is in one of three states (`modules/firstParty/moduleState.js`): **absent** (no
+composition, hidden in core mode, unavailable in this edition, or requiring a module
+this edition leaves out), **loaded**, or **failed** (its composition throws or breaks
+the contract, it requires a module that failed or is missing, or a mount or
+registration of it throws). A failed module contributes nothing more, and an optional
+lookup of a name it provides throws instead of answering "absent".
 
 The **order** of the rows stays the core's decision: `modules/firstParty/order.json`
 lists the keys and names of every list in today's order, and the loader sorts what
@@ -295,13 +296,32 @@ the modules contribute by it (unlisted rows after the listed ones, by module id 
 row order). That is how `datatableStore` keeps coming after `automationStore`
 although automation requires datatables.
 
-The **mounts** are the first kind moved: every router a module owns is a row of its
-`firstParty/<id>.mounts.js`. `index.js` mounts them by slot (`loader.mount(app, gates,
-'main')` after the core's routes, `'fallback'` between the JSON 404 and the SPA
-fallback), `boot/staticAssets.js` the `'static'` slot, and `routes/ai.js` the `aiMounts`
-(`loader.mountAi`). The gate factories the rows get are one object, `boot/gates.js`;
-`requireTraining` there is module learning's gate when learning is present and a
-pass-through when it is absent.
+- **Mounts** (`<id>.mounts.js`): every router a module owns is a row. `index.js` mounts
+  them by slot (`loader.mount(app, gates, 'main')` after the core's routes, `'fallback'`
+  between the JSON 404 and the SPA fallback), `boot/staticAssets.js` the `'static'`
+  slot, and `routes/ai.js` the `aiMounts` (`loader.mountAi`). The gate factories the
+  rows get are one object, `boot/gates.js`.
+- **Registrations** (`<id>.register.js`): a module's rows of the core's registries
+  (feature modules, tool families, toolsets, integration clients, runner ports, late-bound
+  setters). `register()` does not call a registry itself: it contributes each group of
+  rows to the **channel** named after the core file that used to hold them
+  (`modules/firstParty/registrationChannels.js`), and that core file opens its channel
+  when it loads. So a registry is filled at the same moment as before, whether the
+  server boots or a test requires one registration file on its own. The names a module
+  registers are in `<id>.provides.json`, declared before any of its code runs.
+- **Jobs** (`<id>.jobs.js`): start rows per startup phase (each phase of
+  `boot/startupTasks.js` starts the core's jobs and then `loader.runStartupPhase`),
+  `afterListen` for wiring that needs the listening server, and `drain` / `close` for
+  the two halves of the shutdown in `boot/lifecycle.js`.
+- **Stores and migrations** (`<id>.stores.js`): the store schemas and the loose
+  migrations of the boot ladder. `storeModules.js collectStoreModules()` and
+  `bootMigrations.looseMigrations()` are the merged lists. A migration whose module is
+  not here is reported as absent by the ladder (`boot/migrationLadder.js`,
+  `modules/firstParty/migrationOwners.json`): not run, not recorded, not a failure, so
+  it runs when the module arrives.
+
+Where core code needs something of a module, it asks by name and takes "absent" for
+an answer: `optionalFeatureModule`, `optionalIntegrationClient`, `optionalRunnerPort`.
 
 ---
 
