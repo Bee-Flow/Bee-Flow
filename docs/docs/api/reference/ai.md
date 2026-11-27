@@ -1370,6 +1370,7 @@ No request schema.
 | `memoryEnabled` | boolean |  |  |
 | `memorySensitiveOptIn` | boolean |  |  |
 | `hasSeenIntroTour` | boolean |  |  |
+| `coworkView` | one of `"orb"`, `"chat"`, `"advanced"` |  |  |
 | `learningProgress` | object or null |  |  |
 | `learningProgressReset` | boolean |  |  |
 | `learningPath` | one of `"everyday"`, `"builder"`, `"admin"`, `"skipped"`, `""` |  |  |

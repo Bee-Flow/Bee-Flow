@@ -48,6 +48,7 @@ const NMBRS_CLIENT_ID_RE = /^[\x21-\x7E]{4,256}$/; // printable ASCII, no whites
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
 const { firebirdFields } = require('../../../usecases/ai/config/firebirdFields');
 const { frappeCrmFields } = require('../../../usecases/ai/config/frappeCrmFields.mts');
+const { coworkViewField, coworkViewKey, coworkViewOf } = require('../../../usecases/ai/config/coworkViewSetting.mts');
 const { SECRETS } = require('../../../stores/user/userSecretKeys.mts');
 const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
@@ -159,6 +160,7 @@ const UserSettingsBody = z.object({
     memoryEnabled: flag('memoryEnabled'),
     memorySensitiveOptIn: flag('memorySensitiveOptIn'),
     hasSeenIntroTour: flag('hasSeenIntroTour'),
+    ...coworkViewField,
     learningProgress: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'learningProgress is a map of lesson ids.' }) }).nullable(),
     learningProgressReset: flag('learningProgressReset'),
     learningPath: z.enum(LEARNING_PATHS, { error: () => "learningPath is 'everyday', 'builder', 'admin', 'skipped' or ''." }),
@@ -358,7 +360,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         sensitiveOptInAllowed: orgMemory.sensitiveOptInAllowed,
         // New-user product tour seen flag (personal UI preference)
         hasSeenIntroTour,
-        // Learning Center per-lesson completion map
+        coworkView: coworkViewOf(await configStore.getConfig(coworkViewKey(userId))), // null until the Cowork introduction played
         // Learning Center per-lesson completion map
         learningProgress,
         // Learning Center path choice ('' = never asked)
@@ -368,7 +370,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
 
 router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }), async (req, res) => {
     const userId = sessionUser(req).id;
-    const { enabledApps, simpleMode, memoryEnabled, memorySensitiveOptIn, hasSeenIntroTour, learningProgress, learningProgressReset, learningPath } = req.body;
+    const { enabledApps, simpleMode, memoryEnabled, memorySensitiveOptIn, hasSeenIntroTour, coworkView, learningProgress, learningProgressReset, learningPath } = req.body;
 
     // Opting in to sensitive memory is refused unless the organisation allows
     // it. Like every refusal here it runs before anything is written.
@@ -429,9 +431,8 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
         if (memorySensitiveOptIn === false) await memoryQueries.deleteSensitiveForUser(userId);
     }
 
-    if (hasSeenIntroTour !== undefined) {
-        await configStore.setConfig(`has_seen_intro_tour_user_${userId}`, hasSeenIntroTour);
-    }
+    if (hasSeenIntroTour !== undefined) await configStore.setConfig(`has_seen_intro_tour_user_${userId}`, hasSeenIntroTour);
+    if (coworkView !== undefined) await configStore.setConfig(coworkViewKey(userId), coworkView);
 
     // Learning Center completion map. This blob feeds badge/certificate
     // eligibility, so incoming payloads are sanitized (lesson ids whitelisted

@@ -1,35 +1,37 @@
 import type { TranslateFn } from '@/hooks/useTranslation';
+import type { ActivityTone } from './coworkOrbFrame';
+import type { OrbWork } from './CoworkOrbSources';
 
-export function coworkIntroStory(t: TranslateFn) {
+/** One moment of the tour: what Bee says, what the orb does, and what is shown under the line. */
+export interface IntroBeat {
+    id: string;
+    line: string;
+    action: NonNullable<OrbWork['action']>;
+    tone: ActivityTone;
+    /** The step of the plan that is in progress. The step rail shows only while there is one. */
+    step?: string;
+    /** What you say to Bee, as a chat bubble. */
+    said?: string;
+    /** What Bee shows you, as a card (Markdown). */
+    sample?: string;
+    /** The team desk card, before or after Noor accepted. */
+    desk?: 'invited' | 'connected';
+}
+
+/** The tour as one conversation: you ask, Bee builds and tests, you get the result, the team joins. */
+export function coworkIntroStory(t: TranslateFn): IntroBeat[] {
     return [
-        { id: 'hello', action: 'rest', line: t("cowork_home.story.hello", "Hi, I’m Bee. Imagine it’s Friday and your team has just finished its last meeting."), sample: '' },
-        { id: 'orb', action: 'thinking', line: t("cowork_home.story.orb", "You can recognise me by the moving lights. My colours follow your Bee Flow theme. As I work, the icon for the current step lights up."), sample: '' },
-        { id: 'request', action: 'thinking', line: t("cowork_home.story.request", "On Monday you’ll want the decisions from this week. You can ask me in your own words."), sample: t("cowork_home.story.request_sample", "“Make me a weekly meeting digest.”") },
-        { id: 'time', action: 'ask', line: t("cowork_home.story.time", "Weekly tells me how often. One detail is still missing: when would you like it ready?"), sample: t("cowork_home.story.time_sample", "**When should I run?**\n\nMonday · 09:00") },
-        { id: 'integrations', action: 'thinking', line: t("cowork_home.story.integrations", "First, choose a meeting in the Bee Flow intake form. It searches Meeting Notes using your access. Let’s pick Friday’s pilot meeting."), sample: t("cowork_home.story.integrations_sample", "**Meeting Notes · Search results**\n\nPilot meeting · 20 November · Selected") },
-        { id: 'fetch_note', action: 'executing', line: t("cowork_home.story.fetch_note", "When you submit the form, Bee Flow retrieves that note by ID and checks your access again. Here’s what came back."), sample: t("cowork_home.story.fetch_sample", "**Pilot meeting · 20 November**\n\nDecision · The pilot starts Monday.\n\nAction · Alex shares the checklist on Friday.") },
-        { id: 'store_note', action: 'saving', line: t("cowork_home.story.store_note", "The intake saves the note ID, date and summary to the team’s source table. Now the Monday task has something to read."), sample: '' },
-        { id: 'plan', action: 'creating', line: t("cowork_home.story.plan", "Every Monday at nine I calculate the previous calendar week. For Monday 23 November that means 16 through 22 November."), sample: '' },
-        { id: 'glyphs', action: 'executing', line: t("cowork_home.story.glyphs", "The table icon lights up. I read the meeting summaries the intake saved and select last week’s entries."), sample: '' },
-        { id: 'signal', action: 'thinking', line: t("cowork_home.story.signal", "Now follow the line to the code step. I check each row for a note ID and summary, and keep one entry per ID."), sample: '' },
-        { id: 'try', action: 'testing', line: t("cowork_home.story.try", "In the trial I find two rows in that week. The pilot meeting has a summary. The Tuesday review has only a date and an ID."), sample: '' },
-        { id: 'fix', action: 'repair', line: t("cowork_home.story.fix", "The first trial stops on the empty summary. In this example I adjust the check, run the test again and keep a count of skipped rows."), sample: t("cowork_home.story.fix_sample", "**Second trial** · 2 rows in the date range\n\n1 summary usable · 1 empty row skipped\n\nIf the usable count is zero, stop before the writing step.") },
-        { id: 'repair_tone', action: 'repair', line: t("cowork_home.story.repair_tone", "Did you notice the glow change? During execution it was teal. This warm amber glow and the wrench mean I’m repairing the test."), sample: '' },
-        { id: 'status_failed', action: 'rest', line: t("cowork_home.story.status_failed", "If a repair cannot finish, a red accent marks the failure. I show the cause when I know it and what you can do next."), sample: t("cowork_home.story.status_failed_sample", "**Example failure** · Read table: access to the source table was revoked.") },
-        { id: 'digest', action: 'thinking', line: t("cowork_home.story.digest", "The check passes with one usable summary. The AI step extracts the decision, owner and deadline from that text. The digest is ready in Cowork."), sample: t("cowork_home.story.digest_sample", "### Weekly digest\n\n**Decision** · The pilot starts Monday.\n\n**Action** · Alex will share the checklist on Friday.") },
-        { id: 'edit', action: 'edit', line: t("cowork_home.story.edit", "You’d rather read it by person? Select the writing step and tell me what to change."), sample: t("cowork_home.story.edit_sample", "“Group actions by owner and show the deadline.”") },
-        { id: 'status_needs', action: 'ask', line: t("cowork_home.story.status_needs", "This time the test worked. Before the first real run, a warning accent tells you I’m waiting for you. You can inspect the result before you decide."), sample: '' },
-        { id: 'approve', action: 'saving', line: t("cowork_home.story.approve", "Here’s the revised example. Once you approve the tested steps, I can run them every Monday."), sample: t("cowork_home.story.approve_sample", "### Alex\n\nShare the pilot checklist · **Friday**\n\n**Ready for your approval** · Mondays at 09:00") },
-        { id: 'status_done', action: 'rest', line: t("cowork_home.story.status_done", "Once the real run is complete, a green accent marks it as done. I keep moving quietly while the result is ready to read."), sample: '' },
-        { id: 'share', action: 'deliver', line: t("cowork_home.story.share", "Now Noor asks to follow along. You can share this task with her, or connect its result to a colleague’s task at a team desk."), sample: t("cowork_home.story.share_sample", "**Share task with Noor** · View results\n\n**Team desk** · Weekly digest → Prepare team agenda") },
-        { id: 'roles', action: 'ask', line: t("cowork_home.story.roles", "Noor can read the shared task and its runs. If she should also answer its approval questions, give her that role. You still own and edit the task."), sample: t("cowork_home.story.roles_sample", "**Weekly digest** · You own this task\n\n**Noor** · Viewer or approver") },
-        { id: 'desk', action: 'creating', line: t("cowork_home.story.desk", "Noor prepares the team agenda every Monday. In Teamwork you can put both tasks on a desk: a shared workspace that shows whose task comes next."), sample: '' },
-        { id: 'teamwork', action: 'ask', line: t("cowork_home.story.teamwork", "Teamwork is where you organise these desks. Tell me which colleague does what, in which order, and who should answer questions. I’ll propose the setup for you to review."), sample: '' },
-        { id: 'invite', action: 'ask', line: t("cowork_home.story.invite", "Tell me to use your digest for Noor’s agenda. I propose the connection. Noor accepts the invitation for her task, and you control whether it may receive your result."), sample: '' },
-        { id: 'handoff', action: 'executing', line: t("cowork_home.story.handoff", "Once connected, your result starts Noor’s task. She runs it with her own apps and permissions. Only the result crosses over. A chain supports up to three hand-offs between owners."), sample: '' },
-        { id: 'cover', action: 'ask', line: t("cowork_home.story.cover", "Who handles a question about the pilot? The desk owner can assign that role to Noor and name Alex as her stand-in when she is away."), sample: '' },
-        { id: 'reuse', action: 'saving', line: t("cowork_home.story.reuse", "Another team wants the same setup for its own meetings. Share a task template so they can start their own copy. To transfer ownership instead, the new owner approves the steps again."), sample: '' },
-        { id: 'history', action: 'rest', line: t("cowork_home.story.history", "Next Monday, ask what changed. I can bring up an earlier run beside our conversation, or switch to the agenda task."), sample: t("cowork_home.story.history_sample", "**Run history**\n\nThis Monday · Pilot launched\n\nPrevious Monday · Pilot approved") },
-        { id: 'control', action: 'edit', line: t("cowork_home.story.control", "You can keep working this way or take the controls yourself. Advanced brings the schedule, model, permissions and steps together."), sample: t("cowork_home.story.control_sample", "**Schedule** · Monday, 09:00\n\n**Model** · Thinking\n\n**Source** · Selected Meeting Notes summaries in your Bee Flow table") },
-    ] as const;
+        { id: 'hello', action: 'rest', tone: 'rest', line: t("cowork_home.tour.hello", "Hi, I’m Bee. Give me a minute and I’ll show you how we work together.") },
+        { id: 'request', action: 'rest', tone: 'rest', line: t("cowork_home.tour.request", "Imagine a week full of meetings. Just tell me what you need, in your own words."), said: t("cowork_home.tour.request_said", "Make me a weekly digest of our meetings.") },
+        { id: 'time', action: 'ask', tone: 'thinking', line: t("cowork_home.tour.time", "A weekly digest, got it. When do you want it?"), said: t("cowork_home.tour.time_said", "Monday morning at nine.") },
+        { id: 'find', action: 'executing', tone: 'executing', line: t("cowork_home.tour.find", "First I find your meetings in Meeting Notes. I only see what you’re allowed to see."), sample: t("cowork_home.tour.find_sample", "**Meeting Notes** · Pilot meeting\n\nDecision · The pilot starts Monday.\n\nAction · Alex shares the checklist on Friday.") },
+        { id: 'plan', action: 'creating', tone: 'thinking', step: 'week', line: t("cowork_home.tour.plan", "Then I turn your request into steps. They run every Monday at nine.") },
+        { id: 'try', action: 'testing', tone: 'executing', step: 'check', line: t("cowork_home.tour.try", "Before anything goes live, I try it out. One note turns out to be empty.") },
+        { id: 'fix', action: 'repair', tone: 'repair', step: 'check', line: t("cowork_home.tour.fix", "So I skip empty notes and try again."), sample: t("cowork_home.tour.fix_sample", "**Second try** · passed\n\n1 note read · 1 empty note skipped") },
+        { id: 'digest', action: 'thinking', tone: 'thinking', step: 'write', line: t("cowork_home.tour.digest", "It works. Here’s your digest: decisions, owners and deadlines."), sample: t("cowork_home.story.digest_sample", "### Weekly digest\n\n**Decision** · The pilot starts Monday.\n\n**Action** · Alex will share the checklist on Friday.") },
+        { id: 'edit', action: 'edit', tone: 'rest', step: 'write', line: t("cowork_home.tour.edit", "Want it differently? Just say so."), said: t("cowork_home.tour.edit_said", "Group the actions per person, with the deadline.") },
+        { id: 'approve', action: 'saving', tone: 'rest', step: 'result', line: t("cowork_home.tour.approve", "Done. Approve it once and I’ll run it every Monday."), sample: t("cowork_home.story.approve_sample", "### Alex\n\nShare the pilot checklist · **Friday**\n\n**Ready for your approval** · Mondays at 09:00") },
+        { id: 'desk', action: 'creating', tone: 'rest', desk: 'invited', line: t("cowork_home.tour.desk", "Working with others? On a team desk, your digest kicks off Noor’s agenda.") },
+        { id: 'handoff', action: 'deliver', tone: 'executing', desk: 'connected', line: t("cowork_home.tour.handoff", "Noor runs her part with her own apps and permissions. Only the result is passed on.") },
+    ];
 }

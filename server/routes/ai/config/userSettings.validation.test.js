@@ -139,6 +139,16 @@ test('memory switched off as a boolean is stored as off', async () => {
     assert.strictEqual(written('memory_enabled_user_u1').value, false);
 });
 
+test('the Cowork view is stored per person; a view outside the list is refused', async () => {
+    const res = await post({ coworkView: 'chat' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(written('cowork_view_user_u1').value, 'chat');
+    touched.length = 0;
+    const refused = await post({ coworkView: 'grid' });
+    assert.strictEqual(refused.statusCode, 400);
+    assert.deepStrictEqual(touched, []);
+});
+
 test('sensitive opt-in is refused with 403 when the organisation does not allow it', async () => {
     const res = await post({ memorySensitiveOptIn: true });
     assert.strictEqual(res.statusCode, 403);

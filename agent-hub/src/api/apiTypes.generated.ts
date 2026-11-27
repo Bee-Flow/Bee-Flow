@@ -935,6 +935,7 @@ export interface ApiOperations {
         afasEnvType?: string | null;
         afasMemberNumber?: string | null;
         afasToken?: string | null;
+        coworkView?: 'orb' | 'chat' | 'advanced';
         enabledApps?: Array<string> | null;
         firebirdCharset?: string | null;
         firebirdDatabase?: string | null;
