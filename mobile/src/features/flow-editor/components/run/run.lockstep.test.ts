@@ -20,6 +20,7 @@ import ts from 'typescript';
 
 import type { FlowDefinition } from '@/features/flow-editor/model';
 import { clone, FIXTURES, templateDefinitions } from '@/features/flow-editor/model/testing/fixtures';
+import { webPath } from '@/shared/testing/webModule';
 
 import { computeRunFocus, formatElapsed } from './runFocus';
 import { buildNameMap, DRY_RUN_META_KEYS, friendlyStepName, stripDryRunMeta } from './runRows';
@@ -29,7 +30,7 @@ jest.mock('../../../../../../agent-hub/src/components/automation/Builder/flow/in
     isInlineId: (id: unknown) => typeof id === 'string' && id.includes('/'),
 }));
 
-const BUILDER = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder');
+const BUILDER = webPath('components/automation/Builder');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webStatus = require(`${BUILDER}/flow/runStatus.ts`);
 const webFocus = require(`${BUILDER}/flow/runFocus.ts`);

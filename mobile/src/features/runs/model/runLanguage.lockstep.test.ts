@@ -13,10 +13,9 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 
 import { statusToken } from '@/features/automations';
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import {
     HAPPENED_KEYS,
@@ -28,7 +27,7 @@ import {
     type RunLike,
 } from './runLanguage';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Executions/runLanguage.ts');
+const WEB = webPath('components/admin/Studio/Executions/runLanguage.ts');
 
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 

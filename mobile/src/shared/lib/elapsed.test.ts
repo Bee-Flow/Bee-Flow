@@ -3,11 +3,12 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { formatElapsed, formatSeconds } from './elapsed';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src/components/shared/builder/formatElapsed.ts');
+const WEB = webPath('components/shared/builder/formatElapsed.ts');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 const START = '2026-09-24T10:00:00.000Z';

@@ -2,14 +2,14 @@
  * DIFFERENTIAL lockstep: the privacy line against the web's privacyLine.js.
  */
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { describePrivacyLine, findTurnTokenMap, normaliseScanWarnings } from './privacyLine';
 import { readMessage } from '../api/messageReader';
 
 // No imports of its own, so it runs through Jest's Babel as it is.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require(`${AGENT_HUB_SRC}/components/chat/MessageItem/privacyLine.ts`) as {
+const web = require(webPath('components/chat/MessageItem/privacyLine.ts')) as {
     describePrivacyLine: (a: unknown) => unknown;
     normaliseScanWarnings: (v: unknown) => unknown;
     findTurnTokenMap: (m: unknown[], i: number) => unknown;

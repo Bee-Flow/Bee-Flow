@@ -17,9 +17,11 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 const MOBILE = path.resolve(__dirname, '../../../../..');
 export const REPO = path.resolve(MOBILE, '..');
-export const WEB_APP_STUDIO = path.join(REPO, 'agent-hub/src/components/admin/Studio/AppStudio');
+export const WEB_APP_STUDIO = webPath('components/admin/Studio/AppStudio');
 
 let registered = false;
 

@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { formatElapsed } from '@/shared/lib/elapsed';
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import {
     PHASE_LABEL_KEYS,
@@ -28,7 +28,7 @@ import {
 } from './playbookView';
 import type { Phase } from './types';
 
-const DIR = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks');
+const DIR = webPath('components/admin/Studio/Playbooks');
 const describeIfWeb = fs.existsSync(path.join(DIR, 'playbookView.ts')) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;

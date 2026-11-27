@@ -3,7 +3,7 @@
  * same persisted messages read through the phone's own reader.
  */
 
-import { AGENT_HUB_SRC, loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { answerChipsFor, citationIsOpenable, MAX_JUDGED_CHIPS, MAX_RECORDED_CHIPS } from './answerChips';
 import { readMessage } from '../api/messageReader';
@@ -26,7 +26,7 @@ interface WebChips {
 // TypeScript, which loadWebModule cannot evaluate, so it goes through Jest's
 // Babel like any other differential require.
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const { groupByDocument } = require(`${AGENT_HUB_SRC}/components/chat/MessageItem/citationGroups.ts`) as { groupByDocument: unknown };
+const { groupByDocument } = require(webPath('components/chat/MessageItem/citationGroups.ts')) as { groupByDocument: unknown };
 const web = loadWebModule<WebChips>('components/chat/MessageItem/answerChips.ts', { groupByDocument });
 
 const source = (i: number, extra: Record<string, unknown> = {}) => ({ title: `Doc ${i}`, content: `passage ${i}`, ...extra });

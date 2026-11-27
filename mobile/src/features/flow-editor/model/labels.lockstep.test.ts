@@ -4,12 +4,14 @@
  * against the web builder's modules.
  */
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as schedule from './schedule';
 import * as names from './stepDisplayName';
 import * as triggers from './triggerLabels';
 import * as wait from './waitDuration';
 
-const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webTriggers = require(`${FLOW}/triggerLabels`);
 const webNames = require(`${FLOW}/stepDisplayName`);

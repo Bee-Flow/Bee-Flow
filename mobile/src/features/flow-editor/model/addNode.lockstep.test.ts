@@ -15,6 +15,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { addedNodeId, applyAddNode, buildStepFromPayload, createsCycle } from './addNode';
 import { clone, FIXTURES, templateDefinitions } from './testing/fixtures';
 import type { FlowDefinition } from './types';
@@ -36,7 +38,7 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/setti
 );
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const web = require('../../../../../agent-hub/src/components/automation/Builder/applyAddNode.ts');
+const web = require(webPath('components/automation/Builder/applyAddNode.ts'));
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);
 /* eslint-enable @typescript-eslint/no-require-imports */

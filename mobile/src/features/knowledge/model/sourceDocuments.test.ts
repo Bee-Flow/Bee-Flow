@@ -5,13 +5,13 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { docStatusOf, hasUnscanned, isPendingDoc, nextDocOffset, SOURCE_DOC_PAGE, sourceDocCounts, sourceDocParams } from './sourceDocuments';
 import type { KbSource } from './types';
 
-const REPO = path.resolve(__dirname, '../../../../..');
-const WEB = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/admin/Studio/KnowledgeStudio/SourceDetail.tsx'), 'utf8');
+const WEB = fs.readFileSync(webPath('components/admin/Studio/KnowledgeStudio/SourceDetail.tsx'), 'utf8');
 
 describe('sourceDocParams', () => {
     it('maps each chip onto the route’s filters and trims the search', () => {

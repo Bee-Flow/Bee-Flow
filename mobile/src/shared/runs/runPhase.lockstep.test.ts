@@ -9,9 +9,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { RUN_PHASES, RUN_PHASE_LABELS, runPhase, type RunPhaseName } from './mirror/runPhase';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src/components/automation/Builder/runs/runPhase.ts');
+const WEB = webPath('components/automation/Builder/runs/runPhase.ts');
 const MIRROR = path.resolve(__dirname, 'mirror/runPhase.ts');
 const itIfWeb = fs.existsSync(WEB) ? it : it.skip;
 

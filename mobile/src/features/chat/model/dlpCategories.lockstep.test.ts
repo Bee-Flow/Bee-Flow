@@ -5,12 +5,12 @@
 
 import fs from 'node:fs';
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { bandAlpha, categorySlot, confidenceWords } from './dlpCategories';
 
-const COLORS = fs.readFileSync(`${AGENT_HUB_SRC}/config/dlpCategoryColors.ts`, 'utf8');
-const CATEGORIES = fs.readFileSync(`${AGENT_HUB_SRC}/config/piiCategories.ts`, 'utf8');
+const COLORS = fs.readFileSync(webPath('config/dlpCategoryColors.ts'), 'utf8');
+const CATEGORIES = fs.readFileSync(webPath('config/piiCategories.ts'), 'utf8');
 
 it('gives each group the slot the web gives it, and the rest the eighth', () => {
     const table = CATEGORIES.slice(CATEGORIES.indexOf('PII_GROUP_COLOR_TOKEN'));

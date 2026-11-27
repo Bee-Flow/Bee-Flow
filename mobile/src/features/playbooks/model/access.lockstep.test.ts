@@ -11,13 +11,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { accessSummary, applyAccessPlan, needsModelWrite, publishBody } from './accessApply';
 import { ASK_EXAMPLES, currentAccess, plannedChanges, roleWords, ruleWords, whyDisabled } from './accessView';
 import type { AccessPlan } from './types';
 
-const DIR = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/stages');
+const DIR = webPath('components/admin/Studio/Playbooks/stages');
 const describeIfWeb = fs.existsSync(path.join(DIR, 'accessView.ts')) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;

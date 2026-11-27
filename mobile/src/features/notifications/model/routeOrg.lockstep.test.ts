@@ -1,21 +1,29 @@
 /**
  * The organisation deep links, held to the web's segment table
- * (agent-hub/src/authedApp/settingsRoutes.ts) and to features/org's section
- * registry, so a segment the web adds or a section that moves goes red here.
+ * (agent-hub/src/authedApp/settingsRoutes.ts SETTINGS_ORG_ID_TO_URL, read from
+ * the web's GUI inventory golden settingsRoutes.inventory.golden.json, which
+ * settingsRoutes.inventory.test.ts records from the running table) and to
+ * features/org's section registry, so a segment the web adds or a section that
+ * moves goes red here.
  */
 
 import { ORG_SECTIONS } from '@/features/org';
 import { WEB_ONLY_ORG_SECTIONS, WEB_ORG_SECTIONS } from '@/features/org/model/sections';
-import { loadWebModule } from '@/shared/testing/webModule';
+import { webGolden } from '@/shared/testing/webModule';
 
 import { translateWebLink } from './route';
 import { ORG_SETTINGS_SEGMENTS, adminTarget, legacyOrgSettingsTarget } from './routeOrg';
 
-const webRoutes = loadWebModule<{ SETTINGS_ORG_ID_TO_URL: Record<string, string> }>('authedApp/settingsRoutes.ts');
+interface OrgSegment {
+    id: string;
+    segment: string;
+}
 
-/** SETTINGS_ORG_ID_TO_URL as [id, segment] pairs, in the web's order (the web module itself, run). */
+const webSettings = webGolden<{ organisation: OrgSegment[] }>('authedApp/settingsRoutes.inventory.golden.json');
+
+/** SETTINGS_ORG_ID_TO_URL as [id, segment] pairs, in the web's order (as the inventory recorded it from the running table). */
 function webOrgSegments(): [string, string][] {
-    return Object.entries(webRoutes.SETTINGS_ORG_ID_TO_URL);
+    return webSettings.organisation.map(({ id, segment }) => [id, segment]);
 }
 
 describe('the organisation settings segments', () => {

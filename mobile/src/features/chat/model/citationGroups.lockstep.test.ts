@@ -10,7 +10,7 @@
  * its own.
  */
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { documentCountOf, groupByDocument, type CitationGroup } from './citationGroups';
 import type { KbSource } from './types';
@@ -25,7 +25,7 @@ interface WebGroup {
 // TypeScript without imports: required through Jest's Babel, as
 // answerChips.lockstep.test.ts does.
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const web = require(`${AGENT_HUB_SRC}/components/chat/MessageItem/citationGroups.ts`) as {
+const web = require(webPath('components/chat/MessageItem/citationGroups.ts')) as {
     groupByDocument: (sources: unknown[]) => WebGroup[];
     documentCountOf: (sources: unknown[]) => number;
 };

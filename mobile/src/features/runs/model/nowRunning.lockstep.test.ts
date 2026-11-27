@@ -7,14 +7,13 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { NOW_RUNNING_LIMIT, NOW_RUNNING_TONES, nowRunningLines, readRollups } from './nowRunning';
 import type { RunFacets } from './types';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Runs/nowRunning.ts');
+const WEB = webPath('components/admin/Studio/Runs/nowRunning.ts');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 const roll = (id: string, status: Record<string, number | string>, extra: Record<string, unknown> = {}) => ({

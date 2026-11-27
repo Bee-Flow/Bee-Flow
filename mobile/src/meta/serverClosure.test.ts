@@ -85,6 +85,9 @@ const PATH_HELPERS: Readonly<Record<string, readonly [string, 'required' | 'text
     loadWebModule: [AGENT_HUB_SRC, 'text'],
     loadWebFunctions: [AGENT_HUB_SRC, 'text'],
     webSourceText: [AGENT_HUB_SRC, 'text'],
+    readWebFile: [AGENT_HUB_SRC, 'text'],
+    // a GUI inventory golden of the web (agent-hub *.inventory.golden.json)
+    webGolden: [AGENT_HUB_SRC, 'text'],
 };
 
 /** Directories under mobile/ that hold no source of ours. */
@@ -243,6 +246,8 @@ function whatMobileReads(): { required: ReadSet; text: ReadSet; unresolved: stri
             const [base, kind] = PATH_HELPERS[helper] as readonly [string, 'required' | 'text'];
             const target = resolveModule(path.join(base, '_'), `./${arg}`);
             if (kind === 'text') {
+                // A directory (webPath('…/AppStudio')) is a root the test joins paths onto, not a read of its index file.
+                if (isDir(path.join(base, arg))) continue;
                 // A path that names nothing (webFileExists asking about a file that is gone) reads nothing.
                 if (target) named(target);
                 continue;

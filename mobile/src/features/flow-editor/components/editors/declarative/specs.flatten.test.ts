@@ -7,6 +7,7 @@
  */
 
 import type { FlowNode } from '@/features/flow-editor/bindings';
+import { webPath } from '@/shared/testing/webModule';
 
 import { isVisible, readField, resolveOptions, say, specDraft, writeField } from './runtime';
 import type { FieldSpec, SpecTranslate } from './spec';
@@ -19,7 +20,7 @@ interface Corpus {
     flattenOrdersRoot: (o?: { taxes?: boolean }) => Record<string, unknown>;
 }
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const corpus = require('../../../../../../../agent-hub/src/shared/expr/corpus.mjs') as Corpus;
+const corpus = require(webPath('shared/expr/corpus.mjs')) as Corpus;
 
 const spec = specFor('flatten');
 if (!spec) throw new Error('no FLATTEN spec');

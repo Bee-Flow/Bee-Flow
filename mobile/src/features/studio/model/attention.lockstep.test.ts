@@ -17,12 +17,12 @@
 
 import path from 'node:path';
 
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 import { attentionLine, attentionSections, SOURCE_LABELS, SOURCE_SECTION } from './attention';
 import { STUDIO_SECTIONS } from './registry';
 
-const DIR = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/attention');
+const DIR = webPath('components/admin/Studio/attention');
 const CHECKS = webSourceText(path.join(DIR, 'attentionChecks.ts'));
 const LIST = webSourceText(path.join(DIR, 'AttentionList.tsx'));
 

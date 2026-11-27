@@ -8,13 +8,14 @@
  * phone's `unreadable`. Both directions are pinned below.
  */
 
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { groupNoteRows, installsBadge } from './releases';
 import { readInstallCounts, readReleases } from '../api/packageReaders';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require(path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Solutions/releaseModel.ts'));
+const web = require(webPath('components/admin/Studio/Solutions/releaseModel.ts'));
 
 const NOTES = {
     entities: [

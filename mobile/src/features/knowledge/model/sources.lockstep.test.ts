@@ -8,10 +8,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { CREATABLE_KINDS, CRON_PRESETS, presetFor, refreshLabel, refreshModeLabel, ruleFor, sourceIcon, sourceKindLabel, sourceSubline } from './sources';
 
 const REPO = path.resolve(__dirname, '../../../../..');
-const STUDIO = path.join(REPO, 'agent-hub/src/components/admin/Studio/KnowledgeStudio');
+const STUDIO = webPath('components/admin/Studio/KnowledgeStudio');
 const read = (p: string) => fs.readFileSync(p, 'utf8');
 const t = (_k: string, fallback: string, p: Record<string, unknown> = {}) => fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(p[k] ?? ''));
 

@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 
 import type { TranslateFn } from '@/core/i18n';
-import { AGENT_HUB_SRC, loadWebFunctions, webFileExists } from '@/shared/testing/webModule';
+import { loadWebFunctions, webFileExists, webPath } from '@/shared/testing/webModule';
 
 import {
     defaultRetentionField,
@@ -47,7 +47,7 @@ type Web = {
 };
 
 function source(rel: string): string {
-    return fs.readFileSync(`${AGENT_HUB_SRC}/${rel}`, 'utf8');
+    return fs.readFileSync(webPath(`${rel}`), 'utf8');
 }
 
 /** `const NAME = <literal>;` out of a web file, as JSON. */

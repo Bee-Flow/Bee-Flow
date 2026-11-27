@@ -6,16 +6,16 @@
  * exactly as the web asks its own; and a refusal is the palette's own sentence.
  */
 
-import path from 'node:path';
 
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState } from '@/features/flow-editor/formState';
 import { CODE_OFF_REASONS } from '@/features/flow-editor/model';
+import { webPath } from '@/shared/testing/webModule';
 
 import { codeInputsRoundTrip, codeRefusal, readCodeContract } from './codeModel';
 
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const { readCodeContract: web } = require(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/codeStep/readCodeContract.ts')) as {
+const { readCodeContract: web } = require(webPath('components/automation/Builder/flow/settings/codeStep/readCodeContract.ts')) as {
     readCodeContract: (code: unknown) => unknown;
 };
 

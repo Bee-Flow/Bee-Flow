@@ -16,11 +16,67 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
-/** The web tree, resolved from mobile/src/shared/testing. */
-export const AGENT_HUB_SRC = `${__dirname}/../../../../agent-hub/src`;
+/** The repository root, resolved from mobile/src/shared/testing. */
+const REPO = path.resolve(__dirname, '../../../..');
+
+/** The web tree of the core root (agent-hub/src). A file may also sit in a module root: use webPath(). */
+export const AGENT_HUB_SRC = `${REPO}/agent-hub/src`;
+
+/**
+ * The `src/` directory of every root of the web client, the core first: agent-hub/
+ * and each modules/<id>/frontend/ (server/moduleRoots.cjs and scripts/lib/roots.mjs
+ * keep the same order). A web file keeps its path under src/ (its tree path) when it
+ * moves into a module, so a lockstep test names it that way and finds it here.
+ */
+export function webSrcRoots(): string[] {
+    const roots = [AGENT_HUB_SRC];
+    const modules = path.join(REPO, 'modules');
+    if (fs.existsSync(modules)) {
+        for (const id of fs.readdirSync(modules).sort()) {
+            const src = path.join(modules, id, 'frontend', 'src');
+            if (fs.existsSync(src)) roots.push(src);
+        }
+    }
+    return roots;
+}
+
+/**
+ * The absolute path of a web file (or directory) by its path under src/, in the
+ * first root that has it; the core root's path when none has it (so a missing
+ * file still fails where it is read, with its name).
+ */
+export function webPath(relative: string): string {
+    const rel = relative.replace(/^\/+/, '');
+    for (const root of webSrcRoots()) {
+        const abs = path.join(root, rel);
+        if (fs.existsSync(abs)) return abs;
+    }
+    return path.join(AGENT_HUB_SRC, rel);
+}
+
+/** The path under src/ of an absolute web file, whichever root holds it; null outside every root. */
+export function webTreePath(abs: string): string | null {
+    for (const root of webSrcRoots()) {
+        if (abs.startsWith(`${root}${path.sep}`)) return path.relative(root, abs).split(path.sep).join('/');
+    }
+    return null;
+}
+
+/** The text of a web file by its path under src/ (any root). */
+export const readWebFile = (relative: string): string => fs.readFileSync(webPath(relative), 'utf8');
+
+/**
+ * A golden of the web's GUI inventory (agent-hub `*.inventory.golden.json`, written
+ * from the running web code by the `*.inventory.test.ts` beside it), by its path under
+ * src/: the lists the web's surface is composed from, as data, so a lockstep test
+ * compares with them instead of cutting the web's source text apart.
+ */
+export function webGolden<T>(relative: string): T {
+    return JSON.parse(fs.readFileSync(webPath(relative), 'utf8')) as T;
+}
 
 export function webFileExists(relative: string): boolean {
-    return fs.existsSync(`${AGENT_HUB_SRC}/${relative}`);
+    return fs.existsSync(webPath(relative));
 }
 
 /**
@@ -74,7 +130,7 @@ export function loadWebFunctions<T = Record<string, unknown>>(
     names: readonly string[],
     deps: Record<string, unknown> = {},
 ): T {
-    const src = stripTypes(relative, fs.readFileSync(`${AGENT_HUB_SRC}/${relative}`, 'utf8'));
+    const src = stripTypes(relative, fs.readFileSync(resolveWeb(relative), 'utf8'));
     const body = `${names.map((n) => functionSource(src, n)).join('\n')}\nreturn { ${names.join(', ')} };`;
     return new Function(...Object.keys(deps), body)(...Object.values(deps)) as T;
 }
@@ -85,8 +141,8 @@ const DECLARED_EXPORT_RX = /^export\s+(?:default\s+)?((?:async\s+)?(?:function\*
 const REEXPORT_RX = /^export\s*\{[^}]*\}\s*from\s+['"][^'"]+['"];?[ \t]*$/gm;
 const LIST_EXPORT_RX = /^export\s*\{([^}]*)\};?[ \t]*$/gm;
 
-/** A path under agent-hub/src, or an absolute one (a caller that resolved it itself). */
-const resolveWeb = (file: string) => (file.startsWith('/') ? file : `${AGENT_HUB_SRC}/${file}`);
+/** A path under src/ (any root), or an absolute one (a caller that resolved it itself). */
+const resolveWeb = (file: string) => (file.startsWith('/') ? file : webPath(file));
 
 /** A `.ts`/`.tsx` web file loses its type annotations first; a `.js` one is used as it is. */
 function stripTypes(file: string, src: string): string {
@@ -102,12 +158,17 @@ const WEB_EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '/index.ts', '
 
 /** A web file's relative (or `@/`) import, as an absolute file; null for a package or a missing file. */
 function resolveSibling(fromFile: string, spec: string): string | null {
+    // By tree path, so an import that crosses from one root into another (a module's
+    // file importing a core one, or the other way) resolves as the web build does.
+    const fromAbs = resolveWeb(fromFile);
+    const fromTree = webTreePath(fromAbs);
     let base: string;
-    if (spec.startsWith('@/')) base = `${AGENT_HUB_SRC}/${spec.slice(2)}`;
-    else if (spec.startsWith('.')) base = path.resolve(path.dirname(resolveWeb(fromFile)), spec);
+    if (spec.startsWith('@/')) base = spec.slice(2);
+    else if (spec.startsWith('.') && fromTree !== null) base = path.posix.join(path.posix.dirname(fromTree), spec);
+    else if (spec.startsWith('.')) base = path.resolve(path.dirname(fromAbs), spec);
     else return null;
     for (const ext of WEB_EXTENSIONS) {
-        const candidate = `${base}${ext}`;
+        const candidate = path.isAbsolute(base) ? `${base}${ext}` : webPath(`${base}${ext}`);
         if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
     }
     return null;

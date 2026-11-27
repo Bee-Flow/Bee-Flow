@@ -5,13 +5,15 @@
  * server's (`{code, severity, path, message}`), paths included.
  */
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as issues from './issues';
 import { clone, FIXTURES } from './testing/fixtures';
 import type { FlowDefinition, Validation } from './types';
 
 jest.mock('lucide-react', () => new Proxy({}, { get: (_t, name) => (name === '__esModule' ? false : String(name)) }), { virtual: true });
 
-const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webMatch = require(`${FLOW}/matchValidationToStep.ts`);
 const webSection = require(`${FLOW}/sectionForIssue.ts`);

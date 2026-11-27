@@ -4,9 +4,8 @@
  * rules.ts.
  */
 
-import path from 'node:path';
 
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import {
     consequencesOf,
@@ -17,7 +16,7 @@ import {
     triggerConditionOf,
 } from './rules';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/pages/meeting-notes/lib/meetingRules.ts');
+const WEB = webPath('pages/meeting-notes/lib/meetingRules.ts');
 // Its one import, used only by ruleHref (the web's own URL), which the phone does not port.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const web: any = loadWebModule(WEB, { segmentForSection: () => 'automations' });

@@ -15,11 +15,11 @@ import path from 'node:path';
 
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState, type FormDraft } from '@/features/flow-editor/formState';
-import { loadWebFunctions, loadWebModule } from '@/shared/testing/webModule';
+import { loadWebFunctions, loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { addQuestion, addStage, approvalQuestionName, CLOCK_CHOICES, chooseEscalation, DEADLINE_CHOICES, deadlineChoices, joinChoices, oneRoundFrom, splitChoices, stagesFrom, startPanel } from './approvalModel';
 
-const SETTINGS = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings');
+const SETTINGS = webPath('components/automation/Builder/flow/settings');
 // The split moved the editor's pieces out of approvalEditors.jsx: the stage switches into
 // approvalState.ts, the choices into approvalClocks.tsx, the question naming into approvalQuestions.tsx.
 const stateSrc = fs.readFileSync(path.join(SETTINGS, 'approvalState.ts'), 'utf8');

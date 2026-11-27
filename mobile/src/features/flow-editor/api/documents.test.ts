@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { api } from '@/core/api/client';
+import { webPath } from '@/shared/testing/webModule';
 
 import { documentKeys, getDocumentContract, listDocumentTemplates, readDocumentContract, readDocumentTemplates } from './documents';
 
@@ -18,7 +19,9 @@ const get = api.get as jest.Mock;
 beforeEach(() => get.mockReset());
 
 const REPO = path.resolve(__dirname, '../../../../..');
-const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), 'utf8');
+const WEB_PREFIX = 'agent-hub/src/';
+/** A repository file; a web one (agent-hub/src/…) is found by its path under src/ in whichever root holds it. */
+const read = (rel: string) => fs.readFileSync(rel.startsWith(WEB_PREFIX) ? webPath(rel.slice(WEB_PREFIX.length)) : path.join(REPO, rel), 'utf8');
 
 describe('the calls', () => {
     it('lists up to 200 templates, searching only when there is something to search for', async () => {

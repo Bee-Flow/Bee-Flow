@@ -5,13 +5,14 @@
  * changed — update overview.ts, do not loosen the test.
  */
 
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { chipsOf, healthOf, partitionSolutions, runsOf, tabOf, updateOf } from './overview';
 import type { SolutionRow } from './solution';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require(path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Solutions/solutionOverviewModel.ts'));
+const web = require(webPath('components/admin/Studio/Solutions/solutionOverviewModel.ts'));
 
 function row(over: Partial<SolutionRow>): SolutionRow {
     return {

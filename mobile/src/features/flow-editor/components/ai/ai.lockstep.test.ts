@@ -13,10 +13,9 @@
  *                 each trigger, step count, selected step and kind of step.
  */
 
-import path from 'node:path';
 
 import { readToolCall } from '@/features/flow-editor/api/builder';
-import { loadWebFunctions, loadWebModule } from '@/shared/testing/webModule';
+import { loadWebFunctions, loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { describeLiveRun, describeToolCall } from './activity';
 import { exampleBriefs, isEmptyDraft, welcomeOffers, welcomeSuggestions, type WelcomeDefinition, type WelcomeStep } from './welcome';
@@ -27,7 +26,7 @@ jest.mock('../../../../../../agent-hub/src/utils/integrationIcons', () => ({
     resolveIntegrationFromTool: () => null,
 }));
 
-const CHAT = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder/chat');
+const CHAT = webPath('components/automation/Builder/chat');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const web = require(`${CHAT}/toolCallDisplay.ts`);
 

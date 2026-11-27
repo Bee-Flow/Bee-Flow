@@ -1,53 +1,61 @@
 /**
- * The Studio registry, held to the web's (textual lockstep).
+ * The Studio registry, held to the web's.
  *
  * agent-hub/src/components/admin/Studio/studioSections.ts (STUDIO_SECTIONS, the
  * data half of studioRegistry's STUDIO_APPS) and studioGates.ts (STUDIO_CATEGORIES) are the single source of truth for which
  * sections Studio has, in what order, under which heading, behind which gate
  * and with which "New" entry; studioApps.jsx, where both used to live,
  * re-exports them. The phone's port (registry.ts) must say the same, section
- * by section. The web files are read as TEXT — Metro cannot import them, and
- * a lockstep must not need a bundler — and each descriptor is cut out by its
- * indentation.
+ * by section. The web's sections are read from its GUI inventory golden
+ * (studioSections.inventory.golden.json, recorded from the running registry by
+ * studioSections.inventory.test.ts beside it; a gate there is the list of the
+ * questions it asks, in the order it asks them, found by running it). Only the
+ * barrel's re-export is still read as text.
  *
  * When this fails, the web side changed: update registry.ts to match (and
  * decide where the new section opens on the phone). Don't loosen the test.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-
 import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
+import { readWebFile, webGolden } from '@/shared/testing/webModule';
 
 import { STUDIO_CATEGORIES, STUDIO_SECTIONS } from './registry';
 
-const WEB_STUDIO = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio');
-const readStudio = (file: string) => fs.readFileSync(path.join(WEB_STUDIO, file), 'utf8');
-const src = readStudio('studioSections.ts');
-const gatesSrc = readStudio('studioGates.ts');
-const barrel = readStudio('studioApps.tsx');
-
-/** The body of `export const STUDIO_SECTIONS = [ … ];`, split into one string per descriptor. */
-function webDescriptors(): string[] {
-    const start = src.indexOf('export const STUDIO_SECTIONS: StudioSectionDescriptor[] = [');
-    const end = src.indexOf('\n];', start);
-    const body = src.slice(start, end);
-    return body.split(/\n {4}\{\n/).slice(1).map((chunk) => chunk.split(/\n {4}\},?\n?/)[0] ?? chunk);
+/** A section as studioSections.inventory.test.ts records it (the fields this test reads). */
+interface GoldenSection {
+    id: string;
+    urlSegment: string;
+    legacySegments?: string[];
+    category?: string;
+    labelKey?: string;
+    labelFallback?: string;
+    descKey?: string;
+    descFallback?: string;
+    icon?: string;
+    kind?: string;
+    countKey?: string;
+    hiddenFromNav?: boolean;
+    gateCapability?: string;
+    lockOn?: string;
+    gate: string[] | { any: string[] } | { legs: string[] };
+    create?: { labelKey: string; labelFallback: string };
 }
 
-const one = (block: string, re: RegExp): string | null => re.exec(block)?.[1] ?? null;
-
-/** The gate expression: from `gate:` to the next top-level property of the descriptor. */
-function gateText(block: string): string {
-    const at = block.indexOf('\n        gate:');
-    if (at < 0) return '';
-    const rest = block.slice(at + 1);
-    const next = rest.slice(1).search(/\n {8}[A-Za-z]+:|\n {8}\/\//);
-    return next < 0 ? rest : rest.slice(0, next + 1);
+interface StudioGolden {
+    sections: GoldenSection[];
+    categories: { id: string; labelKey: string; labelFallback: string }[];
 }
 
-function calls(gate: string, fn: string): string[] {
-    return [...gate.matchAll(new RegExp(`\\b${fn}\\('([^']+)'\\)`, 'g'))].map((m) => m[1] as string);
+const golden = webGolden<StudioGolden>('components/admin/Studio/studioSections.inventory.golden.json');
+const barrel = readWebFile('components/admin/Studio/studioApps.tsx');
+
+/** The questions a gate asks of one kind (`hasPermission(x)` -> x), in the order it asks them. */
+function calls(gate: GoldenSection['gate'], fn: string): string[] {
+    const legs = Array.isArray(gate) ? gate : 'any' in gate ? gate.any : gate.legs;
+    return legs.flatMap((leg) => {
+        const m = /^!?(\w+)\((.*)\)$/.exec(leg);
+        return m && m[1] === fn ? [m[2] as string] : [];
+    });
 }
 
 interface WebSection {
@@ -69,42 +77,33 @@ interface WebSection {
     create: { labelKey: string; labelFallback: string } | null;
 }
 
-function readWeb(block: string): WebSection {
-    const id = one(block, /^ {8}id: '([^']+)'/m) as string;
-    const createAt = block.indexOf('\n        create:');
-    const create = createAt < 0 ? null : block.slice(createAt);
-    const gate = gateText(block);
+function readWeb(s: GoldenSection): WebSection {
     return {
-        id,
-        segment: one(block, /^ {8}urlSegment: '([^']+)'/m),
-        legacy: [...(one(block, /^ {8}legacySegments: \[([^\]]*)\]/m) ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1] as string),
-        category: one(block, /^ {8}category: '([^']+)'/m),
-        labelKey: one(block, /^ {8}labelKey: '([^']+)'/m),
-        labelFallback: one(block, /^ {8}labelFallback: '([^']+)'/m),
-        descKey: one(block, /^ {8}descKey: '([^']+)'/m),
-        descFallback: one(block, /^ {8}descFallback: '((?:[^'\\]|\\.)*)'/m),
-        icon: one(block, /^ {8}Icon: (\w+)/m),
-        kind: one(block, /^ {8}kind: '([^']+)'/m),
-        countKey: one(block, /^ {8}countKey: '([^']+)'/m) ?? id,
-        hiddenFromNav: /^ {8}hiddenFromNav: true/m.test(block),
-        gateCapability: one(block, /^ {8}gateCapability: '([^']+)'/m),
-        lockOn: one(block, /^ {8}lockOn: '([^']+)'/m) ?? 'hide',
+        id: s.id,
+        segment: s.urlSegment ?? null,
+        legacy: s.legacySegments ?? [],
+        category: s.category ?? null,
+        labelKey: s.labelKey ?? null,
+        labelFallback: s.labelFallback ?? null,
+        descKey: s.descKey ?? null,
+        descFallback: s.descFallback ?? null,
+        icon: s.icon ?? null,
+        kind: s.kind ?? null,
+        countKey: s.countKey ?? s.id,
+        hiddenFromNav: s.hiddenFromNav === true,
+        gateCapability: s.gateCapability ?? null,
+        lockOn: s.lockOn ?? 'hide',
         requires: {
-            license: calls(gate, 'hasLicenseFeature'),
-            canUse: calls(gate, 'canUse'),
-            can: calls(gate, 'can'),
-            perms: calls(gate, 'hasPermission'),
+            license: calls(s.gate, 'hasLicenseFeature'),
+            canUse: calls(s.gate, 'canUse'),
+            can: calls(s.gate, 'can'),
+            perms: calls(s.gate, 'hasPermission'),
         },
-        create: create
-            ? {
-                  labelKey: one(create, /labelKey: '([^']+)'/) as string,
-                  labelFallback: one(create, /labelFallback: '([^']+)'/) as string,
-              }
-            : null,
+        create: s.create ? { labelKey: s.create.labelKey, labelFallback: s.create.labelFallback } : null,
     };
 }
 
-const web = webDescriptors().map(readWeb);
+const web = golden.sections.map(readWeb);
 const byId = new Map(STUDIO_SECTIONS.map((s) => [s.id, s]));
 
 describe('the web registry is readable at all', () => {
@@ -180,12 +179,7 @@ describe('the phone registry against STUDIO_APPS', () => {
 
 describe('STUDIO_CATEGORIES', () => {
     it('are the web headings, in order, with their keys', () => {
-        const start = gatesSrc.indexOf('export const STUDIO_CATEGORIES: readonly StudioCategory[] = [');
-        expect(start).toBeGreaterThanOrEqual(0);
-        const body = gatesSrc.slice(start, gatesSrc.indexOf('];', start));
-        const webCategories = [...body.matchAll(/\{ id: '([^']+)', labelKey: '([^']+)', labelFallback: '([^']+)' \}/g)].map(
-            ([, id, labelKey, labelFallback]) => ({ id, labelKey, labelFallback }),
-        );
+        const webCategories = golden.categories.map(({ id, labelKey, labelFallback }) => ({ id, labelKey, labelFallback }));
         expect(webCategories.length).toBe(4);
         expect(STUDIO_CATEGORIES.map((c) => ({ ...c }))).toEqual(webCategories);
     });

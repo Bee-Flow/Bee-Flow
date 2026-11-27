@@ -5,7 +5,8 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { GOING_STATUSES, keepPolling, pollRunId, runView } from './actionRun';
 import type { AppActionResult } from './types';
@@ -64,7 +65,7 @@ describe('runView', () => {
 
 it('polls through the statuses the web runner polls through', () => {
     const src = fs.readFileSync(
-        path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/AppStudio/runtime/actionRunner/automationBridge.ts'),
+        webPath('components/admin/Studio/AppStudio/runtime/actionRunner/automationBridge.ts'),
         'utf8',
     );
     const list = /if \(status && !\[([^\]]+)\]\.includes\(status\)\) return body;/.exec(src)?.[1];

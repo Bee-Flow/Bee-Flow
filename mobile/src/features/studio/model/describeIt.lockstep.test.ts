@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
+import { webPath } from '@/shared/testing/webModule';
 import { KIND_KEYS } from '@/shared/ui';
 
 import { DESCRIBE_IT_WORDS, ROUTE_ERROR_CODES } from './describeIt';
@@ -25,7 +26,12 @@ import { sectionForKind } from './links';
 
 const REPO = path.resolve(__dirname, '../../../../..');
 const MOBILE = path.join(REPO, 'mobile');
-const read = (...parts: string[]) => fs.readFileSync(path.join(REPO, ...parts), 'utf8');
+const WEB_PREFIX = 'agent-hub/src/';
+/** A repository file; a web one (agent-hub/src/…) is found by its path under src/ in whichever root holds it. */
+const read = (...parts: string[]) => {
+    const rel = path.posix.join(...parts);
+    return fs.readFileSync(rel.startsWith(WEB_PREFIX) ? webPath(rel.slice(WEB_PREFIX.length)) : path.join(REPO, rel), 'utf8');
+};
 
 const ROUTE = read('server/routes/studio/aiRoute.js');
 const WEB_API = read('agent-hub/src/components/admin/Studio/studioAi/routeApi.ts');

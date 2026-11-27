@@ -16,6 +16,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 const REPO = path.resolve(__dirname, '../../../..');
 const VENDOR = path.join(__dirname, 'vendor');
 const ENGINE_FILES = [
@@ -69,7 +71,7 @@ describe('vendor/ is a verbatim copy of the shared engine', () => {
     it('the hand-written regexEngine.mjs has the server copy\'s exports', () => {
         const names = (file: string) => [...fs.readFileSync(file, 'utf8').matchAll(/export (?:const|function) (\w+)/g)].map((m) => m[1]).sort();
         expect(names(path.join(VENDOR, 'regexEngine.mjs'))).toEqual(names(path.join(REPO, 'server/shared/expr/regexEngine.mjs')));
-        expect(names(path.join(VENDOR, 'regexEngine.mjs'))).toEqual(names(path.join(REPO, 'agent-hub/src/shared/expr/regexEngine.mjs')));
+        expect(names(path.join(VENDOR, 'regexEngine.mjs'))).toEqual(names(webPath('shared/expr/regexEngine.mjs')));
     });
 
     it('declares every name index.mjs exports, and no other', () => {

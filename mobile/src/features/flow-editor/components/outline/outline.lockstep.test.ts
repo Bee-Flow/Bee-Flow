@@ -13,14 +13,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { FIXTURES } from '@/features/flow-editor/model/testing/fixtures';
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 import { isIconName } from '@/shared/ui';
 
 import { describeSetOperation, summariseSetStep } from './setSummary';
 import { AI_STEP_ICON, aiStepVariant, APP_EVENT_ICON, DATATABLE_OP_ICON, TRIGGER_ICON, TYPE_ICON } from './stepIcons';
 import { describeStepResult } from './stepResult';
 
-const FLOW = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder/flow');
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webSet = require(`${FLOW}/setOperations.ts`);
 const webResult = require(`${FLOW}/stepResultChip.ts`);

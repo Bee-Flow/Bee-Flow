@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import ts from 'typescript';
 
-import { AGENT_HUB_SRC, loadWebFunctions, loadWebModule } from '@/shared/testing/webModule';
+import { loadWebFunctions, loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { describeTool, detailOf, errorOf, formatDurationMs, TOOL_NAME_MAP, toolLabel, toolPayload, visibleTools } from './toolDisplay';
 import type { ToolActivity } from './types';
@@ -18,7 +18,7 @@ import type { ToolActivity } from './types';
  * and evaluated together.
  */
 function loadToolLabels(): { TOOL_NAME_MAP: Record<string, string>; getToolLabel: (n?: string) => string } {
-    const typed = fs.readFileSync(`${AGENT_HUB_SRC}/utils/helpers.ts`, 'utf8');
+    const typed = fs.readFileSync(webPath('utils/helpers.ts'), 'utf8');
     const src = ts.transpileModule(typed, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
     const cut = (start: string) => {
         const at = src.indexOf(start);

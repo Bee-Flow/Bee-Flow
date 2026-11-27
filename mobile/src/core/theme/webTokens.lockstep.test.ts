@@ -15,6 +15,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { FONT_FAMILIES } from './fonts';
 import {
     WEB_ACCENT_TINTS,
@@ -33,7 +35,7 @@ const processBoxShadow = require('react-native/Libraries/StyleSheet/processBoxSh
 const MOBILE = path.resolve(__dirname, '../../..');
 const SCRIPT = path.join(MOBILE, 'scripts/sync-web-tokens.mjs');
 const GENERATED = path.join(__dirname, 'generated/webTokens.generated.ts');
-const CSS = path.resolve(MOBILE, '../agent-hub/src/index.css');
+const CSS = path.resolve(MOBILE, webPath('index.css'));
 
 // The mobile package is publishable on its own and someone may check it out
 // without the sibling. Skipping loudly beats failing for the wrong reason.

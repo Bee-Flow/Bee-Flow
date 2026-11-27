@@ -18,6 +18,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { AGENT_FRAMES } from './adapters/agent';
 import { DIRECT_FRAMES } from './adapters/direct';
 import { libraryFrames } from './adapters/library';
@@ -25,7 +27,7 @@ import { MEETING_FRAMES } from './adapters/meeting';
 import { WEBPAGE_FRAMES } from './adapters/webpage';
 import { accounts, type FrameAdapter } from './chatFrameReducer';
 
-const WEB_ENGINE = path.resolve(__dirname, '../../../../agent-hub/src/hooks/useChatEngine');
+const WEB_ENGINE = webPath('hooks/useChatEngine');
 const readEngine = (rel: string) => fs.readFileSync(path.join(WEB_ENGINE, rel), 'utf8');
 
 const SURFACES: Record<string, FrameAdapter<never>> = {

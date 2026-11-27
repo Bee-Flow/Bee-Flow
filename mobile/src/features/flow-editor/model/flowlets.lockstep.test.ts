@@ -5,10 +5,12 @@
  * loop body and from a parallel branch.
  */
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as port from './flowlets';
 import type { FlowDefinition } from './types';
 
-const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const web = require(`${FLOW}/flowletScope.ts`);
 /* eslint-enable @typescript-eslint/no-require-imports */

@@ -9,6 +9,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import * as aiTools from './aiTools';
 import { arrangeDefinition, seedPositions } from './arrange';
 import * as geometry from './geometry';
@@ -24,7 +26,7 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/inlin
     toDisplayPosition: (p: unknown) => p,
 }));
 
-const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
+const FLOW = webPath('components/automation/Builder/flow');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webDagre = require(`${FLOW}/dagreLayout.ts`);
 const webArrange = require(`${FLOW}/arrange.ts`);

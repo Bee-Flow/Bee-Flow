@@ -15,11 +15,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webPath } from '@/shared/testing/webModule';
+
 import { ORG_ADMIN_PERMISSION, ORG_ADMIN_ROLES } from './model/roles';
 import { LEGACY_TIER_ALIAS, TIER_HIERARCHY } from './model/tiers';
 
 const REPO = path.resolve(__dirname, '../../../..');
-const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), 'utf8');
+const WEB_PREFIX = 'agent-hub/src/';
+/** A repository file; a web one (agent-hub/src/…) is found by its path under src/ in whichever root holds it. */
+const read = (rel: string) => fs.readFileSync(rel.startsWith(WEB_PREFIX) ? webPath(rel.slice(WEB_PREFIX.length)) : path.join(REPO, rel), 'utf8');
 /** Whitespace-insensitive containment, so a reformat is not a failure. */
 const squash = (text: string) => text.replace(/\s+/g, ' ');
 const contains = (source: string, snippet: string) => squash(source).includes(squash(snippet));

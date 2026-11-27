@@ -8,17 +8,20 @@
  * beside servedOnPhoneWeb on the same addresses. A page the web adds to its
  * phone list, or an address it moves, fails here until the port follows.
  * So does a Settings section it adds to, or takes off, its desktop-only list
- * (pages/settings/settingsNavItems.tsx): those are PHONE_WEB_HIDDEN here.
+ * (pages/settings/settingsNavItems.tsx SETTINGS_DESKTOP_ONLY_TABS, read from the
+ * web's GUI inventory golden settingsRoutes.inventory.golden.json, recorded from
+ * the running module): those are PHONE_WEB_HIDDEN here.
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webGolden, webPath } from '@/shared/testing/webModule';
 
 import { PHONE_WEB_HIDDEN, PHONE_WEB_PAGES, servedOnPhoneWeb } from './links';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src/authedApp/appRoutes.ts');
-/** Where the web decides which Settings sections a phone does not get. JSX, so read as text. */
-const SETTINGS_NAV = path.resolve(__dirname, '../../../../agent-hub/src/pages/settings/settingsNavItems.tsx');
+const WEB = webPath('authedApp/appRoutes.ts');
+/** Where the web decides which Settings sections a phone does not get (its GUI inventory golden). */
+const SETTINGS_GOLDEN = 'authedApp/settingsRoutes.inventory.golden.json';
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 interface WebRoutes {
@@ -76,9 +79,7 @@ describeIfWeb('the web pages a phone is shown', () => {
     });
 
     it('hides exactly the Settings sections the web keeps for a computer', () => {
-        const source = fs.readFileSync(SETTINGS_NAV, 'utf8');
-        const list = /export const SETTINGS_DESKTOP_ONLY_TABS = \[([^\]]*)\]/.exec(source)?.[1] ?? '';
-        const tabs = [...list.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+        const tabs = webGolden<{ desktopOnly: string[] }>(SETTINGS_GOLDEN).desktopOnly;
         expect(tabs.length).toBeGreaterThan(0);
         expect([...PHONE_WEB_HIDDEN].sort()).toEqual(tabs.map((tab) => `/app/settings/${tab}`).sort());
     });

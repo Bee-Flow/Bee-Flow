@@ -3,19 +3,19 @@
  * held-call state (toolConfirmStatus.js) against the web's own modules.
  */
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webPath } from '@/shared/testing/webModule';
 
 import { buildRuns, mergeSpans, spansInRange, wordsOf } from './dlpSpans';
 import { confirmDecisionOf } from './toolConfirm';
 import type { DlpFinding, PendingToolCall } from './types';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webSpans = require(`${AGENT_HUB_SRC}/components/chat/dlpReview/dlpFindingsState.ts`) as {
+const webSpans = require(webPath('components/chat/dlpReview/dlpFindingsState.ts')) as {
     mergeSpans: (a: unknown, m: unknown) => unknown[];
     spansInRange: (s: unknown, a: number, b: number) => unknown;
     buildRuns: (t: string, s: unknown) => unknown;
 };
-const webConfirm = require(`${AGENT_HUB_SRC}/components/chat/MessageItem/toolConfirmStatus.ts`) as {
+const webConfirm = require(webPath('components/chat/MessageItem/toolConfirmStatus.ts')) as {
     confirmDecisionOf: (c: unknown, d?: unknown) => unknown;
 };
 /* eslint-enable @typescript-eslint/no-require-imports */

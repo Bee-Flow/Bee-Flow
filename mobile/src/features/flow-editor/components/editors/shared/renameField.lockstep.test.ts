@@ -6,11 +6,12 @@
  * not move, and names that must be refused.
  */
 
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { fieldNameTaken, isValidFieldName, renameFieldPath, renameFormField } from './renameField';
 
-const WEB = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/renameFormField.ts');
+const WEB = webPath('components/automation/Builder/flow/renameFormField.ts');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const web = require(WEB);
 

@@ -7,23 +7,22 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
 
 import type { CatalogDatatable } from '@/features/flow-editor/api';
 import type { FlowNode } from '@/features/flow-editor/bindings';
+import { webPath } from '@/shared/testing/webModule';
 
 import { DATATABLE_FORM, OPS, opChoices, opNeeds, opsForType, opTakesNoValue, setSort, sortEntry, tableOption } from './datatableModel';
 
-const AGENT_HUB = path.resolve(__dirname, '../../../../../../../agent-hub/src');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const ts = require('typescript') as typeof import('typescript');
 // The web file is TypeScript: strip the types first, so the pieces below run as JS.
 const src = ts.transpileModule(
-    fs.readFileSync(path.join(AGENT_HUB, 'components/automation/Builder/flow/settings/datatableEditors.tsx'), 'utf8'),
+    fs.readFileSync(webPath('components/automation/Builder/flow/settings/datatableEditors.tsx'), 'utf8'),
     { compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.Preserve }, fileName: 'datatableEditors.tsx' },
 ).outputText;
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const display = require(path.join(AGENT_HUB, 'components/admin/Studio/Datatables/datatableDisplay.ts'));
+const display = require(webPath('components/admin/Studio/Datatables/datatableDisplay.ts'));
 
 const between = (start: string, end: string) => {
     const at = src.indexOf(start);

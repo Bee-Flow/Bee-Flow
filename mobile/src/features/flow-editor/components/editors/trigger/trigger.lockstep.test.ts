@@ -16,7 +16,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 import { CLIENT_DICT, readDict } from '@/core/i18n/dictionaryText';
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 import { LEGACY_PROVIDER_LABELS } from './appEvent';
 import { FILTER_FORMS } from './filters';
@@ -24,7 +24,7 @@ import { kindTitle, TRIGGER_KINDS } from './kinds';
 import { buildCurlSnippet, maskSecret } from './webhook';
 import type { Msg } from '../declarative/spec';
 
-const BUILDER = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder');
+const BUILDER = webPath('components/automation/Builder');
 const read = (rel: string) => webSourceText(path.join(BUILDER, rel));
 const client = readDict(CLIENT_DICT);
 const editors = read('flow/settings/triggerEditors.tsx') + read('flow/settings/AppEventFields.tsx');

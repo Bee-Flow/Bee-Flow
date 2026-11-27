@@ -10,11 +10,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webPath } from '@/shared/testing/webModule';
 
 import { defaultFormDeclaration, defaultFormEndingDeclaration, defaultFormPageDeclaration, THEME_PRESETS, themePresetLabel } from './formDefaults';
 
-const SETTINGS = path.resolve(__dirname, '../../../../../agent-hub/src/components/automation/Builder/flow/settings');
+const SETTINGS = webPath('components/automation/Builder/flow/settings');
 
 type Declaration = () => unknown;
 const declarations = loadWebModule<Record<string, Declaration>>(path.join(SETTINGS, 'formDeclarations.ts'));

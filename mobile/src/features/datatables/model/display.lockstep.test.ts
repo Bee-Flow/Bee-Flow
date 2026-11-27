@@ -6,7 +6,7 @@
  */
 
 import { humanizeFieldKey } from '@/shared/lib/humanizeKey';
-import { AGENT_HUB_SRC, loadWebModule, webFileExists } from '@/shared/testing/webModule';
+import { loadWebModule, webFileExists, webPath } from '@/shared/testing/webModule';
 
 import { audienceOf, gradeAtLeast } from './access';
 import {
@@ -35,7 +35,7 @@ const DIR = 'components/admin/Studio/Datatables';
 const HELPERS = 'components/automation/Builder/mapping/core.ts';
 function webHelpers(): { humanizeFieldKey: (k: unknown) => string } {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- agent-hub TS, compiled by jest's Babel
-    return require(`${AGENT_HUB_SRC}/${HELPERS}`) as { humanizeFieldKey: (k: unknown) => string };
+    return require(webPath(`${HELPERS}`)) as { humanizeFieldKey: (k: unknown) => string };
 }
 const describeIfWeb = webFileExists(`${DIR}/datatableDisplay.ts`) ? describe : describe.skip;
 

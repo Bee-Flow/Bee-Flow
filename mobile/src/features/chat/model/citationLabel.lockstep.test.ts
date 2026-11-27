@@ -5,14 +5,14 @@
  */
 
 import { toKbSource } from '@/shared/stream';
-import { AGENT_HUB_SRC, loadWebFunctions } from '@/shared/testing/webModule';
+import { loadWebFunctions, webPath } from '@/shared/testing/webModule';
 
 import { chipLabel, chipTitle } from './citationLabel';
 
 // `whenLabel` and `passageCountOf` moved to citationText.ts, which is
 // TypeScript: required through Jest's Babel and handed in.
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const text = require(`${AGENT_HUB_SRC}/pages/documents/notebook/citationText.ts`) as { whenLabel: unknown; passageCountOf: unknown };
+const text = require(webPath('pages/documents/notebook/citationText.ts')) as { whenLabel: unknown; passageCountOf: unknown };
 const web = loadWebFunctions<{
     chipLabel: (s: unknown, i: number, t: unknown) => string;
     chipTitle: (s: unknown, label: string) => string;

@@ -28,13 +28,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { webSourceText } from '@/shared/testing/webModule';
+import { webPath, webSourceText } from '@/shared/testing/webModule';
 
 import { SKIP_REASONS, statusToken, type StatusTone } from './format';
 
 const WEB_TABLE = path.resolve(
     __dirname,
-    '../../../../../agent-hub/src/components/shared/statusTokens.ts',
+    webPath('components/shared/statusTokens.ts'),
 );
 
 /** Each web row, as the pair the two clients must agree on. */

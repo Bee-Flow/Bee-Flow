@@ -6,11 +6,12 @@
  */
 
 import fs from 'node:fs';
-import path from 'node:path';
+
+import { webPath } from '@/shared/testing/webModule';
 
 import { KIND_ICON, KIND_KEYS, KIND_TOKEN } from './kinds';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src/components/shared/kindColors.ts');
+const WEB = webPath('components/shared/kindColors.ts');
 const src = fs.readFileSync(WEB, 'utf8');
 
 /** The body of `export const NAME = Object.freeze(…)` / `const NAME = Object.freeze({…})`. */
