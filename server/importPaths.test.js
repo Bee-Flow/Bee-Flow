@@ -109,6 +109,11 @@ const ALLOWED_PER_FILE = new Map([
         '../lib/esmCore.mts', '../nowhere/x', '../nowhere/x.mjs',
     ])],
     ['modules/roots/rootSet.test.js', fixtureTree(['../n', '../n8', '../feat/a', '../feat/e.mjs'])],
+    // The same for the dictionary loaders and the test runner: probe sources that run in
+    // a temp tree with a second root, where these paths are right.
+    ['i18n/defaults/en.discovery.test.js', fixtureTree(['./i18n/defaults/en/index.js'])],
+    ['i18n/defaults/nl/index.test.js', fixtureTree(['./i18n/defaults/nl/index.js'])],
+    ['scripts/run-tests.test.mjs', fixtureTree(['./alpha/helper.cjs'])],
 ]);
 
 function stripComments(src) {
