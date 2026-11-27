@@ -195,12 +195,9 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
             });
         }
 
-        const schedule = await coworkStore.createSchedule(newItemFields(userId, norm, resolvedAgentId, trigger));
-
+        const setup = await require('../usecases/coworkSetup.mts').initialSetup({ userId, organizationId: req.session.user.organizationId ?? null }, norm.setup);
+        const schedule = await coworkStore.createSchedule({ ...newItemFields(userId, norm, resolvedAgentId, trigger), initialSetup: setup });
         if (isEvent) await syncNewEventItem(schedule);
-        // What its owner chose on the confirmation (usecases/coworkSetup.mts): fixed steps, who it sends to, and
-        // whether they see each message first. A task that waits for its steps does not run before they are approved.
-        schedule.setup = await require('../usecases/coworkSetup.mts').startSetup({ item: schedule, chosen: norm.setup, organizationId: req.session.user.organizationId ?? null });
         if (startNow === true && !heldForSetup(schedule)) await startNowRun(schedule, norm);
 
         res.json(schedule);

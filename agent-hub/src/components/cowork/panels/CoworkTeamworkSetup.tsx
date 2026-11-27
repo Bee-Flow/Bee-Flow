@@ -94,7 +94,7 @@ function RoleFields({ role, people, onChange, onRemove }: { role: EditRole; peop
     );
 }
 
-function Proposal({ proposal, onBack, onDone }: { proposal: DeskProposal; onBack: () => void; onDone: (r: HelperResult) => void }) {
+export function DeskProposalForm({ proposal, itemId, onBack, onDone, backLabel }: { proposal: DeskProposal; itemId?: string; backLabel?: string; onBack: () => void; onDone: (r: HelperResult) => void }) {
     const { t } = useTranslation();
     const apply = useApplyDeskDraft();
     const [draft, setDraft] = useState<EditDraft>(() => editableOf(proposal));
@@ -121,15 +121,15 @@ function Proposal({ proposal, onBack, onDone }: { proposal: DeskProposal; onBack
             <p className={`m-0 ${META}`}>{t('cowork_panels.team.only_result', 'Only the result is sent on, never access to anyone’s apps. Each colleague accepts once. A result goes from one person to another 3 times at most.')}</p>
             {waits && <p className={`m-0 ${META}`} data-testid="cowork-team-not-ready">{whyNot(waits, t)}</p>}
             <div className="flex flex-wrap gap-2">
-                <PanelButton busy={apply.isPending} disabled={!!waits} onClick={() => apply.mutate({ draft: bodyOf(draft) }, { onSuccess: onDone })}>{t('cowork_panels.team.send', 'Send invitations')}</PanelButton>
-                <PanelButton look="inline" disabled={apply.isPending} onClick={onBack}>{t('cowork_panels.team.start_over', 'Start over')}</PanelButton>
+                <PanelButton busy={apply.isPending} disabled={!!waits} onClick={() => apply.mutate({ itemId, expectedDeskId: itemId ? proposal.deskId : undefined, draft: bodyOf(draft) }, { onSuccess: onDone })}>{t('cowork_panels.team.send', 'Send invitations')}</PanelButton>
+                <PanelButton look="inline" disabled={apply.isPending} onClick={onBack}>{backLabel ?? t('cowork_panels.team.start_over', 'Start over')}</PanelButton>
             </div>
             <Problem error={apply.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
         </div>
     );
 }
 
-function Sent({ result, onAgain }: { result: HelperResult; onAgain: () => void }) {
+export function DeskSetupResult({ result, onAgain }: { result: HelperResult; onAgain?: () => void }) {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-2" role="status" data-testid="cowork-team-sent">
@@ -137,7 +137,7 @@ function Sent({ result, onAgain }: { result: HelperResult; onAgain: () => void }
             <ul className={`m-0 flex list-disc flex-col gap-1 pl-5 ${META}`}>
                 {[...result.done, ...result.waiting].map((n, i) => <li key={i}>{noteText(n, t)}</li>)}
             </ul>
-            <PanelButton look="link" className="self-start" onClick={onAgain}>{t('cowork_panels.team.another', 'Set up another')}</PanelButton>
+            {onAgain && <PanelButton look="link" className="self-start" onClick={onAgain}>{t('cowork_panels.team.another', 'Set up another')}</PanelButton>}
         </div>
     );
 }
@@ -166,8 +166,8 @@ export default function CoworkTeamworkSetup({ another }: { another: boolean }) {
                         <Problem error={draft.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
                     </>
                 )}
-                {screen.at === 'proposal' && <Proposal proposal={screen.proposal} onBack={() => setScreen({ at: 'words' })} onDone={(result) => setScreen({ at: 'sent', result })} />}
-                {screen.at === 'sent' && <Sent result={screen.result} onAgain={() => { setText(''); setScreen({ at: 'words' }); }} />}
+                {screen.at === 'proposal' && <DeskProposalForm proposal={screen.proposal} onBack={() => setScreen({ at: 'words' })} onDone={(result) => setScreen({ at: 'sent', result })} />}
+                {screen.at === 'sent' && <DeskSetupResult result={screen.result} onAgain={() => { setText(''); setScreen({ at: 'words' }); }} />}
             </div>
         </PanelSection>
     );

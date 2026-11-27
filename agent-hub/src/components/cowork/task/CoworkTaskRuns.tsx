@@ -10,6 +10,8 @@ import { paletteItemForType } from '@/components/automation/Builder/flow/stepPal
 import { Workflow, Sparkles, Send } from 'lucide-react';
 import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
 import { useId, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { listCoworkRuns } from '@/api/coworkApi';
 import { fullTimestamp } from '../coworkFormat';
 import { Expand, TINT } from '../coworkMotion';
 import { FOCUS_INSET } from '../coworkUi';
@@ -97,8 +99,11 @@ function RunRow({ run, coworkId, open, onToggle, withReceipts, onSteps, t }: { r
 }
 
 interface CoworkTaskRunsProps {
+    initialRunId?: string;
     coworkId: string;
     runs: CoworkRun[];
+    /** Present only for the owner's full history; shared or single-result views stay within their response. */
+    total?: number;
     /** Read each run's receipt when opened: only for the owner's own task. */
     withReceipts: boolean;
     /** What the list is called where it is shown. */
@@ -107,18 +112,54 @@ interface CoworkTaskRunsProps {
     t: TranslateFn;
 }
 
-export default function CoworkTaskRuns({ coworkId, runs, withReceipts, heading, onSteps, t }: CoworkTaskRunsProps) {
-    const [open, setOpen] = useState<string | null>(null);
-    const done = runs.filter((r) => r.status !== 'running').slice(0, SHOWN);
+/** Keep the server offset separate from displayed rows: overlapping pages or a running row still advance it. */
+function useEarlierRuns(coworkId: string, first: CoworkRun[], total?: number) {
+    const boundary = JSON.stringify([coworkId, first.length, first.at(-1)?.id]);
+    const [page, setPage] = useState<{ boundary: string; rows: CoworkRun[]; next: number; total: number }>();
+    const older = page?.boundary === boundary ? page : undefined;
+    const offset = older?.next ?? first.length;
+    const available = total !== undefined && offset < (older?.total ?? total);
+    const query = useMutation({ mutationFn: () => listCoworkRuns(coworkId, {offset, limit: 25}) });
+    const rows = older?.rows ?? [];
+    const load = async () => {
+        try {
+            const response = await query.mutateAsync();
+            setPage({boundary, rows: [...rows, ...response.runs], next: offset + response.runs.length, total: response.runs.length ? response.total : offset});
+            return true;
+        } catch {
+            return false;
+        }
+    };
+    const seen = new Set(first.map(run => run.id));
+    const runs = [...first, ...rows.filter(run => {
+        if (seen.has(run.id)) return false;
+        seen.add(run.id);
+        return true;
+    })];
+    return {runs, available, load, pending: query.isPending, failed: query.isError};
+}
+
+export default function CoworkTaskRuns({ coworkId, runs, total, withReceipts, heading, onSteps, initialRunId, t }: CoworkTaskRunsProps) {
+    const [open, setOpen] = useState<string | null>(initialRunId ?? null);
+    const [limit, setLimit] = useState(SHOWN);
+    const earlier = useEarlierRuns(coworkId, runs, total);
+    const done = earlier.runs.filter((r) => r.status !== 'running');
+    const showMore = async () => {
+        if (limit + SHOWN > done.length && earlier.available && !await earlier.load()) return;
+        setLimit(n => n + SHOWN);
+    };
     return (
         <div className="flex flex-col gap-1" data-testid="cowork-task-runs">
             <span className={LABEL}>{heading}</span>
-            {done.length === 0 && <p className="text-[14px] text-[var(--text-secondary)]">{t('cowork_task.runs.none', 'It has not run yet.')}</p>}
+            {runs.length > 0 && done.length === 0 && <p role="status">{t('cowork_task.runs.in_progress', 'The current run is still in progress.')}</p>}
+            {runs.length === 0 && <p className="text-[14px] text-[var(--text-secondary)]">{t('cowork_task.runs.none', 'It has not run yet.')}</p>}
             <ul className="list-none m-0 p-0">
-                {done.map((run) => (
+                {done.slice(0, limit).map((run) => (
                     <RunRow key={run.id} run={run} coworkId={coworkId} open={open === run.id} onToggle={() => setOpen((o) => (o === run.id ? null : run.id))} withReceipts={withReceipts} onSteps={onSteps} t={t} />
                 ))}
             </ul>
+            {earlier.failed && <p role="alert">{t('cowork_task.runs.load_failed', 'I couldn’t load the runs for this task.')}</p>}
+            {(done.length > limit || earlier.available) && <button type="button" className={BTN_LINK + ' self-start'} disabled={earlier.pending} onClick={() => { void showMore(); }}>{earlier.pending ? t('cowork_pages.loading', 'Loading…') : t('cowork_task.runs.more', 'Show earlier runs')}</button>}
         </div>
     );
 }

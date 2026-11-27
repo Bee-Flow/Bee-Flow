@@ -12,6 +12,7 @@ export type CoworkFailureCause = 'permission' | 'sign_in' | 'reads' | 'nothing_f
 type CoworkPlanNeed = 'first' | 'changed' | 'blocked' | 'gone';
 
 export interface CoworkNeed {
+    connection?: {canResume: boolean; providers: string[]};
     kind: CoworkNeedKind;
     itemId: string;
     title: string;

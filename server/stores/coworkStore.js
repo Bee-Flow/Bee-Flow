@@ -24,7 +24,7 @@ const { runDdl } = require('./lib/_ddl');
 const { advanceNextRun } = require('./aiTaskStore');
 const { nextRunAfter } = require('./coworkNextRun.mts');
 const log = require('../telemetry/log');
-const { rowToSchedule, rowToRun, deriveProducedOutput, insertValues } = require('./coworkRows');
+const { SCHEDULE_FIELDS, rowToSchedule, rowToRun, deriveProducedOutput, insertValues } = require('./coworkRows');
 const { HELD_ONE_OFF } = require('./coworkSetup.mts');
 const coworkReviews = require('./coworkReviews.mts').makeCoworkReviews({ ready: () => initDB() });
 const runClose = require('./coworkRunClose.mts').makeRunClose({ ready: () => initDB() });
@@ -78,9 +78,9 @@ async function createSchedule(fields) {
         `INSERT INTO cowork_schedules
            (id, user_id, title, prompt, repeat_interval, next_run_at, model_tier,
             timezone, tools_enabled, agent_id, days_of_week, time_of_day, enabled_apps,
-            trigger_kind, trigger_json)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-        [id, userId, ...insertValues(fields)],
+            trigger_kind, trigger_json, setup_state, setup_json, independence)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+        [id, userId, ...insertValues(fields), fields.initialSetup?.state ?? null, fields.initialSetup?.json ?? null, fields.initialSetup?.independence ?? null],
     );
     log.info(`[CoworkStore] Created "${title}" for user ${userId}, next run: ${nextRunAt}`);
     return getSchedule(id);
@@ -106,37 +106,14 @@ async function getSchedules(userId) {
     return rows.map(rowToSchedule);
 }
 
-const FIELD_MAP = {
-    title: 'title',
-    prompt: 'prompt',
-    repeatInterval: 'repeat_interval',
-    nextRunAt: 'next_run_at',
-    isActive: 'is_active',
-    modelTier: 'model_tier',
-    timezone: 'timezone',
-    toolsEnabled: { col: 'tools_enabled', transform: v => (Array.isArray(v) ? JSON.stringify(v) : v) },
-    maxResultLength: 'max_result_length',
-    agentId: 'agent_id',
-    conversationId: 'conversation_id',
-    daysOfWeek: { col: 'days_of_week', transform: v => ((Array.isArray(v) && v.length > 0) ? JSON.stringify(v) : null) },
-    timeOfDay: 'time_of_day',
-    // An EMPTY list is meaningful here ("this may use nothing"), so unlike
-    // daysOfWeek it must survive as '[]' rather than collapse to null.
-    enabledApps: { col: 'enabled_apps', transform: v => (Array.isArray(v) ? JSON.stringify(v) : null) },
-    triggerKind: 'trigger_kind',
-    trigger: { col: 'trigger_json', transform: v => (v && typeof v === 'object' ? JSON.stringify(v) : null) },
-    // Needed by the reauth pause: resumeNeedsReauthForUser only matches rows
-    // whose last_status is 'needs_reauth', so the pause must be able to set it.
-    lastStatus: 'last_status',
-    monthlyBudget: 'monthly_budget', // euros a month on AI, null: no limit (core/cowork/runBudget.mts)
-};
-
 async function updateSchedule(id, updates) {
     await initDB();
     const built = buildUpdate({
         table: 'cowork_schedules',
         updates,
-        columnMap: FIELD_MAP,
+        columnMap: SCHEDULE_FIELDS,
+        extraSet: updates.isActive === true && updates.lastStatus === undefined
+            ? ["last_status = CASE WHEN last_status = 'needs_reauth' THEN 'pending' ELSE last_status END"] : [],
         where: [{ col: 'id', value: id }],
         quoteCols: true,
     });

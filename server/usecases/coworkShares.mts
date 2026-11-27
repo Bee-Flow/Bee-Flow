@@ -22,7 +22,7 @@ export interface ShareDeps {
     listMembers: (orgId: string) => Promise<Person[]>;
     shares: {
         listShares: (scheduleId: string) => Promise<Share[]>;
-        setShares: (scheduleId: string, shares: Share[], addedBy: string) => Promise<void>;
+        setShares: (scheduleId: string, shares: Share[], addedBy: string, expected?: Share[]) => Promise<boolean>;
         sharedWith: (userId: string) => Promise<SharedItem[]>;
         roleOf: (scheduleId: string, userId: string) => Promise<ShareRole | null>;
     };
@@ -60,7 +60,7 @@ export async function sharesOf(item: Item, deps: ShareDeps = defaults()): Promis
 }
 
 /** Set who the item is shared with. Every one a colleague of the owner's organisation; at most one approver. */
-export async function setSharesFor({ item, shares }: { item: Item; shares: Share[] }, deps: ShareDeps = defaults()): Promise<Array<Share & { name: string }>> {
+export async function setSharesFor({ item, shares, expected }: { item: Item; shares: Share[]; expected?: Share[] }, deps: ShareDeps = defaults()): Promise<Array<Share & { name: string }>> {
     if (shares.length > MAX_SHARES) throw refuse(400, `A cowork is shared with at most ${MAX_SHARES} people.`);
     if (shares.filter((s) => s.role === 'approver').length > 1) throw refuse(400, 'One colleague decides the questions of a cowork; the others can see it.');
     const unique = new Map(shares.map((s) => [s.userId, s]));
@@ -68,7 +68,8 @@ export async function setSharesFor({ item, shares }: { item: Item; shares: Share
     for (const userId of unique.keys()) {
         if (!colleagues.has(userId)) throw refuse(404, 'That colleague is not in your organisation.');
     }
-    await deps.shares.setShares(item.id, [...unique.values()], item.userId);
+    const saved = await deps.shares.setShares(item.id, [...unique.values()], item.userId, expected);
+    if (!saved) throw new HttpError(409, 'cowork_shares_changed', 'Access changed. Review the current permissions and confirm again.');
     return sharesOf(item, deps);
 }
 

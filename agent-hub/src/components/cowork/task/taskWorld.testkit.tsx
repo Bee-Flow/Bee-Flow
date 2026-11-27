@@ -2,11 +2,14 @@
 // "Weekly digest" with approved fixed steps, served over a recording fetch (no module is mocked), and the page opened
 // on it. A test replaces only the part of the world it is about.
 import type { ReactNode } from 'react';
+import { screen } from '@testing-library/react';
+import CoworkPageFrame from '../CoworkPageFrame';
 import { vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { renderWithClient } from '@/test/render';
 import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/recordingFetch';
 import CoworkTaskView from './CoworkTaskView';
+import CoworkTaskShared from './CoworkTaskShared';
 import EntitlementsContext, { useEntitlements } from '../../licensing/EntitlementsContext';
 import type { CoworkSheetPanel, CoworkSheetPanelProps } from '../coworkSheetPanels';
 
@@ -60,13 +63,17 @@ export interface World {
     plan?: unknown;
     runs?: unknown[];
     needs?: unknown[];
+    testProgress?: () => unknown;
     proposals?: unknown[];
+    conversation?: (body: unknown) => unknown;
     shared?: unknown;
     independence?: unknown;
     audit?: unknown[];
     colleagues?: unknown[];
     /** The organisation has automations (fixed steps can be chosen). */
     automations?: boolean;
+    failRuns?: (offset: number) => boolean;
+    failItem?: () => boolean;
 }
 
 /** What the world answers to a read of one task's own data, by the path after its id. */
@@ -100,20 +107,47 @@ function otherRead(world: World): Record<string, unknown> {
     };
 }
 
+function testResponse(world: World, path: string, method: string, body: unknown) {
+    const progress = world.testProgress;
+    if (method === 'POST' && path === TASK + '/conversation' && world.conversation) {
+        const reply = world.conversation(body);
+        return reply instanceof Response ? reply : jsonResponse(reply);
+    }
+    if (progress && path === TASK + '/plan/try' && method === 'POST') return jsonResponse({ tryId: 'try-1', fingerprint: FINGERPRINT });
+    if (progress && path === TASK + '/plan/try/try-1') return jsonResponse(progress());
+    return null;
+}
+
+function runPage(world: World, url: string) {
+    const query = new URL(url, 'http://x').searchParams;
+    const offset = Number(query.get('offset') ?? '0');
+    if (world.failRuns?.(offset)) return jsonResponse({ error: 'Offline' }, 503);
+    const runs = world.runs ?? [RUN];
+    return jsonResponse({runs: runs.slice(offset, offset + Number(query.get('limit') ?? '25')), total: runs.length});
+}
+
+function readResponse(world: World, path: string, url: string, reads: ReturnType<typeof taskRead>, others: Record<string, unknown>) {
+    if (path === TASK && world.failItem?.()) return jsonResponse({ error: 'Offline' }, 503);
+    if (path === TASK + '/runs') return runPage(world, url);
+    if (path === TASK && world.item === null) return jsonResponse({ error: 'Forbidden' }, 403);
+    if (path.startsWith(TASK) && path.slice(TASK.length) in reads) return jsonResponse(reads[path.slice(TASK.length)]);
+    // The owner has Microsoft 365 connected: Outlook, OneDrive and the like are theirs to switch on.
+    if (path.includes('/ai/config/tiers-for-user')) return jsonResponse({ auto: {}, fast: { label: 'Fast', modelId: 'mail-model' } });
+    if (path.endsWith('/ai/user-settings')) return jsonResponse({ isMicrosoftUser: true });
+    return jsonResponse(others[path] ?? {});
+}
+
 /** Serve the world; answers with the calls made so far and a way to find one. */
 function serveTask(world: World = {}) {
     const reads = taskRead(world);
     const others = otherRead(world);
     const calls = stubRecordingFetch(({ url, method, body }) => {
         const path = pathOf(url);
+        const testReply = testResponse(world, path, method, body);
+        if (testReply) return testReply;
         if (method === 'PUT' && path === `${TASK}/plan/independence`) return jsonResponse({ ...INDEPENDENCE, chosen: (body as { level?: string }).level });
         if (method !== 'GET') return jsonResponse(method === 'DELETE' ? { success: true } : {});
-        if (path === TASK && world.item === null) return jsonResponse({ error: 'Forbidden' }, 403);
-        if (path.startsWith(TASK) && path.slice(TASK.length) in reads) return jsonResponse(reads[path.slice(TASK.length)]);
-        // The owner has Microsoft 365 connected: Outlook, OneDrive and the like are theirs to switch on.
-        if (path.includes('/ai/config/tiers-for-user')) return jsonResponse({ auto: {}, fast: { label: 'Fast', modelId: 'mail-model' } });
-        if (path.endsWith('/ai/user-settings')) return jsonResponse({ isMicrosoftUser: true });
-        return jsonResponse(others[path] ?? {});
+        return readResponse(world, path, url, reads, others);
     });
     const sent = (method: string, path: string): RecordedCall | undefined => calls.find((c) => c.method === method && pathOf(c.url) === path);
     const all = (method: string, path: string): RecordedCall[] => calls.filter((c) => c.method === method && pathOf(c.url) === path);
@@ -131,8 +165,22 @@ export function openTask(world: World = {}, panel: CoworkSheetPanel = { kind: 't
     const served = serveTask(world);
     const close = vi.fn();
     const open = vi.fn();
-    const props: CoworkSheetPanelProps = { panel, user: null, close, open, fillComposer: vi.fn() };
-    const page = <CoworkTaskView {...props} />;
-    renderWithClient(world.automations ? <WithAutomations>{page}</WithAutomations> : page);
-    return { ...served, close, open, user: userEvent.setup() };
+    const fillComposer = vi.fn();
+    const props: CoworkSheetPanelProps = { panel, user: null, close, open, fillComposer };
+    const page = panel.kind === 'shared' ? <CoworkTaskShared {...props} /> : <CoworkTaskView {...props} />;
+    renderWithClient(<CoworkPageFrame label="Cowork" onBack={close} ownBack>{world.automations ? <WithAutomations>{page}</WithAutomations> : page}</CoworkPageFrame>);
+    return { ...served, close, open, fillComposer, user: userEvent.setup() };
+}
+
+/** Enter the full controls through the same explicit action as an owner. */
+export async function openAdvancedTask(...args: Parameters<typeof openTask>) {
+    const world = openTask(...args);
+    await world.user.click(await screen.findByRole('button', { name: 'Advanced' }));
+    return world;
+}
+
+/** Wait for the task context before sending a question about it. Loading has its own working home composer. */
+export async function readyTaskInput() {
+    await screen.findByTestId('cowork-task-header');
+    return screen.getByRole('textbox', {name: 'Ask Bee…'});
 }

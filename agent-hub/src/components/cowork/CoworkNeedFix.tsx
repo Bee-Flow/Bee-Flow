@@ -102,7 +102,7 @@ const LABELS: Readonly<Record<FixMove, Copy>> = {
 };
 
 /** The sentence of a problem, with the step and the app it can name. */
-function fixTitle(problem: NeedProblem, words: NeedWords | undefined, t: TranslateFn): string {
+export function fixTitle(problem: NeedProblem, words: NeedWords | undefined, t: TranslateFn): string {
     const has = (word: keyof NeedWords): boolean => !!words?.[word];
     const options = TITLES[problem] ?? TITLES.failed;
     const [, copy] = options.find(([needs]) => needs.every(has)) ?? options[options.length - 1] ?? TITLES.failed[0];

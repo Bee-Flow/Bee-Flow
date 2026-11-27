@@ -1,9 +1,9 @@
 // The composer of the Cowork home and its ONE confirmation card (./CoworkHomeComposer.tsx, ./CoworkConfirmCard.tsx):
-// "Show what I understood" works the sentence out, the card says What, When, Uses and Sends to and lets each be
+// "Preview task" works the sentence out, the card says What, When, Uses and Sends to and lets each be
 // changed, an edit of the sentence updates the card without losing what was changed by hand, and "Set up and test"
 // creates the task with what the card shows. The network is the seam (a recording fetch).
 import type { ReactElement } from 'react';
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithClient } from '@/test/render';
@@ -11,7 +11,7 @@ import { jsonResponse, stubRecordingFetch, type RecordedCall } from '@/test/reco
 import CoworkHomeComposer from './CoworkHomeComposer';
 import { softClasses } from './crisp.testkit';
 import EntitlementsContext, { type EntitlementsValue } from '../licensing/EntitlementsContext';
-import type { CoworkSpec } from '@/api/cowork.types';
+import type { CoworkItem, CoworkSpec } from '@/api/cowork.types';
 
 let calls: RecordedCall[];
 const pathOf = (call: RecordedCall): string => new URL(call.url, 'http://x').pathname;
@@ -19,9 +19,13 @@ const created = (): RecordedCall | undefined => calls.find((c) => c.method === '
 const composed = (): RecordedCall[] => calls.filter((c) => pathOf(c) === '/api/cowork/compose');
 
 /** The server: what it makes of the sentence (per call, so an edit can be read differently), and a workspace with Fireflies and Gmail. */
-function serve(spec: CoworkSpec | ((brief: string) => CoworkSpec)) {
+function serve(spec: CoworkSpec | ((brief: string) => CoworkSpec), tiers = {}, catalog = { apps: [{ id: 'outlook', label: 'Outlook', available: true }], degraded: false }, allowed: string[] | null = null) {
     calls = stubRecordingFetch((call) => {
         const path = pathOf(call);
+        if (path.endsWith('/agents/tool-catalog')) return jsonResponse(catalog);
+        if (path.endsWith('/policy/mine')) return jsonResponse({ unattendedApps: allowed, readOnly: false });
+        if (path === '/api/datatables') return jsonResponse({ datatables: [{ id: 't1', name: 'Incoming', grade: 'editor' }] });
+        if (path.endsWith('/config/tiers-for-user')) return jsonResponse(tiers);
         if (path === '/api/cowork/compose') return jsonResponse(typeof spec === 'function' ? spec((call.body as { brief: string }).brief) : spec);
         if (path === '/api/cowork' && call.method === 'POST') return jsonResponse({ id: 'new', title: (call.body as { title: string }).title, runCount: 0 });
         if (path.endsWith('/ai/user-settings')) return jsonResponse({ hasFirefliesKey: true, isGoogleUser: true });
@@ -33,34 +37,78 @@ afterEach(() => { vi.unstubAllGlobals(); });
 /** An organisation with fixed steps (automations), or without. */
 const entitled = (steps: boolean): EntitlementsValue => ({
     loading: false, degraded: false, tier: 'full', mode: 'cloud', effective: { core: [], beta: [], integration: [] }, ceiling: { core: [], beta: [], integration: [] },
-    can: (id) => steps && id === 'automations', inCeiling: () => true, lockReason: () => null, hasTier: () => true, reload: () => {},
+    can: (id) => steps && ['automations', 'datatables'].includes(id), inCeiling: () => true, lockReason: () => null, hasTier: () => true, reload: () => {},
 });
 const inOrg = (ui: ReactElement, steps = true) => <EntitlementsContext.Provider value={entitled(steps)}>{ui}</EntitlementsContext.Provider>;
 
-function renderComposer({ steps = true, stepTypes = [] as string[] } = {}) {
+function renderComposer({ steps = true, stepTypes = [] as string[], items = [] as CoworkItem[] } = {}) {
     const onCreated = vi.fn();
     const onTemplates = vi.fn();
-    renderWithClient(inOrg(<CoworkHomeComposer stepTypes={stepTypes} atLimit={false} maxItems={10} onTemplates={onTemplates} onCreated={onCreated} setup={null} />, steps));
-    return { onCreated, onTemplates };
+    const onAskTask = vi.fn();
+    renderWithClient(inOrg(<CoworkHomeComposer items={items} onAskTask={onAskTask} stepTypes={stepTypes} atLimit={false} maxItems={10} onTemplates={onTemplates} onCreated={onCreated} setup={null} />, steps));
+    return { onCreated, onTemplates, onAskTask };
 }
 
-const box = () => screen.getByLabelText('Describe the task in one sentence');
+const box = () => screen.getByLabelText('Task instructions');
 
-async function write(text: string) {
+async function write(text: string, advanced = true) {
     const user = userEvent.setup();
     await user.type(box(), text);
-    await user.click(screen.getByRole('button', { name: 'Show what I understood' }));
-    return { user, card: await screen.findByTestId('cowork-confirm') };
+    if (advanced && !screen.getByText('Advanced').closest('details')?.open) await user.click(screen.getByText('Advanced'));
+    await user.click(screen.getByTestId('cowork-continue'));
+    const card = await screen.findByTestId('cowork-confirm');
+    const toggle = within(card).queryByRole('button', { name: 'Advanced', expanded: false });
+    if (advanced && toggle) await user.click(toggle);
+    return { user, card };
 }
 
 const WEEKLY: CoworkSpec = { title: 'Weekly meeting summary', prompt: 'Summarise last week’s meetings and mail the summary', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00' };
 
 describe('CoworkHomeComposer', () => {
+    const digest = { id: 'weekly-a', title: 'Weekoverzicht', prompt: 'Vat klantgesprekken samen', runCount: 1 };
+
+    it.each(['Wijzig mijn weekoverzicht naar vrijdag', 'Kan je mijn Weekoverzicht aanpassen?'])('carries an explicit change into the named task with Ctrl+Enter: %s', async request => {
+        serve(WEEKLY);
+        const { onAskTask } = renderComposer({ items: [digest] });
+        const user = userEvent.setup();
+        await user.type(box(), request);
+        expect(screen.getByRole('button', { name: 'Ask Bee about Weekoverzicht' })).toBeVisible();
+        await user.keyboard('{Control>}{Enter}{/Control}');
+        expect(onAskTask).toHaveBeenCalledWith(digest.id, request);
+        expect(composed()).toHaveLength(0);
+    });
+
+    it('asks which identically scheduled task the owner means and distinguishes their instructions', async () => {
+        serve(WEEKLY);
+        const second = { ...digest, id: 'weekly-b', prompt: 'Vat leveranciersgesprekken samen' };
+        const { onAskTask } = renderComposer({ items: [digest, second] });
+        const user = userEvent.setup();
+        const request = 'Pas mijn Weekoverzicht aan';
+        await user.type(box(), request);
+        await user.keyboard('{Control>}{Enter}{/Control}');
+        expect(screen.getByRole('button', { name: 'Weekoverzicht Vat klantgesprekken samen' })).toHaveFocus();
+        expect(onAskTask).not.toHaveBeenCalled();
+        expect(composed()).toHaveLength(0);
+        await user.click(screen.getByRole('button', { name: 'Weekoverzicht Vat leveranciersgesprekken samen' }));
+        expect(onAskTask).toHaveBeenCalledWith(second.id, request);
+    });
+
+    it('lets the owner deliberately create a new task with the same name', async () => {
+        serve(WEEKLY);
+        const { onAskTask } = renderComposer({ items: [digest] });
+        const user = userEvent.setup();
+        await user.type(box(), 'Edit my Weekoverzicht');
+        await user.click(screen.getByRole('button', { name: 'Create a new task' }));
+        await waitFor(() => expect(created()).toBeDefined());
+        expect(onAskTask).not.toHaveBeenCalled();
+    });
+
     it('adds a selected Automations step to the existing task description', async () => {
         serve({});
         renderComposer({ stepTypes: ['condition'] });
         const user = userEvent.setup();
         await user.type(box(), 'Review my emails');
+        await user.click(screen.getByText('Advanced'));
         await user.click(screen.getByText('Choose a step'));
         await user.click(screen.getByRole('button', { name: 'Condition' }));
         expect(box()).toHaveValue('Review my emails\nUse the Condition step.');
@@ -71,32 +119,73 @@ describe('CoworkHomeComposer', () => {
         serve({});
         const { onTemplates } = renderComposer();
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('What should be done for you?');
-        expect(screen.getByRole('button', { name: 'Show what I understood' })).toBeDisabled();
-        await userEvent.setup().click(screen.getByRole('button', { name: 'Start from a template' }));
+        expect(screen.getByRole('button', { name: 'Set up and test' })).toBeDisabled();
+        await userEvent.setup().click(screen.getByText('Start from a template'));
+        await userEvent.setup().click(screen.getByRole('button', { name: 'All templates' }));
         expect(onTemplates).toHaveBeenCalled();
     });
 
-    it('a sentence without a day: the card asks "Which day?", and "Set up and test" waits for the answer', async () => {
+    it('shows the model choice inline and saves the chosen tier on the new task', async () => {
+        serve(WEEKLY, { auto: {}, pro: { modelId: 'deep-model' } });
+        renderComposer();
+        await userEvent.setup().click(screen.getByText('Advanced'));
+        const picker = await screen.findByRole('combobox', { name: 'AI model' });
+        const user = userEvent.setup();
+        await user.selectOptions(picker, 'pro');
+        expect(picker).toHaveDisplayValue('Deep Thinking · deep-model');
+        const { card } = await write('Summarise the meetings every Monday at 09:00');
+        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ modelTier: 'pro' }));
+    });
+
+    it('keeps Enter for a new paragraph and previews the task with Ctrl+Enter', async () => {
+        serve(WEEKLY);
+        renderComposer();
+        const user = userEvent.setup();
+        await user.type(box(), 'Lees de mail van sam@example.com.{Enter}Vat die samen in Cowork.');
+        expect(box()).toHaveValue('Lees de mail van sam@example.com.\nVat die samen in Cowork.');
+        expect(composed()).toHaveLength(0);
+        await user.click(screen.getByText('Advanced'));
+        await user.click(box());
+        await user.keyboard('{Control>}{Enter}{/Control}');
+        const card = await screen.findByTestId('cowork-confirm');
+        expect(within(card).getByText('Available in this Cowork task')).toBeVisible();
+        expect(within(card).queryByLabelText('Add an address')).toBeNull();
+    });
+
+    it('asks for the missing frequency, day and time under the orb before creating a task', async () => {
         serve({ title: 'Meeting overview', prompt: 'Summarise my meetings' });
         const { onCreated } = renderComposer();
-        const { user, card } = await write('Summarise my meetings');
-        expect(within(card).getByLabelText('What')).toHaveValue('Meeting overview');
-        expect(within(card).getByText('Your sentence does not say when. Pick a day and it is ready to start.')).toBeInTheDocument();
-        expect(within(card).getByRole('button', { name: 'Set up and test' })).toBeDisabled();
-        const days = within(card).getByRole('combobox', { name: 'Which day?' });
-        const monday = within(days).getAllByRole('option').find((o) => (o as HTMLOptionElement).value === 'mon') as HTMLOptionElement;
-        await user.selectOptions(days, monday);
-        expect(within(card).queryByRole('combobox', { name: 'Which day?' })).toBeNull();
-        expect(screen.getByTestId('cowork-confirm-when')).toHaveTextContent(/Every .+ at/);
-        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        const { user, card } = await write('Summarise my meetings', false);
+        expect(card.closest('.cowork-bee-dialog')?.querySelector('.cowork-orb')).toBeVisible();
+        const next = within(card).getByRole('button', { name: 'Set up and test' });
+        expect(next).toBeDisabled();
+        await user.selectOptions(within(card).getByLabelText('How often'), 'weekly');
+        await user.selectOptions(within(card).getByLabelText('Which day?'), 'mon');
+        expect(next).toBeDisabled();
+        fireEvent.change(within(card).getByLabelText('At what time?'), { target: { value: '15:45' } });
+        expect(created()).toBeUndefined();
+        await user.dblClick(next);
         await waitFor(() => expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: 'new' })));
-        expect(created()?.body).toMatchObject({ title: 'Meeting overview', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '09:00', setup: { steps: true, sendsTo: ['me'] } });
+        expect(created()?.body).toMatchObject({ title: 'Meeting overview', repeatInterval: 'weekly', daysOfWeek: ['mon'], timeOfDay: '15:45', setup: { steps: true, sendsTo: [] } });
         expect((created()?.body as { startNow?: boolean }).startNow).toBeUndefined();
         expect(box()).toHaveValue('');
     });
 
+    it('keeps the stated weekday and asks only for the missing time before setup', async () => {
+        serve({ ...WEEKLY, timeOfDay: undefined });
+        renderComposer();
+        const { user, card } = await write('Every Monday, summarise my meetings', false);
+        expect(card.closest('.cowork-bee-dialog')?.querySelector('.cowork-orb')).toBeVisible();
+        expect(within(card).queryByRole('combobox')).toBeNull();
+        expect(created()).toBeUndefined();
+        fireEvent.change(within(card).getByLabelText('At what time?'), { target: { value: '11:15' } });
+        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ daysOfWeek: ['mon'], timeOfDay: '11:15' }));
+    });
+
     it('a sentence that says when: no question, every row can be changed, and Cancel makes nothing', async () => {
-        serve(WEEKLY);
+        serve({ ...WEEKLY, delivery: { quote: 'send it to me', to: ['me'] } });
         renderComposer();
         const { user, card } = await write('Every Monday at 09:00, summarise last week’s meetings and send it to me');
         expect(within(card).queryByRole('combobox', { name: 'Which day?' })).toBeNull();
@@ -111,7 +200,7 @@ describe('CoworkHomeComposer', () => {
     });
 
     it('"me and sam@…" shows both; "Me" can be taken off, an address added, and what is chosen goes with the task', async () => {
-        serve(WEEKLY);
+        serve({ ...WEEKLY, delivery: { quote: 'send it to me and sam@example.com', to: ['me', 'sam@example.com'] } });
         const { onCreated } = renderComposer();
         const { user, card } = await write('Every Monday at 09:00, summarise last week’s meetings and send it to me and sam@example.com');
         const sends = within(screen.getByTestId('cowork-confirm-sends'));
@@ -134,7 +223,7 @@ describe('CoworkHomeComposer', () => {
     });
 
     it('"Show me each message first" can be switched off, and says what that means', async () => {
-        serve(WEEKLY);
+        serve({ ...WEEKLY, delivery: { quote: 'mail the summary to sam@example.com', to: ['sam@example.com'] } });
         const { onCreated } = renderComposer();
         const { user, card } = await write('Every Monday, mail the summary to sam@example.com');
         await user.click(within(card).getByRole('switch', { name: 'Show me each message first' }));
@@ -145,7 +234,7 @@ describe('CoworkHomeComposer', () => {
     });
 
     it('without fixed steps the card does not offer "Show me each message first": it says the AI sends by itself', async () => {
-        serve(WEEKLY);
+        serve({ ...WEEKLY, delivery: { quote: 'mail the summary to sam@example.com', to: ['sam@example.com'] } });
         const { onCreated } = renderComposer({ steps: false });
         const { user, card } = await write('Every Monday, mail the summary to sam@example.com');
         expect(within(card).queryByRole('switch', { name: 'Show me each message first' })).toBeNull();
@@ -187,21 +276,23 @@ describe('CoworkHomeComposer', () => {
     });
 
     it('editing the sentence keeps the card: it is read again, and what was changed by hand stays', async () => {
-        serve((brief) => (brief.includes('Friday') ? { ...WEEKLY, title: 'Friday meeting summary', daysOfWeek: ['fri'], timeOfDay: '16:00' } : WEEKLY));
+        const sending = { ...WEEKLY, delivery: { quote: 'send it to me and sam@example.com', to: ['me', 'sam@example.com'] } };
+        serve((brief) => (brief.includes('Friday') ? { ...sending, title: 'Friday meeting summary', daysOfWeek: ['fri'], timeOfDay: '16:00' } : sending));
         const { onCreated } = renderComposer();
         const { user, card } = await write('Every Monday, summarise my meetings and send it to me and sam@example.com');
         // By hand: the name, and "Me" taken off.
-        await user.clear(within(card).getByLabelText('What'));
-        await user.type(within(card).getByLabelText('What'), 'Digest for Sam');
+        await user.clear(within(card).getByLabelText('Task name'));
+        await user.type(within(card).getByLabelText('Task name'), 'Digest for Sam');
         await user.click(within(card).getByRole('button', { name: 'Remove Me' }));
 
+        await user.click(screen.getByText('Edit task instructions'));
         await user.type(box(), ' and jo@example.com, on Friday');
         expect(screen.getByTestId('cowork-confirm')).toBeInTheDocument();
         await waitFor(() => expect(composed()).toHaveLength(2), { timeout: 4000 });
         expect((composed()[1]?.body as { brief: string }).brief).toContain('on Friday');
         await waitFor(() => expect(within(screen.getByTestId('cowork-confirm')).getByLabelText('At what time?')).toHaveValue('16:00'));
         const after = within(screen.getByTestId('cowork-confirm'));
-        expect(after.getByLabelText('What')).toHaveValue('Digest for Sam');
+        expect(after.getByLabelText('Task name')).toHaveValue('Digest for Sam');
         expect(within(screen.getByTestId('cowork-confirm-sends')).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['sam@example.com', 'Add me']);
 
         await waitFor(() => expect(after.getByRole('button', { name: 'Set up and test' })).toBeEnabled());
@@ -214,6 +305,7 @@ describe('CoworkHomeComposer', () => {
         serve(WEEKLY);
         renderComposer();
         const { user } = await write('Every Monday, summarise my meetings');
+        await user.click(screen.getByText('Edit task instructions'));
         await user.clear(box());
         expect(screen.queryByTestId('cowork-confirm')).toBeNull();
     });
@@ -234,38 +326,224 @@ describe('CoworkHomeComposer', () => {
         expect(screen.getByText('You have 10 tasks, the most you can have. Delete one to add another.')).toBeInTheDocument();
     });
 
-    it('shows the set-up of a new task as phases', () => {
+    it('starts the held test from the brief in one action when no choice is needed', async () => {
+        serve(WEEKLY);
+        const { onCreated } = renderComposer();
+        const user = userEvent.setup();
+        await user.type(box(), 'Every Monday, summarise my meetings here');
+        await user.click(screen.getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+        expect(created()?.body).toMatchObject({ setup: { steps: true, sendsTo: [] } });
+        expect(screen.queryByTestId('cowork-confirm')).toBeNull();
+        expect(composed()).toHaveLength(1);
+    });
+
+    it.each([true, false])('clarifies the goal before setup and reads only the actual answer (suggestion: %s)', async useSuggestion => {
+        const initial = 'Help with my inbox';
+        const suggested = 'Summarise unread mail';
+        const custom = 'List flagged messages';
+        const question = 'What would you like to do with your mail?';
+        serve(brief => brief === initial
+            ? { ...WEEKLY, clarification: { question, options: [suggested, 'Draft replies'] } }
+            : { ...WEEKLY, prompt: brief });
+        renderComposer();
+        const { user, card } = await write(initial, false);
+        expect(within(card).getByText(question)).toBeVisible();
+        expect(created()).toBeUndefined();
+        if (useSuggestion) {
+            await user.click(within(card).getByRole('button', { name: suggested }));
+        } else {
+            await user.type(within(card).getByRole('textbox', { name: 'Your answer' }), custom);
+            await user.click(within(card).getByRole('button', { name: 'Continue' }));
+        }
+        const completed = initial + '\n' + (useSuggestion ? suggested : custom);
+        await waitFor(() => expect(created()?.body).toMatchObject({ prompt: completed, setup: { steps: true, sendsTo: [] } }));
+        expect(composed().map(call => (call.body as { brief: string }).brief)).toEqual([initial, completed]);
+    });
+
+    it('asks the goal before a missing schedule and allows cancellation', async () => {
+        serve({ clarification: { question: 'Which source should I summarise?', options: [] } });
+        renderComposer();
+        const { user, card } = await write('Make a summary', false);
+        expect(within(card).getByText('Which source should I summarise?')).toBeVisible();
+        expect(within(card).getByRole('button', { name: 'Continue' })).toBeDisabled();
+        await user.click(within(card).getByRole('button', { name: 'Cancel' }));
+        expect(created()).toBeUndefined();
+        expect(box()).toHaveValue('Make a summary');
+    });
+
+    it.each([
+        ['Send the summary to me', ['me']],
+        ['Mail sam@example.com', ['sam@example.com']],
+    ] as const)('starts a single held test for an explicit delivery: %s', async (quote, to) => {
+        serve({ ...WEEKLY, delivery: { quote, to: [...to] } });
+        const { onCreated } = renderComposer();
+        const user = userEvent.setup();
+        await user.type(box(), 'Every Monday at 09:00, summarise my Fireflies meetings. ' + quote);
+        await user.dblClick(screen.getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(onCreated).toHaveBeenCalledOnce());
+        expect(calls.filter(c => c.method === 'POST' && pathOf(c) === '/api/cowork')).toHaveLength(1);
+        expect(created()?.body).toMatchObject({ setup: { steps: true, sendsTo: to } });
+        expect(screen.queryByText('Review your task')).toBeNull();
+    });
+
+    it('uses a stated one-off date and asks only for the time', async () => {
+        serve({ firstRunDate: '2099-04-16', oneOff: 'scheduled' });
+        renderComposer();
+        const { user, card } = await write('Summarise my meetings on April 16, 2099', false);
+        expect(within(card).queryByRole('combobox')).toBeNull();
+        expect(within(card).queryByLabelText('Date')).toBeNull();
+        fireEvent.change(within(card).getByLabelText('At what time?'), { target: { value: '15:10' } });
+        await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ nextRunAt: new Date(2099, 3, 16, 15, 10).toISOString(), repeatInterval: null }));
+    });
+
+    it('keeps a live task behind an explicit start in the orb', async () => {
+        serve(WEEKLY);
+        renderComposer({ steps: false });
+        const { user, card } = await write('Summarise my meetings every Monday at 09:00', false);
+        expect(card.closest('.cowork-bee-dialog')?.querySelector('.cowork-orb')).toBeVisible();
+        expect(created()).toBeUndefined();
+        await user.click(within(card).getByRole('button', { name: 'Start' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ setup: { steps: false } }));
+    });
+
+    it('keeps a suggested morning time editable and cancels without creating a task', async () => {
+        serve({ ...WEEKLY, repeatInterval: 'daily', daysOfWeek: [], timeOfDay: '08:00', timeIsSuggested: true });
+        renderComposer();
+        const { user, card } = await write('Every morning, summarise my meetings', false);
+        expect(within(card).getByLabelText('At what time?')).toHaveValue('08:00');
+        await user.click(within(card).getByRole('button', { name: 'Cancel' }));
+        expect(box()).toHaveValue('Every morning, summarise my meetings');
+        expect(created()).toBeUndefined();
+    });
+
+    it('uses the recipient answer and the schedule without another model call', async () => {
+        serve({ ...WEEKLY, timeOfDay: undefined, delivery: { quote: 'email the summary', to: [] } });
+        renderComposer();
+        const { user, card } = await write('Every Monday email the summary', false);
+        const recipient = within(card).getByLabelText('Who should receive the result?');
+        await user.type(recipient, 'sam@example.com');
+        await user.click(within(card).getByRole('button', { name: 'Continue' }));
+        fireEvent.change(screen.getByLabelText('At what time?'), { target: { value: '10:30' } });
+        await user.click(screen.getByRole('button', { name: 'Set up and test' }));
+        await waitFor(() => expect(created()?.body).toMatchObject({ timeOfDay: '10:30', setup: { sendsTo: ['sam@example.com'], askFirst: true } }));
+        expect(composed()).toHaveLength(1);
+    });
+
+    it('keeps the same orb and composer while reading, and applies a queued clarification to the original draft', async () => {
+        const first = 'Every day at 9, summarise my mail';
+        const detail = 'Only unread messages';
+        const question = 'Which messages should I use?';
+        let finishPreview!: (response: Response) => void;
+        const replying = new Promise<Response>(resolve => { finishPreview = resolve; });
+        const briefs: string[] = [];
+        const questions: Array<{message: string; previous: string}> = [];
+        vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+            const path = new URL(url, 'http://x').pathname;
+            const body = JSON.parse(String(init?.body || '{}'));
+            if (path === '/api/cowork/compose') {
+                briefs.push(body.brief);
+                return briefs.length === 1 ? replying : jsonResponse(WEEKLY);
+            }
+            if (path === '/api/cowork/home/intent') {
+                questions.push(body);
+                return jsonResponse({action: 'refine'});
+            }
+            return jsonResponse({});
+        }));
+        const onCreated = vi.fn();
+        renderWithClient(inOrg(<CoworkHomeComposer guided atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={onCreated} setup={null} />, false));
+        const user = userEvent.setup();
+        const composer = screen.getByRole('textbox', {name: 'Ask Bee…'});
+        const canvas = document.querySelector('canvas');
+        await user.type(composer, first + '{Enter}');
+        await screen.findByText('I’m preparing an outline for you to review.');
+        await user.type(composer, detail + '{Enter}');
+        expect(screen.getByText('I’ll take this up with your task in a moment.')).toBeVisible();
+        expect(briefs).toEqual([first]);
+        await act(() => finishPreview(jsonResponse({...WEEKLY, clarification: {question, options: []}})));
+        await screen.findByRole('button', {name: 'Start'});
+        expect(questions).toHaveLength(1);
+        expect(questions[0]).toMatchObject({message: detail, previous: expect.stringContaining(question)});
+        expect(briefs).toEqual([first, first + '\n' + detail]);
+        expect(screen.getByRole('textbox')).toBe(composer);
+        expect(document.querySelectorAll('canvas')).toHaveLength(1);
+        expect(document.querySelector('canvas')).toBe(canvas);
+        expect(onCreated).not.toHaveBeenCalled();
+    });
+
+    it('sends a question about a live trial straight to the task being tested', async () => {
         serve({});
-        renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={{ id: 'new', title: 'Meeting overview', phase: 1 }} />));
+        const ask = vi.fn();
+        renderWithClient(inOrg(<CoworkHomeComposer guided atLimit={false} maxItems={10} onAskTask={ask} onTemplates={() => {}} onCreated={() => {}} setup={{id: 'trial', title: 'Inbox', phase: 'repairing'}} />));
+        await userEvent.setup().type(screen.getByRole('textbox', {name: 'Ask Bee…'}), 'What went wrong?{Enter}');
+        expect(ask).toHaveBeenCalledWith('trial', 'What went wrong?');
+        expect(composed()).toHaveLength(0);
+    });
+
+    it('shows only the current setup phase and keeps creation controls out of the way', () => {
+        serve({});
+        renderWithClient(inOrg(<CoworkHomeComposer atLimit={false} maxItems={10} onTemplates={() => {}} onCreated={() => {}} setup={{ id: 'new', title: 'Meeting overview', phase: 'trying' }} />));
         expect(softClasses(screen.getByTestId('cowork-setup'))).toEqual([]);
-        const steps = within(screen.getByTestId('cowork-setup')).getAllByRole('listitem');
-        expect(steps.map((s) => [s.textContent, s.dataset.state])).toEqual([
-            ['Setting up the steps', 'did'], ['Testing once, nothing is sent', 'now'], ['Ready for your check', 'next'],
-        ]);
+        expect(screen.getByRole('status')).toHaveTextContent('I’m trying the steps once. Nothing is sent.');
+        expect(screen.getByRole('textbox', {name: 'Ask Bee…'})).toBeEnabled();
+        expect(screen.queryByText('Ready for your check')).not.toBeInTheDocument();
     });
 });
 
-it('asks for the destination, reads the answer and only then enables setup', async () => {
+it('reads the table answer and starts the held test directly', async () => {
     serve((brief) => ({ ...WEEKLY, ...(brief.includes('Orders') ? {} : { missingTarget: 'table' }) }));
     renderComposer();
-    const { user, card } = await write('Every Monday add new rows to a table');
-    expect(within(card).getByTestId('cowork-confirm-start')).toBeDisabled();
+    const { user, card } = await write('Every Monday add new rows to a table', false);
+    expect(within(card).queryByTestId('cowork-confirm-start')).toBeNull();
+    expect(card.closest('.cowork-bee-dialog')?.querySelector('.cowork-orb')).toBeVisible();
     await user.type(within(card).getByLabelText('Which table should receive the rows?'), 'Orders');
-    await user.click(within(card).getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(within(card).getByTestId('cowork-confirm-start')).toBeEnabled());
-    expect(created()).toBeUndefined();
+    await user.click(within(card).getByRole('button', { name: 'Set up and test' }));
+    await waitFor(() => expect(created()?.body).toMatchObject({ setup: { steps: true } }));
+    expect(composed()).toHaveLength(2);
 });
 
 it('the file example asks for the folder and table in turn and leaves the result editable', async () => {
-    serve(WEEKLY);
+    serve(WEEKLY, {}, { apps: [{ id: 'nextcloud', label: 'Nextcloud', available: true }], degraded: false });
     renderComposer();
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Register Nextcloud files' }));
+    await user.click(screen.getByText('Start from a template'));
+    await user.click(await screen.findByRole('button', { name: 'Register Nextcloud files' }));
     await user.type(screen.getByLabelText('Which Nextcloud folder should Cowork check?'), '/Intake');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.type(screen.getByLabelText('Which table should Cowork use?'), 'Incoming');
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(await screen.findByRole('button', { name: 'Incoming' }));
     expect((box() as HTMLTextAreaElement).value).toContain('folder /Intake');
     expect((box() as HTMLTextAreaElement).value).toContain('table Incoming');
     expect(composed()).toHaveLength(0);
+});
+
+
+it('offers only connected and permitted integrations and skips the mail app question for Outlook alone', async () => {
+    const apps = [
+        { id: 'outlook', label: 'Outlook', available: true },
+        { id: 'nextcloud', label: 'Nextcloud', available: false },
+        { id: 'fireflies', label: 'Fireflies', available: true },
+    ];
+    serve(WEEKLY, {}, { apps, degraded: false }, ['outlook', 'nextcloud']);
+    renderComposer();
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Start from a template'));
+    const mail = await screen.findByRole('button', { name: 'Draft supplier replies' });
+    for (const name of ['Weekly Fireflies summary', 'Register Nextcloud files', 'Report exceptions in a table']) {
+        expect(screen.queryByRole('button', { name })).toBeNull();
+    }
+    await user.click(mail);
+    await user.type(screen.getByRole('textbox', {name: 'Which supplier email address should it look for?'}), 'supplier@example.com');
+    await user.click(screen.getByRole('button', {name: 'Continue'}));
+    expect((box() as HTMLTextAreaElement).value).toContain('Outlook');
+});
+
+it('keeps external templates hidden if the catalog could not verify connections', async () => {
+    serve(WEEKLY, {}, { apps: [{ id: 'fireflies', label: 'Fireflies', available: true }], degraded: true });
+    renderComposer();
+    await userEvent.setup().click(screen.getByText('Start from a template'));
+    expect(await screen.findByRole('button', { name: 'Report exceptions in a table' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Weekly Fireflies summary' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Draft supplier replies' })).toBeNull();
 });

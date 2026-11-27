@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { makeCoworkPlan } from '../api/coworkPlanMake';
 import { coworkPlanKey } from '../api/queries/coworkPlan';
-import type { PlanMakeProgress, PlanStep } from '../api/coworkPlan.types';
+import type { PlanMakeProgress, PlanningTestStep, PlanStep } from '../api/coworkPlan.types';
 
 /**
  * "Make a plan": have Cowork draft the plan of an item from its brief, and follow the drafting.
@@ -15,8 +15,9 @@ import type { PlanMakeProgress, PlanStep } from '../api/coworkPlan.types';
 export interface PlanMaking {
     running: boolean;
     phase: PlanMakeProgress['phase'] | null;
+    testStep?: PlanningTestStep;
     /** The steps of the draft so far. */
-    steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'>>;
+    steps: Array<Pick<PlanStep, 'id' | 'title' | 'kind'> & { app?: string | null }>;
     /** What the planner said about the plan it made. */
     summary: string;
     /** The sentence of a failure; '' when it failed without one; null when it did not fail. */
@@ -27,7 +28,7 @@ const IDLE: PlanMaking = { running: false, phase: null, steps: [], summary: '', 
 
 /** The making after one more word from the planner. */
 function afterProgress(making: PlanMaking, progress: PlanMakeProgress): PlanMaking {
-    return { ...making, phase: progress.phase, steps: progress.phase === 'drafted' ? progress.steps : making.steps };
+    return { ...making, phase: progress.phase, testStep: progress.phase === 'trying' ? progress.step : undefined, steps: progress.phase === 'drafted' ? progress.steps : making.steps };
 }
 
 const isStop = (e: unknown): boolean => e instanceof Error && e.name === 'AbortError';
@@ -49,7 +50,7 @@ export default function useCoworkPlanMaker(coworkId: string) {
         stopRef.current = stop;
         setMaking({ ...IDLE, running: true, phase: 'thinking' });
         try {
-            const outcome = await makeCoworkPlan(coworkId, { signal: stop.signal, fromRuns, replaceId, onProgress: (progress) => setMaking((m) => afterProgress(m, progress)) });
+            const outcome = await makeCoworkPlan(coworkId, { signal: stop.signal, fromRuns, replaceId, onProgress: (progress) => { if (!stop.signal.aborted) setMaking((m) => afterProgress(m, progress)); } });
             if (stopRef.current !== stop) return;
             if (outcome.state) client.setQueryData(coworkPlanKey(coworkId), outcome.state);
             setMaking((m) => ({ ...m, running: false, phase: null, summary: outcome.summary, error: outcome.error }));

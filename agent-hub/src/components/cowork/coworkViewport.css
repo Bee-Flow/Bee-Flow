@@ -1,0 +1,245 @@
+/* The app shell already follows the visual viewport, including the mobile keyboard.
+   Size Bee to this pane: a split window or an embedded app may be shorter than the screen. */
+.cowork-viewport {
+    container: cowork / size;
+    display: flex;
+    overflow: clip;
+    --cowork-gap: clamp(.35rem, 1.6cqh, 1rem);
+}
+.cowork-viewport > :is(.cowork-open-page, .cowork-guided-home) {
+    width: min(100%, 76rem);
+    height: 100%;
+    min-height: 0;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(.5rem, 2cqh, 1.25rem) clamp(.75rem, 3cqw, 2.5rem) max(.5rem, env(safe-area-inset-bottom));
+    gap: var(--cowork-gap);
+}
+.cowork-viewport > .cowork-guided-home { max-width: 48rem; justify-content: center; }
+.cowork-home-frame, .cowork-viewport .cowork-home, .cowork-viewport .cowork-bee-dialog,
+.cowork-viewport [data-testid="cowork-page-frame"], .cowork-viewport .cowork-task-guided,
+.cowork-side-panel, .cowork-pending-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: var(--cowork-gap);
+}
+.cowork-home-frame { max-height: 100%; }
+.cowork-home-frame > :is(header, button), .cowork-viewport .cowork-task-footer,
+.cowork-side-orb, .cowork-task-anchor, .cowork-home-frame .cowork-welcome-orb { flex: none; }
+.cowork-home-frame [hidden] { display: none; }
+.cowork-viewport .cowork-bee-dialog { align-items: center; }
+.cowork-viewport .cowork-bee-dialog > .cowork-welcome-orb { width: min(100%, 47cqh, 28rem); }
+.cowork-viewport .cowork-bee-dialog:has(.cowork-home-context:not(:empty)) > .cowork-welcome-orb,
+.cowork-viewport [data-dashboard="true"] .cowork-bee-dialog > .cowork-welcome-orb { width: min(100%, 21cqh, 11rem); }
+.cowork-home-context, .cowork-side-content, .cowork-viewport .is-detail > .cowork-task-scroll {
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-secondary) 30%, transparent) transparent;
+    padding: .25rem;
+}
+.cowork-home-context { width: 100%; }
+.cowork-home-context:empty, .cowork-home-context:has([data-cowork-engaged="true"]) > .cowork-home-sections { display: none; }
+.cowork-home-context > :is(p, [role="status"]) { text-align: center; }
+.cowork-viewport .cowork-home-context .cowork-bee-options { max-height: none; overflow: visible; margin-inline: auto; }
+.cowork-viewport .cowork-conversation { min-width: 0; max-width: 100%; }
+.cowork-viewport .cowork-conversation textarea { max-height: min(7rem, 17cqh); }
+.cowork-viewport .cowork-open-page > section { flex: 1 1 0; min-height: 0; height: auto; }
+.cowork-viewport .cowork-open-page > section > button { flex: none; }
+.cowork-viewport .cowork-home-frame[data-bee-embedded="true"] { flex: none; max-height: 42%; }
+.cowork-side-panel, .cowork-viewport .cowork-task-guided { flex: 1; }
+.cowork-viewport .cowork-side-orb .cowork-orb, .cowork-task-anchor > .cowork-orb, .cowork-pending-page > .cowork-orb {
+    width: min(100%, 18cqh, 10rem);
+}
+.cowork-side-content { width: min(100%, 48rem); margin-inline: auto; }
+.cowork-side-panel .cowork-side-content, .cowork-viewport .is-detail > .cowork-task-scroll, .cowork-side-shared > .cowork-side-content { flex: 1; }
+.cowork-task-anchor { display: flex; flex-direction: column; align-items: center; }
+.cowork-viewport .cowork-task-anchor > .cowork-orb { width: min(100%, 16cqh, 9rem); }
+.cowork-pending-page { flex: 1; align-items: center; justify-content: center; text-align: center; }
+
+.cowork-viewport .cowork-task-guided .cowork-task-identity h1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+.cowork-viewport .cowork-task-guided:not(.is-detail) > .cowork-task-scroll {
+    display: flex;
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    margin-block: auto 0;
+    gap: var(--cowork-gap);
+}
+.cowork-viewport .cowork-task-guided:not(.is-detail) > .cowork-task-scroll > section {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.cowork-viewport .cowork-task-guided .cowork-orb-workspace { min-height: 0; padding-block: .25rem; }
+.cowork-viewport .cowork-task-guided .cowork-orb-workspace .cowork-orb { width: min(100%, 43cqh, 27rem); }
+.cowork-viewport .cowork-task-guided .cowork-orb-workspace:is(.is-review,[data-choosing="true"]) .cowork-orb,
+.cowork-viewport .cowork-task-guided:has(.cowork-transcript) .cowork-orb-workspace .cowork-orb { width: min(100%, 24cqh, 14rem); }
+.cowork-viewport .cowork-task-guided .cowork-orb-workspace .cowork-activity { padding: 0; gap: .4rem; }
+.cowork-viewport .cowork-workspace-steps, .cowork-viewport .cowork-review {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+.cowork-viewport .cowork-workspace-steps { max-height: 43cqh; }
+.cowork-viewport .cowork-orb-workspace .cowork-activity > details { width: 100%; }
+.cowork-viewport .cowork-orb-workspace .cowork-activity > details > ol { max-height: 15cqh; overflow: auto; scrollbar-width: thin; }
+.cowork-viewport .cowork-workspace-steps .cowork-step-rail h2 {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--bg-primary);
+}
+.cowork-viewport .cowork-step-rail ol { max-height: none; overflow: visible; }
+.cowork-viewport .cowork-review { max-height: 24cqh; }
+.cowork-viewport .cowork-task-guided:not(.is-detail) > .cowork-task-footer { margin-block-start: auto; }
+.cowork-viewport .cowork-conversation:has(.cowork-chat-context) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 36cqh;
+}
+.cowork-chat-context {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+.cowork-chat-context:empty { display: none; }
+.cowork-chat-context > :not(.cowork-transcript) { flex: none; }
+.cowork-chat-context .cowork-transcript { min-height: min(4rem, 10cqh); max-height: 27cqh; }
+.cowork-viewport .cowork-conversation > [role="alert"] { max-height: 10cqh; overflow: auto; }
+.cowork-viewport .is-detail > .cowork-conversation, .cowork-viewport .cowork-side-shared > .cowork-conversation { flex: none; }
+@container cowork (max-width: 40rem) {
+    .cowork-viewport .cowork-task-guided .cowork-orb-workspace .cowork-orb { width: min(100%, 27cqh, 15rem); }
+    .cowork-viewport .cowork-task-guided .cowork-orb-workspace { gap: .4rem; }
+    .cowork-viewport .cowork-workspace-steps { max-height: 22cqh; }
+    .cowork-viewport .cowork-task-guided:has(.cowork-transcript, .cowork-review) .cowork-orb-workspace .cowork-orb { width: min(100%, 14cqh, 8rem); }
+}
+@container cowork (max-height: 32rem) {
+    .cowork-viewport > :is(.cowork-guided-home, .cowork-open-page) { padding-block: .3rem; gap: .25rem; }
+    .cowork-viewport .cowork-task-guided, .cowork-viewport .cowork-task-scroll, .cowork-viewport [data-testid="cowork-page-frame"] { gap: .25rem; }
+    .cowork-viewport .cowork-task-anchor { flex-direction: row; justify-content: center; gap: .5rem; }
+    .cowork-viewport .cowork-task-anchor .cowork-task-identity { width: auto; margin: 0; }
+    .cowork-viewport .cowork-task-anchor > .cowork-orb { margin: 0; width: min(12cqh, 3.5rem); }
+    .cowork-viewport .cowork-task-guided .cowork-orb-workspace .cowork-orb { width: min(14cqh, 5rem); }
+    .cowork-viewport .cowork-task-guided .cowork-orb-workspace .cowork-activity { gap: .15rem; }
+}
+
+/* In a short pane, keep live progress and the selectable plan side by side. An
+   expanded test trace can then use its own scroll area without covering either. */
+@container cowork (max-height: 36rem) and (max-width: 40rem) {
+    .cowork-viewport .cowork-orb-workspace.has-steps:has(.cowork-activity > details) {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        column-gap: .5rem;
+    }
+    .cowork-viewport .cowork-orb-workspace:has(.cowork-activity > details) .cowork-workspace-steps {
+        grid-column: 2;
+        align-self: start;
+        max-height: 30cqh;
+    }
+    .cowork-viewport .cowork-orb-workspace:has(.cowork-activity > details) .cowork-activity-current {
+        max-height: 12cqh;
+        overflow: auto;
+        font-size: .875rem;
+    }
+    .cowork-viewport .cowork-orb-workspace:has(.cowork-activity > details) .cowork-orb { width: min(11cqh, 4rem); }
+}
+
+/* A document and a conversation are two reading surfaces. Give each its own column
+   when the actual Cowork pane (after the sidebar) is wide enough for both. */
+@container cowork (min-width: 61rem) and (min-height: 34rem) {
+    .cowork-viewport :is(.is-detail[data-view="result"], .is-detail[data-view="history"], .cowork-side-shared[data-reading="true"]) {
+        display: grid;
+        grid-template-columns: minmax(16rem, .85fr) minmax(0, 1.25fr);
+        grid-template-rows: minmax(0, 1fr) auto minmax(0, .65fr) auto;
+        column-gap: clamp(1.5rem, 4cqw, 3rem);
+        row-gap: .75rem;
+    }
+    :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-anchor, .cowork-side-orb) {
+        grid-area: 1 / 1;
+        align-self: end;
+    }
+    .cowork-viewport :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-anchor, .cowork-side-orb) .cowork-orb {
+        width: min(90%, 29cqh, 16rem);
+    }
+    :is([data-view="result"], [data-view="history"], [data-reading="true"]) > .cowork-conversation { grid-area: 2 / 1; }
+    :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-footer, button) { grid-area: 4 / 1; }
+    .cowork-viewport :is([data-view="result"], [data-view="history"], [data-reading="true"]) > :is(.cowork-task-scroll, .cowork-side-content) {
+        grid-area: 1 / 2 / -1;
+        align-self: stretch;
+        padding-block: 0;
+        padding-inline: clamp(.5rem, 1.3cqw, 1.25rem);
+    }
+    :is([data-view="result"], [data-view="history"]) .cowork-detail-content > h2:first-child {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: 0;
+        padding-block: .5rem;
+        background: var(--bg-primary);
+    }
+}
+
+.cowork-intro { flex: 1; min-height: 0; overflow: auto; text-align: center; align-content: safe center; padding: 1rem; }
+.cowork-intro .cowork-orb { width: min(34vh, 20rem, 85%); margin-inline: auto; }
+.cowork-intro-line { max-width: 37rem; margin: .75rem auto; font-size: clamp(1.1rem, 2vw, 1.5rem); line-height: 1.35; }
+.cowork-intro-sample { max-width: 25rem; margin: 1rem auto; text-align: start; }
+.cowork-intro-controls { display: flex; justify-content: center; flex-wrap: wrap; align-items: center; gap: .75rem; }
+@media (prefers-reduced-motion: no-preference) {
+    .cowork-intro-line { animation: cowork-intro-speak .48s ease-out both; }
+    @keyframes cowork-intro-speak { from { opacity: 0; transform: translateY(.2rem); } to { opacity: 1; transform: none; } }
+}
+
+.cowork-intro-guided { display: flex; flex-direction: column; align-items: center; justify-content: safe center; }
+.cowork-intro-stage { width: min(100%, 42rem); min-height: 15rem; }
+.cowork-intro-guided > small { margin-bottom: .5rem; }
+.cowork-intro-guided > button { margin-block-end: -2.25rem; }
+
+.cowork-story-caption { min-height: 5.5rem; }
+.cowork-intro-stage { min-height: min(23rem, 43vh); }
+.cowork-story-paper { padding: .85rem 1.15rem; background: var(--bg-card); border-inline-start: 2px solid var(--border-default); }
+@media (prefers-reduced-motion: no-preference) {
+    .cowork-story-caption .cowork-intro-line { animation: none; }
+    .cowork-story-caption span { animation: cowork-story-phrase .85s ease-out backwards; }
+    .cowork-story-evidence > div { animation: cowork-intro-speak .85s .55s ease-out backwards; }
+    .cowork-story-evidence .cowork-step-rail li { transition: opacity .7s; }
+    .cowork-story-evidence .cowork-step-rail li:not([aria-current]) { opacity: .65; }
+    @keyframes cowork-story-phrase { from { opacity: 0; filter: blur(2px); } to { opacity: 1; filter: blur(0); } }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .cowork-intro-stage { transition: opacity .55s ease; }
+    .cowork-intro-stage[data-leaving="true"] { opacity: .13; }
+}
+
+.cowork-intro-orb { width: 100%; }
+.cowork-intro-orb[data-event="status_failed"] { --cowork-event-color: var(--error); }
+.cowork-intro-orb[data-event="status_needs"] { --cowork-event-color: var(--warning); }
+.cowork-intro-orb[data-event="status_done"] { --cowork-event-color: var(--success); }
+.cowork-intro-desk { display: grid; gap: .4rem; padding: .9rem 1.15rem; border-radius: var(--radius-md); background: var(--bg-card); }
+.cowork-intro-desk :is(strong, div, small) { display: flex; align-items: center; gap: .6rem; }
+.cowork-intro-desk strong { margin-bottom: .35rem; }
+.cowork-intro-desk small { color: var(--text-secondary); }
+
+.cowork-intro-guided { container-type: inline-size; }
+.cowork-intro-workspace { width: min(100%, 72rem); flex: none; }
+.cowork-intro-workspace .cowork-workspace-steps { text-align: start; }
+@container (max-width: 35.99rem) {
+    .cowork-intro-workspace.has-steps { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: .5rem; }
+}

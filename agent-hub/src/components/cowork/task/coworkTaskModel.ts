@@ -34,6 +34,8 @@ export interface TaskStep {
     title: string;
     type?: string;
     script?: boolean;
+    depth?: number;
+    inputNames?: string[];
     description?: string | null;
     sort: StepSort;
     /** The app's name ("Outlook"), or null for a step no app does. */
@@ -72,6 +74,8 @@ export function planSteps(state: PlanState, t: TranslateFn): TaskStep[] {
         id: step.id,
         title: plainStepTitle(step, t),
         type: step.type,
+        depth: step.depth,
+        inputNames: step.inputNames,
         sort: sortOfPlanStep(step),
         app: step.app ? appLabel(step.app) : null,
         integrationId: step.app ?? null,

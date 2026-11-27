@@ -79,8 +79,13 @@ export default function CoworkTaskTested({ coworkId, plan, fingerprint, changed 
             )}
             <div className={ROW_ACTIONS}>
                 {fingerprint && <button type="button" className={BTN_PRIMARY} disabled={approve.isPending} onClick={() => onApprove(fingerprint)}>{t('cowork_task.tested.approve', 'Approve')}</button>}
-                <button type="button" className={BTN_QUIET} onClick={onChange}>{t('cowork_task.tested.change', 'Change something')}</button>
-                <button type="button" className={BTN_QUIET} disabled={testing || approve.isPending} onClick={onTest}>{t('cowork_task.steps.test', 'Test, sends nothing')}</button>
+                <details>
+                    <summary className="w-fit cursor-pointer py-2 text-[13px] text-[var(--text-secondary)]">{t('cowork_overview.advanced', 'Advanced')}</summary>
+                    <div className={ROW_ACTIONS}>
+                        <button type="button" className={BTN_QUIET} onClick={onChange}>{t('cowork_task.tested.change', 'Change something')}</button>
+                        <button type="button" className={BTN_QUIET} disabled={testing || approve.isPending} onClick={onTest}>{t('cowork_task.steps.test', 'Test, sends nothing')}</button>
+                    </div>
+                </details>
             </div>
             <Failure error={approve.error} t={t} />
         </section>

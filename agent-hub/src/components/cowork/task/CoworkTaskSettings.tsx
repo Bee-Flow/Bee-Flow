@@ -46,6 +46,9 @@ function useAppsWords(enabledApps: string[] | null | undefined, stepApps: readon
 }
 
 export interface CoworkTaskSettingsProps {
+    focused?: boolean;
+    onRecipients?: () => void;
+    onSaved?: () => void;
     item: CoworkItem;
     mode: TaskMode;
     plan: PlanState | undefined;
@@ -65,7 +68,8 @@ export interface CoworkTaskSettingsProps {
 
 /** What each closed row says. */
 function useRowWords({ item, mode, plan, open, locale, t }: CoworkTaskSettingsProps) {
-    const start = useCoworkStart(item.id, true).query.data;
+    const startQuery = useCoworkStart(item.id, true).query;
+    const start = startQuery.data;
     const goal = useCoworkGoal(item.id).query.data ?? null;
     // Read for the agent's name, and for the choice of one once Uses is open.
     const agents = useCoworkAgents(mode === 'agent' || open === 'uses');
@@ -76,7 +80,7 @@ function useRowWords({ item, mode, plan, open, locale, t }: CoworkTaskSettingsPr
     const hasApprovedSteps = mode === 'steps' && !!plan?.approved;
     const sends = { item, mode, plan };
     return {
-        start, agents, limit, hasApprovedSteps, stepApps,
+        startQuery, start, agents, limit, hasApprovedSteps, stepApps,
         what: { value: item.prompt || t('cowork_task.what.empty', 'No sentence yet'), note: targetLine(goal, t) },
         when: { value: whenWords(item, start, t) },
         uses: {
@@ -106,22 +110,22 @@ export default function CoworkTaskSettings(props: CoworkTaskSettingsProps) {
     const words = useRowWords(props);
     const initial = useMemo(() => draftOf(item, words.start, mode), [item, words.start, mode]);
     const [saved, setSaved] = useSavedRow(open);
-    const form = (id: DraftRowId): SettingRowForm => ({ itemId: item.id, initial, onRebuild, onDone: () => onOpen(null), onSaved: () => { setSaved(id); onOpen(null); }, locked: live });
-    const row = (id: SettingRowId) => ({ id, open: open === id, saved: saved === id, onToggle: onOpen, t });
+    const form = (id: DraftRowId): SettingRowForm => ({ itemId: item.id, initial, onRebuild, onDone: () => onOpen(null), onSaved: () => { setSaved(id); onOpen(null); props.onSaved?.(); }, locked: live });
+    const row = (id: SettingRowId) => ({ id, focused: props.focused, open: open === id, saved: saved === id, onToggle: onOpen, t });
     return (
         <div className="flex flex-col gap-3" data-testid="cowork-task-settings">
-            <div className={ROWS}>
+            <div className={props.focused ? undefined : ROWS}>
                 <SettingRow {...row('what')} label={t('cowork_task.set.what', 'What')} {...words.what}>
                     <TaskSetWhat form={form('what')} t={t} />
                 </SettingRow>
                 <SettingRow {...row('when')} label={t('cowork_task.edit.when', 'When')} {...words.when}>
-                    <TaskSetWhen form={form('when')} onOpenTask={onOpenTask} t={t} />
+                    {words.startQuery.isPending ? <p role="status">{t('cowork_pages.loading', 'Loading…')}</p> : words.startQuery.isError ? <button onClick={() => void words.startQuery.refetch()}>{t('cowork_task.retry', 'Try again')}</button> : <TaskSetWhen form={form('when')} onOpenTask={onOpenTask} t={t} />}
                 </SettingRow>
                 <SettingRow {...row('uses')} label={t('cowork_task.set.uses', 'Uses')} {...words.uses}>
                     <TaskSetUses form={form('uses')} stepApps={words.stepApps} agents={words.agents} mayPlan={mayPlan} limit={words.limit} locale={locale} t={t} />
                 </SettingRow>
                 <SettingRow {...row('sends')} label={t('cowork_task.set.sends', 'Sends to')} value={words.sends.value} note={words.sends.note}>
-                    <TaskSetSendsTo coworkId={item.id} mode={mode} hasApprovedSteps={words.hasApprovedSteps} othersReached={words.sends.othersReached} recipients={words.sends.recipients} t={t} />
+                    <TaskSetSendsTo onEdit={props.focused ? props.onRecipients : undefined} coworkId={item.id} mode={mode} hasApprovedSteps={words.hasApprovedSteps} othersReached={words.sends.othersReached} recipients={words.sends.recipients} t={t} />
                 </SettingRow>
             </div>
         </div>

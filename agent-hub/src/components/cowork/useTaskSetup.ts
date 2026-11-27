@@ -13,30 +13,27 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { makeCoworkPlan } from '@/api/coworkPlanMake';
 import { apiJson } from '@/api/typedRequest';
-import type { PlanMakeProgress } from '@/api/coworkPlan.types';
+import type { OrbStep, PlanMakeProgress, PlanningTestStep } from '@/api/coworkPlan.types';
 import type { CoworkItem } from '@/api/cowork.types';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export interface TaskSetup { id: string; title: string; phase: number }
+export interface TaskSetup { flow?: OrbStep[]; apps?: string[] | null; id: string; title: string; phase: PlanMakeProgress['phase'] | 'checking'; step?: PlanningTestStep }
 
 /** The task to set up: the new task itself, or just its id and name (it is then read first). */
-export type TaskToSetUp = Pick<CoworkItem, 'id' | 'title'> & Partial<Pick<CoworkItem, 'setup'>>;
-
-/** Drafting and saving are the first phase; trying and repairing what the try-out found, the second. */
-export const setupPhaseOf = (progress: PlanMakeProgress): number => (progress.phase === 'trying' || progress.phase === 'repairing' ? 1 : 0);
+export type TaskToSetUp = Pick<CoworkItem, 'id' | 'title'> & Partial<Pick<CoworkItem, 'setup' | 'enabledApps'>> & { flow?: OrbStep[] };
 
 /** Does the task wait for its steps? Read from the task itself when the caller did not hand its set-up in. */
-async function wantsSteps(task: TaskToSetUp): Promise<boolean> {
+async function wantsSteps(task: TaskToSetUp): Promise<boolean | null> {
     if (task.setup !== undefined) return task.setup?.steps === 'wanted';
     try {
         const item = await apiJson<'GET /api/cowork/{id}', CoworkItem>('GET /api/cowork/{id}', { params: { id: task.id } });
         return item.setup?.steps === 'wanted';
     } catch {
-        return false;
+        return null;
     }
 }
 
-export default function useTaskSetup(onDone: (message: string) => void) {
+export default function useTaskSetup(onDone: (message: string, task: TaskToSetUp) => void) {
     const { t } = useTranslation();
     const client = useQueryClient();
     const [setup, setSetup] = useState<TaskSetup | null>(null);
@@ -47,28 +44,43 @@ export default function useTaskSetup(onDone: (message: string) => void) {
         running.current?.abort();
         const control = new AbortController();
         running.current = control;
+        let apps = task.enabledApps;
+        let flow = task.flow;
         const settle = async (message: string) => {
+            await client.invalidateQueries({ queryKey: ['cowork'] });
+            if (control.signal.aborted) return;
             running.current = null;
             setSetup(null);
-            await client.invalidateQueries({ queryKey: ['cowork'] });
-            onDone(message);
+            onDone(message, { ...task, enabledApps: apps, flow });
         };
-        if (!(await wantsSteps(task))) {
+        setSetup({ apps, id: task.id, title: task.title, phase: 'checking' });
+        const wanted = await wantsSteps(task);
+        if (control.signal.aborted) return;
+        if (wanted === null) {
+            await settle(t('cowork_home.activity.unknown', 'Task created. Open it to check the setup.'));
+            return;
+        }
+        if (!wanted) {
             if (!control.signal.aborted) await settle(t('cowork_home.setup.ai', 'Started. The AI works this task out on every run.'));
             return;
         }
-        if (control.signal.aborted) return;
-        setSetup({ id: task.id, title: task.title, phase: 0 });
-        const progress = (p: PlanMakeProgress) => setSetup((s) => (s?.id === task.id ? { ...s, phase: Math.max(s.phase, setupPhaseOf(p)) } : s));
+        setSetup({ apps, id: task.id, title: task.title, phase: 'thinking' });
+        const progress = (p: PlanMakeProgress) => {
+            if (p.phase === 'drafted') flow = p.steps;
+            if (p.phase === 'drafted') apps = p.steps.flatMap(step => step.app ? [step.app] : []);
+            setSetup((s) => (s?.id === task.id && !control.signal.aborted ? { ...s, apps, flow, phase: p.phase, step: p.phase === 'trying' ? p.step : undefined } : s));
+        };
         let ready = false;
         try {
-            ready = (await makeCoworkPlan(task.id, { signal: control.signal, onProgress: progress })).error === null;
+            const outcome = await makeCoworkPlan(task.id, { signal: control.signal, onProgress: progress });
+            ready = outcome.error === null && !outcome.state?.tried?.blocksApproval;
         } catch {
             if (control.signal.aborted) return;
         }
+        if (control.signal.aborted) return;
         await settle(ready
-            ? t('cowork_home.setup.done', 'The steps are ready and tested. Open and approve them under Needs you.')
-            : t('cowork_home.setup.waits', 'Cowork could not set up the steps. The task waits: choose what to do under Needs you.'));
+            ? t('cowork_home.activity.ready', 'Your task is ready for review.')
+            : t('cowork_home.activity.attention', 'Setup stopped. Open the task to see what needs your attention.'));
     }, [client, onDone, t]);
 
     return { setup, begin };

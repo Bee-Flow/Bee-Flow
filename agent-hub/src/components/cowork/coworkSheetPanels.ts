@@ -18,20 +18,24 @@
  * page can be linked to. Swapping what a kind shows is changing its `component` here: the page and the home never
  * name a page's component.
  */
+import type { TeamworkTurn } from './coworkTeamworkRequest';
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { TaskFocus } from './CoworkNeedFrame';
 import type { CoworkViewer } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
 export type CoworkSheetPanel =
-    | { kind: 'task'; id: string; focus?: TaskFocus }
-    | { kind: 'shared'; id: string }
-    | { kind: 'settings' }
-    | { kind: 'teamwork' }
-    | { kind: 'templates' }
-    | { kind: 'org' };
+    | { kind: 'task'; id: string; focus?: TaskFocus; takeQuestion?: () => string }
+    | { kind: 'shared'; id: string; takeQuestion?: () => string }
+    | { kind: 'settings'; section?: string }
+    | { kind: 'teamwork'; request?: TeamworkTurn }
+    | { kind: 'templates'; section?: string }
+    | { kind: 'org'; section?: string };
 
 export type CoworkSheetKind = CoworkSheetPanel['kind'];
+
+export type HomeTransfer = 'ask' | 'create' | 'attention' | 'shared';
+export type ComposerSeed = {text: string; n: number; takeAction?: () => HomeTransfer | undefined};
 
 /** What every page receives. */
 export interface CoworkSheetPanelProps {
@@ -44,7 +48,7 @@ export interface CoworkSheetPanelProps {
     /** Show another page instead (a task just added from a template, a task of a desk). */
     open: (panel: CoworkSheetPanel) => void;
     /** Put a sentence in the home's composer, and go back to the home (a template's sentence). */
-    fillComposer: (text: string) => void;
+    fillComposer: (text: string, action?: HomeTransfer) => void;
 }
 
 interface PageEntry {

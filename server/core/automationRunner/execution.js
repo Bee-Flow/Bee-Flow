@@ -176,7 +176,7 @@ function acquireRunMarker(automationId, triggerKind, opts) {
     return heartbeat.acquireRunMarker(RUN_DEPS, automationId, triggerKind, opts);
 }
 
-async function executeAutomation(automation, /** @type {ExecuteOptions} */ { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null, harness = null, partial = null, origin = null, pausesRequested = false, profileOverride = null, markerClaimed = false } = {}) {
+async function executeAutomation(automation, /** @type {ExecuteOptions} */ { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, onDryRunStep, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null, harness = null, partial = null, origin = null, pausesRequested = false, profileOverride = null, markerClaimed = false } = {}) {
     const startedAt = Date.now();
     // ── Live or working copy (handoff 5) ── decided once, here, for every
     // caller (runSetup.selectRunCopy). From this line on `automation` is the
@@ -332,7 +332,7 @@ async function executeAutomation(automation, /** @type {ExecuteOptions} */ { tri
         throw e;
     }
 
-    const dispatchStep = makeStepDispatcher(RUN_DEPS, { run, cancelSignal, runPolicy });
+    const dispatchStep = makeStepDispatcher(RUN_DEPS, { run, cancelSignal, runPolicy, onDryRunStep: effectiveMode === 'dry_run' ? onDryRunStep : undefined });
     const outcome = await raceRunDag(RUN_DEPS, {
         automation, ctx, runState, effectiveMode, dispatchStep, runPolicy, run,
         cancelController, cancelSignal, heartbeatTimer, touchRunMarker,
@@ -358,6 +358,7 @@ module.exports = { runOrgFor, isManagedAutomation, disabledPassThroughBranch, re
  *   parentRunId?: string | null,
  *   rootRunId?: string | null,
  *   onRunCreated?: ((run: Record<string, any>) => unknown) | null,
+ *   onDryRunStep?: (stepId: string) => void,
  *   onRunFinished?: ((row: Record<string, any>) => unknown) | null,
  *   replayState?: Record<string, any> | null,
  *   replayGaps?: Map<string, number | null> | null,

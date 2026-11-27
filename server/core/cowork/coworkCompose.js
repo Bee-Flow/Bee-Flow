@@ -55,9 +55,13 @@ Fields:
 - "title": a short label, max ${MAX_TITLE} characters, in the SAME language as the brief. No quotes, no trailing period.
 - "prompt": the instruction the runner will execute, in the SAME language as the brief. Rewrite the brief as a direct, self-contained instruction to an assistant that will run UNATTENDED at the scheduled moment. Keep every concrete requirement the user stated. Do not invent extra tasks. Do not mention scheduling inside the prompt — the schedule is a separate field. Do not address the user by name.
 - "repeatInterval": one of "hourly", "daily", "weekdays", "weekly", "biweekly", "monthly", "quarterly", "yearly", or null when the brief describes a one-off.
+- "firstRunDate": a local date YYYY-MM-DD only when the user gives a date, a relative day such as tomorrow, or a calendar day for a monthly, quarterly or yearly schedule. Resolve it using the current local time below. Omit when unstated.
+- "oneOff": omit unless the user explicitly asks for a single run. Use "now" when they ask to run immediately, or "scheduled" for a single run at another time.
 - "daysOfWeek": array of "sun","mon","tue","wed","thu","fri","sat" when the user named specific days; otherwise null.
-- "timeOfDay": "HH:MM" (24h) when a time is stated or clearly implied; otherwise null.
+- "timeOfDay": "HH:MM" (24h) when a time is stated or clearly implied; otherwise null. If the brief gives a broad time such as "every morning" and you choose the exact hour, include "timeIsSuggested": true so the owner can confirm it.
     Vague parts of day map to: morning/ochtend = "08:00", midday/middag = "12:00", afternoon = "14:00", evening/avond = "18:00", night/nacht = "21:00".
+- "delivery": omit unless the user explicitly requests an outgoing message (send, email, notify, or equivalent in their language). Reading mail, preparing drafts, and returning a result in Cowork do not request delivery. When requested, return {"quote":"exact words requesting delivery copied from the brief","to":["me","literal@example.com"]}. Include "me" only if the owner asks to receive it. Include the recipients in the quoted request. Copy only destination addresses, never a sender, search filter or example address. If the destination is unclear use an empty list and missingTarget "recipient".
+- "clarification": omit when the brief has an actionable goal and enough context to choose inputs. If choosing the outcome or a necessary source would be guesswork, return {"question":"one short question","options":["one possible answer","another possible answer"]}. Ask about just the first blocking decision, in the user’s language. Give zero to two distinct, short answers the user can adopt verbatim. For "help me with my email", ask what should happen and offer "Summarise my unread emails" and "Draft replies to my emails". For "summarise my unread emails", go ahead. Do not ask about scheduling, destinations, formatting or optional preferences here. Do not suggest sending, new recipients or unmentioned integrations. Read the entire brief including any answer on a later line before deciding what remains unclear. Preserve the original instructions while asking; do not put a proposed answer in the runnable prompt.
 - "missingTarget": only when a required destination for a write or send is missing, return "folder", "table", or "recipient". Choose the first missing destination only. A sender filter is not a recipient. A result for the owner already has its recipient. Otherwise omit this field. Never invent the missing destination.
 - "runOnce": true when this should run a single time, false when it repeats.
 - "agentId": the id of the agent that should run this, ONLY when the brief clearly asks for a specific agent. Otherwise null.
@@ -76,12 +80,12 @@ The user's timezone is ${timezone}. Current local time: ${nowLabel}.
 
 Examples:
 Brief: "elke ochtend een goede morgen wensen en zorgen dat ik positief begin"
-{"title":"Goedemorgen-bericht","prompt":"Schrijf een kort, warm goedemorgenbericht ... ","repeatInterval":"daily","daysOfWeek":null,"timeOfDay":"08:00","runOnce":false,"agentId":null,"agentQuote":null}
+{"title":"Goedemorgen-bericht","prompt":"Schrijf een kort, warm goedemorgenbericht ... ","repeatInterval":"daily","daysOfWeek":null,"timeOfDay":"08:00","timeIsSuggested":true,"runOnce":false,"agentId":null,"agentQuote":null}
 
 Brief: "laat de Bugs & Feedback Agent elke maandag om 9 uur de openstaande bugs samenvatten"
 {"title":"Wekelijkse bugsamenvatting","prompt":"Vat de openstaande bugs samen ...","repeatInterval":"weekly","daysOfWeek":["mon"],"timeOfDay":"09:00","runOnce":false,"agentId":"<that agent's id>","agentQuote":"Bugs & Feedback Agent"}
 
-Brief: "vat morgen de notulen van de laatste vergadering samen"
+Brief: "vat de notulen van de laatste vergadering samen"
 {"title":"Notulen samenvatten","prompt":"Vat de notulen van de laatste vergadering samen ...","repeatInterval":null,"daysOfWeek":null,"timeOfDay":null,"runOnce":true,"agentId":null,"agentQuote":null}`;
 }
 
@@ -126,7 +130,7 @@ function titleFromBrief(brief) {
  */
 /**
  * @typedef {{ agentId?: string, agentQuote?: string, repeatInterval?: string, daysOfWeek?: unknown,
- *   missingTarget?: string, timeOfDay?: string, title?: string, prompt?: string }} ModelSpec
+ *   clarification?: {question?: string, options?: unknown[]}, delivery?: {quote?: string, to?: unknown[]}, missingTarget?: string, firstRunDate?: string, oneOff?: string, timeOfDay?: string, timeIsSuggested?: boolean, title?: string, prompt?: string }} ModelSpec
  *   what the model replied; every field is untrusted
  */
 /**
@@ -171,6 +175,53 @@ function normaliseDays(value) {
     return VALID_DOW_TOKENS.filter(d => unique.includes(d));
 }
 
+/** @param {ModelSpec} spec @param {string} brief */
+function deliveryOf(spec, brief) {
+    const quote = spec.delivery?.quote;
+    if (typeof quote !== 'string' || !quote.trim() || !brief.includes(quote.trim())) return null;
+    const addresses = new Set((quote.match(/[\w.%+-]+@[\w.-]+\.[a-z]{2,}/gi) || []).map(value => value.toLowerCase()));
+    const to = Array.isArray(spec.delivery.to) ? spec.delivery.to.filter(value =>
+        typeof value === 'string' && (value === 'me' || addresses.has(value.toLowerCase()))) : [];
+    return { quote: quote.trim(), to };
+}
+
+/** Keep a model's question and suggestions as display data until the owner answers.
+ * @param {ModelSpec['clarification']} value */
+function clarificationFields(value) {
+    const question = cleanText(value?.question, 240);
+    if (!question) return {};
+    const options = Array.isArray(value.options) ? value.options
+        .map(item => typeof item === 'string' ? item.trim() : '')
+        .filter(item => item && item.length <= 160) : [];
+    return { clarification: { question, options: [...new Set(options)].slice(0, 2) } };
+}
+
+/** @param {ModelSpec} spec @param {string} brief */
+function destinationFields(spec, brief) {
+    const delivery = deliveryOf(spec, String(brief || ''));
+    const needsTarget = ['folder', 'table'].includes(spec.missingTarget) || (delivery && spec.missingTarget === 'recipient');
+    return { ...(delivery ? { delivery } : {}), ...(needsTarget ? { missingTarget: spec.missingTarget } : {}) };
+}
+
+/** @param {unknown} value */
+function calendarDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const parsed = new Date(value + 'T00:00:00Z');
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : null;
+}
+
+/** Schedule details the orb can use without asking twice.
+ * @param {ModelSpec} obj @param {string|null} repeatInterval @param {boolean} runOnce @param {string|null} timeOfDay */
+function scheduleDetails(obj, repeatInterval, runOnce, timeOfDay) {
+    const calendarSchedule = runOnce || ['monthly', 'quarterly', 'yearly'].includes(repeatInterval ?? '');
+    const firstRunDate = calendarSchedule ? calendarDate(obj.firstRunDate) : null;
+    return {
+        ...(firstRunDate ? { firstRunDate } : {}),
+        ...(runOnce && (obj.oneOff === 'now' || obj.oneOff === 'scheduled') ? { oneOff: obj.oneOff } : {}),
+        ...(timeOfDay && obj.timeIsSuggested === true ? { timeIsSuggested: true } : {}),
+    };
+}
+
 /**
  * Coerce one model reply into a spec that is safe to persist.
  * Pure — no model, no DB. `raw` may be null (model failed entirely).
@@ -194,13 +245,14 @@ function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief
     // so a model that says runOnce:false while giving no interval still gets a
     // one-off rather than a schedule that never repeats but claims it does.
     const runOnce = !repeatInterval && !daysOfWeek;
-
     const { agentId, agentReason } = resolveAgent(obj, { brief, agents });
 
     return {
+        ...clarificationFields(obj.clarification),
+        ...destinationFields(obj, brief),
+        ...scheduleDetails(obj, repeatInterval, runOnce, timeOfDay),
         title: cleanText(obj.title, MAX_TITLE) || titleFromBrief(brief),
         prompt: cleanText(obj.prompt, MAX_PROMPT) || String(brief || '').trim(),
-        ...(['folder', 'table', 'recipient'].includes(obj.missingTarget) ? { missingTarget: obj.missingTarget } : {}),
         repeatInterval,
         daysOfWeek,
         timeOfDay,
@@ -216,6 +268,84 @@ function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief
  */
 function fallbackSpec(brief) {
     return normaliseSpec(null, { brief, agents: [] });
+}
+
+/** Collect the same provider output used for billing and final action validation while publishing text as it arrives.
+ * @param {(onEvent:(event:string,data:{error?:string,text?:string})=>void)=>Promise<unknown>} run
+ * @param {{onText:(raw:string)=>void,signal:AbortSignal}} stream */
+async function streamCoworkTurn(run, stream) {
+    let content = '';
+    let usage = {};
+    await run((event, data) => {
+        if (event === 'error') throw new Error(data.error || 'Model stream failed');
+        if (event === 'done') usage = data;
+        if (event === 'text' && data.text) {
+            content += data.text;
+            stream.onText(content);
+        }
+    });
+    return { content, usage };
+}
+
+/** @param {string} tier */
+function coworkTokenLimit(tier) {
+    const { TIER_DEFAULTS } = require('../llm/modelResolver');
+    const defaults = TIER_DEFAULTS[tier] || TIER_DEFAULTS.fast;
+    return Math.min(defaults?.maxTokens || 1500, 1500);
+}
+
+/** One tool-free Cowork model turn with the owner's tier, input shield and usage accounting.
+ * @param {{messages: {role: string, content: string}[], tier: string, userId: string|null, userOrgId: string|null, source: string, stream?: {onText:(raw:string)=>void,signal:AbortSignal}}} options
+ */
+async function coworkTextTurn({ messages, tier, userId, userOrgId, source, stream }) {
+    const { resolveModelForTier } = require('../llm/modelResolver');
+    const { getProviderForModel } = require('../aiAgent');
+    const { getAdapter } = require('../providers/index');
+
+    // Same rule as the runner: the composer writes the brief FROM the
+    // user's own words, so it resolves its model under that user's org —
+    // EU overrides and org custom tiers included.
+    const modelId = await resolveModelForTier(`tier:${tier}`, { userOrgId, userId });
+    if (!modelId) throw new Error(`no model for tier ${tier}`);
+    const config = await getProviderForModel(modelId);
+    const adapter = getAdapter(config.providerType, config.url);
+    if (typeof adapter?.chat !== 'function') throw new Error('adapter has no chat()');
+
+
+    // A refusal or fail-closed outage must stop the outbound model call.
+    await require('./coworkShield').applyCoworkShieldToInput({
+        orgId: userOrgId,
+        userId,
+        messages,
+    });
+
+    const callStart = Date.now();
+    const options = {
+        maxTokens: coworkTokenLimit(tier),
+        // Deterministic: the same brief should not schedule differently on
+        // two tries.
+        temperature: 0,
+    };
+    const args = /** @type {const} */ ([config.apiKey, config.url, modelId, messages]);
+    const response = stream && typeof adapter.stream === 'function'
+        ? await streamCoworkTurn(onEvent => adapter.stream(...args, { ...options, signal: stream.signal }, onEvent), stream)
+        : await adapter.chat(...args, options);
+
+    // Bill the owner for the model turn, including a response the caller cannot use.
+    try {
+        const usage = response?.usage || {};
+        require('../../stores/usageStore').logUsage({
+            user_id: userId || null,
+            organization_id: userOrgId || null,
+            agent_type: 'cowork',
+            model: modelId,
+            source,
+            ...usageLogFields(usage),
+            duration_ms: Date.now() - callStart,
+        }).catch((e) => bestEffort('core/cowork/coworkCompose:composeCowork', e));
+    } catch (err) { bestEffort('core/cowork/coworkCompose:composeCowork#2', err); /* bookkeeping only */ }
+
+    return response?.content || '';
 }
 
 // ── The model call ──────────────────────────────────────
@@ -240,68 +370,11 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
     }
 
     try {
-        const { resolveModelForTier, TIER_DEFAULTS } = require('../llm/modelResolver');
-        const { getProviderForModel } = require('../aiAgent');
-        const { getAdapter } = require('../providers/index');
-
-        // Same rule as the runner: the composer writes the brief FROM the
-        // user's own words, so it resolves its model under that user's org —
-        // EU overrides and org custom tiers included.
-        const modelId = await resolveModelForTier(`tier:${tier}`, { userOrgId, userId });
-        if (!modelId) throw new Error(`no model for tier ${tier}`);
-        const config = await getProviderForModel(modelId);
-        const adapter = getAdapter(config.providerType, config.url);
-        if (!adapter || typeof adapter.chat !== 'function') throw new Error('adapter has no chat()');
-
-        const defaults = TIER_DEFAULTS[tier] || TIER_DEFAULTS.fast || {};
-
-        const messages = [
+        const answer = await coworkTextTurn({ tier, userId, userOrgId, source: 'cowork_compose', messages: [
             { role: 'system', content: buildComposePrompt({ agents, timezone, nowLabel }) },
             { role: 'user', content: text },
-        ];
-
-        // Privacy shield on the composer's input (CW-10): behind the per-org
-        // opt-in flag, the brief runs through the same PII passage as the
-        // agent runtime. A masking action rewrites the user message in-place;
-        // a block or a fail-closed guard outage throws into the catch below —
-        // meaning: no model call, the user gets their own words back as a
-        // one-off (fallbackSpec, data going to its own author), and the
-        // resulting run is shielded again by the runner when it executes.
-        // Flag off or no org: byte-identical behaviour, nothing extra loads.
-        await require('./coworkShield').applyCoworkShieldToInput({
-            orgId: userOrgId,
-            userId,
-            messages,
-        });
-
-        const callStart = Date.now();
-        const response = await adapter.chat(config.apiKey, config.url, modelId, messages, {
-            maxTokens: Math.min(defaults.maxTokens || 1500, 1500),
-            // Deterministic: the same brief should not schedule differently on
-            // two tries.
-            temperature: 0,
-        });
-
-        // The composer's own model call is real spend too: same sink and the
-        // same explicit-field attribution as every other call (owner user +
-        // org). Fire-and-forget — bookkeeping never decides whether the user
-        // gets a spec — and required lazily so this module stays DB-free to
-        // load. Logged before the parse: a reply that fails to parse still
-        // cost these tokens.
-        try {
-            const usage = response?.usage || {};
-            require('../../stores/usageStore').logUsage({
-                user_id: userId || null,
-                organization_id: userOrgId || null,
-                agent_type: 'cowork',
-                model: modelId,
-                source: 'cowork_compose',
-                ...usageLogFields(usage),
-                duration_ms: Date.now() - callStart,
-            }).catch((e) => bestEffort('core/cowork/coworkCompose:composeCowork', e));
-        } catch (err) { bestEffort('core/cowork/coworkCompose:composeCowork#2', err); /* bookkeeping only */ }
-
-        const parsed = parseJsonObject(response?.content || '');
+        ] });
+        const parsed = parseJsonObject(answer);
         if (!parsed?.value) throw new Error('model returned no JSON object');
         return { ...normaliseSpec(parsed.value, { brief: text, agents }), composed: true };
     } catch (err) {
@@ -315,6 +388,7 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
 
 module.exports = {
     composeCowork,
+    coworkTextTurn,
     normaliseSpec,
     fallbackSpec,
     buildComposePrompt,

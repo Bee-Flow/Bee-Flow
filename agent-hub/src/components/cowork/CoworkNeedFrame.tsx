@@ -14,7 +14,7 @@
  * under them, and afterwards every Cowork read is read again, so the card goes once its need is gone.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { ENTER, LEAVE, TINT, useLeave } from './coworkMotion';
 import { BLOCKS, type NeedCardData } from './coworkNeedsModel';
 import { ALERT, CARD_INSET, META } from './coworkUi';
@@ -23,7 +23,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 
 /** Where a card can take the owner in the task: its steps (a plan to check or fix). */
-export type TaskFocus = 'steps';
+export type TaskFocus = 'steps' | 'review';
+export const NeedsOverview = createContext(false);
 
 /** What every card of a kind receives. */
 export interface NeedKindProps {
@@ -62,7 +63,12 @@ export function NeedFrame({ need, solo, onOpenTask, title, sub, extra, actions, 
     const { t } = useTranslation();
     const tone = BLOCKS[need.kind];
     const { ref, mounted, leaving } = useLeave<HTMLElement>(open);
+    const overview = useContext(NeedsOverview);
     if (!mounted) return null;
+    if (overview) return <button type="button" className="flex w-full flex-col items-start gap-1 px-4 py-3 text-left hover:bg-[var(--bg-secondary)]"
+        data-testid="cowork-need-card" data-kind={need.kind} onClick={() => onOpenTask(need.itemId, 'review')}>
+        <strong>{need.title || t('cowork_home.untitled', 'Untitled task')}</strong><span className={META}>{title}</span>
+    </button>;
     return (
         <article ref={ref} className={`flex flex-col gap-3 p-4 ${leaving ? LEAVE : ENTER} ${solo ? SOLO_TONE[tone] : ''}`} data-testid="cowork-need-card" data-kind={need.kind}>
             <div className="flex flex-col gap-0.5 min-w-0">

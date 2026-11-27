@@ -54,6 +54,15 @@ beforeEach(() => {
 const BRIEF = 'Ik wil dat je elke ochtend een goede morgen wenst';
 
 describe('useCoworkComposer — composing from the brief', () => {
+    it('holds an ambiguous chat brief and shows the question before scheduling', async () => {
+        const question = 'What should I do with the messages?';
+        composeCowork.mockResolvedValue({ clarification: { question, options: [] } });
+        const api = harness();
+        await act(async () => { await api.submit('Help with my messages'); });
+        expect(api.error).toBe(question);
+        expect(createCowork).not.toHaveBeenCalled();
+    });
+
     it('sends the brief to be composed', async () => {
         const api = harness();
         await act(async () => { await api.submit(BRIEF); });

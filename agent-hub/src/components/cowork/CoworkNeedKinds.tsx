@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { NeedFrame, useNeedAct, type NeedKindProps } from './CoworkNeedFrame';
 import { PILL_PRIMARY, PILL_QUIET } from './coworkUi';
 import { settingsPathForTab } from '@/authedApp/settingsRoutes';
+import { connectionMessage } from './coworkNeedsModel';
 import { deleteCowork, toggleCowork } from '@/api/coworkApi';
 import { approveCoworkPlan, startCoworkPlanTry } from '@/api/coworkPlanApi';
 import { useDeskHandOff, useItemDeskActions } from '@/api/coworkDesks';
@@ -85,19 +86,21 @@ async function turnOn(itemId: string): Promise<void> {
 export function SignInCard({ need, solo, onOpenTask, onDone }: NeedKindProps) {
     const { t } = useTranslation();
     const act = useNeedAct(onDone);
-    const actions = (
+    const resume = () => act.mutate({run: () => apiJson('PUT /api/cowork/{id}', {params: {id: need.itemId}, body: {isActive: true}}), done: t('cowork_home.done.on_again', 'It is on again.')});
+    const actions = need.connection?.canResume
+        ? <button type="button" className={PILL_PRIMARY} disabled={act.isPending} onClick={resume}>{t('cowork_task.action.resume', 'Resume')}</button> : (
         <>
             <a className={PILL_PRIMARY} href={settingsPathForTab('integrations')}>{t('cowork_home.need.sign_in', 'Sign in again')}</a>
-            <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => turnOn(need.itemId), done: t('cowork_home.done.on_again', 'It is on again.') })}>
+            {!need.connection && <button type="button" className={PILL_QUIET} disabled={act.isPending} onClick={() => act.mutate({ run: () => turnOn(need.itemId), done: t('cowork_home.done.on_again', 'It is on again.') })}>
                 {t('cowork_home.need.turn_on', 'Turn it back on')}
-            </button>
+            </button>}
         </>
     );
     return (
         <NeedFrame
             need={need} solo={solo} onOpenTask={onOpenTask} actions={actions} error={act.error}
-            title={t('cowork_home.need.sign_in_title', 'An app needs you to sign in again.')}
-            sub={t('cowork_home.need.sign_in_sub', 'The task paused itself, so nothing is lost. Sign in, then turn it back on.')}
+            title={need.connection ? connectionMessage(need, t) : t('cowork_home.need.sign_in_title', 'An app needs you to sign in again.')}
+            sub={need.connection ? null : t('cowork_home.need.sign_in_sub', 'The task paused itself, so nothing is lost. Sign in, then turn it back on.')}
         />
     );
 }

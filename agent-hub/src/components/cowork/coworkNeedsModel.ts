@@ -12,6 +12,7 @@
  * (./coworkTaskStatus.ts reads `BLOCKS`).
  */
 import type { CoworkItem, CoworkSetupCause } from '@/api/cowork.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DeskView } from '@/api/coworkDesks';
 import type { CoworkFailureCause, CoworkNeed } from '@/api/coworkNeedsYou';
 
@@ -59,6 +60,7 @@ export interface NeedCardData {
     /** A hand-off: the colleague's task that asks for the result of this one. */
     handOff?: { deskId: string; followerId: string; followerTitle: string; ownerName: string };
     /** A check inside the task: the fingerprint of the steps on screen, which approving sends. */
+    connection?: CoworkNeed['connection'];
     fingerprint?: string;
     /** A check: the task does not run for real until its steps are approved. */
     held?: boolean;
@@ -113,7 +115,7 @@ function cardOf(need: CoworkNeed, item: CoworkItem | undefined): NeedCardData {
     switch (need.kind) {
         case 'decision': return { ...base, kind: 'send', runId: need.runId, automationId: item?.planAutomationId ?? null };
         case 'review': return { ...base, kind: 'review', runId: need.runId, reason: need.reason };
-        case 'sign_in': return { ...base, kind: 'sign_in' };
+        case 'sign_in': return { ...base, kind: 'sign_in', connection: need.connection };
         case 'repair': return need.repair ? { ...base, kind: 'repair', repair: need.repair } : { ...base, kind: 'fix', problem: 'blocked' };
         case 'incomplete':
         case 'ai_failed': return { ...base, kind: 'fix', problem: need.kind, runId: need.runId };
@@ -152,4 +154,14 @@ export function deskNeedCards(views: readonly DeskView[]): NeedCardData[] {
         }
     }
     return out;
+}
+
+export function connectionMessage(need: NeedCardData, t: TranslateFn) {
+    const issue = need.connection;
+    if (issue?.canResume) return t('cowork_task.orb.resume_connection', 'This task was paused for a connection. You can resume it without signing in again.');
+    if (issue?.providers.length) {
+        const names: Record<string, string> = {google: 'Google', microsoft: 'Microsoft', nextcloud: 'Nextcloud', withings: 'Withings'};
+        return t('cowork_task.orb.connect_named', 'The task is paused. Reconnect {apps} to resume it.', {apps: issue.providers.map(id => names[id] || id).join(', ')});
+    }
+    return t('cowork_task.orb.connect_unknown', 'The task is paused for sign-in. Open Integrations to check which account needs attention.');
 }

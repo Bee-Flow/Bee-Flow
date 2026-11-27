@@ -4,22 +4,35 @@
  * decides for their own tasks sit in the card: accepting an invitation once, and allowing a colleague's task to receive
  * the result of theirs (server/usecases/coworkDesks.mts).
  */
-import { useDeskHandOff, useDeskView, useItemDeskActions, type DeskMember, type DeskView } from '@/api/coworkDesks';
+import { useState } from 'react';
+import { useItemDesk, type PlannedStart, useDeskHandOff, useDeskView, useItemDeskActions, type DeskMember, type DeskView } from '@/api/coworkDesks';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { CARD_INSET } from '../coworkUi';
-import { BODY, CARD, META, PanelButton, Problem } from './panelParts';
+import { BODY, CARD, META, PanelButton, PanelLoading, PanelReadProblem, Problem } from './panelParts';
 
 const ownerOf = (m: DeskMember, t: TranslateFn): string => (m.mine ? t('cowork_panels.team.you', 'you') : m.ownerName);
 
-function Accept({ deskId, member }: { deskId: string; member: DeskMember }) {
-    const { t } = useTranslation();
-    const { accept } = useItemDeskActions(member.scheduleId);
-    return (
-        <>
-            <PanelButton busy={accept.isPending} onClick={() => accept.mutate(deskId)}>{t('cowork_panels.team.accept', 'Accept “{title}”', { title: member.title })}</PanelButton>
-            <Problem error={accept.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
-        </>
-    );
+export function AcceptDeskInvitation({deskId, member, done}: {deskId: string; member: DeskMember; done: (planned: PlannedStart | null) => void}) {
+    const {t} = useTranslation();
+    const invitation = useItemDesk(member.scheduleId);
+    const {accept} = useItemDeskActions(member.scheduleId);
+    const details = invitation.data;
+    const start = details?.plannedAfter;
+    const label = start
+        ? t('cowork_desks.accept_and_start', 'Accept, and start "{title}" after {owner}\'s "{after}"', {title: member.title, owner: start.ownerName, after: start.title})
+        : t('cowork_panels.team.accept', 'Accept “{title}”', { title: member.title });
+    return <>
+        <PanelButton disabled={details?.id !== deskId || details.accepted} busy={accept.isPending}
+            onClick={() => accept.mutate(deskId, {onSuccess: result => done(result.plannedStart ?? null)})}>{label}</PanelButton>
+        <Problem error={invitation.error ?? accept.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
+    </>;
+}
+
+export function DeskStartStatus({start}: {start: PlannedStart}) {
+    const {t} = useTranslation();
+    return <p className={META} role="status">{start.applied
+        ? t('cowork_desks.planned_applied', 'Accepted. It starts after "{after}" now.', {after: start.afterTitle})
+        : t('cowork_desks.planned_refused', 'Accepted. It could not start after "{after}": {reason}', {after: start.afterTitle, reason: start.reason ?? ''})}</p>;
 }
 
 function Flow({ deskId, member, leader }: { deskId: string; member: DeskMember; leader: DeskMember }) {
@@ -47,6 +60,7 @@ function joinAnd(names: string[], locale: string): string {
 
 function DeskBody({ view, onOpenTask }: { view: DeskView; onOpenTask: (id: string) => void }) {
     const { t, locale } = useTranslation();
+    const [accepted, setAccepted] = useState<PlannedStart | null>(null);
     const waitingFor = [...new Set(view.members.filter((m) => !m.accepted).map((m) => ownerOf(m, t)))];
     const mineInvited = view.members.filter((m) => m.mine && !m.accepted);
     const flows = view.members.filter((m) => m.after).map((m) => ({ m, leader: view.members.find((l) => l.scheduleId === m.after) })).filter((f): f is { m: DeskMember; leader: DeskMember } => !!f.leader);
@@ -57,7 +71,8 @@ function DeskBody({ view, onOpenTask }: { view: DeskView; onOpenTask: (id: strin
                     {t('cowork_panels.team.waiting_for', 'Waiting for {names} to accept. It takes them one click.', { names: joinAnd(waitingFor, locale) })}
                 </p>
             )}
-            {mineInvited.map((m) => <Accept key={m.scheduleId} deskId={view.desk.id} member={m} />)}
+            {accepted && <DeskStartStatus start={accepted}/>}
+            {mineInvited.map((m) => <AcceptDeskInvitation key={m.scheduleId} deskId={view.desk.id} member={m} done={setAccepted}/>)}
             {view.roles.length > 0 && (
                 <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
                     {view.roles.map((r) => (
@@ -88,10 +103,11 @@ export default function CoworkTeamworkDesk({ deskId, name, isOwner, onOpenTask }
                 <h3 className="m-0 text-[14px] leading-5 font-semibold text-[var(--text-primary)]">{name}</h3>
                 <span className={META}>{isOwner
                     ? t('cowork_panels.team.set_up_by_you', 'Set up by you')
-                    : t('cowork_panels.team.set_up_by', 'Set up by {name}', { name: view.data?.desk.ownerName ?? '' })}</span>
+                    : view.data?.desk.ownerName && t('cowork_panels.team.set_up_by', 'Set up by {name}', { name: view.data.desk.ownerName })}</span>
             </div>
+            {view.isPending && <PanelLoading />}
             {view.data && <DeskBody view={view.data} onOpenTask={onOpenTask} />}
-            <Problem error={view.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
+            <PanelReadProblem error={view.error} retry={() => void view.refetch()} />
         </article>
     );
 }

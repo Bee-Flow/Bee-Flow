@@ -233,7 +233,7 @@ function insertValues(f) {
     const daysJson = Array.isArray(f.daysOfWeek) && f.daysOfWeek.length > 0 ? JSON.stringify(f.daysOfWeek) : null;
     return [
         f.title, f.prompt, repeatInterval, nextRunAt,
-        f.modelTier || 'fast',
+        f.modelTier || 'thinking',
         f.timezone || 'Europe/Amsterdam',
         JSON.stringify(f.toolsEnabled || ['agent_search']),
         f.agentId || null,
@@ -244,4 +244,30 @@ function insertValues(f) {
     ];
 }
 
-module.exports = { rowToSchedule, rowToRun, deriveProducedOutput, insertValues, safeParseJSON };
+/** @type {Record<string, string | {col: string; transform: (value: unknown) => unknown}>} */
+const SCHEDULE_FIELDS = {
+    title: 'title',
+    prompt: 'prompt',
+    repeatInterval: 'repeat_interval',
+    nextRunAt: 'next_run_at',
+    isActive: 'is_active',
+    modelTier: 'model_tier',
+    timezone: 'timezone',
+    toolsEnabled: { col: 'tools_enabled', transform: v => (Array.isArray(v) ? JSON.stringify(v) : v) },
+    maxResultLength: 'max_result_length',
+    agentId: 'agent_id',
+    conversationId: 'conversation_id',
+    daysOfWeek: { col: 'days_of_week', transform: v => ((Array.isArray(v) && v.length > 0) ? JSON.stringify(v) : null) },
+    timeOfDay: 'time_of_day',
+    // An EMPTY list is meaningful here ("this may use nothing"), so unlike
+    // daysOfWeek it must survive as '[]' rather than collapse to null.
+    enabledApps: { col: 'enabled_apps', transform: v => (Array.isArray(v) ? JSON.stringify(v) : null) },
+    triggerKind: 'trigger_kind',
+    trigger: { col: 'trigger_json', transform: v => (v && typeof v === 'object' ? JSON.stringify(v) : null) },
+    // Needed by the reauth pause: resumeNeedsReauthForUser only matches rows
+    // whose last_status is 'needs_reauth', so the pause must be able to set it.
+    lastStatus: 'last_status',
+    monthlyBudget: 'monthly_budget', // euros a month on AI, null: no limit (core/cowork/runBudget.mts)
+};
+
+module.exports = { SCHEDULE_FIELDS, rowToSchedule, rowToRun, deriveProducedOutput, insertValues, safeParseJSON };

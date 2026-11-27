@@ -19,7 +19,7 @@ export default {
     "cowork_wiring.failure.date_missing": "'{step}' could not read the date: it reads from a step that is not in the plan.",
     "cowork_wiring.failure.step": "'{step}' did not work.",
     "cowork_wiring.failure.step_from": "'{step}' could not work with what '{source}' gave it.",
-    "cowork_wiring.make.repairing": "Fixing what the try-out found…",
+    "cowork_wiring.make.repairing": "I’m adjusting the steps after the trial run.",
     "cowork_wiring.make.trying": "Trying the plan once, without changing or sending anything…",
     "cowork_wiring.note.fixed": "Fixed automatically: {changes}.",
     "cowork_wiring.note.reads": "'{step}' now reads from '{other}'",

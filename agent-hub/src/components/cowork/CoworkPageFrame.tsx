@@ -8,7 +8,8 @@
  * hands it on to the heading once that is there, unless the reader moved on first.
  */
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPendingBeeDraft, PendingBeeDraft } from './usePendingBeeDraft';
 import { ENTER } from './coworkMotion';
 import { LINK_BUTTON } from './coworkUi';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -18,6 +19,7 @@ interface CoworkPageFrameProps {
     label: string;
     /** Back to the home. */
     onBack: () => void;
+    ownBack?: boolean;
     children: ReactNode;
 }
 
@@ -30,8 +32,18 @@ function focusHeading(frame: HTMLElement): boolean {
     return true;
 }
 
-export default function CoworkPageFrame({ label, onBack, children }: CoworkPageFrameProps) {
+export function TaskBack({ onBack }: { onBack: () => void }) {
     const { t } = useTranslation();
+    return (
+        <button type="button" className={`${LINK_BUTTON} self-start`} onClick={onBack} data-testid="cowork-page-back">
+            <ArrowLeft aria-hidden="true" size={16} />
+            {t('cowork_pages.back', 'Tasks')}
+        </button>
+    );
+}
+
+export default function CoworkPageFrame({ label, onBack, children, ownBack }: CoworkPageFrameProps) {
+    const [draft] = useState(createPendingBeeDraft);
     const frame = useRef<HTMLElement>(null);
     useEffect(() => {
         const el = frame.current;
@@ -45,11 +57,8 @@ export default function CoworkPageFrame({ label, onBack, children }: CoworkPageF
     }, []);
     return (
         <section ref={frame} tabIndex={-1} aria-label={label} className={`${ENTER} flex flex-col gap-4 outline-none`} data-testid="cowork-page-frame">
-            <button type="button" className={`${LINK_BUTTON} self-start`} onClick={onBack} data-testid="cowork-page-back">
-                <ArrowLeft aria-hidden="true" size={16} />
-                {t('cowork_pages.back', 'Tasks')}
-            </button>
-            {children}
+            {!ownBack && <TaskBack onBack={onBack} />}
+            <PendingBeeDraft.Provider value={draft}>{children}</PendingBeeDraft.Provider>
         </section>
     );
 }

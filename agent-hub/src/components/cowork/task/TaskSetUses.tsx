@@ -8,6 +8,7 @@
  *   - what it remembers and its spending limit (./TaskSetKeeps.tsx), each saved by itself.
  */
 import { useModelTiersQuery } from '@/api/queries/modelTiers';
+import CoworkModelPicker from '../CoworkModelPicker';
 import { TINT } from '../coworkMotion';
 import useCoworkApps from '../useCoworkApps';
 import { MemoryPart, SpendingPart } from './TaskSetKeeps';
@@ -96,13 +97,7 @@ function HowItWorks({ draft, set, agents, mayPlan, id, t }: { draft: TaskDraft; 
                     <span className="flex flex-col gap-0.5"><span className="text-[14px] leading-5 font-medium text-[var(--text-primary)]">{t(key, en)}</span><span className={META}>{t(lineKey, lineEn)}</span></span>
                 </label>
             ))}
-            {draft.mode !== 'agent' && <label className={LABEL}>{t('cowork_task.uses.model', 'AI model')}
-                <select className={FIELD} value={draft.modelTier || 'auto'} onChange={(e) => set({ modelTier: e.target.value })}>
-                    <option value="auto">{t('cowork_task.uses.auto_model', 'Automatic')}</option>
-                    {Object.entries(tiers).filter(([key]) => !['auto', 'standard', 'swarm'].includes(key)).map(([key, config]) =>
-                        <option key={key} value={key}>{config.label || key}{config.modelId ? ` · ${config.modelId}` : ''}</option>)}
-                </select>
-            </label>}
+            {draft.mode !== 'agent' && <CoworkModelPicker tiers={tiers} value={draft.modelTier || 'auto'} onChange={modelTier => set({ modelTier })} t={t} />}
             {draft.mode === 'agent' && (
                 <div className="flex flex-col gap-1">
                     <label htmlFor={`${id}-agent`} className={LABEL}>{t('cowork_task.edit.which_agent', 'Which agent')}</label>

@@ -104,6 +104,7 @@ const FIXTURES = [
             // Saving as a template: only the owner saves their item (usecases/coworkTemplates.mts).
             'POST /api/cowork/:id/save-as-template',
             'GET /api/cowork/:id/audit',
+            'POST /api/cowork/:id/conversation',
             // The goal and its check: the owner's only (usecases/coworkGoals.mts).
             'GET /api/cowork/:id/goal', 'PUT /api/cowork/:id/goal', 'POST /api/cowork/:id/goal/check',
             'POST /api/cowork/:id/goal/approve', 'DELETE /api/cowork/:id/goal',
@@ -128,6 +129,7 @@ const FIXTURES = [
             'PUT /api/cowork/:id/shares': { shares: [] },
             'PUT /api/cowork/:id/goal': { sentence: 'Every mail gets an answer within two working days', targetPercent: 95 },
             'POST /api/cowork/:id/goal/approve': { fingerprint: 'a'.repeat(64) },
+            'POST /api/cowork/:id/conversation': { message: 'What does this task do?', view: 'overview', history: [] },
             'POST /api/cowork/:id/proposals': { instruction: 'Shorten the summary' },
             'POST /api/cowork/:id/proposals/:proposalId/approve': { fingerprint: 'a'.repeat(64) },
             'POST /api/cowork/:id/plan/restore': { version: 1 },

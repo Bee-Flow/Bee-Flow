@@ -18,34 +18,26 @@ automations, and letting a task ask you first needs one with approvals. See [Tie
 
 ## Start
 
-1. Open **Cowork** and type what should happen, and when. Or choose **Start from a template** to begin
-   from work your organisation already set up.
-2. Choose **Show what I understood**. Cowork answers with a card of four lines, each of which you can
-   change before anything starts:
-   - **What**: the work, in your sentence.
-   - **When**: the schedule, or what starts it.
-   - **Uses**: the apps it may use. Only the apps your sentence names are selected; add or remove one
-     with its chip.
-   - **Sends to**: you, and any address you add. When it sends to someone else, **Show me each message
-     first** is on.
-3. Choose **Set up and test**. Cowork sets the task up, tests it once without sending anything, and
-   tells you what the test produced. The task does not run for real until you have approved its steps.
+On your first visit, Bee demonstrates a weekly digest using example data. Bee walks through the steps and shows the sample result automatically. Select **Chat with the orb**, **Chat only**, or **Advanced**. Cowork remembers your choice for this account in this browser. To change it later, open **Advanced** and select **Default view**.
 
-The home shows what **needs you** first, then **your tasks**, the tasks colleagues **shared with you**,
-and **Teamwork**. The gear opens your **Cowork preferences**; administrators also see **Admin rules**.
+1. Open **Cowork** and tell Bee what should happen and when. You can also ask Bee to show your tasks or find a template.
+2. Bee asks for any missing details and shows the current step while it sets up and tests the task. If you request delivery, you can review the recipients.
+3. When setup finishes, the task opens automatically. Review the test result and approve the steps before the first real run.
+
+The orb shows the task’s steps in execution order. It draws app icons as coloured networks. As each step starts, its icon moves forward and the previous step recedes. With reduced motion enabled, the current step appears in a still frame.
+
+Choose **Advanced** before starting to select a model or add a specific step. **Preview task** lets you review and edit the name, schedule, apps and requested recipients. Workspaces without fixed steps use a preview and ask before starting the task.
+
+Choose **Advanced** on the home screen for the full task list, shared tasks, **Teamwork** and your **Cowork preferences**. Administrators can also open **Admin rules**.
 
 A task always has one of these states: Done, Failed, Needs you, Scheduled, Running, Testing, Paused or
 Nothing to do.
 
 ## A task
 
-A task opens as a page of its own. From top to bottom:
+A task opens with Bee and an input field. On desktop the steps appear beside the orb. Select one or more steps and ask Bee to explain or change them. Ask for the latest result or an earlier run to read it alongside the conversation on a wide screen.
 
-- its state, name and the buttons **Run for real now**, **Pause** and **Share**. A button that cannot be
-  used says why;
-- what **needs you**, or what it is doing right now, or its latest result;
-- **Settings**: four rows that always show their current value and open in place;
-- **Steps**, **People** and **History**.
+You can also ask Bee to change the schedule, share the task or pause it. Bee shows the details for confirmation when the action needs your approval. Choose **Advanced** to work directly with **Result**, **Settings**, **Steps**, **People** and **History**.
 
 ### Settings: What, When, Uses, Sends to
 
@@ -84,8 +76,7 @@ what it can, such as a step that would run before the step it reads from.
 
 ### When something goes wrong
 
-A failed run is always a card under **Needs you**, on the home and on the task alike. It names the step
-and the cause in plain words and offers one action: sign in again, fix it, or look at what is wrong.
+Open the task or ask Bee what needs your attention. Bee explains the cause when it is known and offers a next step, such as signing in again or retrying. The **Advanced** overview also lists tasks under **Needs you**.
 What Cowork can repair without widening what the task may do, it repairs itself, tests, and reports with
 **Undo**. The raw message is under **Technical details**.
 

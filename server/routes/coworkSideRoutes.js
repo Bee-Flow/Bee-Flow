@@ -70,6 +70,7 @@ function readOnlyGate(policyOf) {
  * @param {{ needs?: typeof needsYou, home?: typeof homeOf, dailyMail?: import('./coworkDailyMailRoutes').DailyMailRouteDeps, policyOf?: (userId: string) => Promise<{ readOnly: boolean }> }} [overrides]
  */
 function mountSideRoutes(router, { needs = needsYou, home = homeOf, dailyMail = {}, policyOf = undefined } = {}) {
+    require('./coworkHomeIntent').mountHomeIntent(router);
     router.use(readOnlyGate(policyOf));
     router.get('/needs-you', async (req, res) => {
         const list = await needs(userIdOf(req));

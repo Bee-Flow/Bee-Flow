@@ -76,4 +76,19 @@ describe('CoworkSettingsPanel', () => {
         expect(await screen.findByText('This Bee Flow cannot send e-mail yet. Ask your administrator.')).toBeInTheDocument();
         expect(screen.getByRole('switch', { name: MORNING })).toBeDisabled();
     });
+    it('keeps a failed read distinct from a disabled digest, and restores the saved value after a retry', async () => {
+        let available = false;
+        stubRecordingFetch(({url}) => {
+            if (url.endsWith('/daily-mail')) return available ? jsonResponse({available: true, enabled: true}) : jsonResponse({}, 503);
+            if (url.endsWith('/habits')) return jsonResponse({allowed: true, on: false});
+            return jsonResponse({needs: []});
+        });
+        renderWithClient(<CoworkSettingsPanel />);
+        const retry = await screen.findByRole('button', {name: 'Try again'});
+        expect(screen.queryByRole('switch', {name: MORNING})).toBeNull();
+        available = true;
+        await userEvent.setup().click(retry);
+        expect(await screen.findByRole('switch', {name: MORNING})).toBeChecked();
+    });
+
 });

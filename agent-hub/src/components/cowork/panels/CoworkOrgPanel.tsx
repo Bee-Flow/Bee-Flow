@@ -6,12 +6,13 @@
  * administrator is told so and sees nothing else.
  */
 import { useState } from 'react';
+import { errorStatus } from '@/utils/caughtError';
 import { ShieldCheck } from 'lucide-react';
 import { receiptsAuditDownloadUrl, useCoworkOrgOverview, useOrgCoworkPolicy, useReceiptsAudit, type OrgCoworkPolicy, type OrgPolicyPatch } from '@/api/coworkOrgPanel';
 import useAppsCatalog from '@/hooks/useAppsCatalog';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { ALERT, BUTTON_SECONDARY } from '../coworkUi';
-import { BODY, CARD, INPUT, LabeledField, META, PanelButton, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
+import { BODY, CARD, INPUT, LabeledField, META, PanelButton, PanelReadProblem, PanelSection, PanelShell, Problem, SwitchRow } from './panelParts';
 
 type Level = 'fine' | 'close' | 'over';
 const CLOSE_AT = 80;
@@ -67,7 +68,7 @@ function BudgetSection({ policy, spent, saving, onSave }: { policy: OrgCoworkPol
     const shown = text ?? (budget === null ? '' : String(budget));
     const parsed = budgetOf(shown);
     return (
-        <PanelSection title={t('cowork_panels.org.limit_heading', 'Monthly spending limit')}>
+        <PanelSection section="budget" title={t('cowork_panels.org.limit_heading', 'Monthly spending limit')}>
             <div className={CARD}>
                 <LabeledField id="cowork-panels-budget" label={t('cowork_panels.org.limit_label', 'For all tasks together, in euros a month')}>
                     <div className="flex items-start gap-2">
@@ -95,7 +96,7 @@ function AppsSection({ policy, saving, onSave }: { policy: OrgCoworkPolicy; savi
         onSave(base.includes(id) ? base.filter((x) => x !== id) : [...base, id]);
     };
     return (
-        <PanelSection title={t('cowork_panels.org.apps_ask_heading', 'Apps tasks may use without asking')}>
+        <PanelSection section="apps" title={t('cowork_panels.org.apps_ask_heading', 'Apps tasks may use without asking')}>
             <div className={CARD}>
                 {apps.length === 0 && <p className={`m-0 ${META}`}>{t('cowork_panels.org.apps_none', 'No apps are connected yet.')}</p>}
                 {apps.map((app) => (
@@ -117,7 +118,7 @@ function AppsSection({ policy, saving, onSave }: { policy: OrgCoworkPolicy; savi
 function RulesSection({ policy, saving, onSave }: { policy: OrgCoworkPolicy; saving: boolean; onSave: (patch: OrgPolicyPatch) => void }) {
     const { t } = useTranslation();
     return (
-        <PanelSection title={t('cowork_panels.org.all_tasks_heading', 'For all tasks')}>
+        <PanelSection section="policy" title={t('cowork_panels.org.all_tasks_heading', 'For all tasks')}>
             <div className={CARD}>
                 <SwitchRow id="cowork-panels-readonly" label={t('cowork_panels.org.read_only', 'Read-only mode')} sub={t('cowork_panels.org.read_only_sub', 'Tasks read and write drafts, but change and send nothing.')}
                     checked={policy.readOnly} disabled={saving} onChange={(readOnly) => onSave({ readOnly })} />
@@ -136,7 +137,7 @@ function AuditSection() {
     const result = audit.data;
     const count = (n: number) => n.toLocaleString(locale);
     return (
-        <PanelSection title={t('cowork_panels.org.proof_heading', 'Proof of each run')}>
+        <PanelSection section="proof" title={t('cowork_panels.org.proof_heading', 'Proof of each run')}>
             <div className={CARD}>
                 <div className={`flex items-start gap-2 ${BODY}`} role="status" data-testid="cowork-org-audit">
                     <ShieldCheck aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
@@ -171,14 +172,15 @@ export default function CoworkOrgPanel() {
     if (overview.isError) {
         return (
             <PanelShell testId="cowork-org-panel" tag={tag} title={title}>
-                <p className={`m-0 ${META}`}>{t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.')}</p>
+                {errorStatus(overview.error) === 403 ? <p className={`m-0 ${META}`}>{t('cowork_panels.org.not_admin', 'Only administrators of your organisation can see and change these rules.')}</p>
+                    : <PanelReadProblem error={overview.error} retry={() => void overview.refetch()} />}
             </PanelShell>
         );
     }
     return (
         <PanelShell testId="cowork-org-panel" tag={tag} title={title} meta={overview.data ? t('cowork_panels.org.meta', 'Rules for all tasks at {name}.', { name: overview.data.name }) : undefined}>
             {!policy && !query.isError && <p className={`m-0 ${META}`}>{t('cowork_panels.loading', 'Loading…')}</p>}
-            <Problem error={query.error} fallback={t('cowork_panels.failed_try', 'That did not work. Try again.')} />
+            <PanelReadProblem error={query.error} retry={() => void query.refetch()} />
             {policy && overview.data && (
                 <>
                     <BudgetSection policy={policy} spent={overview.data.spent} saving={save.isPending} onSave={(monthlyBudget, done) => save.mutate({ monthlyBudget }, { onSuccess: done })} />

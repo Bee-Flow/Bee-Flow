@@ -1,58 +1,33 @@
+import { inRunOrder } from './coworkTaskModel';
 /**
  * What an opened task is doing right now (./CoworkTaskView.tsx), in place of its latest result: Cowork setting up its
  * steps, a try-out (nothing is changed or sent), or a run. Each shows its parts as they go (../CoworkProgress.tsx): a
  * run that follows the steps its own steps (the run's trace), a try-out the steps it tries, the setting up the phases
  * of making the steps.
  */
-import CoworkProgress from '../CoworkProgress';
+import CoworkActivity, { setupActivity } from '../CoworkActivity';
+import CoworkTestProgress from './CoworkTestProgress';
 import { plainStepTitle } from '../coworkOverviewModel';
-import { inRunOrder } from './coworkTaskModel';
-import { CARD, CARD_HEAD } from './taskUi';
 import { useCoworkRunTrace } from '@/api/queries/coworkPlan';
 import type { PlanMaking } from '@/hooks/useCoworkPlanMaker';
 import type { CoworkRun } from '@/api/cowork.types';
-import type { PlanTryState, PlanTryStep } from '@/api/coworkPlan.types';
+import type { PlanTryState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
-const OPEN_STEP: ReadonlySet<string> = new Set(['pending', 'running', 'queued']);
-
-/** The steps as labels, and the phase: the first step that is not over yet. */
-function stepPhases(steps: readonly PlanTryStep[], t: TranslateFn): { labels: string[]; phase: number } {
-    const at = steps.findIndex((s) => OPEN_STEP.has(s.status));
-    return { labels: steps.map((s) => plainStepTitle(s, t)), phase: at === -1 ? steps.length : at };
-}
-
-/** The phases of making the steps, the current one turning. */
-function makingPhases(making: PlanMaking, t: TranslateFn): { labels: string[]; phase: number } {
-    const phase = making.phase === 'saving' ? 1 : making.phase === 'trying' || making.phase === 'repairing' ? 2 : 0;
-    return {
-        phase,
-        labels: [
-            t('cowork_task.live.make_think', 'Working out the steps'),
-            t('cowork_task.live.make_save', 'Saving them'),
-            making.phase === 'repairing' ? t('cowork_wiring.make.repairing', 'Fixing what the try-out found…') : t('cowork_task.live.make_test', 'Testing them once. Nothing is changed or sent.'),
-            t('cowork_task.live.make_ready', 'Ready for your check'),
-        ],
-    };
-}
-
-function LiveCard({ heading, labels, phase }: { heading: string; labels: string[]; phase: number }) {
-    return (
-        <section className={CARD} data-testid="cowork-task-live" aria-label={heading}>
-            <div className={CARD_HEAD}>{heading}</div>
-            <CoworkProgress labels={labels} phase={phase} testId="cowork-task-progress" />
-        </section>
-    );
-}
-
 /** A run that follows the steps shows them from its trace; any other run is one line. */
-function RunLive({ coworkId, run, t }: { coworkId: string; run: CoworkRun; t: TranslateFn }) {
+function RunLive({ coworkId, run, runOrder, t }: { coworkId: string; run: CoworkRun; runOrder?: string[]; t: TranslateFn }) {
     const trace = useCoworkRunTrace(coworkId, run.id).data;
-    const parts = trace?.recorded && trace.steps.length > 0 ? stepPhases(trace.steps, t) : { labels: [t('cowork_task.live.working', 'Working on it')], phase: 0 };
-    return <LiveCard heading={t('cowork_task.live.running', 'Running now')} {...parts} />;
+    const steps = trace?.recorded ? inRunOrder(trace.steps, runOrder) : [];
+    if (run.status !== 'running') return <div data-testid="cowork-task-live"><CoworkActivity tone="rest" work={{ flow: steps, action: 'rest' }}
+        message={t('cowork_task.run.reason_done', 'Every step finished as planned.')} /></div>;
+    const active = steps.findLast((step) => step.status === 'running');
+    return <div data-testid="cowork-task-live"><CoworkActivity title={t('cowork_task.live.running', 'Running now')}
+        work={{ action: 'executing', apps: [active?.app], stepType: active?.type, flow: steps, focus: active ? steps.indexOf(active) : undefined }} tone={active?.kind === 'ai' ? 'thinking' : 'executing'} testId="cowork-task-progress"
+        message={active ? plainStepTitle(active, t) : t('cowork_task.live.working', 'Working on it')} /></div>;
 }
 
 interface CoworkTaskLiveProps {
+    startingTest?: boolean;
     coworkId: string;
     making: PlanMaking;
     tryState: PlanTryState | null;
@@ -67,11 +42,11 @@ export function isLive({ making, tryState, liveRun }: Pick<CoworkTaskLiveProps, 
     return making.running || (!!tryState && !tryState.done) || !!liveRun;
 }
 
-export default function CoworkTaskLive({ coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
-    if (making.running) return <LiveCard heading={t('cowork_task.live.setting_up', 'Setting up')} {...makingPhases(making, t)} />;
-    if (tryState && !tryState.done) {
-        return <LiveCard heading={t('cowork_task.live.testing', 'Testing it. Nothing is changed or sent.')} {...stepPhases(inRunOrder(tryState.steps, runOrder), t)} />;
+export default function CoworkTaskLive({ startingTest, coworkId, making, tryState, liveRun, runOrder, t }: CoworkTaskLiveProps) {
+    if (making.running) return <CoworkActivity testId="cowork-task-live" {...setupActivity(making.phase, t, making.testStep, making.steps.flatMap(s => s.app ? [s.app] : []), making.steps)} />;
+    if (startingTest || (tryState && !tryState.done)) {
+        return <CoworkTestProgress state={tryState} runOrder={runOrder} t={t} />;
     }
-    if (liveRun) return <RunLive coworkId={coworkId} run={liveRun} t={t} />;
-    return null;
+    if (liveRun) return <RunLive coworkId={coworkId} run={liveRun} runOrder={runOrder} t={t} />;
+    return <CoworkActivity tone="executing" message={t('cowork_task.live.working', 'Working on it')} />;
 }

@@ -36,6 +36,7 @@ import { isManagedByStage, planSourceOf, type SourceRow } from '../core/cowork/p
 import { AUTO_FIX_REASONS, WIRING_FIX_REASON } from '../core/cowork/repairs/autoResolve.mts';
 import { wiringChangesOf } from '../core/cowork/plan/planWiringFix.mts';
 import { changeParameter, parametersOf, type ParameterEdit } from '../core/cowork/plan/planParameters.mts';
+import { removePlanSteps } from './coworkStepRemoval.mts';
 import { sendsToOf } from '../core/cowork/planTrust.mts';
 import { planViewOf } from '../core/cowork/plan/planView.mts';
 
@@ -117,6 +118,8 @@ export interface ProposalRequest {
     kind: ProposalKind;
     parameter?: ParameterEdit;
     ownerRequest?: string;
+    scope?: { stepIds: string[]; fingerprint: string };
+    remove?: { stepIds: string[]; fingerprint: string };
     reasonCode: 'owner_request' | 'step_failed_twice' | 'goal_under_target' | 'stable_ai_step' | 'reference_unresolved' | 'wiring_broken';
     stepId: string | null;
     stepTitle: string | null;
@@ -134,20 +137,38 @@ export function replayPasses(state: ReplayState | null): boolean {
     return replayed >= MIN_REPLAYED && state.same / replayed >= SAME_SHARE;
 }
 
+/** Resolve the selected ids against the exact approved version on which the proposal will be based. */
+function scopedInstruction(approved: Approved, request: ProposalRequest, deps: ProposalDeps) {
+    const scope = request.remove ?? request.scope;
+    if (!scope) return request.ownerRequest;
+    const { stepIds, fingerprint } = scope;
+    const view = planViewOf(approved.definition as Definition, deps.lookups);
+    const ids = new Set(stepIds);
+    const steps = view.steps.filter(step => ids.has(step.id)).map(({ id, title }) => ({ id, title }));
+    if (fingerprint !== approved.fingerprint || steps.length !== ids.size) {
+        throw new HttpError(409, 'cowork_steps_changed', 'The selected steps have changed. Select them again.');
+    }
+    return 'Apply the requested change to these selected steps. Preserve unrelated steps. ' + JSON.stringify({ steps, instruction: request.remove ? 'Remove all listed steps. Repair only the inputs that depended on them.' : request.ownerRequest });
+}
+
 /** The change worked out, and judged as approval would judge it; null with the reason it is not offered. */
 async function workedOut(item: Item, approved: Approved, automation: SourceRow, request: ProposalRequest, deps: ProposalDeps): Promise<{ definition: Definition; draft: PlanDraft } | ProposeOutcome> {
     let definition: Definition;
+    const ownerRequest = scopedInstruction(approved, request, deps);
+    if (request.remove && planFingerprint(automation.definition as Definition) !== approved.fingerprint) {
+        throw new HttpError(409, 'cowork_steps_changed', 'The steps have changed. Select them again.');
+    }
     try {
         if (request.parameter) {
             const changed = changeParameter(approved.definition as Definition, request.parameter);
             if (!changed) return 'unchanged';
             definition = changed;
         } else {
-            const amended = await deps.amend({
-                item, approved: approved.definition as Definition, facts: request.facts, ownerRequest: request.ownerRequest,
+            const amend = async () => (await deps.amend({
+                item, approved: approved.definition as Definition, facts: request.facts, ownerRequest,
                 userOrgId: request.userOrgId ?? null, bookOn: request.bookOn ?? null,
-            });
-            definition = amended.definition;
+            })).definition;
+            definition = request.remove ? await removePlanSteps(approved.definition as Definition, request.remove.stepIds, amend) : await amend();
         }
     } catch (e) {
         log.warn(`[Cowork] no ${request.kind} could be worked out for ${item.id}: ${(e as Error).message}`);
@@ -186,11 +207,11 @@ export async function propose(item: Item, request: ProposalRequest, deps: Propos
 }
 
 /** A request from the authenticated task owner, tested on a copy before it is offered. */
-export async function requestChange(item: Item, edit: { instruction?: string; parameter?: ParameterEdit }, deps: ProposalDeps = proposalDeps()) {
+export async function requestChange(item: Item, edit: { instruction?: string; scope?: ProposalRequest['scope']; remove?: ProposalRequest['remove']; parameter?: ParameterEdit }, deps: ProposalDeps = proposalDeps()) {
     const existing = await deps.store.openProposalOf(item.id, 'repair');
     if (existing) throw new HttpError(409, 'cowork_open_change', 'Review the open change first.');
     const outcome = await propose(item, { kind: 'repair', reasonCode: 'owner_request', stepId: null, stepTitle: null,
-        facts: { kind: 'owner_request' }, ownerRequest: edit.instruction, parameter: edit.parameter, userOrgId: await orgOfOwner(item.userId) }, deps);
+        facts: { kind: 'owner_request' }, ownerRequest: edit.instruction, scope: edit.scope, remove: edit.remove, parameter: edit.parameter, userOrgId: await orgOfOwner(item.userId) }, deps);
     if (outcome !== 'proposed') throw new HttpError(409, 'cowork_change_unavailable', outcome === 'unchanged' ? 'The requested change produced the same steps.' : 'No tested change is available. Review the current steps and try again.');
     return proposalsOf(item, deps);
 }

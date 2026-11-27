@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 2030 operations. */
+/** 2032 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -2586,6 +2586,7 @@ export interface ApiOperations {
                 standInId?: string | null;
             }>;
         };
+        expectedDeskId?: string | null;
         itemId?: string;
     }>;
     'POST /api/cowork/desks/helper/draft': Op<NoParams, UndeclaredQuery, {
@@ -2619,6 +2620,12 @@ export interface ApiOperations {
     'GET /api/cowork/home': Op<NoParams, {
         from: string;
         to: string;
+    }>;
+    'POST /api/cowork/home/intent': Op<NoParams, UndeclaredQuery, {
+        message: string;
+        previous?: string;
+        tier?: string;
+        titles: Array<string>;
     }>;
     'POST /api/cowork/hooks': Op<NoParams, UndeclaredQuery, Record<string, unknown>>;
     'GET /api/cowork/mail-providers': Op;
@@ -2677,6 +2684,18 @@ export interface ApiOperations {
     }>;
     'DELETE /api/cowork/{id}': Op<{ id: string | number }>;
     'GET /api/cowork/{id}/audit': Op<{ id: string | number }>;
+    'POST /api/cowork/{id}/conversation': Op<{ id: string | number }, UndeclaredQuery, {
+        history: Array<{
+            role: 'user' | 'assistant';
+            text: string;
+        }>;
+        message: string;
+        scope?: {
+            fingerprint: string;
+            stepIds: Array<string>;
+        };
+        view: string;
+    }>;
     'GET /api/cowork/{id}/desk': Op<{ id: string | number }>;
     'GET /api/cowork/{id}/goal': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/goal': Op<{ id: string | number }, UndeclaredQuery, {
@@ -2732,7 +2751,16 @@ export interface ApiOperations {
     'GET /api/cowork/{id}/plan/try/{tryId}/compare': Op<{ id: string | number; tryId: string | number }>;
     'GET /api/cowork/{id}/proposals': Op<{ id: string | number }>;
     'POST /api/cowork/{id}/proposals': Op<{ id: string | number }, UndeclaredQuery, {
+        remove: {
+            fingerprint: string;
+            stepIds: Array<string>;
+        };
+    } | {
         instruction: string;
+        scope?: {
+            fingerprint: string;
+            stepIds: Array<string>;
+        };
     } | {
         parameter: {
             before: string;
@@ -2766,6 +2794,10 @@ export interface ApiOperations {
     }>;
     'GET /api/cowork/{id}/shares': Op<{ id: string | number }>;
     'PUT /api/cowork/{id}/shares': Op<{ id: string | number }, UndeclaredQuery, {
+        expected?: Array<{
+            role: 'viewer' | 'approver';
+            userId: string;
+        }>;
         shares: Array<{
             role: 'viewer' | 'approver';
             userId: string;

@@ -3,6 +3,14 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 module.exports = {
+    "cowork_teamwork.no_matching_tasks": "None of your tasks can make this change on this desk.",
+    "cowork_teamwork.pick_anchor": "Which of your tasks should join this desk?",
+    "cowork_teamwork.create_desk": "Create desk",
+    "cowork_teamwork.roles_owner": "Only the desk owner can change its roles.",
+    "cowork_teamwork.owner_anchor": "To change this setup, the desk owner needs an accepted task on the desk.",
+    "cowork_teamwork.no_desks": "You don’t have a team desk yet.",
+    "cowork_teamwork.remove_owner": "Only the desk owner can remove it.",
+    "cowork_teamwork.remove_confirm": "Remove the desk “{name}” and its connections?",
     "cowork_teamwork.add_role": "Say who answers questions",
     "cowork_teamwork.add_step": "Add a step",
     "cowork_teamwork.all_settings": "All settings",

@@ -31,7 +31,6 @@ export interface ChosenSetup { steps?: boolean; sendsTo?: string[]; askFirst?: b
 
 export interface SetupDeps {
     store: Pick<CoworkSetupStore, 'readSetup' | 'writeSetup' | 'detachForAi' | 'restoreFromAi'>;
-    setIndependence: (scheduleId: string, level: string | null) => Promise<void>;
     mayAsk: MayAsk;
     /** Fixed steps run on the automation engine: is it there for this owner? */
     stepsAvailable: (owner: Owner) => Promise<boolean>;
@@ -41,7 +40,6 @@ export interface SetupDeps {
 export function setupDeps(): SetupDeps {
     return {
         store: (nodeRequire('../stores/coworkSetupStore.mts') as typeof import('../stores/coworkSetupStore.mts')).coworkSetup(),
-        setIndependence: (id, level) => (nodeRequire('../stores/coworkStore.js') as { setIndependence: SetupDeps['setIndependence'] }).setIndependence(id, level),
         mayAsk: mayAskByLicence,
         stepsAvailable: async (owner) => {
             const { isModuleActive } = nodeRequire('../modules') as { isModuleActive: (id: string) => Promise<boolean> };
@@ -54,19 +52,21 @@ export function setupDeps(): SetupDeps {
 
 const view = (state: SetupState | null, record: SetupRecord): TaskSetup | null => setupViewOf(state, Object.keys(record).length > 0 ? JSON.stringify(record) : null);
 
-/** A new task: keep what its owner chose. Answers the set-up as stored; null when nothing was chosen. */
-export async function startSetup({ item, chosen, organizationId = null }: { item: Item; chosen: ChosenSetup | null | undefined; organizationId?: string | null }, deps: SetupDeps = setupDeps()): Promise<TaskSetup | null> {
+/** Resolve the owner's choices before inserting the task. Its first visible row already carries the hold. */
+export async function initialSetup(owner: Owner, chosen: ChosenSetup | null | undefined, deps: SetupDeps = setupDeps()) {
     if (!chosen) return null;
-    const owner = { userId: item.userId, organizationId };
+    if (chosen.steps && !await deps.stepsAvailable(owner)) {
+        throw new HttpError(409, 'cowork_setup_unavailable', 'Fixed steps are unavailable. Try setting up the task again later.');
+    }
     const record: SetupRecord = {};
     if (Array.isArray(chosen.sendsTo)) record.sendsTo = recipientsOf(chosen.sendsTo);
     if (typeof chosen.askFirst === 'boolean') record.askFirst = chosen.askFirst;
-    const wanted = chosen.steps === true && await deps.stepsAvailable(owner).catch(() => false);
-    if (wanted) record.since = deps.now().toISOString();
-    await deps.store.writeSetup(item.id, wanted ? 'wanted' : null, record);
-    // The wish is the task's level from its first run on; where a task cannot ask at all there is no level to set.
-    if (chosen.askFirst === true && await deps.mayAsk(owner).catch(() => false)) await deps.setIndependence(item.id, 'asks_before_sending');
-    return view(wanted ? 'wanted' : null, record);
+    if (chosen.steps) record.since = deps.now().toISOString();
+    return {
+        state: chosen.steps ? 'wanted' as const : null,
+        json: Object.keys(record).length ? JSON.stringify(record) : null,
+        independence: chosen.askFirst && await deps.mayAsk(owner).catch(() => false) ? 'asks_before_sending' : null,
+    };
 }
 
 /** A set-up starts (again) for a task that waits for its steps. Any other task is left as it runs. */

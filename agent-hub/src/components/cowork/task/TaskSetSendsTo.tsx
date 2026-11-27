@@ -123,11 +123,12 @@ function AskMe({ coworkId, mode, hasApprovedSteps, othersReached, t }: AskMeProp
 }
 
 interface TaskSetSendsToProps extends AskMeProps {
+    onEdit?: () => void;
     /** Who receives what it sends, in words; empty when it sends nothing. */
     recipients: string[];
 }
 
-export default function TaskSetSendsTo({ recipients, ...ask }: TaskSetSendsToProps) {
+export default function TaskSetSendsTo({ recipients, onEdit, ...ask }: TaskSetSendsToProps) {
     const { coworkId, hasApprovedSteps, t } = ask;
     const level = askLevelOf(useCoworkIndependence(coworkId, true).query.data);
     return (
@@ -137,7 +138,7 @@ export default function TaskSetSendsTo({ recipients, ...ask }: TaskSetSendsToPro
                 {recipients.length > 0
                     ? <ul className="list-none m-0 p-0 flex flex-col gap-1">{recipients.map((who) => <li key={who} className="break-words">{who}</li>)}</ul>
                     : <p>{t('cowork_task.sends.nobody', 'Nobody: it sends nothing')}</p>}
-                <p className={META}>{t('cowork_task.sends.change_hint', 'To send it to someone else, say so in the sentence under What.')}</p>
+                {onEdit ? <button type="button" className="self-start underline" onClick={onEdit}>{t('cowork_task.orb.recipient', 'Change recipient')}</button> : <p className={META}>{t('cowork_task.sends.change_hint', 'To send it to someone else, say so in the sentence under What.')}</p>}
             </div>
             <AskMe {...ask} />
             {hasApprovedSteps && <Trust coworkId={coworkId} ask={level !== 'on_its_own'} t={t} />}

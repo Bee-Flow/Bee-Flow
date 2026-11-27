@@ -5524,6 +5524,9 @@
     "POST /api/cowork": {
       "gate": "auth"
     },
+    "POST /api/cowork/:id/conversation": {
+      "gate": "auth"
+    },
     "POST /api/cowork/:id/goal/approve": {
       "gate": "auth"
     },
@@ -5597,6 +5600,9 @@
       "gate": "auth"
     },
     "POST /api/cowork/desks/helper/draft": {
+      "gate": "auth"
+    },
+    "POST /api/cowork/home/intent": {
       "gate": "auth"
     },
     "POST /api/cowork/hooks": {

@@ -7,6 +7,8 @@ export type { ModelTierConfig, ModelTierMap };
 export interface ModelTierSelectionOptions {
     storageKey: string;
     taskType?: string;
+    defaultTier?: string;
+    legacyStorageKey?: string;
 }
 
 export interface ModelTierSelection {
@@ -34,12 +36,15 @@ const NO_TIERS: ModelTierMap = Object.freeze({});
  * the unfiltered /ai/config/chat-models list and keeps no selection state.
  */
 export default function useModelTierSelection(
-    { storageKey, taskType = 'direct_chat' }: ModelTierSelectionOptions,
+    { storageKey, taskType = 'direct_chat', defaultTier = 'auto', legacyStorageKey }: ModelTierSelectionOptions,
 ): ModelTierSelection {
     const query = useModelTiersQuery(taskType);
     const modelTiers = query.data ?? NO_TIERS;
     const [selectedTier, setSelectedTier] = useState<string>(
-        () => scopedStorage.getItem(storageKey) || 'auto',
+        () => {
+            const previous = legacyStorageKey && scopedStorage.getItem(legacyStorageKey);
+            return scopedStorage.getItem(storageKey) || (previous && previous !== 'auto' ? previous : defaultTier);
+        },
     );
 
     useEffect(() => {
@@ -48,7 +53,7 @@ export default function useModelTierSelection(
 
     const tierKeys = Object.keys(modelTiers);
     if (tierKeys.length > 0 && !tierKeys.includes(selectedTier)) {
-        setSelectedTier(tierKeys.includes('auto') ? 'auto' : tierKeys[0]);
+        setSelectedTier([defaultTier, 'auto'].find(tier => tierKeys.includes(tier)) ?? tierKeys[0]);
     }
 
     return { modelTiers, selectedTier, setSelectedTier };

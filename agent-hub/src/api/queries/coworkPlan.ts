@@ -72,6 +72,7 @@ const TRACE_POLL_MS = 2500;
 export function useCoworkRunTrace(coworkId: string, runId: string) {
     return useQuery<PlanRunTrace, Error>({
         queryKey: ['cowork', 'run-trace', coworkId, runId],
+        enabled: !!runId,
         queryFn: () => getCoworkRunTrace(coworkId, runId),
         refetchInterval: (query) => (query.state.data && !query.state.data.done ? TRACE_POLL_MS : false),
         staleTime: 30_000,

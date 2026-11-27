@@ -48,3 +48,13 @@ test('a share counts only while its holder is an active member of the owner\'s o
     assert.strictEqual(await shares.approverOf(id), null, 'nor one who moved to another organisation');
     await store.deleteSchedule(id);
 });
+
+test('stale grants cannot overwrite a later share, including when both owners saw an empty list', async () => {
+    const id = await createItem();
+    const first = [{userId: 'cas', role: /** @type {const} */ ('viewer')}];
+    await shares.setShares(id, first, 'ann', []);
+    assert.equal(await shares.setShares(id, [{userId:'bob', role:'viewer'}], 'ann', []), false);
+    assert.deepStrictEqual(await shares.listShares(id), first);
+    await shares.setShares(id, [], 'ann', first);
+    assert.deepStrictEqual(await shares.listShares(id), []);
+});

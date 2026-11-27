@@ -191,3 +191,42 @@ test('the compose prompt copes with a user who has no agents', () => {
     const prompt = buildComposePrompt({ agents: [], timezone: 'UTC', nowLabel: 'now' });
     assert.match(prompt, /no agents/);
 });
+
+test('delivery uses the quoted send request, excluding source addresses and unrequested recipients', () => {
+    const quote = 'Mail de samenvatting naar team@example.nl';
+    const brief = 'Lees mails van bron@example.nl. ' + quote;
+    const spec = normaliseSpec({ delivery: { quote, to: ['bron@example.nl', 'team@example.nl'] } }, { brief });
+    assert.deepEqual(spec.delivery, { quote, to: ['team@example.nl'] });
+    const local = normaliseSpec({ missingTarget: 'recipient', delivery: { quote: 'stuur mij een mail', to: ['me'] } }, { brief: 'Vat mijn e-mails samen.' });
+    assert.equal(local.delivery, undefined);
+    assert.equal(local.missingTarget, undefined);
+});
+
+test('calendar dates, explicit one-offs and suggested hours survive composition only when applicable', () => {
+    const tomorrow = normaliseSpec({ firstRunDate: '2028-02-29', timeOfDay: '08:00', timeIsSuggested: true, oneOff: 'scheduled' });
+    assert.strictEqual(tomorrow.firstRunDate, '2028-02-29');
+    assert.strictEqual(tomorrow.timeIsSuggested, true);
+    assert.strictEqual(tomorrow.oneOff, 'scheduled');
+    const invalid = normaliseSpec({ firstRunDate: '2027-02-29', timeIsSuggested: true });
+    assert.strictEqual(invalid.firstRunDate, undefined);
+    assert.strictEqual(invalid.timeIsSuggested, undefined);
+    assert.strictEqual(normaliseSpec({ repeatInterval: 'daily', oneOff: 'now' }).oneOff, undefined);
+});
+
+test('a clarification contains one question and at most two distinct, usable answers', () => {
+    const clarification = {
+        question: ' What do you need? ',
+        options: [{ instruction: 'send' }, null, ' ', ' Summarise mail ', 'Summarise mail', 'Draft replies', 'Third choice'],
+    };
+    const spec = normaliseSpec({ clarification }, { brief: 'Help with mail' });
+    assert.deepEqual(spec.clarification, { question: 'What do you need?', options: ['Summarise mail', 'Draft replies'] });
+    assert.equal(spec.prompt, 'Help with mail');
+    assert.equal(spec.delivery, undefined);
+});
+
+test('malformed clarifications are ignored and a valid question may have no suggestions', () => {
+    assert.equal(normaliseSpec({ clarification: { question: ' ' } }).clarification, undefined);
+    assert.equal(normaliseSpec({ clarification: { question: {} } }).clarification, undefined);
+    assert.deepEqual(normaliseSpec({ clarification: { question: 'Which source?', options: 'mail' } }).clarification,
+        { question: 'Which source?', options: [] });
+});

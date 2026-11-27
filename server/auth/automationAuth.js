@@ -49,50 +49,7 @@ function vaultOrgIdFor(user) {
     return user?.organizationId || `user:${user?.id}`;
 }
 
-// ── Provider derivation from agent's enabled integrations ───────────────
-// Maps an integration id (as stored on agent.config.enabledIntegrations) to
-// the OAuth provider whose tokens are required to call it. Anything not
-// mapped here is assumed to use a per-user config-store API key (Fireflies,
-// YouTrack, Gamma, etc) which doesn't need session auth at all.
-/** @type {Record<string, string>} */
-const INTEGRATION_PROVIDER = {
-    gmail:              'google',
-    'google-calendar':  'google',
-    'google-drive':     'google',
-    'google-docs':      'google',
-    'google-sheets':    'google',
-    'google-slides':    'google',
-    'google-contacts':  'google',
-    'google-keep':      'google',
-    'google-groups':    'google',
-    outlook:            'microsoft',
-    'outlook-readonly': 'microsoft',
-    'ms-calendar':      'microsoft',
-    'ms-contacts':      'microsoft',
-    onedrive:           'microsoft',
-    nextcloud:          'nextcloud',
-    'nextcloud-calendar':      'nextcloud',
-    'nextcloud-contacts':      'nextcloud',
-    'nextcloud-deck':          'nextcloud',
-    'nextcloud-notifications': 'nextcloud',
-    'nextcloud-talk':          'nextcloud',
-    'nextcloud-tasks':         'nextcloud',
-    'nextcloud-notes':         'nextcloud',
-    'nextcloud-mail':          'nextcloud',
-    'nextcloud-activity':      'nextcloud',
-    'nextcloud-status':        'nextcloud',
-    withings:                  'withings',
-};
-
-function providersForIntegrations(enabledIntegrations) {
-    if (!Array.isArray(enabledIntegrations)) return [];
-    const set = new Set();
-    for (const id of enabledIntegrations) {
-        const p = INTEGRATION_PROVIDER[id];
-        if (p) set.add(p);
-    }
-    return Array.from(set);
-}
+const { providersForIntegrations } = require('./integrationProviders.mts');
 
 // ── Refresh paths ───────────────────────────────────────────────────────
 
@@ -325,6 +282,11 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
     // items that can actually touch the broken provider. A missing list means
     // unrestricted, so the provider can't be ruled out — those are paused.
     const dependsOnProvider = async (item) => {
+        if (item.planId) {
+            const store = require('../stores/coworkStore');
+            const needed = await require('./coworkPlanProviders.mts').scheduledProviders(item, id => store.getApprovedPlan(id));
+            if (needed) return needed.includes(provider);
+        }
         if (!item.agentId) {
             if (Array.isArray(item.enabledApps)) {
                 return providersForIntegrations(item.enabledApps).includes(provider);
@@ -348,8 +310,8 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
     const pauseAll = async (label, items, deactivate) => {
         for (const item of items) {
             if (!item.isActive) continue;
-            if (!await dependsOnProvider(item)) continue;
             try {
+                if (!await dependsOnProvider(item)) continue;
                 await deactivate(item.id);
                 pausedCount += 1;
             } catch (err) {

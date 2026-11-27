@@ -41,7 +41,7 @@ export function useDraftDesk() {
 /** Set the proposal up, as the person; afterwards every desk read is read again. */
 export function useApplyDeskDraft() {
     const client = useQueryClient();
-    return useMutation<HelperResult, Error, { itemId?: string; draft: DeskDraftBody }>({
+    return useMutation<HelperResult, Error, { itemId?: string; expectedDeskId?: string | null; draft: DeskDraftBody }>({
         mutationFn: (body) => apiJson<'POST /api/cowork/desks/helper/apply', HelperResult>('POST /api/cowork/desks/helper/apply', { body }),
         onSuccess: () => { void client.invalidateQueries({ queryKey: ['cowork', 'desks'] }); },
     });

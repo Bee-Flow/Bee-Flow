@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cowork`
 
-92 routes, 63 with a request schema. Back to the [endpoint reference](../reference.md).
+94 routes, 65 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -85,6 +85,29 @@ No request schema.
 **Access:** Signed-in user · middleware `trainingGate`
 
 No request schema.
+
+### `POST /api/cowork/:id/conversation`
+
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `message` | string | yes | min length 1; max length 2000 |
+| `scope` | object |  | no other keys |
+| `scope.stepIds` | array of string | yes | min items 1; max items 100 |
+| `scope.fingerprint` | string | yes | min length 64; max length 64 |
+| `view` | string | yes | max length 24 |
+| `history` | array of object | yes | max items 6 |
+| `history[].role` | one of `"user"`, `"assistant"` | yes |  |
+| `history[].text` | string | yes | max length 2000 |
 
 ### `GET /api/cowork/:id/desk`
 
@@ -500,6 +523,9 @@ No request schema.
 | `shares` | array of object | yes | max items 50 |
 | `shares[].userId` | string | yes | min length 1; max length 200 |
 | `shares[].role` | one of `"viewer"`, `"approver"` | yes |  |
+| `expected` | array of object |  | max items 50 |
+| `expected[].userId` | string | yes | min length 1; max length 200 |
+| `expected[].role` | one of `"viewer"`, `"approver"` | yes |  |
 
 ### `GET /api/cowork/:id/start`
 
@@ -705,6 +731,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `itemId` | string |  | min length 1; max length 200 |
+| `expectedDeskId` | string or null |  |  |
 | `draft` | object | yes | no other keys |
 | `draft.deskName` | string | yes | min length 1; max length 80 |
 | `draft.chain` | array of string | yes | min items 1; max items 5 |
@@ -754,6 +781,19 @@ No request schema.
 |-------|------|:--------:|-------|
 | `from` | string (date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][...` |
 | `to` | string (date-time) | yes | pattern `^(?:(?:\d\d[2468][048]\|\d\d[13579][26]\|\d\d0[48]\|[02468][...` |
+
+### `POST /api/cowork/home/intent`
+
+**Access:** Signed-in user · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `message` | string | yes | min length 1; max length 4000 |
+| `titles` | array of string | yes | max items 100 |
+| `previous` | string |  | max length 4000 |
+| `tier` | string |  | max length 80 |
 
 ## `hooks`
 

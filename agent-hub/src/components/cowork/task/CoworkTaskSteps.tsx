@@ -1,8 +1,8 @@
 /**
  * "Steps", in an opened task (./CoworkTaskView.tsx): what it does, in the order it runs.
  *
- *   - Fixed steps are the plan's, in RUN ORDER (server core/cowork/plan/planOrder.mts), the steps that only reshape
- *     data folded behind "Show N in-between steps", a step changed since the last approval marked Changed. For the AI
+ *   - Fixed steps are the plan's, in RUN ORDER (server core/cowork/plan/planOrder.mts), with related reads and transformations
+ *     grouped into expandable stages. Steps changed since the last approval are marked Changed. For the AI
  *     or an agent, what its last run did. Each step has its kind word (Reads, Changes, Sends to …, AI writes or
  *     decides) and its app, never a tool name. A step that sends names who receives it.
  *   - How it was tested, in plain words (what stopped a test only under "Technical details"); what it may read,
@@ -10,59 +10,20 @@
  *   - For fixed steps: "Test, sends nothing" (reads real data, changes and sends nothing) and "Compare with last
  *     month" (no app at all, ./CoworkTaskReplay.tsx).
  */
-import { useState } from 'react';
-import { Check, FileSearch, Hand, PenLine, Send, TriangleAlert } from 'lucide-react';
+import CoworkTestProgress from './CoworkTestProgress';
+import CoworkTaskFlow from './CoworkTaskFlow';
+import { Check, TriangleAlert } from 'lucide-react';
 import { triedLines } from '../coworkWiringModel';
 import { canTry } from '../coworkPlanModel';
-import { planMayDo, planSteps, runMayDo, runSteps, stepWord, type MayDo, type TaskMode, type TaskStep } from './coworkTaskModel';
+import { planMayDo, planSteps, runMayDo, runSteps, type MayDo, type TaskMode } from './coworkTaskModel';
 import CoworkEffectPreview from './CoworkEffectPreview';
 import CoworkTaskReplay from './CoworkTaskReplay';
 import { TechnicalDetails } from './taskRows';
-import { BTN_LINK, BTN_QUIET, Failure, META, ROW_ACTIONS, TAG_WARN } from './taskUi';
+import { BTN_QUIET, Failure, META, ROW_ACTIONS } from './taskUi';
 import { useCoworkPlanReplay } from '@/api/coworkReplay';
-import { paletteItemForType } from '@/components/automation/Builder/flow/stepPalette';
-import IntegrationLogo from '@/components/automation/Builder/flow/nodes/IntegrationLogo';
 import type { CoworkRun } from '@/api/cowork.types';
 import type { PlanState, PlanTryState } from '@/api/coworkPlan.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
-
-const TILE: Record<TaskStep['sort'], string> = {
-    read: 'text-[var(--text-secondary)]',
-    change: 'text-[var(--warning-ink)]',
-    send: 'text-[var(--success-ink)]',
-    ai: 'text-[var(--type-ai)]',
-    ask: 'text-[var(--warning-ink)]',
-};
-const ICON = { read: FileSearch, change: PenLine, send: Send, ask: Hand } as const;
-/** The tile of a step a model does: a mark, the same in every language (hidden from screen readers; the word below says it). */
-const AI_MARK = 'AI';
-
-function StepTile({ step }: { step: TaskStep }) {
-    const base = 'w-8 h-8 rounded-[var(--radius-md)] border grid place-items-center flex-shrink-0 text-[12px] font-semibold';
-    const tone = `${base} border-[var(--border-subtle)] bg-[var(--bg-tertiary)] ${TILE[step.sort]}`;
-    const Icon = paletteItemForType(step.type ?? '')?.icon ?? (step.sort === 'ai' ? null : ICON[step.sort]);
-    const fallback = Icon ? <Icon size={16} /> : AI_MARK;
-    return (
-        <span aria-hidden="true" className={tone}>
-            {step.integrationId ? <IntegrationLogo integrationId={step.integrationId} size={18} fallback={fallback} /> : fallback}
-        </span>
-    );
-}
-
-function StepItem({ step, t }: { step: TaskStep; t: TranslateFn }) {
-    return (
-        <li className="grid grid-cols-[32px_minmax(0,1fr)] gap-3 pb-3" data-testid="cowork-task-step" data-helper={step.helper ? 'yes' : 'no'}>
-            <StepTile step={step} />
-            <div className="min-w-0">
-                <div className={`pt-1 flex flex-wrap items-center gap-2 text-[14px] ${step.helper ? 'font-normal text-[var(--text-secondary)]' : 'font-medium text-[var(--text-primary)]'}`}>
-                    <span className="break-words">{step.title}</span>
-                    {step.changed && <span className={TAG_WARN}>{t('cowork_task.steps.changed', 'Changed')}</span>}
-                </div>
-                <div className="text-[13px] text-[var(--text-tertiary)] break-words" data-testid="cowork-task-step-word">{step.script ? step.description : stepWord(step, t)}{step.app ? ` · ${step.app}` : ''}</div>
-            </div>
-        </li>
-    );
-}
 
 function MayList({ may, t }: { may: MayDo; t: TranslateFn }) {
     const nothing = t('cowork_task.may.nothing', 'Nothing');
@@ -81,19 +42,6 @@ function MayList({ may, t }: { may: MayDo; t: TranslateFn }) {
     );
 }
 
-/** "Show 3 in-between steps", "Hide in-between steps"; nothing without such steps. */
-function BetweenToggle({ count, open, onToggle, t }: { count: number; open: boolean; onToggle: () => void; t: TranslateFn }) {
-    if (count === 0) return null;
-    const show = count === 1 ? t('cowork_task.steps.show_between_one', 'Show 1 in-between step') : t('cowork_task.steps.show_between', 'Show {count} in-between steps', { count });
-    return (
-        <div>
-            <button type="button" className={BTN_LINK} aria-expanded={open} onClick={onToggle}>
-                {open ? t('cowork_task.steps.hide_between', 'Hide in-between steps') : show}
-            </button>
-        </div>
-    );
-}
-
 function leadOf(mode: TaskMode, agentName: string | null, t: TranslateFn): string {
     if (mode === 'steps') return t('cowork_task.steps.lead_steps', 'Fixed steps, the same on every run, top to bottom.');
     if (mode === 'agent') return t('cowork_task.steps.lead_agent', "Your agent '{agent}' does this. This is what it did last time.", { agent: agentName ?? t('cowork_task.steps.an_agent', 'an agent') });
@@ -103,7 +51,9 @@ function leadOf(mode: TaskMode, agentName: string | null, t: TranslateFn): strin
 interface Tested { line: string; ok: boolean; technical: string | null }
 
 /** How it was tested: the test just made, else the last one the steps know of. */
-function testedOf(plan: PlanState | undefined, tryState: PlanTryState | null, t: TranslateFn): Tested | null {
+function testedOf(mode: TaskMode, plan: PlanState | undefined, tryOut: TryOut, t: TranslateFn): Tested | null {
+    if (mode !== 'steps' || tryOut.error) return null;
+    const tryState = tryOut.state;
     if (tryState?.done) {
         const failed = !!tryState.error || tryState.steps.some((s) => s.status === 'failed' || s.status === 'error');
         return failed
@@ -164,20 +114,24 @@ interface CoworkTaskStepsProps {
     live: boolean;
     /** Someone else's task: the steps are shown, nothing is tested. */
     readOnly: boolean;
+    requested?: 'test' | 'compare';
+    controlsOnly?: boolean;
     onRebuild?: () => void;
     t: TranslateFn;
 }
 
-function TestAndCompare({ coworkId, plan, tryOut, live, titleOf, t }: Pick<CoworkTaskStepsProps, 'coworkId' | 'tryOut' | 'live' | 't'> & { plan: PlanState; titleOf: (id: string) => string | null }) {
-    const { start, state, error } = useCoworkPlanReplay(coworkId);
-    const comparing = start.isPending || (state !== null && !state.done && !error);
+function TestAndCompare({ coworkId, plan, tryOut, live, titleOf, requested, t }: Pick<CoworkTaskStepsProps, 'requested' | 'coworkId' | 'tryOut' | 'live' | 't'> & { plan: PlanState; titleOf: (id: string) => string | null }) {
+    const { start, started, state, error } = useCoworkPlanReplay(coworkId);
+    const comparing = start.isPending || (!!started && !state?.done && !error);
+    const test = <button type="button" className={BTN_QUIET} disabled={live || tryOut.starting || !canTry(plan)} onClick={tryOut.onStart}>{t('cowork_task.steps.test', 'Test, sends nothing')}</button>;
+    const compare = <button type="button" className={BTN_QUIET} disabled={comparing} onClick={() => start.mutate()}>{t('cowork_task.steps.compare', 'Compare with last month')}</button>;
     return (
         <div className="flex flex-col gap-2">
             <div className={ROW_ACTIONS}>
-                <button type="button" className={BTN_QUIET} disabled={live || tryOut.starting || !canTry(plan)} onClick={tryOut.onStart}>{t('cowork_task.steps.test', 'Test, sends nothing')}</button>
-                <button type="button" className={BTN_QUIET} disabled={comparing} onClick={() => start.mutate()}>{t('cowork_task.steps.compare', 'Compare with last month')}</button>
+                {requested !== 'compare' && test}
+                {requested !== 'test' && compare}
             </div>
-            <p className={META}>{t('cowork_task.steps.both_safe', "Both are safe: a test reads real data but changes and sends nothing. A comparison runs today's steps on last month's runs and touches no app at all.")}</p>
+            {!requested && <p className={META}>{t('cowork_task.steps.both_safe', "Both are safe: a test reads real data but changes and sends nothing. A comparison runs today's steps on last month's runs and touches no app at all.")}</p>}
             <Failure error={tryOut.error || error} t={t} />
             {state && <CoworkTaskReplay state={state} titleOf={titleOf} onClose={() => start.reset()} t={t} />}
         </div>
@@ -191,22 +145,39 @@ function NotebookRepair({ plan, live, onRebuild, t }: Pick<CoworkTaskStepsProps,
     </button>;
 }
 
-export default function CoworkTaskSteps({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, onRebuild, t }: CoworkTaskStepsProps) {
-    const [between, setBetween] = useState(false);
+function testInProgress(tryOut: TryOut) {
+    return !tryOut.error && (tryOut.starting || (!!tryOut.state && !tryOut.state.done));
+}
+
+function RequestedOperation({ requested, plan, readOnly, tryOut, coworkId, live, t }: CoworkTaskStepsProps) {
+    if (!plan?.draft || readOnly) return <p role="status">{t('cowork_task.steps.needs_plan', 'This requires a task with fixed steps.')}</p>;
+    if (requested === 'test' && testInProgress(tryOut)) return <CoworkTestProgress state={tryOut.state} runOrder={plan.draft.view.runOrder} t={t}/>;
+    if (requested === 'test' && !canTry(plan)) return <p role="status">{plan.draft.findings[0]?.message ?? t('cowork_task.steps.not_tested', 'Not tested yet: the steps cannot run as they are.')}</p>;
+    const tested = requested === 'test' ? testedOf('steps', plan, tryOut, t) : null;
+    const steps = planSteps(plan, t);
+    return <div className="grid gap-3">
+        {tested && <TestedLine tested={tested} t={t}/>}
+        {requested === 'test' && tryOut.state?.done && <CoworkEffectPreview effects={tryOut.state.steps.filter(s => s.held && s.status !== 'not_reached')} t={t} />}
+        <TestAndCompare requested={requested} plan={plan} coworkId={coworkId} live={live} tryOut={tryOut} titleOf={id => steps.find(step => id === step.id)?.title ?? null} t={t}/>
+    </div>;
+}
+
+export default function CoworkTaskSteps(props: CoworkTaskStepsProps) {
+    return props.requested ? <RequestedOperation {...props}/> : <TaskStepsOverview {...props}/>;
+}
+
+function TaskStepsOverview({ coworkId, mode, plan, latestRun, agentName, tryOut, live, readOnly, controlsOnly, onRebuild, t }: CoworkTaskStepsProps) {
     const fixed = mode === 'steps' && !!plan;
     const steps = fixed ? planSteps(plan, t) : runSteps(latestRun, t);
-    const shown = between ? steps : steps.filter((s) => !s.helper);
     const may = fixed ? planMayDo(plan, t) : runMayDo(steps);
-    const tested = mode === 'steps' ? testedOf(plan, tryOut.state, t) : null;
+    if (testInProgress(tryOut)) return <CoworkTestProgress state={tryOut.state} runOrder={plan?.draft?.view.runOrder} t={t} />;
+    const tested = testedOf(mode, plan, tryOut, t);
     const titleOf = (id: string) => steps.find((s) => s.id === id)?.title ?? null;
     return (
         <div className="flex flex-col gap-3" data-testid="cowork-task-steps">
-            <p className={META}>{leadOf(mode, agentName, t)}</p>
-            {shown.length > 0
-                ? <ol className="list-none m-0 p-0">{shown.map((step) => <StepItem key={step.id} step={step} t={t} />)}</ol>
-                : <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>}
+            {!controlsOnly && <><p className={META}>{leadOf(mode, agentName, t)}</p>
+            {steps.length ? <CoworkTaskFlow steps={steps} t={t} /> : <p className={META}>{t('cowork_task.steps.none_yet', 'It has not run yet. After its first run you see here what it did.')}</p>}</>}
             <NotebookRepair plan={plan} live={live} onRebuild={onRebuild} t={t} />
-            <BetweenToggle count={steps.filter((s) => s.helper).length} open={between} onToggle={() => setBetween((v) => !v)} t={t} />
             {tested && <TestedLine tested={tested} t={t} />}
             {tryOut.state?.done && <CoworkEffectPreview effects={tryOut.state.steps.filter((s) => s.held && s.status !== 'not_reached')} t={t} />}
             <MayList may={may} t={t} />

@@ -2,9 +2,11 @@
 // kept failing, or an offer to make a steady AI step fixed. Nothing is applied until the owner approves it here; an
 // approved fixed step can be undone (POST /api/cowork/:id/plan/restore).
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef, useState, useEffect } from 'react';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PlanParameter } from './coworkPlan.types';
-import { apiJson } from './typedRequest';
+import { readCoworkReply } from './readCoworkReply';
+import { apiJson, apiRequest } from './typedRequest';
 import { coworkPlanKey } from './queries/coworkPlan';
 
 type ProposalKind = 'repair' | 'fixed_step';
@@ -42,6 +44,11 @@ const listOf = (answer: unknown): CoworkProposal[] => {
     return Array.isArray(list) ? list as CoworkProposal[] : [];
 };
 
+const interactionKey = (id: string) => ['cowork', 'task-interaction', id] as const;
+export function useTaskInteractionBusy(id: string) {
+    return useIsMutating({ mutationKey: interactionKey(id) }) > 0;
+}
+
 const coworkProposalsKey = (coworkId: string) => ['cowork', 'proposals', coworkId] as const;
 
 /** The item's proposals, newest first. */
@@ -64,11 +71,13 @@ export function useCoworkProposalActions(coworkId: string) {
         void client.invalidateQueries({ queryKey: ['cowork', 'needs-you'] });
     };
     const approve = useMutation<ProposalList, Error, { proposalId: string; fingerprint: string }>({
+        mutationKey: interactionKey(coworkId),
         mutationFn: ({ proposalId, fingerprint }) => apiJson<'POST /api/cowork/{id}/proposals/{proposalId}/approve', ProposalList>(
             'POST /api/cowork/{id}/proposals/{proposalId}/approve', { params: { id: coworkId, proposalId }, body: { fingerprint } }),
         onSuccess: settle,
     });
     const dismiss = useMutation<ProposalList, Error, string>({
+        mutationKey: interactionKey(coworkId),
         mutationFn: (proposalId) => apiJson<'POST /api/cowork/{id}/proposals/{proposalId}/dismiss', ProposalList>(
             'POST /api/cowork/{id}/proposals/{proposalId}/dismiss', { params: { id: coworkId, proposalId }, body: {} }),
         onSuccess: settle,
@@ -77,10 +86,42 @@ export function useCoworkProposalActions(coworkId: string) {
         mutationFn: (version) => apiJson<'POST /api/cowork/{id}/plan/restore'>('POST /api/cowork/{id}/plan/restore', { params: { id: coworkId }, body: { version } }),
         onSuccess: settle,
     });
-    const requestChange = useMutation<ProposalList, Error, { instruction: string } | { parameter: PlanParameter & { before: string } }>({
+    const requestChange = useMutation<ProposalList, Error, { instruction: string; scope?: { fingerprint: string; stepIds: string[] } } | { remove: { fingerprint: string; stepIds: string[] } } | { parameter: PlanParameter & { before: string } }>({
+        mutationKey: interactionKey(coworkId),
         mutationFn: (body) => apiJson<'POST /api/cowork/{id}/proposals', ProposalList>(
             'POST /api/cowork/{id}/proposals', { params: { id: coworkId }, body }),
         onSuccess: settle,
     });
     return { approve, dismiss, restore, requestChange };
+}
+
+export type CoworkGlobalDestination = 'new_task' | 'attention' | 'shared_tasks' | 'teamwork' | 'preferences' | 'templates' | 'org';
+export type CoworkPeopleDestination = 'give' | 'pass' | 'template' | 'share';
+type CoworkReplyAction = CoworkGlobalDestination | CoworkPeopleDestination | 'goal' | 'memory' | 'budget' | 'changes' | 'proof' | 'test' | 'compare' | 'run' | 'pause' | 'resume' | 'delete' | 'answer' | 'change' | 'result' | 'history' | 'when' | 'what' | 'uses' | 'sends' | 'actions' | 'steps' | 'people' | 'share' | 'review' | 'overview';
+export interface ClockProposal { repeatInterval: 'daily' | 'weekdays' | 'weekly'; daysOfWeek: string[] | null; timeOfDay: string; timezone: string; nextRunAt: string }
+export type CoworkSettingChoice = 'what' | 'when' | 'uses' | 'sends';
+export interface CoworkReply { section?: string; ownerOnly?: boolean; responses?: string[]; tasks?: {id: string; title: string; detail: string; shared?: boolean}[]; switchTo?: string; choices?: CoworkSettingChoice[]; remove?: {fingerprint: string; stepIds: string[]}; schedule?: ClockProposal; answer: string; action: CoworkReplyAction; instruction: string }
+export interface CoworkMessage { role: 'user' | 'assistant'; text: string }
+
+interface ConversationRequest {
+    message: string; view: string; history: CoworkMessage[]; scope?: { stepIds: string[]; fingerprint: string };
+}
+
+export function useCoworkConversation(id: string) {
+    const [partial, setPartial] = useState('');
+    const controller = useRef<AbortController | null>(null);
+    useEffect(() => () => controller.current?.abort(), [id]);
+    const mutation = useMutation({
+        mutationKey: interactionKey(id),
+        onSettled: () => setPartial(''),
+        mutationFn: async (body: ConversationRequest) => {
+            controller.current = new AbortController();
+            const {signal} = controller.current;
+            const response = await apiRequest('POST /api/cowork/{id}/conversation', {
+                params: { id }, body, init: { headers: { Accept: 'text/event-stream' }, signal },
+            });
+            return readCoworkReply<CoworkReply>(response, signal, setPartial);
+        },
+    });
+    return { ...mutation, partial };
 }

@@ -21,7 +21,7 @@
  * One word per state: a task that failed says Failed and nothing beside it, and the server gives every failed task a
  * card under Needs you (usecases/coworkNeedsYou.mts), so the home and the task always agree.
  */
-import { BLOCKS, waitsForSteps, type NeedCardKind } from './coworkNeedsModel';
+import { BLOCKS, waitsForSteps, type NeedCardData } from './coworkNeedsModel';
 import type { CoworkItem } from '@/api/cowork.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -46,10 +46,15 @@ function startsByItself(item: StatusItem): boolean {
 }
 
 /** The strongest thing that waits for this task: a problem over a question; null when nothing waits. */
-function blockOf(itemId: string, cards: ReadonlyArray<{ itemId: string; kind: NeedCardKind }>): 'failed' | 'needs' | null {
-    let found: 'failed' | 'needs' | null = null;
+type StatusCard = Pick<NeedCardData, 'itemId' | 'kind' | 'connection'>;
+function blockOf(itemId: string, cards: readonly StatusCard[]): 'failed' | 'needs' | 'paused' | null {
+    let found: 'failed' | 'needs' | 'paused' | null = null;
     for (const card of cards) {
         if (card.itemId !== itemId) continue;
+        if (card.kind === 'sign_in' && card.connection?.canResume) {
+            found ??= 'paused';
+            continue;
+        }
         if (BLOCKS[card.kind] === 'failed') return 'failed';
         found = 'needs';
     }
@@ -63,13 +68,15 @@ function fromLastRun(item: StatusItem, outcome: string | null | undefined): Task
     return 'scheduled';
 }
 
-export function taskStatus(item: StatusItem, cards: ReadonlyArray<{ itemId: string; kind: NeedCardKind }> = [], facts: TaskStatusFacts = {}): TaskStatus {
+export function taskStatus(item: StatusItem, cards: readonly StatusCard[] = [], facts: TaskStatusFacts = {}): TaskStatus {
     if (facts.testing) return 'testing';
     if (item.lastStatus === 'running' || item.currentRunStartedAt) return 'running';
     const block = blockOf(item.id, cards);
-    if (block === 'failed' || FAILED_RUN.has(item.lastStatus ?? '')) return 'failed';
+    if (block === 'paused' || block === 'failed') return block;
+    const lastStatus = item.lastStatus ?? '';
+    if (FAILED_RUN.has(lastStatus)) return 'failed';
     if (item.isActive === false && startsByItself(item)) return 'paused';
-    if (block === 'needs' || WAITING_RUN.has(item.lastStatus ?? '') || waitsForSteps(item)) return 'needs';
+    if (block === 'needs' || WAITING_RUN.has(lastStatus) || waitsForSteps(item)) return 'needs';
     return fromLastRun(item, facts.outcome);
 }
 

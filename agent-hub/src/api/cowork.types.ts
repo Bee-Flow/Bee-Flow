@@ -45,6 +45,7 @@ export interface MailTrigger {
 /** One cowork item (a schedule row) as GET /api/cowork returns it. */
 export interface CoworkItem {
     id: string;
+    timezone?: string | null;
     /** What it may spend on AI in a month, in euros; null: no limit (server/core/cowork/runBudget.mts). */
     monthlyBudget?: number | null;
     title: string;
@@ -201,6 +202,11 @@ export interface CoworkAgent {
 
 /** What POST /api/cowork/compose answers; every field may be missing. */
 export interface CoworkSpec {
+    timeIsSuggested?: boolean;
+    firstRunDate?: string;
+    oneOff?: 'now' | 'scheduled';
+    delivery?: { quote: string; to: string[] };
+    clarification?: { question: string; options: string[] };
     missingTarget?: 'folder' | 'table' | 'recipient';
     title?: string;
     prompt?: string;
