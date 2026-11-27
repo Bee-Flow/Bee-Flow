@@ -511,6 +511,12 @@
       "reason": "fixtures only (a temp directory or literal path strings), it does not read the real tree; it gains module fixtures when container-release-gate.mjs is converted"
     },
     {
+      "file": "scripts/core-boot-check.mjs",
+      "status": "not-applicable",
+      "what": "runs server/migrateDb.js and server/index.js against a database with an edition, probes the routes",
+      "reason": "names only the core entry points (server/migrateDb.js, server/index.js, server/package.json for pg) and scripts/module-map.json, which never move; both entry points require server/moduleRoots.cjs first, so the module roots resolve inside them"
+    },
+    {
       "file": "scripts/count-ratchet.mjs",
       "status": "pending",
       "what": "every count metric walks server/ or agent-hub/src; budget keys are tree paths",
