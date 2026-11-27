@@ -16,7 +16,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { buildFixture, runProbe } = require('../../testUtils/moduleRootsFixture.testkit');
 
-const LOADER_FILES = ['loader.js', 'loaderRules.js', 'parts.js', 'moduleState.js', 'order.json'];
+const LOADER_FILES = ['loader.js', 'loaderRules.js', 'editionRules.js', 'parts.js', 'moduleState.js', 'order.json'];
 // Spelled as data: the fixture's own requests, relative to its firstParty/ directory.
 const PARTS_REQUEST = ['..', 'modules', 'firstParty', 'parts'].join('/');
 

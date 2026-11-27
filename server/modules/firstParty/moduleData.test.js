@@ -198,7 +198,8 @@ function bareProcess(edition) {
     const r = spawnSync(process.execPath, ['--require', path.join(SERVER, 'moduleRoots.cjs'), '-e', code,
         path.join(__dirname, 'moduleData.js'), path.join(SERVER, 'core', 'featureModules.js')], { cwd: SERVER, env, encoding: 'utf8', timeout: 30_000 });
     assert.equal(r.status, 0, r.stderr);
-    return JSON.parse(r.stdout);
+    // Under an edition the loader logs one "[modules] edition: ..." line first (the dev log writes to stdout).
+    return JSON.parse(/** @type {string} */ (r.stdout.trim().split('\n').pop()));
 }
 
 test('the answer does not depend on the entry point: a bare process sees a loaded module, and an absent one as absent', () => {
