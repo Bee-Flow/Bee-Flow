@@ -9,7 +9,9 @@
  * WARNS (a workflow annotation): the shards still ran everything, they just
  * ran it unevenly, and the fix is one regenerated file, not a red PR.
  *
- * Usage: node scripts/check-test-shards.mjs --expect <n> <list.json>...
+ * Usage: node scripts/check-test-shards.mjs --expect <n> [--scope <scope>] <list.json>...
+ * With --scope the full list is that scope's (run-tests.mjs --scope), for shards
+ * that ran one scope. Files are named by tree path, as test-durations.json keys them.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -21,12 +23,14 @@ const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 const args = process.argv.slice(2);
 const at = args.indexOf('--expect');
 const expected = at >= 0 ? Number(args[at + 1]) : null;
-const files = args.filter((a, i) => !a.startsWith('--') && i !== at + 1);
+const scopeAt = args.indexOf('--scope');
+const scopeArgs = scopeAt >= 0 ? ['--scope', String(args[scopeAt + 1])] : [];
+const files = args.filter((a, i) => !a.startsWith('--') && i !== at + 1 && (scopeAt < 0 || i !== scopeAt + 1));
 if (!expected || files.length !== expected) {
     console.error(`check-test-shards: expected ${expected} shard lists, got ${files.length}.`);
     process.exit(1);
 }
-const full = spawnSync(process.execPath, [path.join(SERVER_DIR, 'scripts', 'run-tests.mjs'), '--list'], { cwd: SERVER_DIR, encoding: 'utf8', maxBuffer: 1 << 26 });
+const full = spawnSync(process.execPath, [path.join(SERVER_DIR, 'scripts', 'run-tests.mjs'), '--list', ...scopeArgs], { cwd: SERVER_DIR, encoding: 'utf8', maxBuffer: 1 << 26 });
 if (full.status !== 0) {
     console.error(`check-test-shards: could not list the test files:\n${full.stderr}`);
     process.exit(1);

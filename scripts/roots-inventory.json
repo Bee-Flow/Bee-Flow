@@ -1437,9 +1437,8 @@
     },
     {
       "file": "server/scripts/check-test-shards.mjs",
-      "status": "pending",
-      "what": "runs run-tests --list and reads test-durations.json keyed by tree path",
-      "group": "test-runners"
+      "status": "root-aware",
+      "what": "takes the full list from run-tests.mjs --list (root-aware, tree paths), optionally per --scope"
     },
     {
       "file": "server/scripts/cleanupAzureDuplicates.js",
@@ -1616,33 +1615,28 @@
     },
     {
       "file": "server/scripts/run-journeys.mjs",
-      "status": "pending",
-      "what": "readdir of server/journeys",
-      "group": "test-runners"
+      "status": "root-aware",
+      "what": "journeys/ of every server root (walkTree), the resolver through NODE_OPTIONS"
     },
     {
       "file": "server/scripts/run-postgres-tests.mjs",
-      "status": "pending",
-      "what": "the Postgres tests relative to server/",
-      "group": "test-runners"
+      "status": "root-aware",
+      "what": "the Postgres tests by tree path, found in any root (resolveTreePath), the resolver through NODE_OPTIONS"
     },
     {
       "file": "server/scripts/run-postgres-tests.test.mjs",
-      "status": "pending",
-      "what": "checks the listed Postgres tests exist under server/",
-      "group": "test-runners"
+      "status": "root-aware",
+      "what": "checks the listed Postgres tests exist in some server root (resolveTreePath)"
     },
     {
       "file": "server/scripts/run-tests.mjs",
-      "status": "pending",
-      "what": "collects every *.test.js under server/ (plan step 0.4: --scope)",
-      "group": "test-runners"
+      "status": "root-aware",
+      "what": "collects the test files of every server root by tree path (walkTree), --scope/--files/--hide-modules, the resolver through NODE_OPTIONS"
     },
     {
       "file": "server/scripts/run-tests.test.mjs",
-      "status": "pending",
-      "what": "runs run-tests.mjs in a fixture server tree",
-      "group": "test-runners"
+      "status": "root-aware",
+      "what": "runs run-tests.mjs in a fixture checkout with a module root and a fixture ownership map"
     },
     {
       "file": "server/scripts/run-usage-push.js",
@@ -1673,6 +1667,17 @@
       "status": "not-applicable",
       "what": "automation end-to-end script",
       "reason": "chdir to server/ and relative requires"
+    },
+    {
+      "file": "server/scripts/testScope.mjs",
+      "status": "root-aware",
+      "what": "the scope rules of run-tests.mjs over tree paths of every root; the walk itself comes from scripts/lib/roots.mjs"
+    },
+    {
+      "file": "server/scripts/testScope.test.mjs",
+      "status": "not-applicable",
+      "what": "unit tests of testScope.mjs",
+      "reason": "fixture tree paths and a fixture ownership map only"
     },
     {
       "file": "server/scripts/typecheck.mjs",

@@ -16,8 +16,11 @@
  * anywhere must still reach the exit code.
  *
  * Sandbox style is the one scripts/eslint-budget.test.mjs uses: a throwaway
- * tree with the real script copied in. SERVER_DIR is resolved from the script's
- * own location, so copying it to <tmp>/scripts/ makes <tmp> the server root.
+ * checkout with the real scripts copied in. SERVER_DIR is resolved from the
+ * script's own location, so copying it to <tmp>/server/scripts/ makes
+ * <tmp>/server the server root; the roots helper, the ownership map code and the
+ * resolver are copied to their places beside it, and the map is a small fixture.
+ * The scope, --files and core-mode flags are tested at the end of this file.
  */
 
 import test from 'node:test';
@@ -29,7 +32,22 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SCRIPT = path.join(HERE, 'run-tests.mjs');
+const REPO = path.resolve(HERE, '..', '..');
+/** What the runner needs from the checkout, at the same place in the sandbox. */
+const COPIED = [
+    'server/scripts/run-tests.mjs', 'server/scripts/testShards.mjs', 'server/scripts/coverageUrls.mjs', 'server/scripts/testScope.mjs',
+    'server/moduleRoots.cjs', 'server/modules/roots/rootSet.cjs', 'server/modules/roots/resolveHooks.cjs', 'server/modules/roots/treeCheck.cjs',
+    'scripts/lib/roots.mjs', 'scripts/module-map.mjs', 'scripts/module-map-edges.mjs', 'scripts/entry-point.mjs',
+];
+/** Two modules: alpha still sits in server/, beta has a module root of its own. */
+const FIXTURE_MAP = {
+    packages: { server: { coreDir: 'server', moduleDir: 'server' } },
+    modules: {
+        alpha: { requires: [], uses: [], server: ['alpha/**'] },
+        beta: { requires: [], uses: [], server: ['beta/**'] },
+    },
+    core: {},
+};
 
 /** A file whose tests all pass and which then refuses to let the process exit. */
 const LEAKS_A_HANDLE = `
@@ -65,15 +83,27 @@ import assert from 'node:assert';
 test('this one is meant to fail', () => assert.strictEqual(1, 2));
 `;
 
-function sandbox(files, exclusions = []) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'run-tests-'));
-    fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
-    fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/run-tests.mjs'));
-    fs.copyFileSync(path.join(HERE, 'testShards.mjs'), path.join(dir, 'scripts/testShards.mjs'));
-    fs.copyFileSync(path.join(HERE, 'coverageUrls.mjs'), path.join(dir, 'scripts/coverageUrls.mjs'));
-    fs.writeFileSync(path.join(dir, 'scripts/test-exclusions.json'), JSON.stringify({ exclusions }));
-    for (const [name, body] of Object.entries(files)) {
-        fs.writeFileSync(path.join(dir, name), body);
+/** @param {string} file @param {string} body */
+function put(file, body) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, body);
+}
+
+/**
+ * @param {Record<string, string>} files by tree path, in server/
+ * @param {object[]} [exclusions]
+ * @param {Record<string, Record<string, string>>} [moduleFiles] per module id, by tree path, in modules/<id>/server
+ * @returns {string} the sandbox's server root
+ */
+function sandbox(files, exclusions = [], moduleFiles = {}) {
+    const top = fs.mkdtempSync(path.join(os.tmpdir(), 'run-tests-'));
+    for (const rel of COPIED) put(path.join(top, rel), fs.readFileSync(path.join(REPO, rel), 'utf8'));
+    put(path.join(top, 'scripts/module-map.json'), JSON.stringify(FIXTURE_MAP));
+    const dir = path.join(top, 'server');
+    put(path.join(dir, 'scripts/test-exclusions.json'), JSON.stringify({ exclusions }));
+    for (const [name, body] of Object.entries(files)) put(path.join(dir, name), body);
+    for (const [id, own] of Object.entries(moduleFiles)) {
+        for (const [name, body] of Object.entries(own)) put(path.join(top, 'modules', id, 'server', name), body);
     }
     return dir;
 }
@@ -83,8 +113,9 @@ function run(dir, env = {}, args = []) {
     // NODE_TEST_CONTEXT. A nested `node --test` seeing that marker decides it
     // is a recursive call and silently skips every file — so the sandbox would
     // be testing nothing at all. Strip it for the child.
+    // The resolver and core mode of THIS run must not leak into the sandbox's.
     const clean = { ...process.env };
-    delete clean.NODE_TEST_CONTEXT;
+    for (const k of ['NODE_TEST_CONTEXT', 'NODE_OPTIONS', 'BEEFLOW_MODULE_ROOTS', 'BEEFLOW_HIDE_MODULES']) delete clean[k];
     const r = spawnSync(process.execPath, ['scripts/run-tests.mjs', ...args], {
         cwd: dir,
         encoding: 'utf8',
@@ -280,4 +311,107 @@ test('every child shares one compile cache, under node_modules/.cache unless the
     const own = path.join(dir, 'own-cache');
     assert.equal(run(dir, { NODE_COMPILE_CACHE: own }).status, 0);
     assert.ok(fs.existsSync(own), 'explicit NODE_COMPILE_CACHE directory');
+});
+
+// ── Scope, --files and core mode ────────────────────────────────────────────
+
+/** core: a.test.mjs; alpha (still in server/): alpha/x.test.mjs; beta (own root): beta/b.test.mjs. */
+const scoped = (exclusions = []) => sandbox(
+    { 'a.test.mjs': PASSES, 'alpha/x.test.mjs': PASSES },
+    exclusions,
+    { beta: { 'beta/b.test.mjs': PASSES } },
+);
+/** @param {string} dir @param {string[]} args */
+const listed = (dir, args) => {
+    const r = run(dir, {}, [...args, '--list']);
+    assert.strictEqual(r.status, 0, r.all);
+    return JSON.parse(r.all.trim().split('\n').pop());
+};
+
+test('test files are collected over every root and named by tree path; --scope picks by owner', () => {
+    const dir = scoped();
+    assert.deepStrictEqual(listed(dir, []), ['a.test.mjs', 'alpha/x.test.mjs', 'beta/b.test.mjs']);
+    assert.deepStrictEqual(listed(dir, ['--scope', 'full']), ['a.test.mjs', 'alpha/x.test.mjs', 'beta/b.test.mjs']);
+    assert.deepStrictEqual(listed(dir, ['--scope', 'core']), ['a.test.mjs']);
+    assert.deepStrictEqual(listed(dir, ['--scope', 'alpha']), ['alpha/x.test.mjs']);
+    assert.deepStrictEqual(listed(dir, ['--scope', 'alpha,beta']), ['alpha/x.test.mjs', 'beta/b.test.mjs']);
+    // the module root's file really runs, from where it lies
+    const r = run(dir, {}, ['--scope', 'beta']);
+    assert.strictEqual(r.status, 0, r.all);
+    assert.match(r.all, /^Running 1 of 1 test files \(scope beta\)/m);
+    assert.match(r.all, /^# pass 2$/m);
+});
+
+test('shards split the files of the scope, every one once', () => {
+    const dir = sandbox({ 'a.test.mjs': PASSES, 'b.test.mjs': PASSES, 'c.test.mjs': PASSES, 'alpha/x.test.mjs': PASSES });
+    const seen = [1, 2].flatMap((i) => listed(dir, ['--scope', 'core', '--shard', `${i}/2`]));
+    assert.deepStrictEqual(seen.sort(), ['a.test.mjs', 'b.test.mjs', 'c.test.mjs']);
+});
+
+test('an unknown module id is an error, for --scope and --hide-modules alike', () => {
+    const dir = scoped();
+    for (const args of [['--scope', 'gamma'], ['--scope', 'alpha,gamma'], ['--hide-modules', 'gamma']]) {
+        const r = run(dir, {}, [...args, '--list']);
+        assert.strictEqual(r.status, 2, r.all);
+        assert.match(r.all, /unknown module gamma/);
+    }
+});
+
+test('--files runs exactly the named tree paths, and refuses one it cannot run', () => {
+    const dir = scoped([{ file: 'alpha/x.test.mjs', bucket: 'failing', reason: 'fixture' }]);
+    assert.deepStrictEqual(listed(dir, ['--files', 'beta/b.test.mjs,a.test.mjs']), ['a.test.mjs', 'beta/b.test.mjs']);
+    /** @type {[string, RegExp][]} */
+    const refused = [['nope.test.mjs', /not a test file of any root/], ['alpha/x.test.mjs', /is excluded/]];
+    for (const [files, why] of refused) {
+        const r = run(dir, {}, ['--files', files, '--list']);
+        assert.strictEqual(r.status, 2, r.all);
+        assert.match(r.all, why);
+    }
+    const outside = run(dir, {}, ['--scope', 'core', '--files', 'beta/b.test.mjs', '--list']);
+    assert.strictEqual(outside.status, 2, outside.all);
+    assert.match(outside.all, /outside the chosen --scope/);
+});
+
+test('a stale exclusion fails only the runs whose scope it belongs to', () => {
+    const dir = scoped([{ file: 'alpha/gone.test.mjs', bucket: 'failing', reason: 'removed' }]);
+    for (const args of [[], ['--scope', 'alpha']]) {
+        const r = run(dir, {}, [...args, '--list']);
+        assert.strictEqual(r.status, 1, r.all);
+        assert.match(r.all, /no longer exists: alpha\/gone\.test\.mjs/);
+    }
+    assert.deepStrictEqual(listed(dir, ['--scope', 'core']), ['a.test.mjs']);
+    assert.deepStrictEqual(listed(dir, ['--scope', 'beta']), ['beta/b.test.mjs']);
+});
+
+const SEES_THE_RESOLVER = `
+import test from 'node:test';
+import assert from 'node:assert';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+test('the resolver is in NODE_OPTIONS, after what was there', () => {
+    const opts = process.env.NODE_OPTIONS || '';
+    assert.ok(opts.startsWith('--max-old-space-size=512 '), opts);
+    assert.ok(opts.includes('--require=' + path.resolve('moduleRoots.cjs')), opts);
+});
+test('core mode reaches the child', () => {
+    assert.strictEqual(process.env.BEEFLOW_HIDE_MODULES, process.env.EXPECT_HIDE || undefined);
+    if (process.env.EXPECT_HIDE) assert.throws(() => require('./alpha/helper.cjs'), { code: 'MODULE_NOT_FOUND' });
+    else assert.strictEqual(require('./alpha/helper.cjs'), 'alpha');
+});
+`;
+
+test('every child gets the resolver through NODE_OPTIONS, and --hide-modules hides', () => {
+    const dir = sandbox({ 'sees.test.mjs': SEES_THE_RESOLVER, 'alpha/helper.cjs': "module.exports = 'alpha';\n" });
+    const env = { NODE_OPTIONS: '--max-old-space-size=512' };
+    const plain = run(dir, env);
+    assert.strictEqual(plain.status, 0, plain.all);
+    assert.match(plain.all, /^# pass 2$/m);
+    // `--scope core` alone hides nothing; hiding is its own switch.
+    const hidden = run(dir, { ...env, EXPECT_HIDE: 'alpha' }, ['--scope', 'core', '--hide-modules', 'alpha']);
+    assert.strictEqual(hidden.status, 0, hidden.all);
+    assert.match(hidden.all, /\(hiding alpha\)/);
+    assert.match(hidden.all, /^# pass 2$/m);
+    const all = run(dir, { ...env, EXPECT_HIDE: 'all' }, ['--hide-modules', 'all']);
+    assert.strictEqual(all.status, 0, all.all);
 });
