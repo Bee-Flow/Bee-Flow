@@ -87,3 +87,7 @@ test('availableByEdition honours BEEFLOW_EDITION and BEEFLOW_MODULES', () => {
         assert.strictEqual(m.available, true, `${m.id} must be available by default`);
     }
 });
+
+test('editionChoice: with neither variable set no edition is in force (the loader logs no edition line)', () => {
+    assert.deepStrictEqual(catalog.editionChoice(), { inForce: false, named: [] });
+});

@@ -88,6 +88,18 @@ Postgres instance.
 | `STUDIO_APP_ENGINE` | `sqlite` | Where App Studio keeps the records of an app. `sqlite`: one SQLite file per app in object storage, written by **one** server process, so it fits a single server container (the compose install). `pg`: a Postgres schema per app in `beeflow_core`, required as soon as more than one server replica runs. Apps made under `sqlite` have to be moved before the switch (`node scripts/migrateStudioAppsToPg.js --all`, with `--dry-run` first); an app is only served by the engine it is marked for. See [Kubernetes](kubernetes.md#server-replicas). |
 | `BEEFLOW_MODULE_ROOTS` | `modules/` beside `server/`, when it exists | Development layout only; a production image does not need it. Directories that hold `<id>/server` for first-party modules, separated like `PATH` (`:`, `;` on Windows). Empty means core only. |
 | `BEEFLOW_HIDE_MODULES` | — | Development and CI only. `all`, or a comma-separated list of module ids whose files count as absent, to run the server as core without them. |
+| `BEEFLOW_EDITION` | `full` | `core` runs the core only (chat, knowledge base, memory, agents and the platform under them) and loads no first-party module. Any other value, or unset, loads every module unless `BEEFLOW_MODULES` is set. See [Choosing the modules](#choosing-the-modules). |
+| `BEEFLOW_MODULES` | — | A comma-separated list of first-party module ids: the core plus exactly these. Wins over `BEEFLOW_EDITION`. An unknown id is ignored with a warning in the log. See [Choosing the modules](#choosing-the-modules). |
+
+### Choosing the modules
+
+Leave both `BEEFLOW_EDITION` and `BEEFLOW_MODULES` unset for the full product: every module loads, as before. Otherwise the server loads the core plus the modules you list, and a module that is left out has no routes, no jobs and no tables of its own.
+
+The first-party module ids: `apps`, `automation`, `billing_stripe`, `cms`, `compliance`, `cowork`, `custom_integrations`, `datatables`, `int_erp_nl`, `int_google`, `int_microsoft`, `int_nextcloud`, `int_saas`, `learning`, `mcp_server`, `meetingNotes`, `notebooks`, `playbooks`, `projects`, `sanctions`, `support`, `templates`, `webpages`. The list also accepts `approvals`, the switch of the approval steps inside `automation`.
+
+A module that has no switch of its own on the admin Modules page comes along when a module you list needs it: `BEEFLOW_MODULES=automation,approvals` also loads `datatables`. A module with its own switch never comes along, so `BEEFLOW_MODULES=cowork` alone loads nothing, because cowork needs `automation`. The server logs one line at start that says what it loaded and what it left out.
+
+An installation that already sets `BEEFLOW_EDITION=core`: the integrations (`int_google`, `int_microsoft`, `int_nextcloud`, `int_erp_nl`, `int_saas`, `custom_integrations`), `datatables`, the CMS (`cms`) and Stripe billing (`billing_stripe`) used to be part of core and are modules now, and so are `templates`, `sanctions` and `mcp_server`. To keep them, list them in `BEEFLOW_MODULES`, for example `BEEFLOW_MODULES=int_google,int_microsoft,datatables`. Leaving a module out does not drop the tables it already has, and listing it again later is a restart.
 
 ## Download size limits
 

@@ -2,7 +2,8 @@
 /**
  * The rules of the first-party loader (modules/firstParty/loader.js) that need no state:
  * what a composition must look like, which compositions conflict, the requires order, and
- * how contributed rows are sorted by the core's order index.
+ * how contributed rows are sorted by the core's order index. Which modules an edition makes
+ * available is in editionRules.js.
  *
  * Also the two steps that need no state either: starting one job row, and one shutdown hook
  * bounded by a time-out. Dependency-free (node:* and the contract types only), so every rule

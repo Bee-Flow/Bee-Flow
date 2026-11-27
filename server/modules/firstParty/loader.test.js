@@ -91,6 +91,29 @@ describe('load: discovery and states', () => {
         assert.strictEqual(moduleState.moduleStateOf('a'), 'absent');
     });
 
+    test('an edition: the listed modules, what they require without a switch of their own, nothing else; one info line', () => {
+        /** @type {string[]} */
+        const required = [];
+        const comp = (/** @type {string} */ id, /** @type {string[]} */ requires = []) => () => { required.push(id); return { id, requires }; };
+        const listed = ['automation', 'cowork', 'learning'];
+        const deps = depsFor({
+            apps: comp('apps', ['datatables']), automation: comp('automation', ['datatables']), cowork: comp('cowork', ['apps']),
+            datatables: comp('datatables'), learning: comp('learning'), cms: comp('cms'),
+        });
+        loader.load({ ...deps, catalog: {
+            isModuleAvailable: () => true, availableByEdition: (id) => listed.includes(id),
+            getModule: (id) => (['apps', 'automation', 'learning'].includes(id) ? {} : null),
+            editionChoice: () => ({ inForce: true, named: [...listed, 'typo'] }),
+        } });
+        assert.deepStrictEqual(states(), { apps: 'absent', automation: 'loaded', cms: 'absent', cowork: 'absent', datatables: 'loaded', learning: 'loaded' });
+        assert.deepStrictEqual(required.sort(), ['automation', 'cowork', 'datatables', 'learning'], 'a module the edition leaves out is never required');
+        assert.strictEqual(moduleState.moduleStateOf('cms'), 'absent');
+        assert.deepStrictEqual(deps.log.calls.filter(([level]) => level !== 'error'), [
+            ['warn', '[modules] BEEFLOW_MODULES names unknown module(s) typo; ignored. Known: apps, automation, cms, cowork, datatables, learning'],
+            ['info', '[modules] edition: core + automation, datatables (comes with automation), learning; left out: apps, cms, cowork (it requires "apps", which is not available in this edition)'],
+        ]);
+    });
+
     test('a composition that throws, or that breaks the contract, fails with a detail; the others load', () => {
         const deps = depsFor({
             a: () => { throw new Error('syntax'); },

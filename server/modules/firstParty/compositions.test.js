@@ -18,7 +18,7 @@
 
 'use strict';
 
-const { test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -30,8 +30,11 @@ const { PART_KEYS } = require('./parts');
 const ALLOWED_KEYS = new Set(['id', 'requires', 'uses', ...Object.values(PART_KEYS).flat()]);
 const ORDER = require('./order.json');
 
-/** load() on the real tree, and the keys of each composition, from a clean child process. */
-function loadRealTree() {
+/**
+ * load() on the real tree, and the keys of each composition, from a clean child process.
+ * @param {NodeJS.ProcessEnv} [edition] BEEFLOW_EDITION / BEEFLOW_MODULES for the child
+ */
+function loadRealTree(edition = {}) {
     const code = [
         'const loader = require(process.argv[1]);',
         'const log = { info() {}, warn() {}, error: (...a) => process.stderr.write(a.join(" ") + "\\n") };',
@@ -45,6 +48,7 @@ function loadRealTree() {
     /** @type {NodeJS.ProcessEnv} */
     const env = { ...process.env };
     for (const key of ['NODE_OPTIONS', 'BEEFLOW_HIDE_MODULES', 'BEEFLOW_MODULE_ROOTS', 'NODE_TEST_CONTEXT', 'BEEFLOW_EDITION', 'BEEFLOW_MODULES']) delete env[key];
+    Object.assign(env, edition);
     const roots = path.join(SERVER, 'moduleRoots.cjs');
     const r = spawnSync(process.execPath, ['--require', roots, '-e', code, path.join(__dirname, 'loader.js'), roots],
         { cwd: SERVER, env, encoding: 'utf8', timeout: 30_000 });
@@ -83,4 +87,35 @@ test('loading and registering the modules loads only the compositions, the loade
     const heavy = loaded.filter((/** @type {string} */ f) => !LIGHT.some((p) => p.test(f)));
     assert.deepStrictEqual(heavy, [],
         'a composition part requires a file at load, or register() loads one outside an open channel; require it inside the row instead (the log: modules/firstParty/partLog.js)');
+});
+
+describe('the edition switch covers every first-party module', () => {
+    const ALL = Object.keys(MAP.modules).sort();
+    /** @param {NodeJS.ProcessEnv} edition */
+    const loadedUnder = (edition) => {
+        const { modules } = loadRealTree(edition);
+        assert.deepStrictEqual(modules.map((/** @type {{ id: string }} */ m) => m.id), ALL, 'the loader no longer sees every module');
+        for (const m of modules) assert.ok(m.state === 'loaded' || m.state === 'absent', `${m.id}: ${m.state} ${m.detail}`);
+        return modules.filter((/** @type {{ state: string }} */ m) => m.state === 'loaded').map((/** @type {{ id: string }} */ m) => m.id);
+    };
+
+    test('scripts/module-map.json has the 23 first-party modules this test names', () => {
+        assert.strictEqual(ALL.length, 23);
+    });
+
+    test('BEEFLOW_EDITION=core loads none of them', () => {
+        assert.deepStrictEqual(loadedUnder({ BEEFLOW_EDITION: 'core' }), []);
+    });
+
+    test('BEEFLOW_MODULES=automation,approvals: automation, and datatables comes along', () => {
+        assert.deepStrictEqual(loadedUnder({ BEEFLOW_MODULES: 'automation,approvals' }), ['automation', 'datatables']);
+    });
+
+    test('BEEFLOW_MODULES=learning,support,int_google: exactly those three', () => {
+        assert.deepStrictEqual(loadedUnder({ BEEFLOW_MODULES: 'learning,support,int_google' }), ['int_google', 'learning', 'support']);
+    });
+
+    test('BEEFLOW_MODULES=cowork: none, cowork requires automation, which has its own switch', () => {
+        assert.deepStrictEqual(loadedUnder({ BEEFLOW_MODULES: 'cowork' }), []);
+    });
 });

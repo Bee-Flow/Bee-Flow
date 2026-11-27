@@ -10,10 +10,10 @@
  * (BEEFLOW_HIDE_MODULES) a hidden module's composition is simply not listed. Nothing in the
  * core requires a composition by a static path: discovery is the only way in.
  *
- * STATES (modules/firstParty/moduleState.js): a module without a composition, or one the
- * catalog marks unavailable (modules/catalog.js isModuleAvailable; an id the catalog does not
- * know is available), is ABSENT, and so is a module that requires one the catalog marks
- * unavailable (an edition without automation has no cowork either). A composition that throws
+ * STATES (modules/firstParty/moduleState.js): a module without a composition, or one this edition
+ * leaves out (BEEFLOW_EDITION / BEEFLOW_MODULES, modules/catalog.js; the rule is
+ * editionRules.js: listed, or without a catalog row and required by an available module), is ABSENT,
+ * and so is a module that requires an absent one (an edition without automation has no cowork either). A composition that throws
  * while it loads, that breaks the contract (loaderRules.js), whose row keys clash with an earlier
  * module's, that sits on a requires cycle, or that requires a module that failed or has no
  * composition, is FAILED and contributes nothing; the others carry on. The rest is LOADED. The
@@ -32,7 +32,7 @@
  * order where it matters even when it runs against the requires order, e.g. datatableStore
  * stays after automationStore although automation requires datatables.
  *
- * `deps` (an argument of load, for tests): listTreeDir, catalog ({ isModuleAvailable }), log,
+ * `deps` (an argument of load, for tests): listTreeDir, catalog (editionRules.js CatalogSeam), log,
  * require (of a composition file) and order (an order index).
  */
 
@@ -44,6 +44,7 @@ const {
     SLOTS, STARTUP_PHASE_NAMES, providesFilesOf, compositionProblem, readProvidesFile, sameProvides, duplicateKeys, requiresOrder, requiresVerdict, orderRows,
     startJob, runBounded, messageOf,
 } = require('./loaderRules');
+const { availableIds, editionRule, reportEdition } = require('./editionRules');
 
 /** @typedef {import('./contract').ModuleComposition} ModuleComposition */
 /** @typedef {import('./contract').MountRow} MountRow */
@@ -57,7 +58,7 @@ const {
 /** @typedef {{ mounts: string[], aiMounts: string[], jobs: string[], stores: string[], migrations: string[], nlTranslations: string[] }} OrderIndex */
 /**
  * @typedef {{ listTreeDir?: (dir: string) => Array<{ name: string, abs: string }>,
- *   catalog?: { isModuleAvailable: (id: string) => boolean }, log?: Log,
+ *   catalog?: import('./editionRules').CatalogSeam, log?: Log,
  *   require?: (file: string) => unknown, order?: Partial<OrderIndex> }} LoaderDeps
  */
 /** @typedef {'pending' | 'absent' | 'loaded' | 'failed'} EntryState */
@@ -77,13 +78,13 @@ let current = null;
 
 /**
  * @param {LoaderDeps} deps
- * @returns {{ listTreeDir: NonNullable<LoaderDeps['listTreeDir']>, isAvailable: (id: string) => boolean, log: Log, load: (file: string) => unknown, index: OrderIndex }}
+ * @returns {{ listTreeDir: NonNullable<LoaderDeps['listTreeDir']>, edition: ReturnType<typeof editionRule>, log: Log, load: (file: string) => unknown, index: OrderIndex }}
  */
 function resolveDeps(deps) {
     const catalog = deps.catalog || require('../catalog');
     return {
         listTreeDir: deps.listTreeDir || ((dir) => require('../../moduleRoots.cjs').listTreeDir(dir)),
-        isAvailable: (id) => catalog.isModuleAvailable(id),
+        edition: editionRule(catalog),
         log: deps.log || require('../../telemetry/log'),
         load: deps.require || require,
         index: { ...ORDER, ...deps.order },
@@ -128,7 +129,6 @@ function declareProvidesFile(d, entry, file) {
 function readComposition(d, id, file, providesFile) {
     /** @type {Entry} */
     const entry = { id, comp: null, state: 'pending', started: false };
-    if (!d.isAvailable(id)) return { ...entry, state: 'absent', detail: 'not available in this edition' };
     if (providesFile !== undefined && !declareProvidesFile(d, entry, providesFile)) return entry;
     try {
         const comp = d.load(file);
@@ -198,15 +198,18 @@ function modules() {
 function load(deps = {}) {
     if (current) return modules();
     const d = resolveDeps(deps);
-    /** @type {Map<string, Entry>} */
-    const entries = new Map();
     const listing = d.listTreeDir('firstParty'), providesFiles = providesFilesOf(listing);
-    for (const { name, abs } of listing) {
-        const m = COMPOSITION_FILE.exec(name);
-        if (m) entries.set(/** @type {string} */ (m[1]), readComposition(d, /** @type {string} */ (m[1]), abs, providesFiles.get(/** @type {string} */ (m[1]))));
-    }
+    /** @type {Map<string, string>} */
+    const files = new Map();
+    for (const { name, abs } of listing) { const m = COMPOSITION_FILE.exec(name); if (m) files.set(/** @type {string} */ (m[1]), abs); }
+    /** @type {Map<string, Entry>} */
+    const read = new Map();
+    const readOnce = (/** @type {string} */ id) => read.get(id) || /** @type {Entry} */ (read.set(id, readComposition(d, id, /** @type {string} */ (files.get(id)), providesFiles.get(id))).get(id));
+    const picked = availableIds([...files.keys()], (id) => readOnce(id).comp?.requires || [], d.edition);
+    const entries = new Map([...files.keys()].map((id) => [id, read.get(id) || { id, comp: null, state: /** @type {EntryState} */ ('absent'), detail: 'not available in this edition', started: false }]));
     const order = settle(d, entries);
     current = { entries, order, log: d.log, index: d.index };
+    reportEdition(d.log, d.edition, picked, modules());
     return modules();
 }
 

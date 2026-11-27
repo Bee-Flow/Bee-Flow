@@ -42,6 +42,11 @@
 //
 // The default is deliberately "everything on": an existing install that sets
 // neither variable behaves exactly as it did before this catalog was filled.
+//
+// The first-party loader applies the same choice to every first-party module,
+// also those without a row here (modules/firstParty/editionRules.js
+// availableIds): such a module loads when listed, or when a module that loads
+// requires it.
 const _EDITION = String(process.env.BEEFLOW_EDITION || 'full').trim().toLowerCase();
 const _EXPLICIT = String(process.env.BEEFLOW_MODULES || '')
     .split(',').map(s => s.trim()).filter(Boolean);
@@ -52,6 +57,16 @@ const _EXPLICIT = String(process.env.BEEFLOW_MODULES || '')
 function availableByEdition(id) {
     if (_EXPLICIT.length) return _EXPLICIT.includes(id);
     return _EDITION !== 'core';
+}
+
+/**
+ * Is an edition in force (either variable narrows the modules), and which ids BEEFLOW_MODULES
+ * names. The first-party loader (modules/firstParty/editionRules.js) applies the same choice to
+ * every first-party module, catalog row or not.
+ * @returns {{ inForce: boolean, named: string[] }}
+ */
+function editionChoice() {
+    return { inForce: _EXPLICIT.length > 0 || _EDITION === 'core', named: [..._EXPLICIT] };
 }
 
 // Built-in product surfaces. Each owns its routes, its workers and its
@@ -207,4 +222,4 @@ function capabilityToModuleMap() {
     return map;
 }
 
-module.exports = { MODULES, listModules, getModule, capabilityToModuleMap, availableByEdition, isModuleAvailable };
+module.exports = { MODULES, listModules, getModule, capabilityToModuleMap, availableByEdition, editionChoice, isModuleAvailable };
