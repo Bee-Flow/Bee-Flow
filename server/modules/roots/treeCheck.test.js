@@ -31,6 +31,15 @@ const CASES = {
         'core/deep/lone.js': '',
         [`${M1}/deep/lone/index.js`]: '',
     },
+    splitDirectory: {
+        // the ordinary shape of a split: routes/ai.js stays in the core, a file below
+        // routes/ai/ lives in a module, and neither directory has an entry point
+        'core/routes/ai.js': '',
+        'core/routes/ai/config.js': '',
+        [`${M1}/routes/ai/learning.js`]: '',
+        [`${M2}/stores/thing.js`]: '',
+        'core/stores/thing/part.js': '',
+    },
     controlFiles: {
         'core/eslint.config.js': '',
         'core/eslint-suppressions.json': '{}',
@@ -74,6 +83,10 @@ test('x.js in one root next to x/index.js in another is reported, also when the 
         { treePath: 'deep/lone.js', roots: [null, 'm1'] },
         { treePath: 'thing.js', roots: ['m1', 'm2'] },
     ]);
+});
+
+test('a file beside a directory without an entry point is the ordinary split, not a clash', () => {
+    assert.deepStrictEqual(duplicates('splitDirectory'), []);
 });
 
 test('per-root control files (node_modules, eslint.config.js, eslint-suppressions.json) are not reported', () => {

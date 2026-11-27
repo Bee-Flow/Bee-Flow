@@ -3,10 +3,12 @@
  * The one-root-per-tree-path rule, checked.
  *
  * Every tree path a module root holds must exist in that root only, and a file `x.js` may
- * not shadow a directory `x/` of another root, in either direction (a module's `x.js` next
- * to the core's `x/`, or a module's `x/` next to the core's `x.js`): with either, which file
- * a request lands on would depend on who asks. Not run on load (it walks the module roots): the server calls
- * it once at boot and the repository checks call it in CI.
+ * not stand beside a directory `x/` of another root that can answer a request itself (it
+ * holds an `index.*` or a `package.json`), in either direction: with either, which file a
+ * request for `./x` lands on would depend on who asks. A directory without such an entry
+ * point is no clash: `routes/ai.js` in the core and `routes/ai/learning.js` in a module is
+ * the ordinary shape of a split directory. Not run on load (it walks the module roots): the
+ * server calls it once at boot and the repository checks call it in CI.
  */
 
 'use strict';
@@ -50,13 +52,12 @@ function coreFilesShadowing(dir) {
         .map((entry) => (parent === '.' ? entry.name : `${parent}/${entry.name}`));
 }
 
-/** @param {string} file */
-function isDirectory(file) {
-    try {
-        return fs.statSync(file).isDirectory();
-    } catch {
-        return false;
-    }
+/**
+ * Can a request for this directory be answered by the directory itself?
+ * @param {string} dir absolute
+ */
+function hasEntryPoint(dir) {
+    return readDir(dir).some((entry) => !entry.isDirectory() && (/^index\.[^.]+$/.test(entry.name) || entry.name === 'package.json'));
 }
 
 /**
@@ -72,12 +73,13 @@ function duplicateTreePaths() {
         const found = { files: [], dirs: [] };
         collectFiles(root.dir, '', found);
         for (const dir of found.dirs) {
+            if (!hasEntryPoint(path.join(root.dir, dir))) continue;
             for (const rel of coreFilesShadowing(dir)) clashes.push({ treePath: rel, roots: [null, root.id] });
         }
         for (const rel of found.files) {
             const stem = rel.replace(/\.[^./]+$/, '');
             const holders = ROOTS.filter((other) => other !== root
-                && (fs.existsSync(path.join(other.dir, rel)) || isDirectory(path.join(other.dir, stem))));
+                && (fs.existsSync(path.join(other.dir, rel)) || hasEntryPoint(path.join(other.dir, stem))));
             if (holders.length > 0) clashes.push({ treePath: rel, roots: [root.id, ...holders.map((h) => h.id)] });
         }
     }

@@ -1,6 +1,6 @@
 {
   "_comment": "Every script, runner and config that walks, globs or names a package directory, and whether it already sees module roots (modules/<id>/server, modules/<id>/frontend). Gate: scripts/roots-inventory.test.mjs (npm run test:scripts); node scripts/roots-inventory.mjs --list shows the pending ones by group. A converted tool becomes root-aware (through scripts/lib/roots.mjs); then run node scripts/roots-inventory.mjs --update, which lowers pendingBudget. Never raise it.",
-  "pendingBudget": 131,
+  "pendingBudget": 115,
   "groups": {
     "ratchets": "Count, size and type ratchets that walk a package directory; their budget keys are tree paths and stay, the walk must cover every root (scripts/lib/roots.mjs walkTree).",
     "generators": "Generators and their --check gates that read or write named package files, or load the app in-process (which needs the moduleRoots preload).",
@@ -167,9 +167,8 @@
     },
     {
       "file": "docker-compose.dev.yml",
-      "status": "pending",
-      "what": "bind-mounts ./server:/app for the dev server (plan: also mount ./modules)",
-      "group": "build-ci"
+      "status": "root-aware",
+      "what": "dev stack: mounts ./modules at /modules and loads the resolver in the dev server through NODE_OPTIONS"
     },
     {
       "file": "docker-compose.docker-socket.override.yml",
