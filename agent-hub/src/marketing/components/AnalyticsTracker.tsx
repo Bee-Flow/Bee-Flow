@@ -37,11 +37,17 @@ export interface TrackerOptions {
  *
  * `data-exclude-hash` keeps #anchor links from fragmenting one page's vitals
  * (and its pageviews) across a row per anchor.
+ *
+ * `data-errors` (Umami 3.5+) reports uncaught exceptions and unhandled
+ * rejections of the public site to the same cookieless endpoint, so a broken
+ * page shows up under Errors instead of only as a bounce. Older Umami
+ * versions ignore the attribute.
  */
 function buildTrackerAttrs(websiteId: string | number, options: TrackerOptions = {}): Record<string, string> {
     const attrs: Record<string, string> = {
         'data-website-id': String(websiteId),
         'data-performance': 'true',
+        'data-errors': 'true',
         'data-exclude-hash': options.excludeHash === false ? 'false' : 'true',
     };
     if (options.excludeSearch) attrs['data-exclude-search'] = 'true';

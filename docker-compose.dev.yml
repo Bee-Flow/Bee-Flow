@@ -268,7 +268,7 @@ services:
   # loads /script.js from http://localhost:3000 (set that as the public URL in
   # Admin ▸ Website Analytics ▸ Settings); the server talks to it via UMAMI_URL.
   umami:
-    image: ghcr.io/umami-software/umami:3.4.0
+    image: ghcr.io/umami-software/umami:3.5.0
     container_name: beeflow-umami-dev
     profiles: [analytics]
     ports:
