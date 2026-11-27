@@ -697,10 +697,10 @@ services:
   #   docker compose exec postgres psql -U $DB_USER -d $DB_NAME -c 'CREATE DATABASE umami;'
   umami:
     # Pinned on purpose: upgrades are a deliberate decision — bump the tag
-    # explicitly after reading the release notes. 3.4.0 is the latest stable
+    # explicitly after reading the release notes. 3.5.0 is the latest stable
     # release; v3 ships ONE unified image (the database comes from
     # DATABASE_URL), the postgresql-* tag line ends at v2.x.
-    image: ghcr.io/umami-software/umami:3.4.0
+    image: ghcr.io/umami-software/umami:3.5.0
     container_name: ${STACK_NAME:-beeflow}-umami
     profiles: [ "analytics" ]
     ports:
@@ -711,9 +711,10 @@ services:
       # Deliberately NOT `:?`-required: Compose interpolates every service
       # eagerly, active profiles or not, so a required-variable error here
       # would fail EVERY compose command (up/down/stop/config) on installs
-      # that never opted into analytics. Left unset, umami falls back to a
-      # DATABASE_URL-derived secret; selfhost.sh generates a real value into
-      # .env (on fresh installs, and whenever the analytics profile starts).
+      # that never opted into analytics. Umami 3.5+ refuses to start without
+      # it (the DATABASE_URL fallback is gone); selfhost.sh generates a real
+      # value into .env (on fresh installs, and whenever the analytics
+      # profile starts).
       - APP_SECRET=${UMAMI_APP_SECRET:-}
       # Daily salt for the session hash (Umami's default is monthly), so a
       # visitor's session id cannot be linked across days.
