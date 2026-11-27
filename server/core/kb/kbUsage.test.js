@@ -8,7 +8,9 @@
  * person would believe it, because they asked.
  *
  * The scans and the scrub run on a real Postgres: the boot ladder's schema on
- * PGlite (testUtils/pgliteTemplate.js), handed in through the `db` seam.
+ * PGlite (./kbUsage.testkit.js), handed in through the `db` seam. The scans of
+ * a module's kind are tested next to its part (core/kb/usage/<module>.test.js);
+ * the two tests over every kind hold for the kinds of this installation.
  *
  * Run: node --test core/kb/kbUsage.test.js
  */
@@ -17,54 +19,26 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { ladderPglite } = require('../../testUtils/pgliteTemplate');
-const { pgliteQuery } = require('../../testUtils/pglitePool');
-const { insertRow } = require('../../testUtils/pgliteSeed');
 const { hideTable, failReads } = require('../../testUtils/pgliteFaults');
 const { usageForKb, usageSummary, scrubReferences } = require('./kbUsage');
+const k = require('./kbUsage.testkit');
 
-// A knowledge base id is a uuid (support_inboxes.kb_ingest_kb_id holds one).
-const KB1 = '6f1c2a4e-0b7d-4c1e-9a3f-2d5e8b9c0a11';
-const S1 = '0e9a7b51-3c2d-4e6f-8a1b-5c4d3e2f1a01';
-const S2 = '0e9a7b51-3c2d-4e6f-8a1b-5c4d3e2f1a02';
+const { pg, db, queries, KB1, S1, S2, agent, kbIdsOf, everyKind, insertRow } = k;
+k.useKbUsageDb(test);
 
-const pg = ladderPglite();
-const queries = [];
-const run = pgliteQuery(pg);
-/** The `db` seam: real statements, recorded so "no work" is a fact. */
-const db = { query: (sql, params) => { if (!/to_regclass/.test(sql)) queries.push(sql); return run(sql, params); } };
-test.after(() => pg.close());
-test.beforeEach(async () => {
-    await pg.exec('TRUNCATE agents, automations, studio_apps, webpages, projects, notebooks, word_templates, support_inboxes CASCADE');
-    queries.length = 0;
-});
+/** The Used-by rows of everyKind(), in order, for the kinds of this installation. */
+const EVERY_ROW = [
+    ['agent', 'ag1', 'chat'], ['automation', 'au1', 'ai_step'], ['app', 'app1', 'answer_block'],
+    ['webpage', 'w1', 'chat'], ['project', 'p1', 'contains'], ['notebook', 'n1', 'contains'],
+    ['template', 't1', 'contains'], ['support', S1, 'chat'], ['support', S2, 'ingest_target'],
+];
 
-const agent = (id, kbIds, over = {}) => insertRow(pg, 'agents', { id, name: id, owner_id: 'u1', config: JSON.stringify({ knowledge_base_ids: kbIds }), ...over });
-const kbIdsOf = async (table, id, col = 'knowledge_base_ids') => (await pg.query(`SELECT ${col} AS v FROM ${table} WHERE id = $1`, [id])).rows[0].v;
-
-/** One consumer of kb1 of every kind, plus one that uses another base. */
-async function everyKind() {
-    await agent('ag1', [KB1], { name: 'Support assistant', updated_at: '2026-09-01T00:00:00Z' });
-    await agent('ag-other', ['kb2']);
-    await insertRow(pg, 'automations', { id: 'au1', user_id: 'u1', title: 'Flow', definition_json: { steps: [{ type: 'ai_step', config: { knowledgeBaseIds: [KB1] } }] } });
-    await insertRow(pg, 'studio_apps', { id: 'app1', user_id: 'u1', name: 'App', definition: {}, published_definition: { screens: [{ blocks: [{ knowledgeBaseIds: [KB1] }] }] } });
-    await insertRow(pg, 'webpages', { id: 'w1', user_id: 'u1', name: 'Page', knowledge_base_ids: [KB1] });
-    await insertRow(pg, 'projects', { id: 'p1', name: 'Project', owner_id: 'u1', knowledge_base_ids: [KB1, 'kb2'] });
-    await insertRow(pg, 'notebooks', { id: 'n1', user_id: 'u1', name: 'Notebook', knowledge_base_ids: [KB1] });
-    await insertRow(pg, 'word_templates', { id: 't1', user_id: 'u1', name: 'Template', storage_key: 'k', knowledge_base_ids: [KB1] });
-    await insertRow(pg, 'support_inboxes', { id: S1, display_name: 'Inbox', created_by: 'u1', organization_id: 'org1', provider: 'gmail', kb_ids: [KB1] });
-    await insertRow(pg, 'support_inboxes', { id: S2, display_name: 'Ingest', created_by: 'u1', organization_id: 'org1', provider: 'gmail', kb_ids: [], kb_ingest_kb_id: KB1, kb_ingest_enabled: true });
-}
-
+// About the composition: every kind of the core, and every kind of each module that is here.
 test('finds every kind of consumer, with the Used-by row shape', async () => {
     await everyKind();
     const { rows, partial } = await usageForKb(KB1, { db });
     assert.deepStrictEqual(partial, []);
-    assert.deepStrictEqual(rows.map((r) => [r.kind, r.id, r.role]), [
-        ['agent', 'ag1', 'chat'], ['automation', 'au1', 'ai_step'], ['app', 'app1', 'answer_block'],
-        ['webpage', 'w1', 'chat'], ['project', 'p1', 'contains'], ['notebook', 'n1', 'contains'],
-        ['template', 't1', 'contains'], ['support', S1, 'chat'], ['support', S2, 'ingest_target'],
-    ]);
+    assert.deepStrictEqual(rows.map((r) => [r.kind, r.id, r.role]), EVERY_ROW.filter(([kind]) => k.kinds().includes(kind)));
     const ag = rows[0];
     assert.strictEqual(ag.title, 'Support assistant');
     assert.strictEqual(ag.ownerId, 'u1');
@@ -79,48 +53,41 @@ test('an agent whose config is empty text does not make the agent scan unanswera
     assert.deepStrictEqual(rows.map((r) => r.id), ['ag1']);
 });
 
-test('a consumer table that does not exist is PARTIAL, never zero', async () => {
-    // "The apps table is not on this install" is not the same statement as
-    // "no app uses this", and only one of them is safe to delete on.
-    const restore = await hideTable(pg, 'studio_apps');
+test('a core consumer table that does not exist is PARTIAL, never zero', async () => {
+    const restore = await hideTable(pg, 'notebooks');
     try {
         const { rows, partial } = await usageForKb(KB1, { db });
         assert.deepStrictEqual(rows, []);
-        assert.deepStrictEqual(partial, ['app']);
+        assert.deepStrictEqual(partial, ['notebook']);
     } finally { await restore(); }
 });
 
-test('a query that fails is PARTIAL too, and does not abandon the rest', async () => {
-    await everyKind();
-    const restore = await failReads(pg, 'automations', '57014', 'canceling statement due to statement timeout');
+test('a core query that fails is PARTIAL too, and does not abandon the rest', async () => {
+    await agent('ag1', [KB1]);
+    await insertRow(pg, 'notebooks', { id: 'n1', user_id: 'u1', name: 'Notebook', knowledge_base_ids: [KB1] });
+    const restore = await failReads(pg, 'projects', '57014', 'canceling statement due to statement timeout');
     try {
         const { rows, partial } = await usageForKb(KB1, { db });
-        assert.deepStrictEqual(partial, ['automation']);
-        assert.strictEqual(rows.length, 8, 'the other seven kinds were still asked');
+        assert.deepStrictEqual(partial, ['project']);
+        assert.deepStrictEqual(rows.map((r) => r.id), ['ag1', 'n1'], 'the other kinds were still asked');
     } finally { await restore(); }
 });
 
-test('the id reaches jsonpath as a VARIABLE: a quote in it is a character, not path syntax', async () => {
-    // A kb id is a route parameter. Concatenated, a value carrying a quote
-    // would close the string literal inside the jsonpath and be parsed as
-    // path syntax.
-    const odd = 'kb" || @ != "x';
-    await insertRow(pg, 'automations', { id: 'au-odd', user_id: 'u1', title: 'Odd', definition_json: { a: { knowledgeBaseIds: [odd] } } });
-    await insertRow(pg, 'automations', { id: 'au-plain', user_id: 'u1', title: 'Plain', definition_json: { a: { knowledgeBaseIds: [KB1] } } });
-    const hit = await usageForKb(odd, { db });
-    assert.deepStrictEqual(hit.partial, []);
-    assert.deepStrictEqual(hit.rows.filter((r) => r.kind === 'automation').map((r) => r.id), ['au-odd']);
-    assert.deepStrictEqual((await usageForKb('kb"1', { db })).rows, [], 'a stray quote matches nothing and breaks nothing');
-});
-
-test('an app is found through its PUBLISHED definition, not only its draft', async () => {
-    // An app that uses the base only in the version people actually run still
-    // breaks when it goes.
-    await insertRow(pg, 'studio_apps', { id: 'draft', user_id: 'u1', name: 'D', definition: { x: { knowledgeBaseIds: [KB1] } }, published_definition: null });
-    await insertRow(pg, 'studio_apps', { id: 'published', user_id: 'u1', name: 'P', definition: {}, published_definition: { x: { knowledgeBaseIds: [KB1] } } });
-    await insertRow(pg, 'studio_apps', { id: 'neither', user_id: 'u1', name: 'N', definition: { x: { knowledgeBaseIds: ['kb2'] } } });
-    const { rows } = await usageForKb(KB1, { db });
-    assert.deepStrictEqual(rows.map((r) => r.id).sort(), ['draft', 'published']);
+test('a module\'s kind comes from its part, asked for by name, in its place in the order', async () => {
+    const registry = require('../featureModules');
+    const name = 'core/kb/usage/templates';
+    registry.optionalFeatureModule(name);
+    const previous = registry._featureModuleGetter(name);
+    const scan = { table: 'projects', sql: `SELECT id, name AS title, owner_id, updated_at AS last_at FROM projects WHERE knowledge_base_ids @> $1::jsonb`, params: (id) => [JSON.stringify([id])], role: 'double' };
+    registry.registerFeatureModules({ [name]: () => ({ SCANS: { template: scan } }) });
+    try {
+        await insertRow(pg, 'projects', { id: 'p1', name: 'Project', owner_id: 'u1', knowledge_base_ids: [KB1] });
+        const { rows } = await usageForKb(KB1, { db });
+        assert.deepStrictEqual(rows.map((r) => [r.kind, r.role]), [['project', 'contains'], ['template', 'double']]);
+    } finally {
+        if (previous) registry.registerFeatureModules({ [name]: previous });
+        else registry._clearFeatureModulesForTests(name);
+    }
 });
 
 test('no id is no work', async () => {
@@ -131,23 +98,22 @@ test('no id is no work', async () => {
 
 // ── usageSummary ───────────────────────────────────────────────────────
 
-test('summary: counts per kind, per knowledge base; a kind with no count is absent rather than zero', async () => {
+test('summary: counts per core kind, per knowledge base; a kind with no count is absent rather than zero', async () => {
     await agent('a', [KB1]);
     await agent('b', [KB1, 'kb3']);
     await agent('c', [KB1]);
-    await insertRow(pg, 'webpages', { id: 'w', user_id: 'u1', name: 'W', knowledge_base_ids: [KB1] });
+    await insertRow(pg, 'notebooks', { id: 'n', user_id: 'u1', name: 'N', knowledge_base_ids: [KB1] });
     const out = await usageSummary([KB1, 'kb2'], { db });
-    assert.deepStrictEqual(out[KB1].counts, { agent: 3, webpage: 1 });
-    // The overview renders a pill per entry; a zero would draw "0 agents".
+    assert.deepStrictEqual(out[KB1].counts, { agent: 3, notebook: 1 });
     assert.deepStrictEqual(out.kb2.counts, {}, 'a base nothing uses counts nothing');
     assert.deepStrictEqual(Object.keys(out).sort(), [KB1, 'kb2'].sort(), 'every requested id gets an entry');
 });
 
-test('summary: a missing table is partial here too', async () => {
-    const restore = await hideTable(pg, 'studio_apps');
+test('summary: a missing core table is partial here too', async () => {
+    const restore = await hideTable(pg, 'notebooks');
     try {
         const out = await usageSummary([KB1], { db });
-        assert.deepStrictEqual(out[KB1].partial, ['app']);
+        assert.deepStrictEqual(out[KB1].partial, ['notebook']);
     } finally { await restore(); }
 });
 
@@ -158,19 +124,23 @@ test('summary: nothing in, nothing asked', async () => {
 
 // ── scrubReferences ────────────────────────────────────────────────────
 
+/** What scrubbing everyKind() changes, per kind (automations and apps are never rewritten). */
+const EVERY_SCRUB = { agent: 1, automation: 0, app: 0, webpage: 1, project: 1, notebook: 1, template: 1, support: 2 };
+/** The rows whose array no longer holds kb1, per kind. */
+const ARRAYS = { webpage: ['webpages', 'w1'], notebook: ['notebooks', 'n1'], template: ['word_templates', 't1'], support: ['support_inboxes', S1, 'kb_ids'] };
+
+// About the composition: every kind of the core, and every kind of each module that is here.
 test('every array-shaped reference is removed, other ids stay', async () => {
     await everyKind();
+    const here = k.kinds();
     const out = await scrubReferences(KB1, { db });
-    assert.deepStrictEqual(out, { agent: 1, automation: 0, app: 0, webpage: 1, project: 1, notebook: 1, template: 1, support: 2 });
+    assert.deepStrictEqual(out, Object.fromEntries(Object.entries(EVERY_SCRUB).filter(([kind]) => here.includes(kind))));
     assert.deepStrictEqual(JSON.parse((await pg.query(`SELECT config FROM agents WHERE id = 'ag1'`)).rows[0].config).knowledge_base_ids, []);
     assert.deepStrictEqual(JSON.parse((await pg.query(`SELECT config FROM agents WHERE id = 'ag-other'`)).rows[0].config).knowledge_base_ids, ['kb2']);
     assert.deepStrictEqual(await kbIdsOf('projects', 'p1'), ['kb2'], 'the other base stays attached');
-    for (const [t, id] of [['webpages', 'w1'], ['notebooks', 'n1'], ['word_templates', 't1']]) assert.deepStrictEqual(await kbIdsOf(t, id), [], t);
-    assert.deepStrictEqual(await kbIdsOf('support_inboxes', S1, 'kb_ids'), []);
-    // The ingest target is a scalar: cleared, and the ingest switched off with it.
-    const ingest = (await pg.query(`SELECT kb_ingest_kb_id, kb_ingest_enabled FROM support_inboxes WHERE id = $1`, [S2])).rows[0];
-    assert.deepStrictEqual(ingest, { kb_ingest_kb_id: null, kb_ingest_enabled: false });
-    assert.deepStrictEqual((await usageForKb(KB1, { db })).rows.map((r) => r.kind), ['automation', 'app'], 'what is left is what is not rewritten');
+    for (const [kind, [t, id, col]] of Object.entries(ARRAYS)) if (here.includes(kind)) assert.deepStrictEqual(await kbIdsOf(t, id, col), [], t);
+    assert.deepStrictEqual((await usageForKb(KB1, { db })).rows.map((r) => r.kind), ['automation', 'app'].filter((kind) => here.includes(kind)),
+        'what is left is what is not rewritten');
 });
 
 test('an agent whose config is empty text does not stop the other agents from being scrubbed', async () => {
@@ -185,36 +155,24 @@ test('an agent whose config is empty text does not stop the other agents from be
 test('one consumer failing does not abandon the others', async () => {
     // The base is going either way, and a half-scrubbed install is the
     // worst of the three outcomes.
-    await everyKind();
-    const restore = await failReads(pg, 'projects', '55P03', 'lock not available');
+    await insertRow(pg, 'notebooks', { id: 'n1', user_id: 'u1', name: 'Notebook', knowledge_base_ids: [KB1] });
+    const restore = await failReads(pg, 'notebooks', '55P03', 'lock not available');
+    let out;
     try {
-        const out = await scrubReferences(KB1, { db });
-        assert.strictEqual(out.project, 0);
-        assert.strictEqual(out.webpage, 1, 'the rest still ran');
+        await agent('ag1', [KB1]);
+        out = await scrubReferences(KB1, { db });
     } finally { await restore(); }
-    assert.deepStrictEqual(await kbIdsOf('webpages', 'w1'), []);
+    assert.deepStrictEqual([out.notebook, out.agent], [0, 1], 'the notebooks failed, the agents still ran');
 });
 
 test('a table that is not installed is skipped, not an error', async () => {
     await agent('ag1', [KB1]);
-    const restore = await hideTable(pg, 'webpages');
+    const restore = await hideTable(pg, 'notebooks');
     try {
         const out = await scrubReferences(KB1, { db });
         assert.strictEqual(out.agent, 1);
-        assert.strictEqual(out.webpage, 0);
+        assert.strictEqual(out.notebook, 0);
     } finally { await restore(); }
-});
-
-test('automations and apps are deliberately NOT rewritten', async () => {
-    // The id sits at an unknown depth inside a definition that also encodes
-    // the shape of a canvas; rewriting arbitrary JSON in place risks
-    // corrupting an automation somebody spent an afternoon building.
-    await everyKind();
-    const before = (await pg.query(`SELECT definition_json FROM automations`)).rows;
-    const beforeApp = (await pg.query(`SELECT published_definition FROM studio_apps`)).rows;
-    await scrubReferences(KB1, { db });
-    assert.deepStrictEqual((await pg.query(`SELECT definition_json FROM automations`)).rows, before);
-    assert.deepStrictEqual((await pg.query(`SELECT published_definition FROM studio_apps`)).rows, beforeApp);
 });
 
 test('scrub: no id is no work', async () => {

@@ -24,6 +24,9 @@ function register() {
         'core/kb/sources/webpage': () => require('../core/kb/sources/webpage'),
         'stores/webpage/accountErasure': () => require('../stores/webpage/accountErasure'),
         'integrations/webpageAutomationTools': () => require('../integrations/webpageAutomationTools'),
+        'stores/adoption/kinds.webpages': () => require('../stores/adoption/kinds.webpages'),
+        'core/kb/usage/webpages': () => require('../core/kb/usage/webpages'),
+        'stores/agent/usage/webpages': () => require('../stores/agent/usage/webpages'),
     }));
     contribute('integrations/toolFamilies', () => {
         const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('../integrations/webpageAutomationTools');

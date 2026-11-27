@@ -18,6 +18,7 @@
     "core/dataEngine/sources/spreadsheetFile/providers/documents",
     "core/dataEngine/sources/spreadsheetFile/linkBrowse",
     "core/dataEngine/sources/spreadsheetFile/linkRelink",
-    "core/automationRunner/datatableResolve"
+    "core/automationRunner/datatableResolve",
+    "stores/adoption/kinds.datatables"
   ]
 }

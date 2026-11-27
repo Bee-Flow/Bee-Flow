@@ -23,7 +23,7 @@ const { ACTOR_SQL, ledgerWhere, sourcesOfArea, areaOfKind, num, timeOf } = requi
 /**
  * @typedef {import('./shared').Scope} Scope
  * @typedef {import('./shared').AdoptionDeps} AdoptionDeps
- * @typedef {import('./kinds').KindDef} KindDef
+ * @typedef {import('./kindSql').KindDef} KindDef
  * @typedef {{
  *   id: string, name: string, ownerId: string | null, ownerName: string | null,
  *   audience: string, createdAt: string | null, publishedAt: string | null, published: boolean,
@@ -210,7 +210,8 @@ function unusedOf(items, def) {
 }
 
 /**
- * The drill-down of a kind. Null for a kind the report does not know.
+ * The drill-down of a kind. Null for a kind the report does not know, and for
+ * one whose module is not part of this installation (kinds.js).
  * @param {AdoptionDeps} d
  * @param {Scope} scope
  * @param {string} kind

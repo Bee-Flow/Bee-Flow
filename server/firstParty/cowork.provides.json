@@ -4,7 +4,9 @@
     "core/cowork/reviewTool",
     "core/cowork/outcomeTool",
     "core/cowork/habits/habitSignals",
-    "stores/coworkStore"
+    "stores/coworkStore",
+    "stores/adoption/kinds.cowork",
+    "stores/agent/usage/cowork"
   ],
   "runnerPorts": [
     "heldDefinitions",

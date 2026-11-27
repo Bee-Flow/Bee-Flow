@@ -14,11 +14,19 @@
  * naming a column that does not exist passes in this file and returns nothing
  * in production. Both suites are needed.
  *
+ * Every consumer kind is a first-party module's part (stores/agent/usage/<module>.js), asked
+ * for by name. This file registers a double of each part under its name (same kinds, tables
+ * and roles; a marker for the SQL), so the policy is proved the same with every module present
+ * or hidden. The SQL of each part is proved beside it (usage/<module>.test.js, the .pg suites).
+ *
  * Run: cd server && node --test --test-force-exit stores/agent/agentUsage.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { registerUsageDoubles } = require('./agentUsage.testkit');
+
+registerUsageDoubles();
 
 const {
     usageForAgent, usageCountsForAgents, unknownUsage, redactForeign, KINDS, SCANS,
@@ -102,20 +110,6 @@ test('no id is no work', async () => {
     assert.deepStrictEqual(await usageForAgent(null, { db: d }), { rows: [], partial: [] });
     assert.deepStrictEqual(await usageForAgent('', { db: d }), { rows: [], partial: [] });
     assert.strictEqual(d.queries.length, 0);
-});
-
-test('no agent id ever enters the jsonpath — the ids are bound, the path is a constant', async () => {
-    // An agent id is a route parameter. Concatenated into a jsonpath, a value
-    // carrying a quote would close the string literal and be parsed as path
-    // syntax — an injection into the path, placeholder or not.
-    const d = db();
-    await usageForAgent('ag" ? (@ == "x', { db: d });
-    for (const q of d.queries) {
-        if (!/jsonb_path_query/.test(q.sql)) continue;
-        assert.match(q.sql, /'\$\.\*\*\.agentId'/, 'the path is a literal constant');
-        assert.ok(!/\$1/.test(q.sql.match(/jsonb_path_query\([^)]*\)/)[0]), 'no parameter inside the path call');
-        assert.deepStrictEqual(q.params, [['ag" ? (@ == "x']], 'the raw id, bound as text[]');
-    }
 });
 
 test('a row whose agent_id is null is dropped rather than attributed to someone', async () => {

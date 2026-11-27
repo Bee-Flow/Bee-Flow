@@ -76,7 +76,10 @@ const DEFAULT_LOADERS = {
 /** @typedef {ReturnType<typeof makeDefaultDeps>} AdoptionRouteDeps */
 const makeDefaultDeps = () => makeLazyDeps(DEFAULT_LOADERS);
 
-/** The Studio kinds, in report order (stores/adoption/kinds.js, which loads no store). */
+/**
+ * Every Studio kind the report knows, in report order (stores/adoption/kinds.js, which loads no
+ * store); a kind whose module is not part of this installation answers 404 module_absent.
+ */
 const KIND_KEYS = /** @type {[string, ...string[]]} */ ([...require('../stores/adoption/kinds').KIND_KEYS]);
 
 const DATE_TEXT = 'startDate and endDate are dates, like 2026-09-01T00:00:00Z.';
@@ -304,6 +307,8 @@ function makeHandlers(d, cache) {
             const scope = scopeOf(req, d);
             const limit = clamp(req.query.limit, ITEMS_DEFAULT, ITEMS_MAX);
             const body = await cache.get(cacheKey(req, 'studio/items', { limit }), () => d.store.studioItems(scope, kind, limit));
+            // A kind the report knows whose module is not part of this installation.
+            if (!body && KIND_KEYS.includes(kind)) throw new HttpError(404, 'module_absent', `The kind ${kind} is not part of this installation.`);
             if (!body) throw new HttpError(400, 'invalid_request', `kind is one of ${KIND_KEYS.join(', ')}.`);
             res.json(shapeItems(body, await d.redact.costLens(req), topPeopleLabel(d, scope.orgId)));
         },

@@ -1,5 +1,6 @@
 {
   "featureModules": [
-    "stores/playbookStore"
+    "stores/playbookStore",
+    "stores/adoption/kinds.playbooks"
   ]
 }

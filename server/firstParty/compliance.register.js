@@ -20,6 +20,8 @@ function register() {
         'compliance/marking': () => require('../compliance/marking'),
         'stores/dpiaStore': () => require('../stores/dpiaStore'),
         'compliance/kbQueryLogEvidence': () => require('../compliance/kbQueryLogEvidence'),
+        'stores/metrics/compliance': () => require('../stores/metrics/compliance'),
+        'stores/chatSignal/retentionDays': () => require('../stores/chatSignal/retentionDays'),
     }));
     // core/automationRunner/documentMarking (Art. 50(2)): core owns the port,
     // compliance owns the policy. Without it a generated document renders

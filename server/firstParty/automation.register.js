@@ -38,6 +38,11 @@ function registerFeatureModules() {
         'automation/access': () => require('../automation/access'),
         'stores/automationStore/agentBindingsSweep': () => require('../stores/automationStore/agentBindingsSweep'),
         'integrations/automationEvolutionToolDefs': () => require('../integrations/automationEvolutionToolDefs'),
+        'stores/adoption/kinds.automation': () => require('../stores/adoption/kinds.automation'),
+        'core/kb/usage/automation': () => require('../core/kb/usage/automation'),
+        'stores/agent/usage/automation': () => require('../stores/agent/usage/automation'),
+        'stores/skill/automationUsage': () => require('../stores/skill/automationUsage'),
+        'stores/metrics/automation': () => require('../stores/metrics/automation'),
     });
 }
 

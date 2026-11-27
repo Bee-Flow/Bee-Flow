@@ -19,6 +19,7 @@ function register() {
         'routes/teamsProviderTest': () => require('../routes/teamsProviderTest.mts'),
         'stores/transcription/accountErasure': () => require('../stores/transcription/accountErasure'),
         'integrations/transcriptionTools': () => require('../integrations/transcriptionTools'),
+        'stores/adoption/kinds.meetingNotes': () => require('../stores/adoption/kinds.meetingNotes'),
     }));
     contribute('boot/featureRegistrations', () => require('../core/meetingNotes/runnerPorts'));
     contribute('integrations/toolFamilies', () => {

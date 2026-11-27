@@ -102,7 +102,25 @@ test('reads sum over the window, per surface, and never across orgs', async () =
     assert.equal(await store.hasRows('org9'), false);
 });
 
-test('purgeExpired: whole periods, per-org days, the 90 default and the 30/90 clamp', async () => {
+/**
+ * The compliance module's part (stores/chatSignal/retentionDays.js), as a double registered by
+ * name over this file's compliance_settings: the purge with an organisation's own setting, with
+ * the module present or hidden. The real part is proved beside it (chatSignal/retentionDays.pg.test.js).
+ */
+function withOrgRetention() {
+    const registry = require('../core/featureModules');
+    const name = 'stores/chatSignal/retentionDays';
+    registry.optionalFeatureModule(name);
+    const previous = registry._featureModuleGetter(name);
+    registry.registerFeatureModules({ [name]: () => ({ ORG_RETENTION: { join: 'LEFT JOIN compliance_settings s ON s.organization_id = o.organization_id', days: 's.chat_monitoring_retention_days' } }) });
+    return () => {
+        if (previous) registry.registerFeatureModules({ [name]: previous });
+        else registry._clearFeatureModulesForTests(name);
+    };
+}
+
+test('purgeExpired: whole periods, per-org days, the 90 default and the 30/90 clamp', async (t) => {
+    t.after(withOrgRetention());
     await pg.query(`DELETE FROM chat_signal_counts`);
     await pg.exec(`INSERT INTO compliance_settings VALUES ('a30', 30), ('c10', 10), ('d200', 200)`);
     const raw = async (org, periodStart, granularity = 'week', surface = 'direct') => pg.query(`
@@ -125,6 +143,23 @@ test('purgeExpired: whole periods, per-org days, the 90 default and the 30/90 cl
         { organization_id: 'c10', p: shift(-36), granularity: 'week' },
         { organization_id: 'd200', p: shift(-96), granularity: 'week' },
     ]);
+});
+
+test('purgeExpired without the compliance module, on a database that never held it: every org has the 90 default', async (t) => {
+    const moduleData = require('../modules/firstParty/moduleData');
+    moduleData._setModuleDataDepsForTests({ lookup: () => null, state: () => 'absent', ledgerQuery: () => null });
+    t.after(() => moduleData._resetModuleDataForTests());
+    await pg.query(`DELETE FROM chat_signal_counts`);
+    await pg.query(`DELETE FROM compliance_settings`);
+    await pg.exec(`INSERT INTO compliance_settings VALUES ('a30', 30)`);
+    for (const offset of [-97, -96]) {
+        await pg.query(`
+            INSERT INTO chat_signal_counts (organization_id, period_start, granularity, surface, signal, value, destination, turns)
+            VALUES ('a30', $1::date, 'week', 'direct', 'outcome', 'clean', 'external', 1)`, [shift(offset)]);
+    }
+    assert.equal(await store.purgeExpired(), 1, 'the setting of a module that is not here is not read');
+    const { rows } = await pg.query(`SELECT period_start::text AS p FROM chat_signal_counts`);
+    assert.deepEqual(rows, [{ p: shift(-96) }]);
 });
 
 test('contributorCount is a number only, excludes guests and other orgs, and handles the default bucket', async () => {

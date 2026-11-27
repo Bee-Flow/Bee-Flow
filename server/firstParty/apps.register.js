@@ -28,6 +28,9 @@ function register() {
         'appStudio/mcpBuilder': () => require('../appStudio/mcpBuilder'),
         'appStudio/mailboxIdentity': () => require('../appStudio/mailboxIdentity'),
         'stores/studioApp/accountErasure': () => require('../stores/studioApp/accountErasure'),
+        'stores/adoption/kinds.apps': () => require('../stores/adoption/kinds.apps'),
+        'core/kb/usage/apps': () => require('../core/kb/usage/apps'),
+        'stores/agent/usage/apps': () => require('../stores/agent/usage/apps'),
     }));
 }
 

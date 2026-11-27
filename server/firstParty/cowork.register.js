@@ -18,6 +18,8 @@ function register() {
         'core/cowork/outcomeTool': () => require('../core/cowork/outcomeTool.mts'),
         'core/cowork/habits/habitSignals': () => require('../core/cowork/habits/habitSignals.mts'),
         'stores/coworkStore': () => require('../stores/coworkStore'),
+        'stores/adoption/kinds.cowork': () => require('../stores/adoption/kinds.cowork'),
+        'stores/agent/usage/cowork': () => require('../stores/agent/usage/cowork'),
     }));
     contribute('boot/featureRegistrations', () => require('../core/cowork/runnerPorts'));
 }

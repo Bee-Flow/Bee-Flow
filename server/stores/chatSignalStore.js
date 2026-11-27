@@ -293,17 +293,23 @@ function makeRetention(q) {
     /**
      * Retention: whole periods (weeks, or days for website visitors) go once
      * all of the period is older than the org's retention, 30-90 days with
-     * 90 for an org without a setting. One statement over every org.
+     * 90 for an org without a setting. One statement over every org. The
+     * org's setting is the compliance module's (stores/chatSignal/retentionDays.js),
+     * reached as a data duty: without that module every org has the default.
      * @returns {Promise<number>}
      */
     async function purgeExpired() {
+        const { moduleForDataDuty } = require('../modules/firstParty/moduleData');
+        const part = await moduleForDataDuty('compliance', 'stores/chatSignal/retentionDays',
+            { duty: 'apply each organisation\'s retention to the chat signal counts', whenDataPresent: 'warn' });
+        const own = part ? part.ORG_RETENTION : { join: '', days: 'NULL::int' };
         const r = await q(`
             DELETE FROM chat_signal_counts c
             USING (
                 SELECT o.organization_id,
-                       LEAST(${V.RETENTION.max}, GREATEST(${V.RETENTION.min}, COALESCE(s.chat_monitoring_retention_days, ${V.RETENTION.default}))) AS days
+                       LEAST(${V.RETENTION.max}, GREATEST(${V.RETENTION.min}, COALESCE(${own.days}, ${V.RETENTION.default}))) AS days
                 FROM (SELECT DISTINCT organization_id FROM chat_signal_counts) o
-                LEFT JOIN compliance_settings s ON s.organization_id = o.organization_id
+                ${own.join}
             ) r
             WHERE c.organization_id = r.organization_id
               AND c.period_start + (CASE WHEN c.granularity = 'week' THEN 7 ELSE 1 END) <= CURRENT_DATE - r.days

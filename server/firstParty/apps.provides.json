@@ -13,6 +13,9 @@
     "stores/studioAppData/runLogStore",
     "stores/studioAppData/webhookTriggers",
     "stores/studioAppData/runPolicy",
+    "stores/adoption/kinds.apps",
+    "core/kb/usage/apps",
+    "stores/agent/usage/apps",
     "stores/studioApp/accountErasure"
   ]
 }

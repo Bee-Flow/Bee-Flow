@@ -9,6 +9,9 @@
     "auth/webpagePreviewToken",
     "stores/webpageStore",
     "core/webpages/webpageUsageSync",
+    "stores/adoption/kinds.webpages",
+    "core/kb/usage/webpages",
+    "stores/agent/usage/webpages",
     "integrations/webpageAutomationTools",
     "stores/webpage/accountErasure"
   ]

@@ -4,9 +4,10 @@
  * uses it: one row per kind for the overview, and the objects of one kind for
  * the drill-down.
  *
- * Every kind is read inside its own try/catch: a table that is missing (a
- * module this install does not run) or a store having a bad day drops that
- * kind to zeros and marks the answer partial, never the whole answer. A kind
+ * The kinds are this installation's (kinds.js: a module that is not here
+ * leaves its kinds out). Every kind is read inside its own try/catch: a table
+ * that is missing or a store having a bad day drops that kind to zeros and
+ * marks the answer partial, never the whole answer. A kind
  * the organisation's licence leaves out is still listed, with total 0: the
  * report never answers 403 for one kind.
  *
@@ -20,7 +21,7 @@
 
 const log = require('../../telemetry/log');
 const { PLATFORM_OPERATOR_ID } = require('../../auth/platformOperator');
-const { KINDS } = require('./kinds');
+const { kinds: kindsHere } = require('./kinds');
 const { getAreaBreakdown, getAreaTimeline } = require('./areas');
 const {
     areaOfKind, isoWeeksOf, weekBucketSql, weekKey,
@@ -30,7 +31,7 @@ const {
 /**
  * @typedef {import('./shared').Scope} Scope
  * @typedef {import('./shared').AdoptionDeps} AdoptionDeps
- * @typedef {import('./kinds').KindDef} KindDef
+ * @typedef {import('./kindSql').KindDef} KindDef
  * @typedef {{ events: number, people: number | null, label: string }} Usage
  * @typedef {{
  *   kind: string, total: number, published: number, makers: number, newInPeriod: number,
@@ -207,7 +208,7 @@ async function getStudioOverview(d, scope, actors = null) {
         partial = true;
         log.warn('[Adoption] studio area costs failed:', /** @type {Error} */ (err)?.message || err);
     }
-    const kinds = await Promise.all(KINDS.map(async (def) => {
+    const kinds = await Promise.all(kindsHere().map(async (def) => {
         try {
             return await kindRow(d, def, scope, costs, actors);
         } catch (err) {
@@ -231,7 +232,7 @@ async function getOwners(d, orgId) {
     const byOwner = new Map();
     /** @type {string[]} */
     const failed = [];
-    await Promise.all(KINDS.map(async (def) => {
+    await Promise.all(kindsHere().map(async (def) => {
         try {
             const rows = await d.db.getAll(
                 `SELECT owner, COUNT(*)::int AS n, MIN(created_at) AS first FROM (${def.objects}) o

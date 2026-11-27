@@ -4,6 +4,7 @@
     "stores/transcriptCrypto",
     "routes/transcriptions/shared",
     "routes/teamsProviderTest",
+    "stores/adoption/kinds.meetingNotes",
     "integrations/transcriptionTools",
     "stores/transcription/accountErasure"
   ],
