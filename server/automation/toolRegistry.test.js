@@ -28,6 +28,7 @@ const fs = require('node:fs');
 const {
     TOOL_REGISTRY, INLINE_TOOL_APPS, ALL_TOOL_APPS, loadTools, appEntryFor,
 } = require('./toolRegistry');
+const { assertInlineApp, NOTEBOOKS_INLINE_APP } = require('./toolRegistry.testkit');
 
 const idsOf = (list) => list.map(e => e.app);
 
@@ -57,28 +58,8 @@ test('browse_web is toe te schrijven aan een app — de helft die de rechtenlaag
 
 test('elke inline app laadt echt tools, en zegt hoe een "niet beschikbaar" gelezen moet worden', () => {
     assert.ok(INLINE_TOOL_APPS.length > 0);
-    for (const entry of INLINE_TOOL_APPS) {
-        const tools = loadTools(entry);
-        assert.ok(tools.length > 0, `${entry.app}: ${entry.module}.${entry.arrayName} laadt niets`);
-        for (const t of tools) {
-            assert.strictEqual(typeof t?.function?.name, 'string', `${entry.app}: tool zonder naam`);
-        }
-        // Silence about an inline app is not a choice: the picker never showed it, so nobody can have left it
-        // standing. See toolPolicy.js.
-        assert.strictEqual(entry.grantsRequireEntry, true,
-            `${entry.app}: een inline app moet expliciet gegund worden`);
-        // "Afwezig op deze installatie" is something different from "jij hebt hem niet verbonden". The picker must
-        // be able to say that difference — and where an app sits behind SEVERAL gates (the browser: docker probe
-        // AND org entitlement; the notebooks: feature flag, entitlement and `use_notebooks`) they are listed both,
-        // because naming one of them is a claim that the measurement does not yield.
-        const kinds = Array.isArray(entry.availability) ? entry.availability : [entry.availability];
-        assert.ok(kinds.length > 0, `${entry.app}: availability moet zeggen WAAROM een app kan ontbreken`);
-        for (const kind of kinds) {
-            assert.ok(['installation', 'connection', 'permission'].includes(kind),
-                `${entry.app}: onbekende availability "${kind}"`);
-        }
-        assert.strictEqual(new Set(kinds).size, kinds.length, `${entry.app}: dubbele availability`);
-    }
+    // The notebooks module's inline app answers to the same checks in toolRegistry.notebooks.test.js.
+    for (const entry of INLINE_TOOL_APPS.filter((e) => e.app !== NOTEBOOKS_INLINE_APP)) assertInlineApp(entry);
 });
 
 // ── Two entries, one set of tool names (A2-4) ──────────────────────

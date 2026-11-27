@@ -13,7 +13,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+const { loadTree } = require('../i18n/defaults/treeI18n.testkit');
 const { NL_TRANSLATIONS: BOOT_LIST, LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
 
 const NAMES = fs.readdirSync(__dirname)
@@ -26,12 +26,12 @@ const holes = (s) => (String(s).match(/\{\{?[a-z0-9_][a-z0-9_.]*\}?\}/gi) || [])
 /** Number of ICU plural/select blocks. */
 const icu = (s) => (String(s).match(/\{\s*\w+\s*,\s*(plural|select)/g) || []).length;
 
-const mods = new Map();
-for (const name of NAMES) {
-    let mod;
-    try { mod = require(`./${name}`); } catch { mod = null; }
-    mods.set(name, mod);
-}
+// Every catalogue and the English dictionary of the WHOLE tree, every root, read in one go
+// (i18n/defaults/treeI18n.testkit.js): this guards the repository, not one edition, so in core mode the
+// catalogues a module owns and the namespaces of hidden modules are read all the same.
+const TREE = loadTree(NAMES);
+const { english: GUI_DEFAULTS } = TREE;
+const mods = new Map(NAMES.map((name) => [name, TREE.catalogues[name] || null]));
 const withTable = NAMES.filter((n) => {
     const t = mods.get(n)?.NL_TRANSLATIONS;
     return t && typeof t === 'object';
@@ -91,7 +91,7 @@ for (const name of NAMES) {
         } else {
             assert.ok(BOOT_LIST.includes(name), 'add it to the NL_TRANSLATIONS list in boot/bootMigrations.js');
         }
-        assert.strictEqual(typeof mods.get(name).up, 'function');
+        assert.strictEqual(TREE.upTypes[name], 'function');
     });
 }
 

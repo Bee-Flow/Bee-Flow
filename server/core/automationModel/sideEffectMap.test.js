@@ -22,7 +22,37 @@
 const assert = require('assert');
 const test = require('node:test');
 const { isSideEffect, READ_ONLY, SIDE_EFFECTS } = require('./sideEffectMap');
-const { ALL_TOOL_APPS, loadTools } = require('../../automation/toolRegistry');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+
+const REGISTRY = path.resolve(__dirname, '../../automation/toolRegistry.js');
+
+/**
+ * Every app of ALL_TOOL_APPS with the tool names it loads, over the WHOLE tree: the map has to
+ * place every tool of the repository, the modules' included. In core mode (BEEFLOW_HIDE_MODULES)
+ * the modules' tool files do not load here, so the registry is read in a child process with
+ * every module visible; otherwise in this process (the same answer).
+ * @returns {{ app: string, names: string[] }[]}
+ */
+function registryTools() {
+    const code = [
+        'const { ALL_TOOL_APPS, loadTools } = require(process.argv[1]);',
+        'const out = ALL_TOOL_APPS.map((e) => ({ app: e.app, names: loadTools(e).map((t) => t?.function?.name).filter(Boolean) }));',
+        'process.stdout.write(`\\n@@result@@${JSON.stringify(out)}`);',
+        'process.exit(0);', // regexGeneratorTools keeps the event loop open
+    ].join('\n');
+    if (!process.env.BEEFLOW_HIDE_MODULES) {
+        const { ALL_TOOL_APPS, loadTools } = require(REGISTRY);
+        return ALL_TOOL_APPS.map((/** @type {any} */ e) => ({ app: e.app, names: loadTools(e).map((/** @type {any} */ t) => t?.function?.name).filter(Boolean) }));
+    }
+    /** @type {NodeJS.ProcessEnv} */
+    const env = { ...process.env };
+    for (const key of ['BEEFLOW_HIDE_MODULES', 'NODE_TEST_CONTEXT']) delete env[key];
+    const r = spawnSync(process.execPath, ['--require', path.resolve(__dirname, '../../moduleRoots.cjs'), '-e', code, REGISTRY],
+        { cwd: path.resolve(__dirname, '../..'), env, encoding: 'utf8', timeout: 120_000, maxBuffer: 64 * 1024 * 1024 });
+    assert.strictEqual(r.status, 0, `loading the registry failed: ${r.stderr}`);
+    return JSON.parse(r.stdout.slice(r.stdout.lastIndexOf('@@result@@') + '@@result@@'.length)); // after anything a file logged
+}
 
 // ── every registry tool is classified in exactly one set ──
 //
@@ -36,14 +66,8 @@ test('every tool of every app in ALL_TOOL_APPS is classified exactly once', () =
     const unclassified = [];
     const doubleClassified = [];
     let total = 0;
-    for (const entry of ALL_TOOL_APPS) {
-        let tools = [];
-        try { tools = loadTools(entry); } catch (e) {
-            assert.fail(`loadTools failed for app "${entry.app}": ${e.message}`);
-        }
-        for (const t of tools) {
-            const name = t?.function?.name;
-            if (!name) continue;
+    for (const entry of registryTools()) {
+        for (const name of entry.names) {
             total++;
             const isRead = READ_ONLY.has(name);
             const isWrite = SIDE_EFFECTS.has(name);

@@ -58,7 +58,8 @@
         "jobs/kbSourceRefresh.liveDatatable.datatables.test.js",
         "core/kb/sources/cloudFolder.datatables.test.js",
         "core/tools/toolDispatcher.datatableIdentity.test.js",
-        "stores/user/organizations.datatables.test.js"
+        "stores/user/organizations.datatables.test.js",
+        "migrations/add-nl-datatable-quota-translations.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/Datatables/**",
@@ -136,7 +137,24 @@
         "core/kb/queryLog/channels.automation.pg.test.js",
         "core/tools/toolDispatcher.agentCall.test.js",
         "routes/studio/search.automation.test.js",
-        "core/integrations/integrationTools.agentAutomations.test.js"
+        "core/integrations/integrationTools.agentAutomations.test.js",
+        "migrations/add-nl-automation-run-access-translations.js",
+        "migrations/add-nl-automation-testing-cases-translations.js",
+        "migrations/add-nl-automation-testing-translations.js",
+        "migrations/add-nl-code-step-translations.js",
+        "migrations/data/code-step-nl.json",
+        "migrations/add-nl-flatten-node-translations.js",
+        "migrations/add-nl-repeating-work-translations.js",
+        "migrations/add-nl-routines-nodes-translations.js",
+        "core/automationRunner/documentMarking.automation.test.js",
+        "core/automationRunner/featurePorts.automation.test.js",
+        "core/findings/finding.automation.test.js",
+        "core/privacy/customTypes/callSites.automation.test.js",
+        "i18n/defaults/en.meeting-trigger-scope.test.js",
+        "mcpServers/tuya/events.automation.test.js",
+        "utils/nextcloudErrorClassifier.automation.test.js",
+        "utils/stepErrorInfo.js",
+        "utils/stepErrorTexts.mts"
       ],
       "agent-hub": [
         "src/components/automation/**",
@@ -286,7 +304,11 @@
         "core/documents/documentDiscovery.apps.test.js",
         "core/integrations/outlookMailbox.apps.test.js",
         "core/kb/queryLog/channels.apps.pg.test.js",
-        "jobs/platformRetention.apps.test.js"
+        "jobs/platformRetention.apps.test.js",
+        "migrations/add-nl-app-studio-documents-2026-10-translations.js",
+        "migrations/add-nl-namespace-files.apps.test.js",
+        "core/findings/finding.apps.test.js",
+        "i18n/defaults/en.discovery.apps.test.js"
       ],
       "agent-hub": [
         "src/components/admin/Studio/AppStudio/**",
@@ -376,7 +398,13 @@
         "i18n/defaults/en/dsr_public.js",
         "utils/compliancePdf.js",
         "firstParty/compliance{,.*}.{js,json}",
-        "routes/knowledgeBases/queryLog.compliance.test.js"
+        "routes/knowledgeBases/queryLog.compliance.test.js",
+        "migrations/add-nl-ai-act-register-2026-11-translations.js",
+        "migrations/update-nl-compliance-detect-2026-10.js",
+        "migrations/update-nl-legal-register-2026-10.js",
+        "migrations/data/legal-register-2026-10-nl.json",
+        "i18n/defaults/en.legal-wording.test.js",
+        "core/automationRunner/documentMarking.compliance.test.js"
       ],
       "agent-hub": [
         "src/components/admin/compliance/**",
@@ -446,7 +474,9 @@
         "shared/cmsReact/**",
         "i18n/defaults/en/cms_*.js",
         "migrations/cms-routine-demo-2026-10{,.*}.js",
-        "firstParty/cms{,.*}.{js,json}"
+        "firstParty/cms{,.*}.{js,json}",
+        "migrations/add-nl-cms-blog-translations.js",
+        "migrations/data/cms-blog-nl.json"
       ],
       "agent-hub": [
         "src/marketing/**",
@@ -497,7 +527,8 @@
         "firstParty/webpages{,.*}.{js,json}",
         "core/kb/queryLog/channels.webpages.pg.test.js",
         "routes/knowledgeBases/sources.webpages.test.js",
-        "core/integrations/integrationTools.webpagesGate.test.js"
+        "core/integrations/integrationTools.webpagesGate.test.js",
+        "core/providers/claude.repairTurn.test.js"
       ],
       "agent-hub": [
         "src/components/webpages/**",
@@ -539,7 +570,10 @@
         "i18n/defaults/en/notebooks.js",
         "i18n/defaults/nl/notebooks.json",
         "firstParty/notebooks{,.*}.{js,json}",
-        "core/integrations/integrationTools.notebooks.test.js"
+        "core/integrations/integrationTools.notebooks.test.js",
+        "automation/toolRegistry.notebooks.test.js",
+        "core/collab/notebookRebase.notebooks.test.js",
+        "core/conversation/incognito.notebooks.test.js"
       ],
       "agent-hub": [
         "src/pages/documents/notebook/**",
@@ -631,7 +665,10 @@
         "stores/user/userSecretKeys.meetingNotes.test.js",
         "stores/notebookStore.project.meetingNotes.pg.test.js",
         "stores/encryptionBackfill.meetingNotes.test.js",
-        "core/meetingNotes/teamsAppImport/settings.test.js"
+        "core/meetingNotes/teamsAppImport/settings.test.js",
+        "migrations/add-nl-meeting-import-translations-2026-10.js",
+        "migrations/add-nl-teams-setup-2026-11-translations.js",
+        "core/media/ffmpeg.meetingNotes.test.js"
       ],
       "agent-hub": [
         "src/pages/meeting-notes/**",
@@ -712,7 +749,11 @@
         "i18n/defaults/en/training.js",
         "migrations/learning-routine-ids-2026-10{,.*}.js",
         "migrations/data/learning-routine-id-map.json",
-        "firstParty/learning{,.*}.{js,json}"
+        "firstParty/learning{,.*}.{js,json}",
+        "migrations/add-nl-learn-content-2026-10-translations.js",
+        "migrations/update-nl-learn-action-limits-2026-11.js",
+        "migrations/update-nl-learn-cowork-2026-11.js",
+        "migrations/data/learn-cowork-2026-11-nl.json"
       ],
       "agent-hub": [
         "src/components/onboarding/LessonPlayerHost.tsx",
@@ -975,7 +1016,14 @@
         "core/llm/llmClient.forcedTool.projects.test.js",
         "routes/studio/attentionChecks.projects.test.js",
         "stores/user/projectErasure.projects.test.js",
-        "stores/blueprint/releases.projects.test.js"
+        "stores/blueprint/releases.projects.test.js",
+        "migrations/add-nl-project-collab-client-translations.js",
+        "migrations/add-nl-project-collab-translations.js",
+        "migrations/add-nl-project-golf3-translations.js",
+        "migrations/add-nl-project-golf4-translations.js",
+        "migrations/add-nl-project-rail-translations.js",
+        "core/findings/finding.projects.test.js",
+        "i18n/translate.projects.test.js"
       ],
       "agent-hub": [
         "src/components/projects/**",

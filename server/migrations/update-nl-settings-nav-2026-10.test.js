@@ -13,7 +13,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { NL_TRANSLATIONS, NL_REWORDED, applyNl } = require('./update-nl-settings-nav-2026-10');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 /** Every Dutch value any other catalogue (module table, module source or data file) ships. */
 function shippedDutch() {

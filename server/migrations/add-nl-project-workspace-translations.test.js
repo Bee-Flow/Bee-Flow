@@ -13,7 +13,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = require('./add-nl-project-workspace-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 /** Whole namespaces this catalogue owns: every key in them needs Dutch. */
 const OWNED_NAMESPACES = ['project_home.', 'project_chat.', 'project_content.'];
@@ -65,11 +66,11 @@ test('the catalogue only holds keys it owns', () => {
  * them covers counts as covered here. The whole namespaces stay owned: a key
  * that no catalogue translates still turns this test red.
  */
-const LATER_ROUNDS = [
-    require('./add-nl-collaboration-wave2-editor-versions-translations'),
-    require('./add-nl-project-tasks-translations'),
-    require('./add-nl-project-rail-translations'),
-];
+const LATER_ROUNDS = Object.values(require('../i18n/defaults/treeI18n.testkit').catalogues([
+    'add-nl-collaboration-wave2-editor-versions-translations',
+    'add-nl-project-tasks-translations',
+    'add-nl-project-rail-translations',
+]));
 
 test('every owned English key has Dutch, or is declared identical', () => {
     const covered = new Set([

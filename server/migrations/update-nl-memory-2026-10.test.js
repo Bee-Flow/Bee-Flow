@@ -13,14 +13,16 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { NL_TRANSLATIONS, NL_REWORDED, applyNl } = require('./update-nl-memory-2026-10');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const { english, catalogueFile } = require('../i18n/defaults/treeI18n.testkit');
+const GUI_DEFAULTS = english();
 
 /** Every key some other Dutch catalogue (migration module or data file) already ships. */
 function shippedElsewhere() {
     const out = new Set();
     for (const f of fs.readdirSync(__dirname)) {
         if (!/^add-nl-.*\.js$/.test(f) || f.endsWith('.test.js')) continue;
-        const mod = require(path.join(__dirname, f));
+        const mod = catalogueFile(f); // whole tree: some catalogues are a module's (i18n/defaults/treeI18n.testkit.js)
         for (const k of Object.keys(mod.NL_TRANSLATIONS || {})) out.add(k);
         for (const k of mod.SAME_AS_ENGLISH || []) out.add(k); // the Dutch really is the English word
     }

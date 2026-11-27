@@ -31,6 +31,7 @@ const path = require('path');
 // runStartupTasks() calls its one-shot phase from startupOneShots.js.
 const STARTUP = fs.readFileSync(path.join(__dirname, 'startupOneShots.js'), 'utf8');
 const { NL_TRANSLATIONS, LOOSE_MIGRATIONS, runNlTranslations } = require('./bootMigrations');
+const { absentModule } = require('./migrationLadder');
 
 test('the list is found and non-trivial', () => {
     assert.ok(Array.isArray(NL_TRANSLATIONS) && NL_TRANSLATIONS.length >= 10,
@@ -88,7 +89,10 @@ test('they are awaited in one loop, not fired as parallel setImmediates', async 
         }),
     });
     assert.equal(most, 1, 'two catalogues ran at the same time');
-    assert.deepEqual(ran, NL_TRANSLATIONS, 'the catalogues ran out of order, or not all of them');
+    // A catalogue whose module is not here is skipped by the ladder (boot/migrationLadder.js
+    // absentModule); with every module here that is none of them.
+    const here = NL_TRANSLATIONS.filter((/** @type {string} */ n) => !absentModule(n));
+    assert.deepEqual(ran, here, 'the catalogues ran out of order, or not all of them');
     // What the runner cannot show: a per-migration setImmediate back in
     // startupOneShots.js (one phase of runStartupTasks(), which fires every other
     // boot scheduler), so that file is read as text.

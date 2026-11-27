@@ -10,7 +10,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { NL_TRANSLATIONS, SAME_AS_ENGLISH, applyNl } = require('./add-nl-kb-query-log-translations-2026-11');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 const isOurs = (k) => k.startsWith('knowledge.query_log.') || k === 'knowledge.tab_search_log'
     || k.startsWith('compliance.kql_') || /^compliance\.(rail|tab|dsr_discovery|aa_action)_kb_query_log/.test(k)

@@ -15,7 +15,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { NL_REWORDED, DATA_SHA256, manifestHash, applyNl } = require('./update-nl-admin-dashboard-2026-11');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 /** The catalogues that seed Dutch: a migration and its data file (none: the Dutch is inline in the migration). */
 const UI_COMPLETE = { migration: 'add-nl-ui-complete-2026-10-translations', data: 'ui-complete-2026-10-nl.json' };
@@ -80,6 +81,12 @@ const dataTable = (text) => {
 const seededData = (file) => dataTable(fs.readFileSync(path.join(__dirname, 'data', file), 'utf8')).translations;
 /** @param {string} rev @param {string} file a path relative to this folder */
 const gitShow = (rev, file) => require('node:child_process').execFileSync('git', ['show', `${rev}:./${file}`], { cwd: __dirname, maxBuffer: 1 << 28 }).toString('utf8');
+/**
+ * Every catalogue of the boot ladder, read once from the whole tree (i18n/defaults/treeI18n.testkit.js): some
+ * of them are a module's, and their tables are what this test compares.
+ * @returns {Record<string, Record<string, any>>}
+ */
+const ladderTables = () => require('../i18n/defaults/treeI18n.testkit').catalogues(require('../boot/bootMigrations').NL_TRANSLATIONS);
 /** A string as the inline catalogues write it: single quotes, backslash escapes. */
 const singleQuoted = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')}'`;
 /**
@@ -90,7 +97,7 @@ const singleQuoted = (s) => `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").re
  * @returns {Promise<Record<string, string>>}
  */
 async function seededTable(migration) {
-    const mod = require(`./${migration}`);
+    const mod = ladderTables()[migration];
     const table = mod.NL_TRANSLATIONS || mod.SEEDED_NL;
     assert.ok(table, `${migration} exports no NL_TRANSLATIONS or SEEDED_NL: export its table so this test can read what it seeds`);
     return table;
@@ -151,7 +158,7 @@ test('SHIPPED_BY names every catalogue of the boot ladder that seeds a reworded 
     const seeders = {};
     for (const name of ladder) {
         if (name === 'update-nl-admin-dashboard-2026-11') continue;
-        const mod = require(`./${name}`);
+        const mod = ladderTables()[name];
         // A catalogue that keeps its table to itself is read through its up(), when it is a listed one.
         const table = mod.NL_TRANSLATIONS || (listed.has(name) ? await seededTable(name) : {});
         for (const key of Object.keys(NL_REWORDED)) {

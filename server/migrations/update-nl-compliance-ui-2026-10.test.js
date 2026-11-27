@@ -14,7 +14,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { NL_TRANSLATIONS, NL_REWORDED, applyNl, DATA_SHA256 } = require('./update-nl-compliance-ui-2026-10');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 const SEED = require('./data/compliance-center-nl.json');
 const COLLAB = require('./add-nl-collaboration-wave2-documents-compliance-translations');
 

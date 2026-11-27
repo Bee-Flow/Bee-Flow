@@ -19,8 +19,10 @@ const SS = require('./add-nl-datatables-spreadsheets-translations');
 // catalogue, which is the fourth member of the union.
 const FA = require('./add-nl-forms-answers-translations');
 // … and the storage-limit refusals (`datatables.quota_*`) have their own, the fifth.
-const QU = require('./add-nl-datatable-quota-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// (The datatables module's own catalogue: read from the whole tree, i18n/defaults/treeI18n.testkit.js.)
+const QU = require('../i18n/defaults/treeI18n.testkit').catalogue('add-nl-datatable-quota-translations');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 test('every English datatables.* key has a Dutch one (or is declared identical)', () => {
     // The other direction, and the one that actually decides whether a Dutch

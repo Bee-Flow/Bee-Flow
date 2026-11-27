@@ -11,7 +11,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { NL_TRANSLATIONS, SAME_AS_ENGLISH } = require('./add-nl-learning-foundations-translations');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 test('no Dutch value is blank or the English one copied over', () => {
     const SAME_IN_BOTH = new Set(SAME_AS_ENGLISH);

@@ -14,7 +14,8 @@ const assert = require('node:assert/strict');
 const { renameKey, rewordNl, renameBlob } = require('./rename-routine-i18n-2026-10');
 const SHIPPED_NL = require('./data/routine-nl-shipped.json');
 const PANEL_KEYS = require('./data/agent-schedules-key-map.json');
-const { GUI_DEFAULTS } = require('../i18n/defaults/en');
+// The dictionary of every root: this catalogue mixes core and module keys (i18n/defaults/treeI18n.testkit.js).
+const GUI_DEFAULTS = require('../i18n/defaults/treeI18n.testkit').english();
 
 test('a key takes the name the code gave it', () => {
     assert.equal(renameKey('routines.builder.save'), 'automations.builder.save');
