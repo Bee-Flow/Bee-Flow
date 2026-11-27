@@ -64,7 +64,7 @@ export function spacingFlushClasses(style: BlockStyle): string[] {
     return out;
 }
 
-const DISPLAY_TRACKING_EM =new Map<string, string>([
+const DISPLAY_TRACKING_EM = new Map<string, string>([
     ['tight', '-0.03em'],
     ['tighter', '-0.045em'],
     ['tightest', '-0.06em'],

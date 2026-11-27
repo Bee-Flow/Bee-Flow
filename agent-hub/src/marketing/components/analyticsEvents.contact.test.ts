@@ -30,13 +30,19 @@ describe('analyticsEvents contact_click', () => {
         clickFirst('<section data-cms-block-id="blk_c" data-cms-block-type="content"><a href="mailto:sales@example.com?subject=Hi">Mail us</a></section>');
         expect(tracked).toEqual([{
             name: 'contact_click',
-            data: { kind: 'mail', label: 'Mail us', block: 'blk_c', blockType: 'content' },
+            data: { kind: 'mail', block: 'blk_c', blockType: 'content' },
         }]);
     });
 
     it('tracks a tel link as contact_click kind phone', () => {
         clickFirst('<a class="btn" href="tel:+31201234567">Call</a>');
-        expect(tracked).toEqual([{ name: 'contact_click', data: { kind: 'phone', label: 'Call' } }]);
+        expect(tracked).toEqual([{ name: 'contact_click', data: { kind: 'phone' } }]);
+    });
+
+    it('never sends the link text: a mailto link can show a person\'s name', () => {
+        clickFirst('<section data-cms-block-id="blk_t" data-cms-block-type="team"><a href="mailto:jan@example.com">Jan de Vries</a></section>');
+        expect(tracked).toEqual([{ name: 'contact_click', data: { kind: 'mail', block: 'blk_t', blockType: 'team' } }]);
+        expect(JSON.stringify(tracked)).not.toContain('Vries');
     });
 
     it('matches the scheme case-insensitively and with leading spaces', () => {

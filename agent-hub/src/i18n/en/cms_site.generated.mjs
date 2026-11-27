@@ -112,6 +112,7 @@ export default {
     "cms_site.analytics.events.empty": "No interactions recorded yet. The published site tracks button clicks, form submissions, outbound links and file downloads automatically — they appear here as soon as a visitor uses the site.",
     "cms_site.analytics.events.filter_by": "Filter the dashboard by {value}",
     "cms_site.analytics.events.interactions": "{n} interactions",
+    "cms_site.analytics.events.label_contact_click": "E-mail and phone link clicks",
     "cms_site.analytics.events.label_cta_click": "Button & link clicks",
     "cms_site.analytics.events.label_file_download": "File downloads",
     "cms_site.analytics.events.label_form_submit": "Form submissions",

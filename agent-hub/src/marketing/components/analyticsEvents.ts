@@ -9,7 +9,7 @@ import { logger } from '../../utils/logger';
  *   cta_click     — a button-styled control (the site's Button) or a link inside a block
  *   outbound_click— a link to another host
  *   file_download — a link to a document-ish file
- *   contact_click — a mailto: or tel: link (kind mail|phone; never the address)
+ *   contact_click — a mailto: or tel: link (kind mail|phone and the block; never the address or the link text)
  *   form_start    — the first focus in a form, once per form per page view
  *   form_submit   — a form submission attempt
  *   form_success  — a submission the server accepted (sent by the form itself)
@@ -109,23 +109,16 @@ function contactKind(href: string | null): 'mail' | 'phone' | null {
     return null;
 }
 
-/** A visible label that shows the address or number itself is left out. */
-function contactLabel(label: string): string | undefined {
-    if (!label || label.includes('@')) return undefined;
-    let digits = 0;
-    for (const ch of label) if (ch >= '0' && ch <= '9') digits += 1;
-    return digits >= 5 ? undefined : label;
-}
-
 /**
- * A mailto: or tel: link: contact_click with the kind and the block, never the
- * address or number. Returns true when it was one (so no other event follows).
+ * A mailto: or tel: link: contact_click with the kind and the block only.
+ * Never the address or number, and never the link text either: a contact link
+ * often shows a person's name ("Jan de Vries"), and personal data does not
+ * leave Bee Flow. Returns true when it was one (so no other event follows).
  */
-function trackContact(href: string | null, label: string, block: { block?: string; blockType?: string }) {
+function trackContact(href: string | null, block: { block?: string; blockType?: string }) {
     const kind = contactKind(href);
     if (!kind) return false;
-    const safeLabel = contactLabel(label);
-    track('contact_click', { kind, ...(safeLabel ? { label: safeLabel } : {}), ...block });
+    track('contact_click', { kind, ...block });
     return true;
 }
 
@@ -170,7 +163,7 @@ function onClick(e: MouseEvent) {
     const label = labelFor(el);
     const block = blockOf(el);
 
-    if (trackContact(href, label, block) || trackLink(href, label, block)) return;
+    if (trackContact(href, block) || trackLink(href, label, block)) return;
 
     // A bare internal link outside a block is ordinary navigation and is
     // already captured as a pageview, so it is not worth an event.

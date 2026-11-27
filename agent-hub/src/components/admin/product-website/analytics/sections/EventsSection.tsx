@@ -27,6 +27,7 @@ const EVENT_LABELS: Record<string, { key: string; en: string }> = {
     form_submit: { key: 'cms_site.analytics.events.label_form_submit', en: 'Form submissions' },
     outbound_click: { key: 'cms_site.analytics.events.label_outbound_click', en: 'Clicks to other sites' },
     file_download: { key: 'cms_site.analytics.events.label_file_download', en: 'File downloads' },
+    contact_click: { key: 'cms_site.analytics.events.label_contact_click', en: 'E-mail and phone link clicks' },
 };
 const eventLabel = (name: string, t: TranslateFn) => (EVENT_LABELS[name] ? t(EVENT_LABELS[name].key, EVENT_LABELS[name].en) : name);
 
